@@ -22,3 +22,7 @@ npm run build
 ## Flujo de trabajo
 
 Cada fase va en su propia rama (`fase-N/...`). Claude hace commit y push; Jay abre el PR y hace el merge.
+
+## Prototipo anterior
+
+`prototipos/mundo-metaverso/index.html` es la primera versión de la sala (HTML suelto, antes de Next.js). Se conserva como referencia.
