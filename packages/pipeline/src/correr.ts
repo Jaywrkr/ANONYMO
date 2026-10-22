@@ -260,3 +260,14 @@ export function publicarCaso(id: string, permiso: string | undefined, resumen?: 
   bitacora(id, `Publicado como caso (permiso: ${permiso.trim()}).`);
   return p;
 }
+
+/** Lo que dijo el cliente sobre el trabajo, con su nombre. Solo para casos públicos y tal como lo escribió. */
+export function testimonio(id: string, texto: string, autor: string, logo?: string) {
+  const p = leerProyecto(id);
+  if (!p.caso?.publico) throw new Error("Primero publica el caso con permiso del cliente: pipeline caso <id> --permiso \"...\"");
+  if (texto.trim().length < 10 || autor.trim().length < 2) throw new Error("Falta el texto (tal cual lo dijo el cliente) o el autor.");
+  p.caso.testimonio = { texto: texto.trim(), autor: autor.trim(), logo };
+  guardarProyecto(p);
+  bitacora(id, `Testimonio agregado (${autor.trim()}).`);
+  return p;
+}

@@ -22,12 +22,13 @@ export interface VistaProyecto {
   /** Publicado como caso, con permiso del cliente. */
   publico?: boolean;
   resumen?: string;
+  testimonio?: { texto: string; autor: string; logo?: string };
   descripcion?: string;
 }
 
 interface EstadoArchivo {
   pedido: { id: string; cliente: string; descripcion?: string };
-  caso?: { publico: boolean; resumen?: string };
+  caso?: { publico: boolean; resumen?: string; testimonio?: { texto: string; autor: string; logo?: string } };
   plan: { fases: number[]; tareas: string[] };
   tareas: Record<string, string>;
   estado: string;
@@ -81,7 +82,7 @@ function leerCliente(id: string): VistaProyecto | undefined {
     };
   }
   const cliente = (p.notasCliente ?? []).map((n) => ({ fecha: n.fecha.slice(0, 10), texto: n.texto, quien: n.quien, agentes: n.tareas.map((t) => t.split(".")[1]) }));
-  return { id, nombre: p.pedido.cliente, fases: p.plan.fases, mensajes, nota: local() ? leerEntrega(id, "6.trofeo")?.nota : undefined, estado: p.estado, cliente, publico: !!p.caso?.publico, resumen: p.caso?.resumen, descripcion: p.pedido.descripcion };
+  return { id, nombre: p.pedido.cliente, fases: p.plan.fases, mensajes, nota: local() ? leerEntrega(id, "6.trofeo")?.nota : undefined, estado: p.estado, cliente, publico: !!p.caso?.publico, resumen: p.caso?.resumen, testimonio: p.caso?.publico ? p.caso.testimonio : undefined, descripcion: p.pedido.descripcion };
 }
 
 /**
@@ -106,3 +107,9 @@ export function rutasDeEntregas() {
 
 /** Casos publicados con permiso del cliente. */
 export const casosPublicos = () => listarProyectos().filter((p) => p.id !== "agencia" && p.publico);
+
+/** Testimonios reales: solo de casos públicos, tal como los dio el cliente. */
+export const testimonios = () =>
+  casosPublicos()
+    .filter((c) => c.testimonio)
+    .map((c) => ({ ...c.testimonio!, caso: c.id, cliente: c.nombre }));

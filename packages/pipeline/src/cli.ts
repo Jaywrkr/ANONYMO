@@ -21,7 +21,7 @@ import { revisarSistema } from "./doctor.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
-import { aprobar, avanzar, cambiar, publicarCaso, cambiarPausas, cambiarResponsable, cambiarUrl, nuevo, parar, reanudar, responsable, restaurar } from "./correr.ts";
+import { aprobar, avanzar, cambiar, publicarCaso, testimonio, cambiarPausas, cambiarResponsable, cambiarUrl, nuevo, parar, reanudar, responsable, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
 import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
 import { elegirMotor } from "./motor.ts";
@@ -49,6 +49,8 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   archivos  <id>                 lista los archivos del proyecto
   caso      <id> --permiso "cómo lo autorizó el cliente" [--resumen "..."] | --retirar
                                  muestra el proyecto como caso en /casos (nunca sin permiso)
+  testimonio <id> "lo que dijo, tal cual" --autor "Nombre, cargo" [--logo archivo.svg]
+                                 solo en casos públicos; nunca inventado
   idioma    <id> es|en           idioma de las entregas, el portal y el PDF (rehace con: cambiar)
   doctor    [--en-vivo]          qué está listo y qué falta configurar
   subir     <id>                 copia el proyecto al almacén privado (Supabase)
@@ -252,6 +254,10 @@ async function main() {
     case "caso": {
       const p = publicarCaso(necesitaId(), texto(op.permiso), texto(op.resumen), op.retirar === true);
       return console.log(p.caso?.publico ? `Publicado en /casos/${id} al compilar la web.` : "Retirado de /casos.");
+    }
+    case "testimonio": {
+      testimonio(necesitaId(), pos[2] ?? "", texto(op.autor) ?? "", texto(op.logo));
+      return console.log("Testimonio guardado: aparece en el inicio y en /casos al compilar la web.");
     }
     case "idioma": {
       const p = leerProyecto(necesitaId());
