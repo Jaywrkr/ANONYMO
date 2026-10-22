@@ -1,5 +1,5 @@
 // Corre un proyecto hasta la siguiente pausa y maneja las decisiones de Jay y Luna.
-import { agentePorId, FASES } from "@anonymo/agentes";
+import { agentePorId, FASES, NOMBRE_SOCIO, RESPONSABLE_FASE } from "@anonymo/agentes";
 import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
@@ -72,7 +72,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       p.estado = "esperando";
       guardarProyecto(p);
       bitacora(id, `Pausa al cerrar ${nombreFase(fase)}.`);
-      await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `Terminó ${nombreFase(fase)}`, texto: "El equipo terminó la fase y espera tu decisión: aprobar, pedir cambios o parar." });
+      await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `Terminó ${nombreFase(fase)} · le toca a ${NOMBRE_SOCIO[responsable(p, fase)]}`, texto: `El equipo terminó la fase y espera la decisión de ${NOMBRE_SOCIO[responsable(p, fase)]}: aprobar, pedir cambios o parar.` });
       return p;
     }
     puerta(p, { fase, decision: "sigue", quien: "auto" });
@@ -113,6 +113,18 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
   return p;
 }
 
+/** A quién le toca aprobar una fase de este proyecto. */
+export const responsable = (p: Proyecto, fase: number) => p.pedido.responsables?.[fase] ?? RESPONSABLE_FASE[fase] ?? "jay";
+
+/** Cambia quién aprueba una fase en este proyecto. */
+export function cambiarResponsable(id: string, fase: number, socio: "jay" | "luna") {
+  const p = leerProyecto(id);
+  p.pedido.responsables = { ...p.pedido.responsables, [fase]: socio };
+  guardarProyecto(p);
+  bitacora(id, `${NOMBRE_SOCIO[socio]} aprueba ahora la fase ${fase}.`);
+  return p;
+}
+
 function puerta(p: Proyecto, x: Omit<Puerta, "fecha">) {
   p.puertas.push({ ...x, fecha: new Date().toISOString() });
 }
@@ -123,8 +135,11 @@ function esperando(id: string) {
   return p;
 }
 
-export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso) {
+export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, forzar = false) {
   const p = esperando(id);
+  const toca = responsable(p, p.faseActual);
+  if ((quien === "jay" || quien === "luna") && quien !== toca && !forzar && !p.esperaJurado)
+    throw new Error(`Esta fase la aprueba ${NOMBRE_SOCIO[toca]}. Si igual quieres aprobarla, usa forzar (terminal: --forzar).`);
   if (p.esperaJurado) {
     p.juradoAceptado = true;
     p.esperaJurado = false;

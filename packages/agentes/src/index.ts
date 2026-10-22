@@ -110,3 +110,8 @@ export const PEDIDOS: Record<TipoPedido, { nombre: string; fases: number[] }> = 
   lanzamiento: { nombre: "Un lanzamiento", fases: [1, 5, 6] },
   todo: { nombre: "Todo, desde cero", fases: [1, 2, 3, 4, 5, 6, 7] },
 };
+
+/** Quién aprueba cada fase por defecto: Jay producto y números, Luna marca y comunicación. Cada proyecto puede cambiarlo. */
+export type Socio = "jay" | "luna";
+export const RESPONSABLE_FASE: Record<number, Socio> = { 1: "jay", 2: "luna", 3: "luna", 4: "jay", 5: "luna", 6: "jay", 7: "jay" };
+export const NOMBRE_SOCIO: Record<Socio, string> = { jay: "Jay", luna: "Luna" };

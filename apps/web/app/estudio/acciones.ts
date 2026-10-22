@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { anotar, aprobar, cambiarResponsable, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -30,7 +30,7 @@ const silencio = () => {};
 
 export async function accionAprobar(f: FormData) {
   const { id, quien, motor, nota } = leer(f);
-  await correr(id, () => aprobar(id, quien, nota, motor, silencio), "Aprobado. El equipo siguió hasta la próxima pausa.");
+  await correr(id, () => aprobar(id, quien, nota, motor, silencio, f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.");
 }
 
 export async function accionCambiar(f: FormData) {
@@ -132,4 +132,11 @@ export async function accionResponder(f: FormData) {
     const preguntas = leerProyecto(id).plan.preguntas;
     responder(id, Object.fromEntries(preguntas.map((q, i) => [q, String(f.get(`r${i}`) ?? "")])), quien);
   }, "Respuestas anotadas: los agentes las leen desde ahora.");
+}
+
+export async function accionResponsable(f: FormData) {
+  const { id } = leer(f);
+  const fase = Number(f.get("fase"));
+  const socio = f.get("socio") === "luna" ? "luna" : "jay";
+  await correr(id, () => cambiarResponsable(id, fase, socio), `La fase ${fase} la aprueba ahora ${socio === "luna" ? "Luna" : "Jay"}.`);
 }

@@ -16,7 +16,7 @@ import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
-import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar, restaurar } from "./correr.ts";
+import { aprobar, avanzar, cambiar, cambiarPausas, cambiarResponsable, cambiarUrl, nuevo, parar, reanudar, responsable, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
 import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
 import { elegirMotor } from "./motor.ts";
@@ -32,7 +32,8 @@ pipeline · el equipo de 22 agentes trabajando un pedido
             [--sin-marca | --con-marca] [--url https://...] [--pausas clave|nunca|cada-fase|1,4] [--id slug]
   estado    <id>                 dónde va y qué dijo cada agente
   lista                          todos los proyectos
-  aprobar   <id> [--nota "..."]  sigue a la próxima fase
+  aprobar   <id> [--nota "..."] [--forzar]   sigue a la próxima fase (cada fase la aprueba Jay o Luna)
+  responsables <id> [4=jay 5=luna]  quién aprueba cada fase en este proyecto
   cambiar   <id> --nota "..." [--agente orla]   rehace la fase (o un agente)
   parar     <id> [--nota "..."]  detiene el proyecto
   reanudar  <id>                 vuelve a esperar tu decisión
@@ -112,6 +113,7 @@ function resumen(p: Proyecto) {
     console.log(`  npm run pipeline -- cambiar ${id} --nota "..." --agente trofeo   recalificar con tu criterio`);
     console.log(`  npm run pipeline -- parar ${id}`);
   } else if (p.estado === "esperando") {
+    console.log(`\nLe toca a ${responsable(p, p.faseActual) === "luna" ? "Luna" : "Jay"}.`);
     console.log(`\nTerminó ${nombreFase(p.faseActual)}. Revisa ${relative(process.cwd(), CARPETA) || "."}/${id}/entregas y decide:`);
     console.log(`  npm run pipeline -- aprobar ${id}`);
     console.log(`  npm run pipeline -- cambiar ${id} --nota "qué cambiar" [--agente nombre]`);
@@ -177,7 +179,18 @@ async function main() {
       return;
     }
     case "aprobar":
-      return resumen(await aprobar(necesitaId(), quien, texto(op.nota), motor));
+      return resumen(await aprobar(necesitaId(), quien, texto(op.nota), motor, undefined, op.forzar === true));
+    case "responsables": {
+      const p0 = leerProyecto(necesitaId());
+      for (const par of pos.slice(2)) {
+        const [f, s] = par.split("=");
+        if (!["jay", "luna"].includes(s) || !p0.plan.fases.includes(Number(f))) throw new Error(`Formato: 4=jay 5=luna (fases del plan: ${p0.plan.fases.join(", ")})`);
+        cambiarResponsable(p0.pedido.id, Number(f), s as "jay" | "luna");
+      }
+      const p1 = leerProyecto(p0.pedido.id);
+      for (const f of p1.plan.fases) console.log(`  fase ${f}: ${responsable(p1, f) === "luna" ? "Luna" : "Jay"}`);
+      return;
+    }
     case "cambiar": {
       const nota = texto(op.nota);
       if (!nota) throw new Error('Falta --nota "qué cambiar".');
