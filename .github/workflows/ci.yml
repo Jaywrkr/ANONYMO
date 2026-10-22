@@ -1,0 +1,23 @@
+# En cada push y PR: tipos, contrato, pruebas del pipeline y build de la web.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      - run: npx tsc -p packages/pipeline/tsconfig.json
+      - run: npm run lint
+      - run: npm run revisar
+      - run: npm run probar
+      - run: npm run build
