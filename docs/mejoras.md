@@ -47,3 +47,4 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | web/14-modo-noche-manual | Interruptor de luz en el pie: automático (hora de Cuenca), noche o día; se recuerda | Pie de página → "Luz" |
 | web/15-carga-inicial | Primera visita de la sesión: barra fina arriba y "Despertando agentes 12/22" abajo mientras carga el 3D; no tapa el contenido, se va sola y no aparece con movimiento reducido | Automático |
 | web/16-sonido-opcional | Sonidos de Eco, apagados por defecto: al encender suena la firma de dos notas (Jay y Luna), cada agente suena con la nota de su área al tocarlo y la sala marca el cambio de fase. Sintetizados, sin archivos | Pie de página → "Sonido" |
+| web/17-404-con-agente | 404 con Sonda recorriendo la pantalla con su lupa, en los dos idiomas, que sugiere la página más parecida al enlace roto ("¿Buscabas Orla?") y ofrece a dónde ir | Cualquier enlace roto |
