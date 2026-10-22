@@ -4,7 +4,7 @@ import { contratoPorId, existe, leerEntrega, leerProyecto, tokenValido, type Tar
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { botonLleno, campo, etiqueta, lateral, portalActivo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
-import { portalAprobar, portalComentar } from "./acciones";
+import { portalAprobar, portalComentar, portalSubir } from "./acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Tu proyecto — Anonymo", robots: { index: false, follow: false } };
@@ -82,6 +82,14 @@ export default async function Portal({ params, searchParams }: Props) {
               <textarea name="texto" rows={4} required maxLength={2000} placeholder="Ej.: me gusta, pero la quiero más elegante" className={campo} />
             </label>
             <button className={botonLleno}>Enviar comentario</button>
+          </form>
+          <form action={portalSubir} className="mt-6 grid gap-2 border-t border-linea pt-4">
+            {ocultos}
+            <label className="grid gap-1">
+              <span className={etiqueta}>Fotos, logos o documentos</span>
+              <input type="file" name="archivos" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" className="text-[14px]" />
+            </label>
+            <button className={botonLleno}>Enviar archivos</button>
           </form>
         </section>
 

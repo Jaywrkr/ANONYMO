@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, quitarPendiente, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, quitarPendiente, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -114,4 +114,14 @@ export async function accionRestaurar(f: FormData) {
   }
   revalidatePath(destino.split("?")[0]);
   redirect(destino);
+}
+
+export async function accionSubir(f: FormData) {
+  const { id } = leer(f);
+  const nota = String(f.get("nota") ?? "").trim() || undefined;
+  const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0);
+  await correr(id, async () => {
+    if (!archivos.length) throw new Error("Elige al menos un archivo.");
+    for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), nota);
+  }, `${archivos.length} archivo(s) agregado(s). Los agentes los verán en su próxima entrega.`);
 }

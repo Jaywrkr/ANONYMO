@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { aprobar, comentarioPortal, elegirMotor, leerProyecto, tokenValido } from "@anonymo/pipeline";
+import { aprobar, avisar, comentarioPortal, elegirMotor, guardarArchivo, leerProyecto, tokenValido } from "@anonymo/pipeline";
 import { notFound } from "next/navigation";
 import { portalActivo } from "@/lib/estudio";
 
@@ -28,6 +28,20 @@ export async function portalComentar(f: FormData) {
   let msj = "Recibido. Jay o Luna lo pasan al equipo.";
   try {
     await comentarioPortal(id, String(f.get("texto") ?? ""));
+  } catch (e) {
+    msj = (e as Error).message;
+  }
+  redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
+}
+
+export async function portalSubir(f: FormData) {
+  const { id, t } = validar(f);
+  const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0).slice(0, 10);
+  let msj = `Recibimos ${archivos.length} archivo(s). Gracias.`;
+  try {
+    if (!archivos.length) throw new Error("Elige al menos un archivo.");
+    for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), "Subido por el cliente");
+    await avisar({ proyecto: id, cliente: leerProyecto(id).pedido.cliente, tipo: "comentario", titulo: `Subió ${archivos.length} archivo(s)`, texto: archivos.map((a) => a.name).join(", ") });
   } catch (e) {
     msj = (e as Error).message;
   }

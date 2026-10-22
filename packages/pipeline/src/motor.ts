@@ -1,7 +1,7 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { CARPETA } from "./almacen.ts";
 import { archivoEntrega, type Entrega, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
@@ -19,6 +19,8 @@ export interface Contexto {
   herramientas: ResultadoHerramienta[];
   /** Todo lo que ha dicho el cliente, en orden. Manda sobre las suposiciones del equipo. */
   cliente: string[];
+  /** Archivos del cliente: nombre, nota y, si es imagen, ruta en disco para mostrársela al agente. */
+  archivos?: { nombre: string; nota?: string; ruta?: string; tipo: string }[];
 }
 
 export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota" | "modo" | "datos">;
@@ -41,7 +43,7 @@ function semilla(texto: string) {
 
 export const simulado: Motor = {
   nombre: "simulado",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos }) {
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const fase = FASES.find((f) => f.n === c.fase)!;
@@ -59,6 +61,7 @@ export const simulado: Motor = {
     ];
     if (cambio) lineas.push(`**Cambio pedido:** ${cambio}`, "");
     if (cliente.length) lineas.push("## Lo que dijo el cliente", "", ...cliente.map((x) => `- "${x}"`), "");
+    if (archivos?.length) lineas.push("## Archivos del cliente", "", ...archivos.map((x) => `- ${x.nombre}${x.nota ? ` — ${x.nota}` : ""}`), "");
     lineas.push("## Leí", "");
     lineas.push(...(lecturas.length ? lecturas.map((e) => `- ${agentePorId(e.agente)?.nombre}: ${e.titulo} (v${e.version})`) : ["- Solo el pedido."]), "");
     lineas.push("## Se revisa con", "", ...c.criterios.map((k) => `- [ ] ${k}`), "");
@@ -97,7 +100,7 @@ export const simulado: Motor = {
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos }) {
     const clave = process.env.ANTHROPIC_API_KEY;
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -124,6 +127,7 @@ export const real: Motor = {
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
+      archivos?.length ? "# Archivos del cliente\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
       cliente.length ? "# Lo que dijo el cliente (manda sobre cualquier suposición)\n" + cliente.map((x) => `- "${x}"`).join("\n") : "",
       cambio ? `# Cambio pedido\n${cambio}` : "",
       preguntas.length && c.fase === 1 ? "# Preguntas abiertas al cliente\n" + preguntas.map((p) => `- ${p}`).join("\n") : "",
@@ -131,8 +135,18 @@ export const real: Motor = {
       ...lecturas.map((e) => `# Entrega de ${agentePorId(e.agente)?.nombre}: ${e.titulo}\n${e.contenido}`),
     ].filter(Boolean).join("\n\n");
 
-    type Bloque = { type: string; text?: string };
-    const mensajes: { role: "user" | "assistant"; content: string | Bloque[] }[] = [{ role: "user", content: usuario }];
+    type Bloque = { type: string; text?: string; source?: unknown };
+    // Los agentes visuales ven hasta 4 imágenes del cliente (máximo 4 MB cada una).
+    const VISUALES = ["mira", "orla", "lumen", "lente", "corte", "trofeo"];
+    const imagenes: Bloque[] = VISUALES.includes(c.agente)
+      ? (archivos ?? [])
+          .filter((x) => x.ruta && /^image\/(jpeg|png|webp|gif)$/.test(x.tipo) && statSync(x.ruta).size < 4 * 1024 * 1024)
+          .slice(0, 4)
+          .map((x) => ({ type: "image", source: { type: "base64", media_type: x.tipo, data: readFileSync(x.ruta!).toString("base64") } }))
+      : [];
+    const mensajes: { role: "user" | "assistant"; content: string | Bloque[] }[] = [
+      { role: "user", content: imagenes.length ? [...imagenes, { type: "text", text: usuario }] : usuario },
+    ];
     const bloques: Bloque[] = [];
     // Con búsqueda web la API puede pausar el turno: se continúa hasta 3 veces.
     for (let vuelta = 0; vuelta < 3; vuelta++) {

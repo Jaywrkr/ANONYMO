@@ -9,3 +9,4 @@ export * from "./jurado.ts";
 export * from "./portal.ts";
 export * from "./diferencias.ts";
 export * from "./avisos.ts";
+export * from "./archivos.ts";
