@@ -144,6 +144,8 @@ export interface Proyecto {
   puertas: Puerta[];
   /** Notas de "cambiar" pendientes por fase: los agentes las leen al rehacer. */
   cambios: Record<number, string>;
+  /** Uso de IA por tarea: una entrada por cada vez que se hizo (sistema/11). */
+  costos?: Record<string, { entrada: number; salida: number; busquedas: number; usd: number; estimado: boolean; fecha: string }[]>;
   /** Enlace privado del cliente: /portal/<id>?t=<token>. */
   portal?: { token: string; creado: string };
   /** Comentarios que el cliente dejó en su portal y que Jay o Luna todavía no mandan al equipo. */
