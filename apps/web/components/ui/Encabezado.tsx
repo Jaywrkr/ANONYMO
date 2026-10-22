@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Reloj } from "./Reloj";
 import { enlace, idiomaDeRuta, otroIdioma } from "@/lib/idioma";
 import { T } from "@/lib/textos";
@@ -29,8 +29,27 @@ export function Encabezado() {
   useEffect(() => {
     document.documentElement.lang = idioma;
   }, [idioma]);
+  const boton = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
     document.documentElement.style.overflow = abierto ? "hidden" : "";
+    if (!abierto) return;
+    // Teclado: el foco entra al menú, Escape lo cierra y el foco queda dentro mientras está abierto.
+    menu.current?.querySelector<HTMLElement>("a")?.focus();
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAbierto(false);
+        boton.current?.focus();
+      }
+      if (e.key === "Tab" && menu.current) {
+        const f = [boton.current!, ...menu.current.querySelectorAll<HTMLElement>("a")];
+        const i = f.indexOf(document.activeElement as HTMLElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f.at(-1)!.focus(); }
+        else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+      }
+    };
+    document.addEventListener("keydown", tecla);
+    return () => document.removeEventListener("keydown", tecla);
   }, [abierto]);
 
   return (
@@ -45,6 +64,7 @@ export function Encabezado() {
         <Link href={otro.href} hrefLang={otro.idioma} lang={otro.idioma} className="hover:text-tinta" aria-label={t.cambiar}>{t.cambiarCorto}</Link>
       </nav>
       <button
+        ref={boton}
         className="relative z-[7] flex min-h-11 items-center md:hidden"
         aria-expanded={abierto}
         aria-controls="menu-movil"
@@ -53,7 +73,7 @@ export function Encabezado() {
         {abierto ? t.cerrar : t.menu}
       </button>
       {abierto && (
-        <div id="menu-movil" className="fixed inset-0 z-[6] flex flex-col justify-between bg-hueso px-[max(20px,env(safe-area-inset-left))] pb-[max(24px,env(safe-area-inset-bottom))] pt-24 md:hidden">
+        <div id="menu-movil" ref={menu} role="dialog" aria-modal="true" aria-label={t.menu} className="fixed inset-0 z-[6] flex flex-col justify-between bg-hueso px-[max(20px,env(safe-area-inset-left))] pb-[max(24px,env(safe-area-inset-bottom))] pt-24 md:hidden">
           <nav aria-label="Menú" className="flex flex-col">
             {NAV.map(([href, t]) => (
               <Link key={href} href={href} className="display border-b border-linea py-2 text-[56px] normal-case">

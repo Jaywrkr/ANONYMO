@@ -120,6 +120,24 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
               <button
                 key={x.n}
                 role="tab"
+                id={`tab-${x.n}`}
+                aria-controls="panel-fase"
+                tabIndex={x.n === f.n ? 0 : -1}
+                onKeyDown={(e) => {
+                  // Flechas, Inicio y Fin entre las fases que aplican.
+                  const disponibles = FASES.map((y) => y.n).filter((n) => proyecto.fases.includes(n));
+                  const i = disponibles.indexOf(f.n);
+                  const destino =
+                    e.key === "ArrowRight" ? disponibles[(i + 1) % disponibles.length]
+                    : e.key === "ArrowLeft" ? disponibles[(i - 1 + disponibles.length) % disponibles.length]
+                    : e.key === "Home" ? disponibles[0]
+                    : e.key === "End" ? disponibles.at(-1)
+                    : undefined;
+                  if (destino === undefined) return;
+                  e.preventDefault();
+                  setFase(destino);
+                  requestAnimationFrame(() => document.getElementById(`tab-${destino}`)?.focus());
+                }}
                 onClick={() => setFase(x.n)}
                 disabled={!aplica}
                 aria-selected={x.n === f.n}
@@ -135,7 +153,7 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <section aria-label={en ? `Stage for the ${f.nombre} phase` : `Escenario de la fase ${f.nombre}`} className="lg:col-start-1 lg:row-start-1">
+        <section id="panel-fase" role="tabpanel" aria-labelledby={`tab-${f.n}`} className="lg:col-start-1 lg:row-start-1">
           <div className="flex items-baseline justify-between gap-4">
             <p className={etiqueta}>{en ? "Phase" : "Fase"} {String(f.n).padStart(2, "0")} · {f.objetivo}</p>
             <p className={`${etiqueta} hidden sm:block`}>{servicio(f.n, idioma).dura}</p>
