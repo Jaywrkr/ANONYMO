@@ -14,3 +14,4 @@ export * from "./cuestionario.ts";
 export * from "./pdf.ts";
 export * from "./calendario.ts";
 export * from "./costo.ts";
+export * from "./ia.ts";
