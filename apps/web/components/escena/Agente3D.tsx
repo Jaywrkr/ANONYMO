@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import { AREAS, type Agente } from "@anonymo/agentes";
 import { crearMaterialEsfera, factorForma, FORMA_AREA } from "./material";
 import { Prop } from "./Prop";
+import { calidad } from "@/lib/calidad";
 
 function semilla(id: string) {
   let h = 2166136261;
@@ -56,7 +57,9 @@ let GEO_CUERPO: THREE.SphereGeometry | null = null;
 let GEO_OJO: THREE.SphereGeometry | null = null;
 let TEX_SOMBRA: THREE.CanvasTexture | null = null;
 function recursos() {
-  if (!GEO_CUERPO) GEO_CUERPO = new THREE.SphereGeometry(1, 56, 56);
+  // Menos caras en celulares: a ese tamaño no se nota y se dibuja más rápido.
+  const seg = calidad() === "alta" ? 56 : calidad() === "media" ? 40 : 28;
+  if (!GEO_CUERPO) GEO_CUERPO = new THREE.SphereGeometry(1, seg, seg);
   if (!GEO_OJO) GEO_OJO = new THREE.SphereGeometry(0.05, 20, 20);
   if (!GEO_MEDIA) GEO_MEDIA = new THREE.TorusGeometry(0.055, 0.016, 8, 20, Math.PI);
   if (!TEX_SOMBRA) {

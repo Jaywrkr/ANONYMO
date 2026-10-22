@@ -54,3 +54,7 @@ html[data-noche="1"] .hero + section { padding-top: 12rem; }
 .entrega table { width: 100%; border-collapse: collapse; font-size: 15px; display: block; overflow-x: auto; }
 .entrega th, .entrega td { border-bottom: 1px solid var(--color-linea); padding: .55em .8em .55em 0; text-align: left; vertical-align: top; }
 .entrega th { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--color-gris); font-weight: 400; }
+
+/* Óvalos de respaldo hasta que el 3D está listo (web/01) */
+.blob-respaldo { transition: opacity .5s ease; filter: blur(.5px); }
+html[data-tresd="1"] .blob-respaldo { opacity: 0; }

@@ -1,4 +1,5 @@
 // pipeline: la terminal del equipo. Uso: npm run pipeline -- <comando> [opciones]
+import "./env.ts"; // primero: el mismo .env.local de la raíz que usa la web
 import { relative } from "node:path";
 import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CARPETA, guardarProyecto, leerEntrega, leerProyecto, listar } from "./almacen.ts";

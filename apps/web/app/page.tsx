@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AGENTES, FASES } from "@anonymo/agentes";
-import { Cumulo } from "@/components/escena/Cumulo";
+import { CumuloDiferido as Cumulo } from "@/components/escena/CumuloDiferido";
 import { Equipo } from "@/components/ui/Equipo";
 import { Linea } from "@/components/ui/Revelar";
 import { FasesScroll } from "@/components/ui/FasesScroll";
