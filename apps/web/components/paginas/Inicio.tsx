@@ -10,12 +10,14 @@ const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 
 import { enlace, type Idioma } from "@/lib/idioma";
 import { PruebaSocial } from "@/components/ui/PruebaSocial";
+import { DatosEstructurados } from "@/components/ui/DatosEstructurados";
 import { T } from "@/lib/textos";
 
 export function Inicio({ idioma }: { idioma: Idioma }) {
   const t = T[idioma].inicio;
   return (
     <main className="relative">
+      <DatosEstructurados idioma={idioma} />
       {/* Hero: póster. Titular gigante, el grupo de agentes encima. */}
       <section className={`hero relative ${lateral} pb-10 pt-6 transition-colors duration-700`}>
         <h1 className="display display-apretada relative z-0 text-[clamp(72px,15.5vw,250px)]">
