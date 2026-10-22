@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AREAS, type Agente } from "@anonymo/agentes";
 import dynamic from "next/dynamic";
+import { tocar } from "@/lib/sonido";
 
 const AgenteEscena = dynamic(() => import("./AgenteEscena"), { ssr: false });
 
@@ -24,7 +25,10 @@ export function AgenteVista({ agente, apagado, className, conProp = true, distan
       className={`relative ${className ?? ""}`}
       onPointerEnter={() => setPropio(true)}
       onPointerLeave={() => setPropio(false)}
-      onPointerDown={() => setToque((n) => n + 1)}
+      onPointerDown={() => {
+        setToque((n) => n + 1);
+        tocar("toque", agente.area);
+      }}
     >
       {/* Respaldo mientras carga el 3D (o si no hay WebGL / ahorro de datos): el mismo óvalo, plano. */}
       <i

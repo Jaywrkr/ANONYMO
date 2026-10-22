@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
+import { tocar } from "@/lib/sonido";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AGENTES, AREAS, FASES, agentePorId } from "@anonymo/agentes";
@@ -46,6 +47,7 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
     q.set("fase", String(f.n));
     q.set("agente", elegido);
     router.replace(`${ruta}?${q}`, { scroll: false });
+    tocar("fase");
     setCopiado(false);
   }, [pid, f.n, elegido, ruta, router, proyectos]);
 
