@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, quitarPendiente, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -124,4 +124,12 @@ export async function accionSubir(f: FormData) {
     if (!archivos.length) throw new Error("Elige al menos un archivo.");
     for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), nota);
   }, `${archivos.length} archivo(s) agregado(s). Los agentes los verán en su próxima entrega.`);
+}
+
+export async function accionResponder(f: FormData) {
+  const { id, quien } = leer(f);
+  await correr(id, () => {
+    const preguntas = leerProyecto(id).plan.preguntas;
+    responder(id, Object.fromEntries(preguntas.map((q, i) => [q, String(f.get(`r${i}`) ?? "")])), quien);
+  }, "Respuestas anotadas: los agentes las leen desde ahora.");
 }

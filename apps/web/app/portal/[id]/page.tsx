@@ -4,7 +4,7 @@ import { contratoPorId, existe, leerEntrega, leerProyecto, tokenValido, type Tar
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { botonLleno, campo, etiqueta, lateral, portalActivo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
-import { portalAprobar, portalComentar, portalSubir } from "./acciones";
+import { portalAprobar, portalComentar, portalResponder, portalSubir } from "./acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Tu proyecto — Anonymo", robots: { index: false, follow: false } };
@@ -43,6 +43,21 @@ export default async function Portal({ params, searchParams }: Props) {
           <p className="display text-5xl">Terminamos {fase?.nombre}</p>
           <p className="mt-2 text-[17px]">Revisa lo que entregó el equipo. Si está bien, apruébala y seguimos. Si algo no te convence, déjanos un comentario abajo.</p>
           <button className={`${botonLleno} mt-4`}>Aprobar {fase?.nombre}</button>
+        </form>
+      )}
+
+      {p.plan.preguntas.length > 0 && (
+        <form action={portalResponder} className="mt-8 grid max-w-2xl gap-4 rounded-3xl border border-tinta p-6">
+          {ocultos}
+          <p className="display text-5xl">Antes de seguir, cuéntanos</p>
+          <p className="text-[15px] text-gris">Responde lo que sepas. Lo que dejes en blanco te lo preguntamos después.</p>
+          {p.plan.preguntas.map((q, i) => (
+            <label key={q} className="grid gap-1">
+              <span className="text-[17px]">{q}</span>
+              <textarea name={`r${i}`} rows={2} maxLength={2000} className={campo} />
+            </label>
+          ))}
+          <button className={botonLleno}>Enviar respuestas</button>
         </form>
       )}
 
