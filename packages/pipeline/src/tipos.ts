@@ -150,6 +150,8 @@ export interface Proyecto {
   cambios: Record<number, string>;
   /** Uso de IA por tarea: una entrada por cada vez que se hizo (sistema/11). */
   costos?: Record<string, { entrada: number; salida: number; busquedas: number; usd: number; estimado: boolean; fecha: string }[]>;
+  /** Presupuesto vivo (sistema/15): horas base de Ledger y lo que suman los cambios. */
+  presupuesto?: { horas?: number; ajustes: { tarea: string; horas: number; motivo: string; fecha: string; incluido?: boolean }[] };
   /** Enlace privado del cliente: /portal/<id>?t=<token>. */
   portal?: { token: string; creado: string };
   /** Comentarios que el cliente dejó en su portal y que Jay o Luna todavía no mandan al equipo. */

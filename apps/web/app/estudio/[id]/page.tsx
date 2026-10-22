@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, responsable } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
@@ -213,6 +213,23 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             </label>
             <button className={boton}>Cambiar pausas</button>
           </form>
+
+          {(() => {
+            const b = presupuestoVivo(p);
+            if (b.base === undefined && !b.ajustes.length) return null;
+            return (
+              <div className="rounded-3xl border border-linea p-6">
+                <p className={etiqueta}>Presupuesto vivo</p>
+                <p className="mt-1 flex items-baseline gap-3"><span className="display text-5xl">{b.total ?? "—"} h</span>{b.precio !== undefined && <span className="text-[15px]">${b.precio.toLocaleString("es-EC")}</span>}</p>
+                <p className="text-[14px] text-gris">Base de Ledger: {b.base ?? "sin definir"} h · cambios pendientes de cobrar: +{b.extra} h{b.tarifa ? ` · tarifa $${b.tarifa}/h` : " · define TARIFA_HORA en .env para ver el precio"}</p>
+                {b.ajustes.length > 0 && (
+                  <ul className="mt-3 grid gap-1 text-[14px]">
+                    {b.ajustes.map((a) => <li key={a.fecha + a.tarea}><span className="font-medium">+{a.horas} h</span> {nombreTarea(a.tarea as TareaId)} <span className="text-gris">· {a.motivo}{a.incluido ? " · ya en el total" : ""}</span></li>)}
+                  </ul>
+                )}
+              </div>
+            );
+          })()}
 
           {(() => {
             const c = sumar(p);
