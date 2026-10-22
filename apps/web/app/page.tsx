@@ -41,7 +41,7 @@ export default function Inicio() {
       <section id="equipo" className={`${lateral} py-16`}>
         <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
           <h2 className="display text-[clamp(56px,8vw,128px)]">El equipo</h2>
-          <p className="max-w-sm text-gris">Cada agente mezcla a los mejores del mundo en su oficio y lleva el objeto de su trabajo. Toca uno para conocerlo.</p>
+          <p className="max-w-sm text-gris">Cada agente mezcla a los mejores del mundo en su oficio y lleva el objeto de su trabajo. Toca uno para conocerlo. <a href="/agentes" className="text-tinta underline underline-offset-4">Ver por área</a></p>
         </div>
         <Equipo />
       </section>
@@ -50,7 +50,7 @@ export default function Inicio() {
       <section id="como" className={`${lateral} py-24`}>
         <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
           <h2 className="display text-[clamp(56px,8vw,128px)]">Siete fases</h2>
-          <Link href="/sala" className="font-mono text-[11px] uppercase tracking-[0.14em] underline underline-offset-4">Ver la sala en vivo →</Link>
+          <span className="flex gap-6 font-mono text-[11px] uppercase tracking-[0.14em]"><Link href="/proceso" className="underline underline-offset-4">Qué recibes en cada fase →</Link><Link href="/sala" className="underline underline-offset-4">La sala en vivo →</Link></span>
         </div>
         <ol className="border-t border-tinta">
           {FASES.map((f) => (
@@ -91,7 +91,8 @@ export default function Inicio() {
       <section className={`${lateral} py-28`}>
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gris">Contacto</p>
         <p className="display mt-6 text-[clamp(64px,12vw,200px)]">¿Tienes un proyecto?</p>
-        <p className="mt-6 max-w-md text-gris">Cuéntanos qué necesitas. Atlas arma el plan esa misma noche. El correo llega con el nombre de la agencia.</p>
+        <p className="mt-6 max-w-md text-gris">Cuéntanos qué necesitas. Atlas arma el plan esa misma noche.</p>
+        <Link href="/contacto" className="mt-8 inline-block rounded-full bg-tinta px-8 py-4 font-mono text-[12px] uppercase tracking-[0.14em] text-hueso">Escríbenos</Link>
       </section>
     </main>
   );

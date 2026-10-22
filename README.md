@@ -11,6 +11,10 @@ data/nombres.json  Matriz de 108 nombres con dominio libre
 docs/              Plan por fases y dirección de arte
 ```
 
+## Páginas
+
+`/` inicio · `/agentes` equipo por área · `/agentes/[id]` ficha · `/proceso` qué recibes en cada fase · `/sala` proyecto en vivo · `/casos` · `/contacto` · `/sistema` dirección de arte
+
 ## Correr en local
 
 ```bash

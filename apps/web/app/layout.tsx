@@ -5,6 +5,7 @@ import "@fontsource-variable/big-shoulders-display";
 import "./globals.css";
 import { Lienzo } from "@/components/escena/Lienzo";
 import { Encabezado, Pie } from "@/components/ui/Encabezado";
+import { Suave } from "@/components/ui/Suave";
 
 export const metadata: Metadata = {
   title: "Anonymo — trabajamos mientras duermes",
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Pie />
         <Lienzo />
+        <Suave />
       </body>
     </html>
   );
