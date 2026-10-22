@@ -10,6 +10,8 @@ export interface Area {
   medio: string;
   sombra: string;
   acento: string;
+  /** Color para texto sobre fondo claro cuando la sombra no llega a contraste 4.5:1. */
+  texto?: string;
 }
 
 export const AREAS: Record<AreaId, Area> = {
@@ -18,7 +20,7 @@ export const AREAS: Record<AreaId, Area> = {
   marca: { id: "marca", nombre: "Marca", luz: "#fff1d6", medio: "#ff8a4c", sombra: "#c3221c", acento: "#ff5fa2" },
   producto: { id: "producto", nombre: "Producto digital", luz: "#e4f7ff", medio: "#5fb4ff", sombra: "#1636d9", acento: "#a17bff" },
   comunicacion: { id: "comunicacion", nombre: "Comunicación", luz: "#ffe7f3", medio: "#ff6fb1", sombra: "#a3105c", acento: "#ffb347" },
-  crecimiento: { id: "crecimiento", nombre: "Crecimiento", luz: "#fffbe3", medio: "#ffd43d", sombra: "#d98a00", acento: "#fff08a" },
+  crecimiento: { id: "crecimiento", nombre: "Crecimiento", luz: "#fffbe3", medio: "#ffd43d", sombra: "#d98a00", acento: "#fff08a", texto: "#8a5a00" },
 };
 
 /** Objeto 3D pequeño que distingue a cada agente por su oficio. */

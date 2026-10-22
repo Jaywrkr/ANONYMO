@@ -17,6 +17,8 @@ export interface Pedido {
     presupuesto?: string;
     plazo?: string;
     tieneMarca?: boolean;
+    /** Web publicada o de prueba: la audita Prisma. */
+    url?: string;
   };
   /** Dónde se detiene para que Jay o Luna revisen. Si no viene, lo propone Atlas. */
   pausas?: Pausas;
@@ -69,6 +71,19 @@ export interface Plan {
   preguntas: string[]; // lo que Atlas necesita saber del cliente
 }
 
+export type HerramientaId = NonNullable<Contrato["herramientas"]>[number];
+
+/** Lo que devuelve una herramienta antes de que el agente escriba. */
+export interface ResultadoHerramienta {
+  herramienta: HerramientaId;
+  ok: boolean;
+  /** Markdown corto que el agente lee y que queda en la entrega. */
+  resumen: string;
+  /** Si no está ok: qué falta, en una línea (va a "necesita"). */
+  falta?: string;
+  datos?: unknown;
+}
+
 export type EstadoTarea = "por-empezar" | "en-curso" | "lista" | "rehacer";
 
 /** Lo que entrega un agente. Se guarda como entregas/<fase>-<agente>.md */
@@ -83,6 +98,8 @@ export interface Entrega {
   contenido: string; // markdown
   /** Solo el Jurado: nota de 0 a 10 con pesos Awwwards. */
   nota?: number;
+  /** Datos que otros agentes o herramientas usan: finalistas, resultados de dominios, puntajes. */
+  datos?: Record<string, unknown>;
   estado: EstadoTarea;
   modo: "simulado" | "real";
   version: number;

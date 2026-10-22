@@ -28,7 +28,7 @@ function Tarjeta({ n }: { n: number }) {
           return (
             <li key={id} className="w-[72px]">
               <AgenteVista agente={a} className="aspect-square w-full" />
-              <span className="block text-center font-mono text-[12px] uppercase tracking-[0.1em]" style={{ color: AREAS[a.area].sombra }}>{a.nombre}</span>
+              <span className="block text-center font-mono text-[12px] uppercase tracking-[0.1em]" style={{ color: AREAS[a.area].texto ?? AREAS[a.area].sombra }}>{a.nombre}</span>
             </li>
           );
         })}
