@@ -1,0 +1,9 @@
+#!/bin/sh
+# El repo es público: ningún archivo de proyectos de clientes entra en un commit.
+bloqueados=$(git diff --cached --name-only --diff-filter=ACMR | grep '^proyectos/' | grep -v '^proyectos/README.md$')
+if [ -n "$bloqueados" ]; then
+  echo "✗ Estos archivos son de clientes y no pueden subirse a un repo público:"
+  echo "$bloqueados" | sed 's/^/  /'
+  echo "Guárdalos en el almacén privado: npm run pipeline -- subir <id>"
+  exit 1
+fi

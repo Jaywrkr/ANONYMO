@@ -15,6 +15,7 @@ import { sumar, PRECIOS } from "./costo.ts";
 import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
 import { presupuestoVivo } from "./presupuesto.ts";
 import { buscar } from "./buscar.ts";
+import { bajarProyecto, proyectosEnNube, subirProyecto } from "./nube.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
@@ -44,6 +45,9 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  subir     <id>                 copia el proyecto al almacén privado (Supabase)
+  bajar     <id>                 trae el proyecto desde el almacén privado
+  nube                           proyectos guardados en el almacén privado
   buscar    "texto"              busca en todas las entregas de todos los proyectos
   plantillas                     puntos de partida por rubro
   presupuesto <id>               horas base de Ledger + lo que suman los cambios (precio si hay TARIFA_HORA)
@@ -237,6 +241,14 @@ async function main() {
       console.log(`Base: ${b.base ?? "sin definir"} h · Cambios: +${b.extra} h · Total: ${b.total ?? "—"} h${b.precio ? ` · $${b.precio}` : ""}`);
       for (const a of b.ajustes) console.log(`  +${a.horas} h  ${nombreTarea(a.tarea as `${number}.${string}`)}  ${a.motivo}${a.incluido ? " (ya en el total de Ledger)" : ""}`);
       return;
+    }
+    case "subir":
+      return console.log(`Subidos ${await subirProyecto(necesitaId())} archivos de ${id} al almacén privado.`);
+    case "bajar":
+      return console.log(`Bajados ${await bajarProyecto(necesitaId())} archivos de ${id}.`);
+    case "nube": {
+      const l = await proyectosEnNube();
+      return console.log(l.length ? l.map((x) => `  ${x}`).join("\n") : "La nube está vacía.");
     }
     case "buscar": {
       const r = buscar(pos.slice(1).join(" "));
