@@ -24,7 +24,7 @@ export const AREAS: Record<AreaId, Area> = {
 /** Objeto 3D pequeño que distingue a cada agente por su oficio. */
 export type Prop =
   | "auricular" | "visera" | "estrella" | "lupa" | "globo" | "boina" | "lapiz" | "escuadra"
-  | "lentes3d" | "llaves" | "estela" | "audifonos" | "portapapeles" | "cronometro" | "faro"
+  | "lentes3d" | "laptop" | "estela" | "audifonos" | "portapapeles" | "cronometro" | "faro"
   | "telefono" | "camara" | "claqueta" | "gorro" | "iman" | "laurel" | "pulso";
 
 export interface Agente {
@@ -50,7 +50,7 @@ export const AGENTES: Agente[] = [
   { id: "rhea", nombre: "Rhea", area: "marca", rol: "Copy y tono", caracter: "Ingeniosa y directa.", adn: "Wieden+Kennedy + ingenio de Droga5", superpoder: "Frases que se quedan en la cabeza.", frase: "Dilo una vez y bien.", prop: "lapiz", propNombre: "Lápiz" },
   { id: "orla", nombre: "Orla", area: "producto", rol: "Diseño UI", caracter: "Obsesiva con el ritmo y la tipografía.", adn: "Tipografía de Obys + movimiento de Locomotive + experimentación de Resn", superpoder: "Hace que el scroll se sienta bien.", frase: "El espacio vacío también diseña.", prop: "escuadra", propNombre: "Escuadra" },
   { id: "lumen", nombre: "Lumen", area: "producto", rol: "WebGL y 3D", caracter: "Soñador técnico.", adn: "Lusion + Active Theory + Bruno Simon", superpoder: "Convierte una idea en un mundo que se toca.", frase: "Si se puede imaginar, se puede renderizar.", prop: "lentes3d", propNombre: "Lentes 3D" },
-  { id: "vector", nombre: "Vector", area: "producto", rol: "Front-end", caracter: "Práctico, cero drama.", adn: "Código de Active Theory + obsesión por rendimiento de Vercel", superpoder: "Webs que cargan en menos de un segundo.", frase: "Bonito y rápido, o no sale.", prop: "llaves", propNombre: "Llaves de código { }" },
+  { id: "vector", nombre: "Vector", area: "producto", rol: "Front-end", caracter: "Práctico, cero drama.", adn: "Código de Active Theory + obsesión por rendimiento de Vercel", superpoder: "Webs que cargan en menos de un segundo.", frase: "Bonito y rápido, o no sale.", prop: "laptop", propNombre: "Laptop" },
   { id: "kine", nombre: "Kine", area: "producto", rol: "Motion", caracter: "Inquieto. Nunca está quieto.", adn: "Buck + ManvsMachine", superpoder: "Le da vida a cualquier cosa.", frase: "Todo se mueve por una razón.", prop: "estela", propNombre: "Estela de movimiento" },
   { id: "eco", nombre: "Eco", area: "producto", rol: "Sonido", caracter: "Escucha antes de hablar.", adn: "Antfood + diseño sonoro de videojuegos", superpoder: "Marcas que se reconocen con los ojos cerrados.", frase: "El silencio también es un sonido.", prop: "audifonos", propNombre: "Audífonos" },
   { id: "prisma", nombre: "Prisma", area: "producto", rol: "Calidad y SEO", caracter: "La más estricta, y la más querida.", adn: "Auditor de rendimiento + estándares de accesibilidad", superpoder: "Encuentra el error antes que el cliente.", frase: "Si no funciona para todos, no funciona.", prop: "portapapeles", propNombre: "Portapapeles" },
