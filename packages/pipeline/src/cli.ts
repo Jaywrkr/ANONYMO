@@ -5,6 +5,7 @@ import { CARPETA, leerEntrega, leerProyecto, listar } from "./almacen.ts";
 import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
 import { anotar, enrutar, nombreTarea } from "./cliente.ts";
+import { tokenPortal } from "./portal.ts";
 import { dependientes } from "./contratos.ts";
 import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
@@ -28,6 +29,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   pausas    <id> <clave|nunca|cada-fase|1,4>    cambia dónde se detiene
   seguir    <id>                 continúa si quedó a medias
   url       <id> <url>           la web que audita Prisma
+  portal    <id> [--nuevo]       enlace privado para el cliente (--nuevo invalida el anterior)
   cliente   <id> "lo que dijo" [--agentes mira,orla] [--ver]
                                  Atlas lo reparte, se rehace lo necesario y todos lo leen desde ahora
 
@@ -180,6 +182,12 @@ async function main() {
       if (op.ver) return console.log("\n(--ver: no se cambió nada)");
       anotar(necesitaId(), texto, quien === "luna" ? "luna" : "jay", forzadas);
       return resumen(await avanzar(necesitaId(), motor));
+    }
+    case "portal": {
+      const token = tokenPortal(necesitaId(), op.nuevo === true);
+      const base = process.env.ANONYMO_URL ?? "http://localhost:3000";
+      console.log(`Enlace del cliente:\n  ${base}/portal/${id}?t=${token}\nFunciona con el servidor del estudio (PORTAL=1 o ESTUDIO=1).`);
+      return;
     }
     case "url":
       if (!pos[2]) throw new Error("Falta la URL.");

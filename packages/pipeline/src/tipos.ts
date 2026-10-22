@@ -53,6 +53,8 @@ export interface Contrato {
   formato: Formato;
   /** Lo que el Jurado y ustedes revisan para darla por buena. */
   criterios: string[];
+  /** Solo para el equipo: no se muestra en el portal del cliente (precios internos, nota del jurado, ventas). */
+  interna?: boolean;
   /** Herramientas que necesita de verdad (fase 5.4). En simulado se marcan como pendientes. */
   herramientas?: ("web" | "dominios" | "redes" | "lighthouse" | "imagen")[];
 }
@@ -114,7 +116,7 @@ export interface Puerta {
   fase: number;
   decision: Decision;
   nota?: string;
-  quien: "jay" | "luna" | "auto";
+  quien: "jay" | "luna" | "auto" | "cliente";
   fecha: string;
 }
 
@@ -124,8 +126,8 @@ export type EstadoProyecto = "en-curso" | "esperando" | "listo" | "parado";
 export interface NotaCliente {
   fecha: string;
   texto: string;
-  /** Quién la anotó. */
-  quien: "jay" | "luna";
+  /** Quién la anotó: Jay o Luna desde la terminal o el estudio, o el cliente desde su portal. */
+  quien: "jay" | "luna" | "cliente";
   /** A quién se lo mandó Atlas. */
   tareas: TareaId[];
 }
@@ -140,6 +142,10 @@ export interface Proyecto {
   puertas: Puerta[];
   /** Notas de "cambiar" pendientes por fase: los agentes las leen al rehacer. */
   cambios: Record<number, string>;
+  /** Enlace privado del cliente: /portal/<id>?t=<token>. */
+  portal?: { token: string; creado: string };
+  /** Comentarios que el cliente dejó en su portal y que Jay o Luna todavía no mandan al equipo. */
+  pendientesCliente?: { fecha: string; texto: string }[];
   /** Lo que ha dicho el cliente, en orden. */
   notasCliente?: NotaCliente[];
   /** Rondas automáticas de rehacer por nota del Jurado. */

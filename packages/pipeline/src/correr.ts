@@ -11,7 +11,7 @@ import { type Entrega, type Pedido, type Proyecto, type Puerta, type TareaId } f
 export type Aviso = (texto: string) => void;
 const nombreFase = (n: number) => FASES.find((f) => f.n === n)?.nombre ?? `Fase ${n}`;
 const faseDe = (t: TareaId) => Number(t.split(".")[0]);
-const quienNombre = (q: Puerta["quien"]) => ({ jay: "Jay", luna: "Luna", auto: "Atlas" })[q];
+const quienNombre = (q: Puerta["quien"]) => ({ jay: "Jay", luna: "Luna", auto: "Atlas", cliente: "El cliente" })[q];
 const ultimaPuerta = (p: Proyecto, fase: number) => [...p.puertas].reverse().find((x) => x.fase === fase);
 
 export async function nuevo(pedido: Pedido, motor: Motor = elegirMotor(), aviso: Aviso = console.log) {

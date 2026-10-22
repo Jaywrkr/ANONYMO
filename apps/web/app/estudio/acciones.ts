@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, reanudar } from "@anonymo/pipeline";
+import { aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, reanudar, tokenPortal } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -63,4 +63,9 @@ export async function accionPausas(f: FormData) {
 export async function accionSeguir(f: FormData) {
   const { id, motor } = leer(f);
   await correr(id, () => avanzar(id, motor, silencio), "El equipo siguió trabajando.");
+}
+
+export async function accionPortal(f: FormData) {
+  const { id } = leer(f);
+  await correr(id, () => tokenPortal(id, f.get("nuevo") === "1"), f.get("nuevo") === "1" ? "Enlace nuevo creado: el anterior ya no sirve." : "Enlace del cliente listo.");
 }

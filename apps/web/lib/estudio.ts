@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 
 export const estudioActivo = () => process.env.ESTUDIO === "1" || process.env.NODE_ENV === "development";
 
+/** El portal del cliente vive en el mismo servidor del estudio, o solo con PORTAL=1. */
+export const portalActivo = () => process.env.PORTAL === "1" || estudioActivo();
+
 export function exigirEstudio() {
   if (!estudioActivo()) notFound();
 }

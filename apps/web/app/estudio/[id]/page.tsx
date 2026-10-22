@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
 import { contratoPorId, existe, leerBitacora, leerEntrega, leerNota, leerProyecto, type TareaId } from "@anonymo/pipeline";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionAprobar, accionCambiar, accionParar, accionPausas, accionReanudar, accionSeguir } from "../acciones";
+import { accionAprobar, accionCambiar, accionParar, accionPausas, accionPortal, accionReanudar, accionSeguir } from "../acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
@@ -134,6 +134,19 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             </label>
             <button className={boton}>Cambiar pausas</button>
           </form>
+
+          <div className="rounded-3xl border border-linea p-6">
+            <p className={etiqueta}>Portal del cliente</p>
+            {p.portal ? (
+              <>
+                <a href={`/portal/${id}?t=${p.portal.token}`} target="_blank" rel="noreferrer" className="mt-2 block break-all text-[15px] underline underline-offset-4">/portal/{id}?t={p.portal.token}</a>
+                <p className="mt-2 text-[14px] text-gris">Mándale este enlace. Ve sus entregas (sin precios internos ni la nota del jurado), aprueba fases y comenta.</p>
+                <form action={accionPortal} className="mt-3">{comunes}<input type="hidden" name="nuevo" value="1" /><button className="font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Cambiar enlace</button></form>
+              </>
+            ) : (
+              <form action={accionPortal} className="mt-3">{comunes}<button className={boton}>Crear enlace</button></form>
+            )}
+          </div>
 
           {p.plan.preguntas.length > 0 && (
             <div className="rounded-3xl border border-linea p-6">

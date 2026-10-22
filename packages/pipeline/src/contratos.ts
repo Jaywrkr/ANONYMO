@@ -19,7 +19,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Propuesta en una frase", "Tres palabras de personalidad", "Qué no es la marca"],
   },
   {
-    id: "1.ledger", fase: 1, agente: "ledger", entrega: "Presupuesto", formato: "md", usa: ["1.atlas"],
+    id: "1.ledger", interna: true, fase: 1, agente: "ledger", entrega: "Presupuesto", formato: "md", usa: ["1.atlas"],
     objetivo: "Poner precio por fase con margen y condiciones de pago.",
     criterios: ["Costo y precio por fase", "Margen visible", "Qué está incluido y qué no"],
   },
@@ -129,7 +129,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Puntajes por página", "Errores graves en cero", "Lista de arreglos por prioridad"],
   },
   {
-    id: "6.trofeo", fase: 6, agente: "trofeo", entrega: "Nota del jurado", formato: "json", usa: "todo",
+    id: "6.trofeo", interna: true, fase: 6, agente: "trofeo", entrega: "Nota del jurado", formato: "json", usa: "todo",
     objetivo: "Calificar como Awwwards: diseño 40, usabilidad 30, creatividad 20, contenido 10.",
     criterios: ["Nota por criterio con razón", "Nota final ponderada", "Tres arreglos que más suben la nota"],
   },
@@ -141,17 +141,17 @@ export const CONTRATOS: Contrato[] = [
 
   // 7 · Crecimiento
   {
-    id: "7.iman", fase: 7, agente: "iman", entrega: "Siguiente propuesta", formato: "md", usa: ["1.nova", "6.trofeo", "6.pulso"],
+    id: "7.iman", interna: true, fase: 7, agente: "iman", entrega: "Siguiente propuesta", formato: "md", usa: ["1.nova", "6.trofeo", "6.pulso"],
     objetivo: "Proponer al cliente el siguiente paso con valor claro.",
     criterios: ["Un resultado medible", "Precio y plazo", "Por qué ahora"],
   },
   {
-    id: "7.ledger", fase: 7, agente: "ledger", entrega: "Cierre financiero", formato: "md", usa: ["1.ledger"],
+    id: "7.ledger", interna: true, fase: 7, agente: "ledger", entrega: "Cierre financiero", formato: "md", usa: ["1.ledger"],
     objetivo: "Comparar presupuesto contra lo real y decir si el proyecto dejó margen.",
     criterios: ["Presupuesto vs real", "Margen final", "Qué cobrar distinto la próxima vez"],
   },
   {
-    id: "7.atlas", fase: 7, agente: "atlas", entrega: "Cierre del proyecto", formato: "md", usa: "todo",
+    id: "7.atlas", interna: true, fase: 7, agente: "atlas", entrega: "Cierre del proyecto", formato: "md", usa: "todo",
     objetivo: "Resumir qué se entregó, qué aprendió el equipo y qué cambia en el proceso.",
     criterios: ["Lista de entregas", "Tres aprendizajes", "Un cambio al proceso"],
   },
