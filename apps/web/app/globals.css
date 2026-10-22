@@ -58,3 +58,9 @@ html[data-noche="1"] .hero + section { padding-top: 12rem; }
 /* Óvalos de respaldo hasta que el 3D está listo (web/01) */
 .blob-respaldo { transition: opacity .5s ease; filter: blur(.5px); }
 html[data-tresd="1"] .blob-respaldo { opacity: 0; }
+
+/* Teclado (web/06): foco siempre visible, nunca con el mouse */
+:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; border-radius: 6px; }
+html[data-noche="1"] .hero :focus-visible, .bg-noche :focus-visible, .bg-tinta:focus-visible { outline-color: #c3221c; }
+.saltar { position: absolute; left: 12px; top: -60px; z-index: 50; transition: top .15s ease; }
+.saltar:focus { top: 12px; }
