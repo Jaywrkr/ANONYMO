@@ -62,8 +62,13 @@ export const simulado: Motor = {
 
     let nota: number | undefined;
     if (tarea === "6.trofeo") {
-      nota = Math.round((6.6 + semilla(pedido.id + version) * 1.6) * 10) / 10;
-      lineas.push("## Nota", "", "```json", JSON.stringify({ diseno: nota, usabilidad: nota, creatividad: nota, contenido: nota, final: nota, simulado: true }, null, 2), "```", "");
+      // Simulado: arranca cerca del mínimo y sube con cada versión, para probar las rondas.
+      const r1 = (x: number) => Math.round(x * 10) / 10;
+      const base = 6 + semilla(pedido.id) * 0.9 + (version - 1) * 0.7;
+      const notas = { diseno: r1(base + 0.3), usabilidad: r1(base + 0.5), creatividad: r1(base - 0.5 + semilla(pedido.id + "c") * 0.3), contenido: r1(base + 0.2) };
+      nota = r1(notas.diseno * 0.4 + notas.usabilidad * 0.3 + notas.creatividad * 0.2 + notas.contenido * 0.1);
+      const bajo = Object.entries(notas).sort((a, b) => a[1] - b[1])[0][0];
+      lineas.push("## Nota", "", "```json", JSON.stringify({ ...notas, final: nota, arreglos: [`Subir ${bajo} (simulado)`], simulado: true }, null, 2), "```", "");
     }
 
     const falta = herramientas.find((x) => !x.ok);
@@ -102,7 +107,9 @@ export const real: Motor = {
       "DICE: lo que dirías en la sala del proyecto, en una o dos frases.",
       "NECESITA: lo que necesitas del cliente o del equipo para seguir.",
       tarea === "2.verba" ? "Antes de esas líneas agrega: FINALISTAS: nombre1, nombre2, nombre3, nombre4, nombre5" : "",
-      tarea === "6.trofeo" ? 'Antes de esas líneas agrega un bloque ```json con {"diseno","usabilidad","creatividad","contenido","final"} de 0 a 10 (pesos 40/30/20/10) y la línea NOTA: <final>.' : "",
+      tarea === "6.trofeo"
+        ? 'Califica como jurado de Awwwards, con exigencia real. Antes de esas líneas agrega un bloque ```json con {"diseno","usabilidad","creatividad","contenido","final","arreglos"}: notas de 0 a 10 (pesos 40/30/20/10) y "arreglos" con los tres cambios que más suben la nota, cada uno nombrando al agente responsable. Luego la línea NOTA: <final>.'
+        : "",
     ].filter(Boolean).join("\n");
     const usuario = [
       `# Pedido de ${pedido.cliente}`,
@@ -143,7 +150,15 @@ export const real: Motor = {
     const linea = (k: string) => texto.match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1].trim();
     const nota = linea("NOTA");
     const finalistas = linea("FINALISTAS")?.split(",").map((x) => x.trim()).filter(Boolean);
-    const datos = { ...datosHerramientas(herramientas), ...(finalistas?.length ? { finalistas } : {}) };
+    let jurado: unknown;
+    if (tarea === "6.trofeo") {
+      try {
+        jurado = JSON.parse(texto.match(/```json\s*([\s\S]*?)```/)?.[1] ?? "null") ?? undefined;
+      } catch {
+        jurado = undefined;
+      }
+    }
+    const datos = { ...datosHerramientas(herramientas), ...(finalistas?.length ? { finalistas } : {}), ...(jurado ? { jurado } : {}) };
     return {
       dice: linea("DICE") ?? "",
       necesita: linea("NECESITA") ?? "",

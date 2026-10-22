@@ -62,6 +62,17 @@ npm run pipeline -- dominios "Corsivo" "Lucciola"
 npm run pipeline -- auditar https://ejemplo.com
 ```
 
+## Calidad (5.5)
+
+Al final del proyecto se lee la nota de Trofeo (diseño 40, usabilidad 30, creatividad 20, contenido 10) y la auditoría de Prisma.
+
+1. Nota de 7 o más y sin errores de accesibilidad: proyecto listo.
+2. Si no: se busca el criterio más bajo y su responsable en el plan (diseño → Orla o Mira; usabilidad → Vector o Kine; creatividad → Lumen u Orla; contenido → Rhea o Faro). Errores de accesibilidad mandan a Vector.
+3. Se rehacen esos agentes con la nota del jurado, todo lo que depende de ellos y el Jurado otra vez. Se evita rehacer el brief (fase 1), porque arrastra todo el proyecto.
+4. Hasta 2 rondas automáticas. Si no llega, el proyecto espera: `aprobar` cierra así, `cambiar --agente trofeo` recalifica con tu nota, `parar` lo detiene.
+
+Todo queda en la bitácora: nota de cada ronda, criterio más bajo y quién rehizo.
+
 ## Qué hay en la 5.1 y la 5.2
 
 `packages/pipeline/`
@@ -76,6 +87,7 @@ npm run pipeline -- auditar https://ejemplo.com
 | `src/correr.ts` | Ejecuta hasta la próxima pausa; aprobar, cambiar, parar, reanudar, cambiar pausas |
 | `src/almacen.ts` | Lee y escribe la carpeta de cada proyecto |
 | `src/cli.ts` | Los comandos de la terminal |
+| `src/jurado.ts` | Lee la nota, decide qué se rehace y cuántas rondas |
 | `src/herramientas/` | Dominios y redes, auditoría Lighthouse + axe, y quién usa qué |
 
 `SERVICIO` y `PEDIDOS` pasaron a `@anonymo/agentes` para que la web y el pipeline usen los mismos datos.
@@ -103,7 +115,7 @@ Cada entrega es markdown con frontmatter: agente, título, lo que "dice" en la s
 |---|---|
 | 5.2 + 5.3 | Atlas y ejecución con pausas por proyecto. **Hecho** |
 | 5.4 Herramientas | Búsqueda web, dominios, redes, auditoría. **Hecho** (búsqueda web se activa con la clave) |
-| 5.5 Calidad | Nota del Jurado y vuelta atrás si no llega a 7 |
+| 5.5 Calidad | Nota del Jurado y vuelta atrás si no llega a 7. **Hecho** |
 | 5.6 Caso dentistas | Pedido real de punta a punta y la sala mostrando el proyecto |
 
 La clave de Anthropic la pone Jay en `ANTHROPIC_API_KEY`. Sin clave, todo corre en modo simulado. Con clave, `--simulado` fuerza el modo simulado. El modelo se cambia con `ANTHROPIC_MODEL`.

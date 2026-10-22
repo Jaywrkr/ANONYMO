@@ -3,9 +3,10 @@ import { agentePorId, FASES } from "@anonymo/agentes";
 import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, lecturas } from "./contratos.ts";
+import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Motor } from "./motor.ts";
-import { NOTA_MINIMA, type Entrega, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
+import { type Entrega, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
 
 export type Aviso = (texto: string) => void;
 const nombreFase = (n: number) => FASES.find((f) => f.n === n)?.nombre ?? `Fase ${n}`;
@@ -68,10 +69,33 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     guardarProyecto(p);
   }
 
+  // 5.5 Calidad: si el Jurado no llega al mínimo, se rehace lo más débil.
+  const ronda = (p.rondasJurado ?? 0) + 1;
+  const v = evaluar(p.plan, leerEntrega(id, "6.trofeo"), leerEntrega(id, "6.prisma"), ronda);
+  if (v && !v.aprobado && !p.juradoAceptado) {
+    const conTrabajo = v.rehacer.some((t) => !t.startsWith("6."));
+    if (conTrabajo && ronda <= RONDAS_MAX) {
+      p.rondasJurado = ronda;
+      for (const t of v.rehacer) p.tareas[t] = "rehacer";
+      for (const f of new Set(v.rehacer.map(faseDe))) p.cambios[f] = v.cambio;
+      guardarProyecto(p);
+      bitacora(id, `${v.cambio} Rehacen: ${v.rehacer.join(", ")}.`);
+      aviso(`\n  ↺ ${v.cambio}\n    Rehacen: ${v.rehacer.map((t) => agentePorId(t.split(".")[1])?.nombre).join(", ")}\n`);
+      return avanzar(id, motor, aviso);
+    }
+    p.estado = "esperando";
+    p.esperaJurado = true;
+    p.faseActual = 6;
+    guardarProyecto(p);
+    bitacora(id, `${v.cambio} ${conTrabajo ? `Sin mejora suficiente tras ${RONDAS_MAX} rondas` : "No hay tareas que rehacer en este plan"}: decide Jay o Luna.`);
+    return p;
+  }
+
   p.estado = "listo";
+  p.esperaJurado = false;
+  p.cambios = {};
   guardarProyecto(p);
-  const jurado = leerEntrega(id, "6.trofeo");
-  if (jurado?.nota !== undefined && jurado.nota < NOTA_MINIMA) bitacora(id, `Jurado: ${jurado.nota} (mínimo ${NOTA_MINIMA}). Revisar en la 5.5.`);
+  if (v) bitacora(id, `Jurado: ${v.nota.final}${v.aprobado ? "" : " (aceptado por Jay o Luna)"}.`);
   bitacora(id, "Proyecto listo.");
   return p;
 }
@@ -88,6 +112,10 @@ function esperando(id: string) {
 
 export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso) {
   const p = esperando(id);
+  if (p.esperaJurado) {
+    p.juradoAceptado = true;
+    p.esperaJurado = false;
+  }
   puerta(p, { fase: p.faseActual, decision: "sigue", quien, nota });
   delete p.cambios[p.faseActual];
   p.estado = "en-curso";

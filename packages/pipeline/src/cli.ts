@@ -8,7 +8,8 @@ import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, rea
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
 import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
 import { elegirMotor } from "./motor.ts";
-import type { Pedido, Proyecto, Puerta } from "./tipos.ts";
+import { leerNota, NOMBRE_CRITERIO, RONDAS_MAX, type Criterio } from "./jurado.ts";
+import { NOTA_MINIMA, type Pedido, type Proyecto, type Puerta } from "./tipos.ts";
 
 const AYUDA = `
 pipeline · el equipo de 22 agentes trabajando un pedido
@@ -74,7 +75,17 @@ function resumen(p: Proyecto) {
       }
     }
   }
-  if (p.estado === "esperando") {
+  const jurado = leerNota(leerEntrega(id, "6.trofeo"));
+  if (jurado) {
+    const crit = (Object.entries(jurado.criterios) as [Criterio, number][]).map(([k, v]) => `${NOMBRE_CRITERIO[k]} ${v}`).join(" · ");
+    console.log(`\nJurado: ${jurado.final} / mínimo ${NOTA_MINIMA}${crit ? ` (${crit})` : ""} · rondas de mejora: ${p.rondasJurado ?? 0}`);
+  }
+  if (p.esperaJurado) {
+    console.log(`\nEl Jurado no llegó a ${NOTA_MINIMA} después de ${RONDAS_MAX} rondas automáticas. Decide:`);
+    console.log(`  npm run pipeline -- aprobar ${id}                         cerrar así`);
+    console.log(`  npm run pipeline -- cambiar ${id} --nota "..." --agente trofeo   recalificar con tu criterio`);
+    console.log(`  npm run pipeline -- parar ${id}`);
+  } else if (p.estado === "esperando") {
     console.log(`\nTerminó ${nombreFase(p.faseActual)}. Revisa ${relative(process.cwd(), CARPETA) || "."}/${id}/entregas y decide:`);
     console.log(`  npm run pipeline -- aprobar ${id}`);
     console.log(`  npm run pipeline -- cambiar ${id} --nota "qué cambiar" [--agente nombre]`);
