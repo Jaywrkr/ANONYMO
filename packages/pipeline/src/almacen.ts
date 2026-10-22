@@ -72,11 +72,37 @@ export function guardarEntrega(id: string, e: Entrega) {
   const cabeza = Object.entries(datos).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join("\n");
   const ruta = join(dir(id), ARCHIVOS.entregas, archivoEntrega(e.tarea));
   mkdirSync(dirname(ruta), { recursive: true });
+  // Antes de pisar la versión anterior, se guarda en el historial.
+  const previa = leerEntrega(id, e.tarea);
+  if (previa && previa.version !== e.version) {
+    const h = join(dir(id), ARCHIVOS.entregas, "historial", archivoEntrega(e.tarea).replace(".md", `.v${previa.version}.md`));
+    mkdirSync(dirname(h), { recursive: true });
+    writeFileSync(h, readFileSync(ruta, "utf8"));
+  }
   writeFileSync(ruta, `---\n${cabeza}\n---\n\n${contenido.trim()}\n`);
 }
 
-export function leerEntrega(id: string, tarea: TareaId): Entrega | undefined {
-  const ruta = join(dir(id), ARCHIVOS.entregas, archivoEntrega(tarea));
+/** Versiones guardadas de una entrega (las anteriores a la actual), de la más nueva a la más vieja. */
+export function versiones(id: string, tarea: TareaId): number[] {
+  const h = join(dir(id), ARCHIVOS.entregas, "historial");
+  if (!existsSync(h)) return [];
+  const base = archivoEntrega(tarea).replace(".md", "");
+  return readdirSync(h)
+    .map((f) => f.match(new RegExp(`^${base}\\.v(\\d+)\\.md$`))?.[1])
+    .filter((v): v is string => !!v)
+    .map(Number)
+    .sort((a, b) => b - a);
+}
+
+/** Una entrega tal como estaba en una versión. Sin versión: la actual. */
+export function leerEntrega(id: string, tarea: TareaId, version?: number): Entrega | undefined {
+  const ruta = version
+    ? join(dir(id), ARCHIVOS.entregas, "historial", archivoEntrega(tarea).replace(".md", `.v${version}.md`))
+    : join(dir(id), ARCHIVOS.entregas, archivoEntrega(tarea));
+  if (version && !existsSync(ruta)) {
+    const actual = leerEntrega(id, tarea);
+    return actual?.version === version ? actual : undefined;
+  }
   if (!existsSync(ruta)) return undefined;
   const texto = readFileSync(ruta, "utf8");
   const m = texto.match(/^---\n([\s\S]*?)\n---\n\n?([\s\S]*)$/);
