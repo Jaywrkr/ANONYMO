@@ -12,3 +12,4 @@ export * from "./avisos.ts";
 export * from "./archivos.ts";
 export * from "./cuestionario.ts";
 export * from "./pdf.ts";
+export * from "./calendario.ts";

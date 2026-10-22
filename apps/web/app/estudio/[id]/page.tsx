@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario } from "@anonymo/pipeline";
+import { Calendario } from "@/components/estudio/Calendario";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
@@ -47,6 +48,8 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         <a href={`/estudio/${id}/pdf`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF para el cliente ↓</a>
         <a href={`/estudio/${id}/pdf?internas=1`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF interno ↓</a>
       </p>
+
+      <section aria-label="Calendario" className="mt-8 max-w-4xl"><p className={`${etiqueta} mb-3`}>Calendario</p><Calendario tramos={calendario(p)} /></section>
 
       {(ok || error) && (
         <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>
