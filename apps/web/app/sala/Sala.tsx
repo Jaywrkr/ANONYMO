@@ -59,10 +59,11 @@ export function Sala() {
             <p className={`${etiqueta} hidden sm:block`}>{SERVICIO[f.n].dura}</p>
           </div>
           <ul key={fase} className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {activos.map((id) => {
+            {activos.map((id, i) => {
               const a = agentePorId(id)!;
+              const solo = activos.length % 2 === 1 && i === 0;
               return (
-                <li key={id}>
+                <li key={id} className={solo ? "col-span-2 mx-auto w-2/3 sm:col-span-1 sm:mx-0 sm:w-auto" : undefined}>
                   <button
                     onClick={() => setSel(id)}
                     aria-pressed={id === elegido}

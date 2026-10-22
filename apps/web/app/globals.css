@@ -34,3 +34,5 @@ html[data-noche="1"] body > header, html[data-noche="1"] .hero { background: var
 html[data-noche="1"] body > header a, html[data-noche="1"] body > header button { color: var(--color-hueso); }
 html[data-noche="1"] .hero .border-tinta { border-color: var(--color-hueso); }
 html[data-noche="1"] .hero .text-gris { color: #b9b6ae; }
+html[data-noche="1"] .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: -160px; height: 160px; background: linear-gradient(var(--color-noche), var(--color-hueso)); pointer-events: none; }
+html[data-noche="1"] .hero + section { padding-top: 12rem; }

@@ -389,7 +389,7 @@ export function Prop({ tipo }: { tipo: PropId }) {
       );
     case "faro":
       return (
-        <group position={[0.98, 0.35, -0.05]} scale={0.9}>
+        <group position={[0.92, 0.1, 0.55]} scale={1.05}>
           {[0, 1, 2].map((i) => (
             <mesh key={i} position={[0, -0.3 + i * 0.2, 0]}>
               <cylinderGeometry args={[0.13 - i * 0.012, 0.145 - i * 0.012, 0.2, 20]} />

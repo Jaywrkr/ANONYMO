@@ -150,7 +150,7 @@ export function Agente3D({ agente, apagado = false, conProp = true, escala = 1, 
       const s = escala * (1 - e.dim * 0.22) * (1 + e.hover * 0.06) * Math.max(0.001, entrada);
       grupo.current.scale.setScalar(s);
       grupo.current.position.set(0, y * escala, 0);
-      grupo.current.rotation.y = THREE.MathUtils.damp(grupo.current.rotation.y, mirada.x * 0.4 * (1 - e.dim), 4, dt);
+      grupo.current.rotation.y = THREE.MathUtils.damp(grupo.current.rotation.y, THREE.MathUtils.clamp(mirada.x, -1, 1) * 0.36 * (1 - e.dim), 4, dt);
       grupo.current.rotation.x = THREE.MathUtils.damp(grupo.current.rotation.x, -mirada.y * 0.24 * (1 - e.dim), 4, dt);
       grupo.current.rotation.z = Math.sin(t * car.ritmo * 0.8) * car.balanceo;
     }
@@ -192,7 +192,7 @@ export function Agente3D({ agente, apagado = false, conProp = true, escala = 1, 
         <group ref={ojos} position={[0, 0.16 * forma.alto, 0]}>
           {[-0.2, 0.2].map((x) => {
             const f = factorForma(silueta, 0.17);
-            const z = Math.sqrt(Math.max(0, 1 - x * x - 0.03)) * forma.ancho * f + 0.012;
+            const z = Math.sqrt(Math.max(0, 1 - x * x - 0.03)) * forma.ancho * f + 0.045;
             const px = x * f + (silueta === 2 ? 0.035 : 0);
             const color = <meshBasicMaterial color={apagado ? "#5a5a5a" : "#111114"} />;
             if (tipoOjo === "media")
