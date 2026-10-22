@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { PEDIDOS } from "@anonymo/agentes";
-import { agentePorId } from "@anonymo/agentes";
-import { buscar, leerEntrega, leerNota, listar } from "@anonymo/pipeline";
+import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
+import { buscar, leerEntrega, leerNota, listar, listarSolicitudes, PLANTILLAS } from "@anonymo/pipeline";
+import { accionConvertirSolicitud, accionDescartarSolicitud } from "./acciones";
 import { campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
 
 // Todos los proyectos: primero los que esperan una decisión.
-export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string; error?: string }> }) {
   exigirEstudio();
-  const { q } = await searchParams;
+  const { q, error } = await searchParams;
+  const solicitudes = listarSolicitudes();
   const hallazgos = q ? buscar(q) : [];
   const orden = { esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
   const proyectos = listar().sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
@@ -24,6 +26,34 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
         <input name="q" defaultValue={q} placeholder="Buscar en todas las entregas: paleta, WhatsApp, Cormorant…" className={campo} aria-label="Buscar en todas las entregas" />
         <button className="rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Buscar</button>
       </form>
+      {error && <p role="alert" className="mb-6 rounded-2xl bg-[#fde8e4] p-4 text-[#8a1c0c]">{error}</p>}
+      {solicitudes.length > 0 && (
+        <section aria-label="Solicitudes nuevas" className="mb-10">
+          <p className={etiqueta}>Solicitudes desde la web · {solicitudes.length}</p>
+          <ul className="mt-3 grid gap-3 md:grid-cols-2">
+            {solicitudes.map((s) => (
+              <li key={s.id} className="rounded-3xl border border-tinta p-5">
+                <p className={etiqueta}>{TIPOS[s.tipo].nombre} · {s.fecha.slice(0, 10)}</p>
+                <p className="display mt-1 text-4xl">{s.nombre}</p>
+                <a href={`mailto:${s.correo}`} className="text-[15px] underline underline-offset-4">{s.correo}</a>
+                <p className="mt-3 whitespace-pre-line text-[15px]">{s.mensaje}</p>
+                <form action={accionConvertirSolicitud} className="mt-4 flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="solicitud" value={s.id} />
+                  <select name="plantilla" aria-label="Plantilla" className="min-h-11 rounded-full border border-linea bg-papel px-3 text-[14px]" defaultValue="">
+                    <option value="">Sin plantilla</option>
+                    {PLANTILLAS.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select>
+                  <button className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Crear proyecto</button>
+                </form>
+                <form action={accionDescartarSolicitud} className="mt-2">
+                  <input type="hidden" name="solicitud" value={s.id} />
+                  <button className="min-h-11 font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Descartar</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {q && (
         <section aria-label="Resultados" className="mb-10">
           <p className={etiqueta}>{hallazgos.length} resultado(s) para “{q}”</p>

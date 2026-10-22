@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { FASES, agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { PEDIDOS } from "@/lib/servicio";
+import { enviarPedido } from "./acciones";
 
 // Mientras el cliente escribe, ve qué agentes se despiertan para su pedido.
 export function Formulario() {
   const [tipo, setTipo] = useState<keyof typeof PEDIDOS>("web");
-  const [enviado, setEnviado] = useState(false);
+  const [estado, enviar, enviando] = useActionState(enviarPedido, null);
   const despiertos = useMemo(() => {
     const ids = new Set<string>();
     PEDIDOS[tipo].fases.forEach((n) => FASES.find((f) => f.n === n)?.agentes.forEach((id) => ids.add(id)));
@@ -20,10 +21,11 @@ export function Formulario() {
 
   return (
     <div className="grid gap-12 lg:grid-cols-12">
-      <form
-        className="grid content-start gap-8 lg:col-span-6"
-        onSubmit={(e) => { e.preventDefault(); setEnviado(true); }}
-      >
+      <form action={enviar} className="grid content-start gap-8 lg:col-span-6">
+        <input type="hidden" name="tipo" value={tipo} />
+        <label aria-hidden className="absolute -left-[9999px]" tabIndex={-1}>
+          Sitio web <input name="sitio" tabIndex={-1} autoComplete="off" />
+        </label>
         <fieldset>
           <legend className={etiqueta}>Qué necesitas</legend>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -42,23 +44,23 @@ export function Formulario() {
         </fieldset>
         <label className="grid gap-1">
           <span className={etiqueta}>Tu nombre</span>
-          <input id="nombre" name="nombre" required className={campo} placeholder="Cómo te llamas" />
+          <input id="nombre" name="nombre" required minLength={2} maxLength={80} autoComplete="name" defaultValue={estado?.campos?.nombre} className={campo} placeholder="Cómo te llamas" />
         </label>
         <label className="grid gap-1">
           <span className={etiqueta}>Correo</span>
-          <input id="correo" name="correo" type="email" required className={campo} placeholder="tu@correo.com" />
+          <input id="correo" name="correo" type="email" required maxLength={120} autoComplete="email" defaultValue={estado?.campos?.correo} className={campo} placeholder="tu@correo.com" />
         </label>
         <label className="grid gap-1">
           <span className={etiqueta}>Cuéntanos</span>
-          <textarea id="mensaje" name="mensaje" rows={4} required className={`${campo} resize-none`} placeholder="Ej.: una web para mi clínica dental, con citas en línea" />
+          <textarea id="mensaje" name="mensaje" rows={4} required minLength={10} maxLength={3000} defaultValue={estado?.campos?.mensaje} className={`${campo} resize-none`} placeholder="Ej.: una web para mi clínica dental, con citas en línea" />
         </label>
         <div className="flex flex-wrap items-center gap-6">
-          <button type="submit" className="rounded-full bg-tinta px-8 py-4 font-mono text-[12px] uppercase tracking-[0.14em] text-hueso transition-transform hover:-translate-y-0.5">
-            Enviar a Atlas
+          <button type="submit" disabled={enviando} className="rounded-full bg-tinta px-8 py-4 font-mono text-[12px] uppercase tracking-[0.14em] text-hueso transition-transform hover:-translate-y-0.5 disabled:opacity-60">
+            {enviando ? "Enviando a Atlas…" : "Enviar a Atlas"}
           </button>
-          {enviado && (
-            <p role="status" className="max-w-xs text-sm text-gris">
-              Todavía no llega a nadie: el envío se conecta en la fase 5, con el sistema de agentes.
+          {estado && (
+            <p role={estado.ok ? "status" : "alert"} className={`max-w-sm text-[15px] ${estado.ok ? "text-tinta" : "text-[#a3105c]"}`}>
+              {estado.mensaje}
             </p>
           )}
         </div>
