@@ -16,3 +16,4 @@ export * from "./calendario.ts";
 export * from "./costo.ts";
 export * from "./ia.ts";
 export * from "./plantillas.ts";
+export * from "./presupuesto.ts";

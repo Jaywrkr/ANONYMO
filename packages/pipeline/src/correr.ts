@@ -58,6 +58,20 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
       p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };
       p.tareas[t] = "lista";
+      // Presupuesto vivo: Ledger fija las horas base; si otro agente suma horas, Ledger vuelve a calcular.
+      const extra = Number(r.datos?.horasExtra ?? 0);
+      // Cuando Ledger da un total nuevo, ese total ya incluye los ajustes anteriores.
+      if (t.endsWith(".ledger") && typeof r.datos?.horas === "number")
+        p.presupuesto = { horas: r.datos.horas as number, ajustes: (p.presupuesto?.ajustes ?? []).map((a) => ({ ...a, incluido: true })) };
+      if (extra > 0) {
+        const motivo = cambio ?? "Cambio en la entrega";
+        p.presupuesto = { horas: p.presupuesto?.horas, ajustes: [...(p.presupuesto?.ajustes ?? []), { tarea: t, horas: extra, motivo, fecha: new Date().toISOString() }] };
+        if (tareas.includes("1.ledger") && t !== "1.ledger") {
+          p.tareas["1.ledger"] = "rehacer";
+          p.cambios[1] = `Ajuste de presupuesto: ${agentePorId(c.agente)?.nombre} suma ${extra} h (${motivo.slice(0, 120)}).`;
+        }
+        bitacora(id, `${agentePorId(c.agente)?.nombre} suma ${extra} h al proyecto. Ledger recalcula.`);
+      }
       guardarProyecto(p);
       bitacora(id, `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} v${version} (${r.modo}).`);
       aviso(`  ✓ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} v${version}`);
@@ -78,6 +92,12 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     puerta(p, { fase, decision: "sigue", quien: "auto" });
     delete p.cambios[fase];
     guardarProyecto(p);
+  }
+
+  // Algo quedó por rehacer en una fase ya pasada (por ejemplo, Ledger tras un ajuste de horas): otra vuelta.
+  if (p.plan.tareas.some((t) => p.tareas[t] === "rehacer")) {
+    guardarProyecto(p);
+    return avanzar(id, motor, aviso);
   }
 
   // 5.5 Calidad: si el Jurado no llega al mínimo, se rehace lo más débil.

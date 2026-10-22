@@ -121,6 +121,8 @@ export const real: Motor = {
       "Responde en markdown. Al final agrega exactamente dos líneas:",
       "DICE: lo que dirías en la sala del proyecto, en una o dos frases.",
       "NECESITA: lo que necesitas del cliente o del equipo para seguir.",
+      tarea.endsWith(".ledger") ? "Antes de esas líneas agrega: HORAS: <total de horas del proyecto>" : "",
+      version > 1 && !tarea.endsWith(".ledger") ? "Si este cambio suma trabajo al proyecto, antes de esas líneas agrega: HORAS_EXTRA: <horas adicionales estimadas>" : "",
       tarea === "2.verba" ? "Antes de esas líneas agrega: FINALISTAS: nombre1, nombre2, nombre3, nombre4, nombre5" : "",
       tarea === "6.trofeo"
         ? 'Califica como jurado de Awwwards, con exigencia real. Antes de esas líneas agrega un bloque ```json con {"diseno","usabilidad","creatividad","contenido","final","arreglos"}: notas de 0 a 10 (pesos 40/30/20/10) y "arreglos" con los tres cambios que más suben la nota, cada uno nombrando al agente responsable. Luego la línea NOTA: <final>.'
@@ -190,11 +192,19 @@ export const real: Motor = {
         jurado = undefined;
       }
     }
-    const datos = { ...datosHerramientas(herramientas), ...(finalistas?.length ? { finalistas } : {}), ...(jurado ? { jurado } : {}) };
+    const horas = Number.parseFloat(linea("HORAS") ?? "");
+    const horasExtra = Number.parseFloat(linea("HORAS_EXTRA") ?? "");
+    const datos = {
+      ...datosHerramientas(herramientas),
+      ...(finalistas?.length ? { finalistas } : {}),
+      ...(jurado ? { jurado } : {}),
+      ...(Number.isFinite(horas) ? { horas } : {}),
+      ...(Number.isFinite(horasExtra) && horasExtra > 0 ? { horasExtra } : {}),
+    };
     return {
       dice: linea("DICE") ?? "",
       necesita: linea("NECESITA") ?? "",
-      contenido: [texto.replace(/^(DICE|NECESITA|NOTA|FINALISTAS):.*$/gm, "").trim(), "", ...seccionHerramientas(herramientas)].join("\n").trim(),
+      contenido: [texto.replace(/^(DICE|NECESITA|NOTA|FINALISTAS|HORAS|HORAS_EXTRA):.*$/gm, "").trim(), "", ...seccionHerramientas(herramientas)].join("\n").trim(),
       nota: nota ? Number.parseFloat(nota) : undefined,
       datos: Object.keys(datos).length ? datos : undefined,
       modo: "real",
