@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { useQuieto } from "@/lib/movimiento";
 import { usePathname } from "next/navigation";
 import { AREAS, FASES, agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
@@ -44,7 +45,7 @@ function Tarjeta({ n, idioma }: { n: number; idioma: Idioma }) {
 export function FasesScroll() {
   const seccion = useRef<HTMLElement>(null);
   const pista = useRef<HTMLDivElement>(null);
-  const quieto = useReducedMotion();
+  const quieto = useQuieto();
   const idioma = idiomaDeRuta(usePathname());
   const en = idioma === "en";
   const [desplazar, setDesplazar] = useState(0);

@@ -7,6 +7,7 @@ import { LienzoDiferido } from "@/components/escena/LienzoDiferido";
 import { Encabezado, Pie } from "@/components/ui/Encabezado";
 import { Suave } from "@/components/ui/Suave";
 import { Saltar } from "@/components/ui/Saltar";
+import { Movimiento } from "@/components/ui/Movimiento";
 
 export const metadata: Metadata = {
   title: "Anonymo — trabajamos mientras duermes",
@@ -17,10 +18,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
-        <Saltar />
-        <Encabezado />
-        <div id="contenido" tabIndex={-1} className="outline-none">{children}</div>
-        <Pie />
+        <Movimiento>
+          <Saltar />
+          <Encabezado />
+          <div id="contenido" tabIndex={-1} className="outline-none">{children}</div>
+          <Pie />
+        </Movimiento>
         <LienzoDiferido />
         <Suave />
       </body>

@@ -28,6 +28,7 @@ body::after {
 .display-apretada { line-height: .84; padding-top: 0; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+html[data-quieto] *, html[data-quieto] *::before, html[data-quieto] *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 
 /* Modo noche del inicio (hora real de Cuenca). */
 html[data-noche="1"] body > header, html[data-noche="1"] .hero { background: var(--color-noche); color: var(--color-hueso); }
