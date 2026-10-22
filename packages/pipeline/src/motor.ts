@@ -154,7 +154,7 @@ export const real: Motor = {
     const uso = { entrada: 0, salida: 0, busquedas: 0 };
     // Con búsqueda web la API puede pausar el turno: se continúa hasta 3 veces.
     for (let vuelta = 0; vuelta < 3; vuelta++) {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
+      const r = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({

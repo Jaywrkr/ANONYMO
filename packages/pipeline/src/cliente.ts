@@ -3,7 +3,8 @@ import { agentePorId } from "@anonymo/agentes";
 import { appendFileSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { bitacora, CARPETA, guardarProyecto, leerProyecto } from "./almacen.ts";
-import { dependientes } from "./contratos.ts";
+import { contratoPorId, dependientes } from "./contratos.ts";
+import { json, preguntarClaude } from "./ia.ts";
 import type { NotaCliente, Plan, Proyecto, TareaId } from "./tipos.ts";
 
 /**
@@ -20,7 +21,7 @@ const REGLAS: { palabras: RegExp; tareas: TareaId[] }[] = [
   { palabras: /secci[oó]n|p[aá]gina|men[uú]|estructura|orden|whatsapp|agenda|cita/i, tareas: ["4.orla"] },
   { palabras: /sonido|m[uú]sica|audio/i, tareas: ["3.eco", "4.eco"] },
   { palabras: /precio|presupuesto|caro|barato|costo|pago/i, tareas: ["1.ledger"] },
-  { palabras: /plazo|fecha|semana|urgente|r[aá]pido|demora/i, tareas: ["4.tempo"] },
+  { palabras: /plazo|fecha|semana|urgente|r[aá]pido|demora|antes|pronto|tiempo/i, tareas: ["4.tempo"] },
   { palabras: /nombre|marca|posicion|p[uú]blico|competencia/i, tareas: ["1.nova"] },
 ];
 
@@ -64,3 +65,35 @@ export function anotar(id: string, texto: string, quien: NotaCliente["quien"], f
 }
 
 export const nombreTarea = (t: TareaId) => `${agentePorId(t.split(".")[1])?.nombre} (${t.split(".")[0]})`;
+
+export interface Reparto { tareas: TareaId[]; razon: string; como: "ia" | "palabras" }
+
+/**
+ * Atlas reparte un comentario. Con clave: lee el comentario completo y elige agentes con una razón.
+ * Sin clave o si la IA falla: palabras clave.
+ */
+export async function repartir(texto: string, plan: Plan): Promise<Reparto> {
+  const enPlan = [...new Set(plan.tareas)];
+  try {
+    const lista = enPlan
+      .filter((t) => !t.startsWith("6.") && !t.startsWith("7."))
+      .map((t) => {
+        const c = contratoPorId(t)!;
+        const a = agentePorId(c.agente)!;
+        return `${t} · ${a.nombre}, ${a.rol}: ${c.entrega}`;
+      })
+      .join("\n");
+    const r = json<{ tareas: string[]; razon: string }>(
+      await preguntarClaude(
+        "Eres Atlas, el orquestador de una agencia creativa. Recibes un comentario de un cliente y decides qué tareas del plan deben rehacerse para atenderlo. Elige las mínimas necesarias (1 a 4); evita la fase 1 salvo que el comentario cambie el fondo del proyecto. Responde solo JSON: {\"tareas\": [\"3.mira\", ...], \"razon\": \"una frase en español\"}.",
+        `Comentario del cliente: "${texto}"\n\nTareas del plan:\n${lista}`,
+      ),
+    );
+    const tareas = (r?.tareas ?? []).filter((t): t is TareaId => enPlan.includes(t as TareaId));
+    if (tareas.length) return { tareas, razon: r!.razon ?? "", como: "ia" };
+  } catch {
+    // sigue con palabras clave
+  }
+  const tareas = enrutar(texto, plan);
+  return { tareas, razon: "Por palabras clave del comentario.", como: "palabras" };
+}

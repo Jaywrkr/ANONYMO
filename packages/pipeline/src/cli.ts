@@ -4,7 +4,7 @@ import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CARPETA, leerEntrega, leerProyecto, listar } from "./almacen.ts";
 import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
-import { anotar, enrutar, nombreTarea } from "./cliente.ts";
+import { anotar, enrutar, nombreTarea, repartir } from "./cliente.ts";
 import { tokenPortal } from "./portal.ts";
 import { avisar, canalesActivos } from "./avisos.ts";
 import { adjuntar, listarArchivos } from "./archivos.ts";
@@ -191,12 +191,14 @@ async function main() {
       if (!texto) throw new Error('Falta el texto: pipeline cliente <id> "La web de estética tiene que ser más elegante"');
       const forzadas = texto && typeof op.agentes === "string" ? op.agentes.split(",").map((x) => x.trim().toLowerCase()) : undefined;
       const p0 = leerProyecto(necesitaId());
-      const base = enrutar(texto, p0.plan, forzadas);
+      const reparto = forzadas ? { tareas: enrutar(texto, p0.plan, forzadas), razon: "Elegido a mano.", como: "manual" } : await repartir(texto, p0.plan);
+      const base = reparto.tareas;
       const rehacer = dependientes(base, p0.plan.tareas);
       console.log(`\nAtlas manda "${texto}" a: ${base.map(nombreTarea).join(", ")}`);
+      console.log(`Por qué (${reparto.como === "ia" ? "Atlas con IA" : reparto.como === "manual" ? "a mano" : "palabras clave"}): ${reparto.razon}`);
       console.log(`Se rehacen ${rehacer.length} tareas: ${rehacer.map(nombreTarea).join(", ")}`);
       if (op.ver) return console.log("\n(--ver: no se cambió nada)");
-      anotar(necesitaId(), texto, quien === "luna" ? "luna" : "jay", forzadas);
+      anotar(necesitaId(), texto, quien === "luna" ? "luna" : "jay", base);
       return resumen(await avanzar(necesitaId(), motor));
     }
     case "adjuntar": {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
@@ -23,7 +23,8 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
   const deFase = (f: number) => p.plan.tareas.filter((t) => t.startsWith(`${f}.`)) as TareaId[];
   const actuales = deFase(p.faseActual);
   // Vista previa del reparto de un comentario del cliente.
-  const reparto = vista ? enrutar(vista, p.plan) : [];
+  const decision = vista ? await repartir(vista, p.plan) : undefined;
+  const reparto = decision?.tareas ?? [];
   const arrastra = vista ? dependientes(reparto, p.plan.tareas) : [];
   const conTarea = [...new Set(p.plan.tareas.map((t) => t.split(".")[1]))];
   const comunes = (
@@ -122,6 +123,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                     ))}
                   </div>
                 </fieldset>
+                {decision && <p className="text-[14px]">{decision.como === "ia" ? "Atlas (con IA): " : "Atlas (por palabras clave): "}{decision.razon}</p>}
                 <p className="text-[14px] text-gris">Con este reparto se rehacen {arrastra.length} tareas: {arrastra.map(nombreTarea).join(", ")}.</p>
                 <div className="flex flex-wrap gap-2">
                   <button className={botonLleno}>Mandar al equipo</button>
