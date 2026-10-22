@@ -16,7 +16,7 @@ export function Formulario() {
   }, [tipo]);
 
   const campo = "w-full border-b border-tinta bg-transparent py-3 text-xl font-light tracking-tight outline-none placeholder:text-gris/55 focus:border-b-2";
-  const etiqueta = "font-mono text-[10px] uppercase tracking-[0.14em] text-gris";
+  const etiqueta = "font-mono text-[12px] uppercase tracking-[0.14em] text-gris";
 
   return (
     <div className="grid gap-12 lg:grid-cols-12">
@@ -33,7 +33,7 @@ export function Formulario() {
                 key={k}
                 aria-pressed={tipo === k}
                 onClick={() => setTipo(k as keyof typeof PEDIDOS)}
-                className={`rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.12em] ${tipo === k ? "border-tinta bg-tinta text-hueso" : "border-linea text-gris hover:border-tinta hover:text-tinta"}`}
+                className={`rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.12em] ${tipo === k ? "border-tinta bg-tinta text-hueso" : "border-linea text-gris hover:border-tinta hover:text-tinta"}`}
               >
                 {p.nombre}
               </button>
@@ -74,7 +74,7 @@ export function Formulario() {
             return (
               <li key={id}>
                 <AgenteVista agente={a} className="aspect-square w-full" />
-                <span className="block text-center font-mono text-[10px] uppercase tracking-[0.12em]">{a.nombre}</span>
+                <span className="block text-center font-mono text-[12px] uppercase tracking-[0.12em]">{a.nombre}</span>
               </li>
             );
           })}

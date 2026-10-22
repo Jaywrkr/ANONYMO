@@ -14,7 +14,7 @@ export function Equipo({ area }: { area?: AreaId | null }) {
             <AgenteVista agente={a} className="aspect-square w-full" />
             <span className="mt-1 flex items-baseline justify-between gap-2 border-t border-linea pt-2">
               <span className="display text-3xl">{a.nombre}</span>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-gris">{AREAS[a.area].nombre}</span>
+              <span className="font-mono text-[12px] uppercase tracking-widest text-gris">{AREAS[a.area].nombre}</span>
             </span>
             <span className="text-sm text-gris">{a.rol}</span>
           </Link>

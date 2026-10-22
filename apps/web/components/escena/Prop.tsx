@@ -57,8 +57,8 @@ function Escuadra() {
     return new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: false });
   }, []);
   return (
-    <mesh geometry={geo} position={[0.72, 0.62, 0.15]} rotation={[0.2, -0.35, -0.3]}>
-      <Mat color="#ffffff" opacity={0.75} />
+    <mesh geometry={geo} position={[0.42, 0.4, 0.66]} rotation={[0.1, -0.5, -0.25]} scale={1.2}>
+      <Mat color={TINTA} />
     </mesh>
   );
 }
@@ -313,10 +313,10 @@ export function Prop({ tipo }: { tipo: PropId }) {
       );
     case "estela":
       return (
-        <group position={[-1.25, 0, 0]}>
-          {[0.32, 0, -0.32].map((y, i) => (
-            <mesh key={y} position={[-i * 0.08, y, 0]} rotation={[0, 0, Math.PI / 2]}>
-              <capsuleGeometry args={[0.035, 0.38 - i * 0.06, 4, 8]} />
+        <group position={[-1.12, 0, 0.1]}>
+          {[0.36, 0.05, -0.26].map((y, i) => (
+            <mesh key={y} position={[-i * 0.1, y, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <capsuleGeometry args={[0.05, 0.5 - i * 0.1, 4, 8]} />
               <Mat color={TINTA} />
             </mesh>
           ))}
@@ -364,7 +364,11 @@ export function Prop({ tipo }: { tipo: PropId }) {
       );
     case "cronometro":
       return (
-        <group position={[0, 1.32, 0]}>
+        <group position={[0, 1.14, 0.12]}>
+          <mesh position={[0, -0.2, -0.06]}>
+            <cylinderGeometry args={[0.035, 0.035, 0.22, 8]} />
+            <Mat color={TINTA} />
+          </mesh>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.24, 0.24, 0.08, 32]} />
             <Mat color={BLANCO} />
