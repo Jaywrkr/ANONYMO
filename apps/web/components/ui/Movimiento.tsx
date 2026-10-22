@@ -16,7 +16,7 @@ export function InterruptorMovimiento() {
   const quieto = useQuieto();
   const en = idiomaDeRuta(usePathname()) === "en";
   return (
-    <button onClick={() => cambiarQuieto(!quieto)} aria-pressed={quieto} className="hover:text-tinta">
+    <button onClick={() => cambiarQuieto(!quieto)} aria-pressed={quieto} className="uppercase hover:text-tinta">
       {en ? (quieto ? "Motion: reduced" : "Motion: on") : quieto ? "Movimiento: reducido" : "Movimiento: activado"}
     </button>
   );

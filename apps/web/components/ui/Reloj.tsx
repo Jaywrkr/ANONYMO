@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { idiomaDeRuta } from "@/lib/idioma";
 import { T } from "@/lib/textos";
+import { useModoNoche } from "@/lib/noche";
 
 function horaCuenca() {
   const d = new Date();
@@ -16,17 +17,19 @@ function horaCuenca() {
 export function Reloj({ modo = "linea" }: { modo?: "linea" | "corto" }) {
   const [t, setT] = useState<{ hm: string; noche: boolean } | null>(null);
   const tx = T[idiomaDeRuta(usePathname())].reloj;
+  const luz = useModoNoche();
   useEffect(() => {
     const tic = () => {
       const h = horaCuenca();
       setT(h);
-      // De noche, el inicio se apaga: los humanos duermen, los agentes trabajan.
-      document.documentElement.dataset.noche = h.noche ? "1" : "0";
+      // De noche, el inicio se apaga: los humanos duermen, los agentes trabajan. O lo eliges tú.
+      const noche = luz === "auto" ? h.noche : luz === "noche";
+      document.documentElement.dataset.noche = noche ? "1" : "0";
     };
     tic();
     const id = setInterval(tic, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [luz]);
   if (!t) return <span>Cuenca, Ecuador</span>;
   if (modo === "corto") return <span>Cuenca · {t.hm}</span>;
   return (
