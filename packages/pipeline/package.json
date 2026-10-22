@@ -1,0 +1,15 @@
+{
+  "name": "@anonymo/pipeline",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "revisar": "node src/revisar.ts",
+    "tipos": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anonymo/agentes": "*"
+  }
+}
