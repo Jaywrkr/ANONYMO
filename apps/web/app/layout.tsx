@@ -10,6 +10,9 @@ import { Saltar } from "@/components/ui/Saltar";
 import { Movimiento } from "@/components/ui/Movimiento";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.ANONYMO_URL ?? "http://localhost:3000"),
+  twitter: { card: "summary_large_image" },
+  openGraph: { siteName: "Anonymo", locale: "es_EC", type: "website" },
   title: "Anonymo — trabajamos mientras duermes",
   description: "Agencia creativa de Jay y Luna, con un equipo de 22 agentes.",
 };
