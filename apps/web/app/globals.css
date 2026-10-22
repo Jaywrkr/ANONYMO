@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* Tokens de la agencia. Base calma: hueso y tinta. El color vive en los agentes. */
+@theme {
+  --color-hueso: #efede8;
+  --color-papel: #f7f6f2;
+  --color-tinta: #121214;
+  --color-gris: #6e6c68;
+  --color-linea: #d9d6cf;
+  --color-noche: #0c0c0e;
+  --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+  --font-display: "Big Shoulders Display Variable", "Arial Narrow", sans-serif;
+}
+
+:root { color-scheme: light; }
+html, body { background: var(--color-hueso); color: var(--color-tinta); }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--color-tinta); color: var(--color-hueso); }
