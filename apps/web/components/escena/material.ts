@@ -61,7 +61,7 @@ void main(){
   float t = clamp(vPos.y * 0.42 + 0.5 + vPos.x * 0.12 + flow * 0.18, 0.0, 1.0);
   vec3 c = mix(uSombra, uMedio, smoothstep(0.0, 0.62, t));
   c = mix(c, uLuz, smoothstep(0.58, 1.0, t));
-  float a = smoothstep(0.1, 0.85, snoise(vPos * 1.1 + vec3(-uTime * 0.1, uSeed, uTime * 0.14)));
+  float a = smoothstep(0.15, 0.95, sin(vPos.x * 2.3 + flow * 2.6 + uSeed + uTime * 0.25) * sin(vPos.y * 1.9 - flow * 1.8 - uTime * 0.18));
   c = mix(c, uAcento, a * 0.42);
   float light = dot(n, normalize(vec3(-0.45, 0.75, 0.6))) * 0.5 + 0.5;
   c *= mix(0.82, 1.04, light);

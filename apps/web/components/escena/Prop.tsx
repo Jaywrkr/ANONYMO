@@ -82,6 +82,68 @@ function Pulso() {
   );
 }
 
+
+function Microfono() {
+  const geo = useMemo(() => {
+    const c = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.1, -0.08, 0.04),
+      new THREE.Vector3(-1.02, -0.42, 0.42),
+      new THREE.Vector3(-0.72, -0.58, 0.78),
+      new THREE.Vector3(-0.42, -0.5, 0.95),
+    ]);
+    return new THREE.TubeGeometry(c, 32, 0.025, 8, false);
+  }, []);
+  return (
+    <group>
+      <mesh geometry={geo}>
+        <Mat color={TINTA} />
+      </mesh>
+      <mesh position={[-0.38, -0.49, 0.97]} rotation={[0, 0, Math.PI / 2 - 0.3]}>
+        <capsuleGeometry args={[0.055, 0.1, 6, 12]} />
+        <Mat color={TINTA} />
+      </mesh>
+    </group>
+  );
+}
+
+// Corona de laurel: dos ramas que rodean la cabeza y se juntan adelante, con una baya dorada.
+function Laurel() {
+  const hojas = useMemo(() => {
+    const out: { p: [number, number, number]; r: [number, number, number] }[] = [];
+    const n = 11;
+    for (const lado of [-1, 1]) {
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        const a = Math.PI / 2 + lado * (0.25 + t * 2.55); // de adelante hacia atrás
+        const x = Math.cos(a) * 0.8;
+        const z = Math.sin(a) * 0.8;
+        const y = 0.62 + Math.sin(t * Math.PI) * 0.05;
+        const fuera = i % 2 ? 1 : -1;
+        out.push({ p: [x, y + fuera * 0.045, z], r: [fuera * 0.55, -a + Math.PI / 2, lado * 0.25] });
+      }
+    }
+    return out;
+  }, []);
+  return (
+    <group>
+      <mesh position={[0, 0.62, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.8, 0.018, 6, 64]} />
+        <Mat color="#4d8f45" />
+      </mesh>
+      {hojas.map((h, i) => (
+        <mesh key={i} position={h.p} rotation={h.r} scale={[0.17, 0.065, 0.05]}>
+          <sphereGeometry args={[1, 14, 8]} />
+          <Mat color={i % 3 ? "#73c464" : "#5aa94f"} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.66, 0.8]}>
+        <sphereGeometry args={[0.055, 16, 16]} />
+        <meshStandardMaterial color="#ffc93c" metalness={0.6} roughness={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
 export function Prop({ tipo }: { tipo: PropId }) {
   switch (tipo) {
     case "auricular":
@@ -97,14 +159,7 @@ export function Prop({ tipo }: { tipo: PropId }) {
               <Mat color={TINTA} />
             </mesh>
           ))}
-          <mesh position={[-0.82, -0.36, 0.55]} rotation={[0.9, 0.6, 0.9]}>
-            <cylinderGeometry args={[0.022, 0.022, 0.62, 8]} />
-            <Mat color={TINTA} />
-          </mesh>
-          <mesh position={[-0.55, -0.55, 0.82]}>
-            <sphereGeometry args={[0.06, 16, 16]} />
-            <Mat color={TINTA} />
-          </mesh>
+          <Microfono />
         </group>
       );
     case "visera":
@@ -114,9 +169,9 @@ export function Prop({ tipo }: { tipo: PropId }) {
             <torusGeometry args={[0.86, 0.035, 8, 48]} />
             <Mat color="#2fa86f" />
           </mesh>
-          <mesh position={[0, 0.02, 0.86]} rotation={[-1.25, 0, 0]}>
-            <circleGeometry args={[0.55, 32, 0, Math.PI]} />
-            <meshStandardMaterial color="#3fcf8a" transparent opacity={0.7} side={THREE.DoubleSide} roughness={0.4} />
+          <mesh position={[0, 0.0, 0.8]} rotation={[Math.PI / 2 + 0.45, 0, 0]} scale={[1, 0.8, 1]}>
+            <circleGeometry args={[0.62, 40, 0, Math.PI]} />
+            <meshStandardMaterial color="#35c47f" transparent opacity={0.72} side={THREE.DoubleSide} roughness={0.35} />
           </mesh>
         </group>
       );
@@ -430,24 +485,7 @@ export function Prop({ tipo }: { tipo: PropId }) {
         </group>
       );
     case "laurel":
-      return (
-        <group position={[0, 0.72, 0]}>
-          {Array.from({ length: 14 }, (_, i) => {
-            const a = (i / 13) * Math.PI * 1.6 + Math.PI * 0.2;
-            return (
-              <mesh
-                key={i}
-                position={[Math.cos(a) * 0.74, Math.sin(a) * 0.18 + 0.05, Math.sin(a) * 0.62]}
-                rotation={[0.3, -a, 0.6 * (i % 2 ? 1 : -1)]}
-                scale={[0.16, 0.06, 0.08]}
-              >
-                <sphereGeometry args={[1, 12, 8]} />
-                <Mat color="#6fbf5f" />
-              </mesh>
-            );
-          })}
-        </group>
-      );
+      return <Laurel />;
     case "pulso":
       return <Pulso />;
   }
