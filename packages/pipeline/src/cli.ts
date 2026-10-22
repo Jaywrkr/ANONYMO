@@ -1,7 +1,7 @@
 // pipeline: la terminal del equipo. Uso: npm run pipeline -- <comando> [opciones]
 import { relative } from "node:path";
 import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
-import { CARPETA, leerEntrega, leerProyecto, listar } from "./almacen.ts";
+import { CARPETA, guardarProyecto, leerEntrega, leerProyecto, listar } from "./almacen.ts";
 import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
 import { anotar, enrutar, nombreTarea, repartir } from "./cliente.ts";
@@ -32,7 +32,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
 
   nuevo     --cliente "Clínica Sonrisa" --tipo web --descripcion "..."
             [--rubro --ciudad --publico --plazo --presupuesto --referencias "a,b"]
-            [--plantilla salud|comida|profesionales|tienda|espacios]
+            [--plantilla salud|comida|profesionales|tienda|espacios] [--idioma en]
             [--sin-marca | --con-marca] [--url https://...] [--pausas clave|nunca|cada-fase|1,4] [--id slug]
   estado    <id>                 dónde va y qué dijo cada agente
   lista                          todos los proyectos
@@ -46,6 +46,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  idioma    <id> es|en           idioma de las entregas, el portal y el PDF (rehace con: cambiar)
   doctor    [--en-vivo]          qué está listo y qué falta configurar
   subir     <id>                 copia el proyecto al almacén privado (Supabase)
   bajar     <id>                 trae el proyecto desde el almacén privado
@@ -167,6 +168,7 @@ async function main() {
           tieneMarca: op["sin-marca"] ? false : op["con-marca"] ? true : undefined,
         },
         pausas: texto(op.pausas) ? leerPausas(texto(op.pausas)!) : undefined,
+        idioma: texto(op.idioma) === "en" ? "en" : undefined,
         plantilla: (() => {
           const pl = texto(op.plantilla);
           if (pl && !plantillaPorId(pl)) throw new Error(`No hay plantilla "${pl}". Opciones: ${PLANTILLAS.map((x) => x.id).join(", ")}`);
@@ -243,6 +245,13 @@ async function main() {
       console.log(`Base: ${b.base ?? "sin definir"} h · Cambios: +${b.extra} h · Total: ${b.total ?? "—"} h${b.precio ? ` · $${b.precio}` : ""}`);
       for (const a of b.ajustes) console.log(`  +${a.horas} h  ${nombreTarea(a.tarea as `${number}.${string}`)}  ${a.motivo}${a.incluido ? " (ya en el total de Ledger)" : ""}`);
       return;
+    }
+    case "idioma": {
+      const p = leerProyecto(necesitaId());
+      if (pos[2] !== "es" && pos[2] !== "en") throw new Error("Uso: pipeline idioma <id> es|en");
+      p.pedido.idioma = pos[2];
+      guardarProyecto(p);
+      return console.log(`Desde ahora las entregas de ${p.pedido.cliente} salen en ${pos[2] === "en" ? "inglés" : "español"}. Las ya hechas cambian cuando se rehagan.`);
     }
     case "doctor": {
       const r = await revisarSistema(op["en-vivo"] === true);
