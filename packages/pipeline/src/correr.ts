@@ -5,6 +5,7 @@ import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { avisar } from "./avisos.ts";
 import { estimar, textoEntrada } from "./costo.ts";
+import { consejosPara } from "./plantillas.ts";
 import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
@@ -49,6 +50,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const herramientas = await prepararHerramientas({ pedido: p.pedido, tarea: t, lecturas: leidas, motorReal: motor.nombre !== "simulado" });
       for (const h of herramientas) bitacora(id, `${h.herramienta}: ${h.ok ? "ok" : "pendiente"}.`);
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
+        consejos: consejosPara(p.pedido.plantilla, c.agente),
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })) });
       const { uso, ...resto } = r;
       guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto });
