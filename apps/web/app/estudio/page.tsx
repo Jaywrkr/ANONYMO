@@ -3,14 +3,20 @@ import { PEDIDOS } from "@anonymo/agentes";
 import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
 import { buscar, leerEntrega, leerNota, listar, listarSolicitudes, PLANTILLAS } from "@anonymo/pipeline";
 import { accionConvertirSolicitud, accionDescartarSolicitud } from "./acciones";
+import { traerTodo } from "@/lib/nube";
+import { sesionConfigurada } from "@/lib/sesion";
+import { salir } from "../entrar/acciones";
 import { campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
+// Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
+export const maxDuration = 300;
 export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
 
 // Todos los proyectos: primero los que esperan una decisión.
 export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string; error?: string }> }) {
-  exigirEstudio();
+  const yo = await exigirEstudio();
+  await traerTodo();
   const { q, error } = await searchParams;
   const solicitudes = listarSolicitudes();
   const hallazgos = q ? buscar(q) : [];
@@ -20,7 +26,13 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
     <main className={`${lateral} pb-16`}>
       <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-4">
         <h1 className="display text-[clamp(64px,10vw,160px)]">Estudio</h1>
-        <p className="max-w-sm text-[17px] text-gris"><a href="/estudio/analitica" className="text-tinta underline underline-offset-4">Métricas de la web →</a><br />El panel de Jay y Luna. Aquí se aprueba, se pide cambios y se para. Solo existe en local.</p>
+        <p className="max-w-sm text-[17px] text-gris"><a href="/estudio/analitica" className="text-tinta underline underline-offset-4">Métricas de la web →</a><br />El panel de Jay y Luna. Aquí se aprueba, se pide cambios y se para. Solo para ustedes dos.</p>
+        {sesionConfigurada() && (
+          <form action={salir} className="flex items-center gap-3">
+            <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Hola, {yo === "luna" ? "Luna" : "Jay"}</span>
+            <button className="min-h-11 rounded-full border border-tinta px-4 font-mono text-[12px] uppercase tracking-[0.12em]">Salir</button>
+          </form>
+        )}
       </div>
       <form role="search" className="mb-8 flex max-w-2xl gap-2">
         <input name="q" defaultValue={q} placeholder="Buscar en todas las entregas: paleta, WhatsApp, Cormorant…" className={campo} aria-label="Buscar en todas las entregas" />
@@ -69,7 +81,7 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
           </ul>
         </section>
       )}
-      {proyectos.length === 0 && <p className="text-xl font-light">No hay proyectos. Crea uno con <code>npm run pipeline -- nuevo</code>.</p>}
+      {proyectos.length === 0 && <p className="text-xl font-light">No hay proyectos todavía. Llegan como solicitudes desde el formulario de la web (aparecen arriba) o se crean con <code>npm run pipeline -- nuevo</code>.</p>}
       <ul className="grid gap-3 md:grid-cols-2">
         {proyectos.map((p) => {
           const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;

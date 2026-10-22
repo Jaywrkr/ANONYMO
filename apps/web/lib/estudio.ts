@@ -1,13 +1,33 @@
-// El estudio es el panel interno de Jay y Luna. Solo existe en local o con ESTUDIO=1: nunca en la web pública.
-import { notFound } from "next/navigation";
+// El estudio es el panel interno de Jay y Luna.
+// En tu máquina (npm run dev) se abre directo. En línea solo existe con ESTUDIO=1 y las claves configuradas,
+// y siempre pide entrar (ver lib/sesion.ts): sin claves, la ruta ni siquiera existe.
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
+import { COOKIE, leerSesion, sesionConfigurada, type Socio } from "./sesion";
 
-export const estudioActivo = () => process.env.ESTUDIO === "1" || process.env.NODE_ENV === "development";
+const local = () => process.env.NODE_ENV === "development";
+
+export const estudioActivo = () => local() || (process.env.ESTUDIO === "1" && sesionConfigurada());
 
 /** El portal del cliente vive en el mismo servidor del estudio, o solo con PORTAL=1. */
 export const portalActivo = () => process.env.PORTAL === "1" || estudioActivo();
 
-export function exigirEstudio() {
+/** En local sin claves se entra directo; con claves (o en línea) hay que entrar. */
+const pideEntrar = () => !local() || sesionConfigurada();
+
+/** Quién está en el estudio, o undefined si no entró (en local sin claves: "jay"). */
+export async function quienEsta(): Promise<Socio | undefined> {
+  if (!estudioActivo()) return;
+  if (!pideEntrar()) return "jay";
+  return leerSesion((await cookies()).get(COOKIE)?.value);
+}
+
+/** Para páginas y acciones del estudio: 404 si está apagado, a /entrar si no entraste. Devuelve quién es. */
+export async function exigirEstudio(): Promise<Socio> {
   if (!estudioActivo()) notFound();
+  const q = await quienEsta();
+  if (!q) redirect("/entrar");
+  return q;
 }
 
 export const etiqueta = "font-mono text-[12px] uppercase tracking-[0.14em] text-gris";

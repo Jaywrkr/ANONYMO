@@ -15,7 +15,11 @@ function buscarRaiz(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 }
 export const RAIZ = buscarRaiz();
-export const CARPETA = process.env.ANONYMO_PROYECTOS ?? join(RAIZ, "proyectos");
+/**
+ * Dónde viven los proyectos. En tu máquina: proyectos/ (ignorado por git).
+ * En Vercel el disco es de solo lectura salvo /tmp: ahí se copia cada proyecto desde la nube privada mientras se usa.
+ */
+export const CARPETA = process.env.ANONYMO_PROYECTOS ?? (process.env.VERCEL ? "/tmp/anonymo-proyectos" : join(RAIZ, "proyectos"));
 
 const dir = (id: string) => join(CARPETA, id);
 const json = (ruta: string) => JSON.parse(readFileSync(ruta, "utf8"));

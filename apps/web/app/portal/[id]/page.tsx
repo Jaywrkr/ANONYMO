@@ -5,10 +5,13 @@ import { AgenteVista } from "@/components/escena/AgenteVista";
 import { botonLleno, campo, etiqueta, lateral, portalActivo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
 import { Calendario } from "@/components/estudio/Calendario";
+import { traer } from "@/lib/nube";
 import { TEXTOS_PORTAL } from "@/lib/textos-portal";
 import { portalAprobar, portalComentar, portalResponder, portalSubir } from "./acciones";
 
 export const dynamic = "force-dynamic";
+// Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
+export const maxDuration = 300;
 export const metadata = { title: "Tu proyecto — Anonymo", robots: { index: false, follow: false } };
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string; m?: string; ver?: string }> };
@@ -17,6 +20,8 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ t?: stri
 export default async function Portal({ params, searchParams }: Props) {
   const { id } = await params;
   const { t, m, ver } = await searchParams;
+  if (!/^[a-z0-9-]+$/.test(id)) notFound();
+  if (portalActivo()) await traer(id);
   if (!portalActivo() || !existe(id) || !tokenValido(id, t)) notFound();
   const p = leerProyecto(id);
   const visibles = p.plan.tareas.filter((x) => !contratoPorId(x)?.interna) as TareaId[];

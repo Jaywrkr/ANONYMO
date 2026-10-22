@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { rutaArchivo, TIPOS } from "@anonymo/pipeline";
-import { estudioActivo } from "@/lib/estudio";
+import { quienEsta } from "@/lib/estudio";
+import { traer } from "@/lib/nube";
 
 // Sirve un archivo del proyecto, solo en el estudio. Los SVG se descargan (pueden traer scripts).
 export async function GET(_: Request, { params }: { params: Promise<{ id: string; nombre: string }> }) {
-  if (!estudioActivo()) return new Response(null, { status: 404 });
+  if (!(await quienEsta())) return new Response(null, { status: 404 });
   const { id, nombre } = await params;
+  await traer(id);
   const ruta = rutaArchivo(id, decodeURIComponent(nombre));
   if (!ruta) return new Response(null, { status: 404 });
   const ext = ruta.slice(ruta.lastIndexOf(".")).toLowerCase();

@@ -9,7 +9,11 @@ export interface Evento { t: string; e: string; ruta: string; idioma?: string; e
 const carpeta = () => join(CARPETA, "_analitica");
 const EVENTOS = new Set(["vista", "sala-tiempo", "sala-agente", "formulario", "compartir", "sonido", "idioma"]);
 
-export function registrar(ev: Omit<Evento, "t">) {
+/**
+ * Guarda el evento y devuelve su archivo (relativo a proyectos/). Con `suelto`, cada evento va en su propio archivo:
+ * así dos servidores en la nube nunca se pisan el mismo archivo del mes.
+ */
+export function registrar(ev: Omit<Evento, "t">, suelto = false): string | undefined {
   if (!EVENTOS.has(ev.e) || typeof ev.ruta !== "string" || ev.ruta.length > 200) return;
   const limpio: Evento = {
     t: new Date().toISOString(),
@@ -21,7 +25,9 @@ export function registrar(ev: Omit<Evento, "t">) {
     valor: typeof ev.valor === "number" ? Math.max(0, Math.min(ev.valor, 86400)) : ev.valor ? String(ev.valor).slice(0, 40) : undefined,
   };
   mkdirSync(carpeta(), { recursive: true });
-  appendFileSync(join(carpeta(), `${limpio.t.slice(0, 7)}.jsonl`), JSON.stringify(limpio) + "\n");
+  const nombre = suelto ? `${limpio.t.slice(0, 7)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.jsonl` : `${limpio.t.slice(0, 7)}.jsonl`;
+  appendFileSync(join(carpeta(), nombre), JSON.stringify(limpio) + "\n");
+  return `_analitica/${nombre}`;
 }
 
 export function leerEventos(dias = 30): Evento[] {
