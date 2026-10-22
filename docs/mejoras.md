@@ -11,3 +11,4 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/03-comentarios-desde-panel | Escribir lo que dijo el cliente (o traer lo que comentó en su portal), ver a quién lo manda Atlas, ajustar agentes y mandarlo | Estudio → proyecto → "Lo que dijo el cliente" |
 | sistema/04-comparar-versiones | Cada entrega guarda sus versiones anteriores; en el estudio se ven y se comparan línea por línea | Estudio → entrega → "Versiones" / "comparar" |
 | sistema/05-volver-version | Volver a una versión anterior de una entrega (queda como versión nueva) y avisa qué conviene revisar | Estudio → entrega → ver una versión → "Volver a esta versión", o `pipeline volver <id> 3-mira 1` |
+| sistema/06-avisos | Aviso cuando un proyecto espera tu decisión, termina, el Jurado no llega o el cliente comenta: archivo `avisos.md`, correo (Resend) y/o webhook | Variables en `.env.example`; prueba con `pipeline avisos <id>` |

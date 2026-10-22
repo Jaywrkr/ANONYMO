@@ -3,6 +3,7 @@ import { agentePorId, FASES } from "@anonymo/agentes";
 import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
+import { avisar } from "./avisos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Motor } from "./motor.ts";
@@ -62,6 +63,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       p.estado = "esperando";
       guardarProyecto(p);
       bitacora(id, `Pausa al cerrar ${nombreFase(fase)}.`);
+      await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `Terminó ${nombreFase(fase)}`, texto: "El equipo terminó la fase y espera tu decisión: aprobar, pedir cambios o parar." });
       return p;
     }
     puerta(p, { fase, decision: "sigue", quien: "auto" });
@@ -88,6 +90,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     p.faseActual = 6;
     guardarProyecto(p);
     bitacora(id, `${v.cambio} ${conTrabajo ? `Sin mejora suficiente tras ${RONDAS_MAX} rondas` : "No hay tareas que rehacer en este plan"}: decide Jay o Luna.`);
+    await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "jurado", titulo: `Nota ${v.nota.final}`, texto: v.cambio });
     return p;
   }
 
@@ -97,6 +100,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
   guardarProyecto(p);
   if (v) bitacora(id, `Jurado: ${v.nota.final}${v.aprobado ? "" : " (aceptado por Jay o Luna)"}.`);
   bitacora(id, "Proyecto listo.");
+  await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "listo", titulo: v ? `Jurado ${v.nota.final}` : "Todas las entregas listas", texto: "El equipo terminó todas las tareas del plan." });
   return p;
 }
 

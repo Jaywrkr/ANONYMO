@@ -6,6 +6,7 @@ import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
 import { anotar, enrutar, nombreTarea } from "./cliente.ts";
 import { tokenPortal } from "./portal.ts";
+import { avisar, canalesActivos } from "./avisos.ts";
 import { dependientes } from "./contratos.ts";
 import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
@@ -29,6 +30,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   pausas    <id> <clave|nunca|cada-fase|1,4>    cambia dónde se detiene
   seguir    <id>                 continúa si quedó a medias
   url       <id> <url>           la web que audita Prisma
+  avisos    <id>                 manda un aviso de prueba y dice qué canales están activos
   volver    <id> <fase-agente> <versión>   vuelve a una versión anterior (ej.: volver mi-cliente 3-mira 1)
   portal    <id> [--nuevo]       enlace privado para el cliente (--nuevo invalida el anterior)
   cliente   <id> "lo que dijo" [--agentes mira,orla] [--ver]
@@ -183,6 +185,14 @@ async function main() {
       if (op.ver) return console.log("\n(--ver: no se cambió nada)");
       anotar(necesitaId(), texto, quien === "luna" ? "luna" : "jay", forzadas);
       return resumen(await avanzar(necesitaId(), motor));
+    }
+    case "avisos": {
+      const c = canalesActivos();
+      const p = leerProyecto(necesitaId());
+      const r = await avisar({ proyecto: p.pedido.id, cliente: p.pedido.cliente, tipo: "prueba", titulo: "Si ves esto, los avisos funcionan", texto: "Aviso de prueba." });
+      console.log(`Canales: correo ${c.correo ? "sí" : "no (falta RESEND_API_KEY o AVISOS_CORREO)"} · webhook ${c.webhook ? "sí" : "no (falta AVISOS_WEBHOOK)"}`);
+      console.log(`Resultado: ${r.join(", ")}`);
+      return;
     }
     case "volver": {
       const [, , tarea, v] = pos;
