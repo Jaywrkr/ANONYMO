@@ -7,11 +7,42 @@ Fase 5 del proyecto. Este documento cubre la 5.1 (el contrato) y deja escrito el
 1. **Entra el pedido.** Llega desde el formulario de la web o desde la terminal, con tipo (`web`, `marca`, `lanzamiento` o `todo`), cliente, descripción y lo que se sepa (rubro, ciudad, público, plazo).
 2. **Atlas arma el plan.** Elige las fases (parte de `PEDIDOS` y ajusta: si el cliente no tiene marca, suma la 3; si no hay web, saca a Prisma), ordena las tareas y lista las preguntas para el cliente.
 3. **Corren las tareas en orden.** Cada agente lee solo las entregas que su contrato dice (`usa`) y deja la suya en `entregas/`.
-4. **Puerta al cerrar cada fase.** Sin pausas, o con pausa en la terminal: `s` sigue, `c` + nota rehace, `p` para. Por decidir con Jay.
+4. **Pausas por proyecto.** Al cerrar una fase con pausa, el sistema se detiene y guarda dónde quedó. Jay o Luna deciden: aprobar, cambiar (con nota, toda la fase o un agente) o parar.
 5. **Jurado.** Trofeo pone nota con pesos Awwwards. Si queda bajo `NOTA_MINIMA` (7), la fase más débil se rehace con sus notas.
 6. **Entrega.** Carpeta del proyecto completa + resumen. La sala de la web lee `estado.json`.
 
-## Qué hay en la 5.1
+## Pausas
+
+Cada proyecto tiene las suyas. Se eligen al crearlo y se cambian cuando quieras.
+
+| Valor | Qué hace |
+|---|---|
+| `clave` (por defecto) | Las que propone Atlas: web 1 y 4 · marca 1, 2 y 3 · lanzamiento 1 y 5 · todo 1 a 4 |
+| `nunca` | Corre de una; se revisa al final |
+| `cada-fase` | Se detiene al cerrar cada fase |
+| `1,4` | Solo al cerrar esas fases |
+
+Si pides un cambio en una fase sin pausa, esa fase pasa a tener pausa para que revises cómo quedó.
+
+## Cómo se usa
+
+```bash
+# Nuevo pedido (sin clave corre en modo simulado)
+npm run pipeline -- nuevo --cliente "Clínica Sonrisa" --tipo web \
+  --descripcion "Web para una clínica dental con citas en línea" --ciudad Cuenca --pausas clave
+
+npm run pipeline -- estado clinica-sonrisa
+npm run pipeline -- aprobar clinica-sonrisa
+npm run pipeline -- cambiar clinica-sonrisa --nota "Más cálido, menos clínico" --agente nova --quien luna
+npm run pipeline -- pausas clinica-sonrisa nunca
+npm run pipeline -- parar clinica-sonrisa --nota "Esperando al cliente"
+npm run pipeline -- reanudar clinica-sonrisa
+npm run pipeline -- lista
+```
+
+Atlas ajusta el plan: si el cliente no tiene marca (`--sin-marca`), suma Identidad; si no hay web, saca a Prisma. Las preguntas que falten al cliente salen al final del resumen.
+
+## Qué hay en la 5.1 y la 5.2
 
 `packages/pipeline/`
 
@@ -20,6 +51,11 @@ Fase 5 del proyecto. Este documento cubre la 5.1 (el contrato) y deja escrito el
 | `src/tipos.ts` | Pedido, Contrato, Plan, Entrega, Puerta, Proyecto y cómo se guarda una carpeta de proyecto |
 | `src/contratos.ts` | 28 contratos: uno por agente y fase, con entrega, objetivo, qué lee, criterios y herramientas |
 | `src/revisar.ts` | Comprueba que el contrato cuadre con el equipo e imprime el orden de cada tipo de pedido |
+| `src/atlas.ts` | Pedido → plan: fases, razones, tareas quitadas, pausas y preguntas |
+| `src/motor.ts` | Simulado (estructura y checklist por agente) y real (API de Anthropic, sin probar hasta tener clave) |
+| `src/correr.ts` | Ejecuta hasta la próxima pausa; aprobar, cambiar, parar, reanudar, cambiar pausas |
+| `src/almacen.ts` | Lee y escribe la carpeta de cada proyecto |
+| `src/cli.ts` | Los comandos de la terminal |
 
 `SERVICIO` y `PEDIDOS` pasaron a `@anonymo/agentes` para que la web y el pipeline usen los mismos datos.
 
@@ -44,10 +80,9 @@ Cada entrega es markdown con frontmatter: agente, título, lo que "dice" en la s
 
 | Sub-fase | Qué |
 |---|---|
-| 5.2 Atlas | Pedido → plan (fases, razones, preguntas). Simulado primero |
-| 5.3 Ejecución | Corre el plan, guarda entregas, puertas y bitácora. Modo simulado sin clave |
+| 5.2 + 5.3 | Atlas y ejecución con pausas por proyecto. **Hecho** |
 | 5.4 Herramientas | Búsqueda web, dominios, redes, Lighthouse. En simulado quedan como pendientes |
 | 5.5 Calidad | Nota del Jurado y vuelta atrás si no llega a 7 |
 | 5.6 Caso dentistas | Pedido real de punta a punta y la sala mostrando el proyecto |
 
-La clave de Anthropic la pone Jay en `ANTHROPIC_API_KEY`. Sin clave, todo corre en modo simulado.
+La clave de Anthropic la pone Jay en `ANTHROPIC_API_KEY`. Sin clave, todo corre en modo simulado. Con clave, `--simulado` fuerza el modo simulado. El modelo se cambia con `ANTHROPIC_MODEL`.
