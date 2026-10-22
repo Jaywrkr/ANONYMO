@@ -10,6 +10,7 @@
     "build": "npm run build -w @anonymo/web",
     "start": "npm run start -w @anonymo/web",
     "lint": "npm run lint -w @anonymo/web",
-    "pipeline": "node packages/pipeline/src/cli.ts"
+    "pipeline": "node packages/pipeline/src/cli.ts",
+    "prepare": "git config core.hooksPath .githooks || true"
   }
 }
