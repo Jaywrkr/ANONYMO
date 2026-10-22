@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
@@ -199,6 +199,21 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             </label>
             <button className={boton}>Cambiar pausas</button>
           </form>
+
+          {(() => {
+            const c = sumar(p);
+            return (
+              <div className="rounded-3xl border border-linea p-6">
+                <p className={etiqueta}>Costo de IA</p>
+                <p className="mt-1 flex items-baseline gap-4"><span className="display text-5xl">${c.real.toFixed(2)}</span><span className="text-[14px] text-gris">real</span></p>
+                {c.estimado > 0 && <p className="text-[14px] text-gris">+ ${c.estimado.toFixed(2)} si lo hecho en simulado o a mano corriera con IA real</p>}
+                <ul className="mt-3 grid gap-1 text-[14px]">
+                  {c.tareas.slice(0, 5).map((t) => <li key={t.tarea} className="flex justify-between"><span>{nombreTarea(t.tarea)}{t.veces > 1 ? ` ×${t.veces}` : ""}</span><span>${t.usd.toFixed(3)}</span></li>)}
+                </ul>
+                <p className="mt-3 text-[12px] text-gris">USD por millón de tokens: entrada {PRECIOS.entrada} · salida {PRECIOS.salida}. Ajusta en .env.</p>
+              </div>
+            );
+          })()}
 
           <div className="rounded-3xl border border-linea p-6">
             <p className={etiqueta}>Archivos del cliente</p>

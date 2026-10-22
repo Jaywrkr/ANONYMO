@@ -11,6 +11,7 @@ import { adjuntar, listarArchivos } from "./archivos.ts";
 import { responder } from "./cuestionario.ts";
 import { exportarPdf } from "./pdf.ts";
 import { calendario } from "./calendario.ts";
+import { sumar, PRECIOS } from "./costo.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
@@ -38,6 +39,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  costo     <id>                 cuánto va gastado en IA (real) y cuánto costaría con el motor real (estimado)
   calendario <id>                fechas de cada fase (reales si ya se aprobó, estimadas si no)
   pdf       <id> [--internas]    PDF para el cliente con las entregas listas (en proyectos/<id>/)
   responder <id> <n> "respuesta"   responde la pregunta n de Atlas (las ves con: estado <id>)
@@ -201,6 +203,12 @@ async function main() {
       const rutas = pos.slice(2);
       if (!rutas.length) throw new Error("Pasa uno o más archivos.");
       for (const r of rutas) console.log(`  + ${adjuntar(necesitaId(), r, texto(op.nota)).nombre}`);
+      return;
+    }
+    case "costo": {
+      const c = sumar(leerProyecto(necesitaId()));
+      console.log(`Real: $${c.real.toFixed(2)} · Estimado con motor real: $${c.estimado.toFixed(2)}  (precios por millón: entrada $${PRECIOS.entrada}, salida $${PRECIOS.salida})`);
+      for (const t of c.tareas.slice(0, 10)) console.log(`  ${nombreTarea(t.tarea).padEnd(18)} $${t.usd.toFixed(3)}${t.veces > 1 ? ` · ${t.veces} veces` : ""}${t.estimado ? " (est.)" : ""}`);
       return;
     }
     case "calendario": {

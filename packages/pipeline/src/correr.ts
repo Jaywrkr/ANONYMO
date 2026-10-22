@@ -4,6 +4,7 @@ import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProy
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { avisar } from "./avisos.ts";
+import { estimar, textoEntrada } from "./costo.ts";
 import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
@@ -49,7 +50,11 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       for (const h of herramientas) bitacora(id, `${h.herramienta}: ${h.ok ? "ok" : "pendiente"}.`);
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })) });
-      guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...r });
+      const { uso, ...resto } = r;
+      guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto });
+      // Costo: real si vino de la API; si no, lo que costaría con el motor real.
+      const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
+      p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };
       p.tareas[t] = "lista";
       guardarProyecto(p);
       bitacora(id, `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} v${version} (${r.modo}).`);

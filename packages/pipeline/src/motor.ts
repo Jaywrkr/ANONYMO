@@ -4,6 +4,7 @@ import { contratoPorId } from "./contratos.ts";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { CARPETA } from "./almacen.ts";
+import { usd, type Uso } from "./costo.ts";
 import { archivoEntrega, type Entrega, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
 
 export interface Contexto {
@@ -23,7 +24,7 @@ export interface Contexto {
   archivos?: { nombre: string; nota?: string; ruta?: string; tipo: string }[];
 }
 
-export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota" | "modo" | "datos">;
+export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota" | "modo" | "datos"> & { uso?: Uso };
 
 const seccionHerramientas = (h: ResultadoHerramienta[]) =>
   h.length ? ["## Datos de herramientas", "", ...h.flatMap((x) => [`**${x.herramienta}** ${x.ok ? "" : "(pendiente)"}`, "", x.resumen, ""])] : [];
@@ -150,6 +151,7 @@ export const real: Motor = {
       { role: "user", content: imagenes.length ? [...imagenes, { type: "text", text: usuario }] : usuario },
     ];
     const bloques: Bloque[] = [];
+    const uso = { entrada: 0, salida: 0, busquedas: 0 };
     // Con búsqueda web la API puede pausar el turno: se continúa hasta 3 veces.
     for (let vuelta = 0; vuelta < 3; vuelta++) {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -164,8 +166,11 @@ export const real: Motor = {
         }),
       });
       if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
-      const res = (await r.json()) as { content: Bloque[]; stop_reason: string };
+      const res = (await r.json()) as { content: Bloque[]; stop_reason: string; usage?: { input_tokens?: number; output_tokens?: number; server_tool_use?: { web_search_requests?: number } } };
       bloques.push(...res.content);
+      uso.entrada += res.usage?.input_tokens ?? 0;
+      uso.salida += res.usage?.output_tokens ?? 0;
+      uso.busquedas += res.usage?.server_tool_use?.web_search_requests ?? 0;
       if (res.stop_reason !== "pause_turn") break;
       mensajes.push({ role: "assistant", content: res.content });
     }
@@ -189,6 +194,7 @@ export const real: Motor = {
       nota: nota ? Number.parseFloat(nota) : undefined,
       datos: Object.keys(datos).length ? datos : undefined,
       modo: "real",
+      uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas), estimado: false },
     };
   },
 };
