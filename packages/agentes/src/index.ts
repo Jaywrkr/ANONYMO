@@ -115,3 +115,4 @@ export const PEDIDOS: Record<TipoPedido, { nombre: string; fases: number[] }> = 
 export type Socio = "jay" | "luna";
 export const RESPONSABLE_FASE: Record<number, Socio> = { 1: "jay", 2: "luna", 3: "luna", 4: "jay", 5: "luna", 6: "jay", 7: "jay" };
 export const NOMBRE_SOCIO: Record<Socio, string> = { jay: "Jay", luna: "Luna" };
+export * from "./en.ts";

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { idiomaDeRuta } from "@/lib/idioma";
+import { T } from "@/lib/textos";
 
 function horaCuenca() {
   const d = new Date();
@@ -12,6 +15,7 @@ function horaCuenca() {
 /** Hace literal "trabajamos mientras duermes": la hora real de Cuenca decide quién está al mando. */
 export function Reloj({ modo = "linea" }: { modo?: "linea" | "corto" }) {
   const [t, setT] = useState<{ hm: string; noche: boolean } | null>(null);
+  const tx = T[idiomaDeRuta(usePathname())].reloj;
   useEffect(() => {
     const tic = () => {
       const h = horaCuenca();
@@ -27,7 +31,7 @@ export function Reloj({ modo = "linea" }: { modo?: "linea" | "corto" }) {
   if (modo === "corto") return <span>Cuenca · {t.hm}</span>;
   return (
     <span>
-      {t.hm} en Cuenca. {t.noche ? "Ellos duermen. El equipo, no." : "Jay y Luna al mando."}
+      {t.hm} {tx.en} {t.noche ? tx.noche : tx.dia}
     </span>
   );
 }
