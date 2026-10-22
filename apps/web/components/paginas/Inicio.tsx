@@ -9,6 +9,7 @@ import { Reloj } from "@/components/ui/Reloj";
 const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 
 import { enlace, type Idioma } from "@/lib/idioma";
+import { PruebaSocial } from "@/components/ui/PruebaSocial";
 import { T } from "@/lib/textos";
 
 export function Inicio({ idioma }: { idioma: Idioma }) {
@@ -66,6 +67,8 @@ export function Inicio({ idioma }: { idioma: Idioma }) {
           </div>
         </div>
       </section>
+
+      <PruebaSocial idioma={idioma} />
 
       {/* Contacto */}
       <section className={`${lateral} py-28`}>

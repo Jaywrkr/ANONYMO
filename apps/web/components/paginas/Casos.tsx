@@ -4,6 +4,7 @@ import { AgenteVista } from "@/components/escena/AgenteVista";
 import { casosPublicos } from "@/lib/proyectos";
 
 import { enlace, type Idioma } from "@/lib/idioma";
+import { PruebaSocial } from "@/components/ui/PruebaSocial";
 
 const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 
@@ -52,6 +53,7 @@ export function Casos({ idioma }: { idioma: Idioma }) {
           </Link>
         ))}
       </section>
+      <PruebaSocial idioma={idioma} />
     </main>
   );
 }
