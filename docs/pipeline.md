@@ -139,6 +139,12 @@ npm run pipeline -- cliente <id> "..." --agentes mira,orla # tú decides a quié
 
 Con `--manual`, el agente usa `<fase>-<agente>.v2.md` si existe; si no, deja su entrega igual con una nota de que la revisó.
 
+## Estudio: el panel (sistema/01)
+
+`/estudio` es el panel interno: lista de proyectos (primero los que esperan tu decisión), detalle con el plan, botones para aprobar, pedir cambios (a la fase o a un agente), parar, reanudar y cambiar pausas, más la bitácora y las preguntas de Atlas. Cada entrega se lee en `/estudio/<id>/<fase>-<agente>`.
+
+Solo existe en local (`npm run dev`) o con `ESTUDIO=1 npm run start`. En la web pública devuelve 404.
+
 ## Lo que sigue
 
 | Sub-fase | Qué |

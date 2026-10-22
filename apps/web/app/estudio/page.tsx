@@ -1,0 +1,44 @@
+import Link from "next/link";
+import { PEDIDOS } from "@anonymo/agentes";
+import { leerEntrega, leerNota, listar } from "@anonymo/pipeline";
+import { ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
+
+// Todos los proyectos: primero los que esperan una decisión.
+export default function Estudio() {
+  exigirEstudio();
+  const orden = { esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
+  const proyectos = listar().sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
+  return (
+    <main className={`${lateral} pb-16`}>
+      <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-4">
+        <h1 className="display text-[clamp(64px,10vw,160px)]">Estudio</h1>
+        <p className="max-w-sm text-[17px] text-gris">El panel de Jay y Luna. Aquí se aprueba, se pide cambios y se para. Solo existe en local.</p>
+      </div>
+      {proyectos.length === 0 && <p className="text-xl font-light">No hay proyectos. Crea uno con <code>npm run pipeline -- nuevo</code>.</p>}
+      <ul className="grid gap-3 md:grid-cols-2">
+        {proyectos.map((p) => {
+          const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
+          const nota = leerNota(leerEntrega(p.pedido.id, "6.trofeo"));
+          return (
+            <li key={p.pedido.id}>
+              <Link href={`/estudio/${p.pedido.id}`} className="block rounded-3xl bg-papel p-6 transition-transform hover:-translate-y-0.5">
+                <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre} · {ESTADO_PROYECTO[p.estado]}</p>
+                <p className="display mt-2 text-6xl">{p.pedido.cliente}</p>
+                <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-linea">
+                  <div className="h-full bg-tinta" style={{ width: `${(hechas / p.plan.tareas.length) * 100}%` }} />
+                </div>
+                <p className="mt-3 flex justify-between text-[15px] text-gris">
+                  <span>{hechas}/{p.plan.tareas.length} tareas · fase {p.faseActual}</span>
+                  {nota && <span>Jurado {String(nota.final).replace(".", ",")}</span>}
+                </p>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </main>
+  );
+}

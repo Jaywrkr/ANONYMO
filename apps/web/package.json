@@ -22,7 +22,8 @@
     "next": "16.4.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "three": "0.186.1"
+    "three": "0.186.1",
+    "@anonymo/pipeline": "*"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",
