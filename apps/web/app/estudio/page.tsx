@@ -20,7 +20,7 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
     <main className={`${lateral} pb-16`}>
       <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-4">
         <h1 className="display text-[clamp(64px,10vw,160px)]">Estudio</h1>
-        <p className="max-w-sm text-[17px] text-gris">El panel de Jay y Luna. Aquí se aprueba, se pide cambios y se para. Solo existe en local.</p>
+        <p className="max-w-sm text-[17px] text-gris"><a href="/estudio/analitica" className="text-tinta underline underline-offset-4">Métricas de la web →</a><br />El panel de Jay y Luna. Aquí se aprueba, se pide cambios y se para. Solo existe en local.</p>
       </div>
       <form role="search" className="mb-8 flex max-w-2xl gap-2">
         <input name="q" defaultValue={q} placeholder="Buscar en todas las entregas: paleta, WhatsApp, Cormorant…" className={campo} aria-label="Buscar en todas las entregas" />

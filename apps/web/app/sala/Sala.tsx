@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { tocar } from "@/lib/sonido";
+import { medir } from "@/lib/medir";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AGENTES, AREAS, FASES, agentePorId } from "@anonymo/agentes";
@@ -48,10 +49,24 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
     q.set("agente", elegido);
     router.replace(`${ruta}?${q}`, { scroll: false });
     tocar("fase");
+    medir("sala-agente", elegido);
     setCopiado(false);
   }, [pid, f.n, elegido, ruta, router, proyectos]);
 
+  // Cuánto tiempo pasa la gente en la sala (lo lee Pulso).
+  useEffect(() => {
+    const inicio = Date.now();
+    const salir = () => medir("sala-tiempo", Math.round((Date.now() - inicio) / 1000));
+    const oculto = () => document.visibilityState === "hidden" && salir();
+    document.addEventListener("visibilitychange", oculto);
+    return () => {
+      document.removeEventListener("visibilitychange", oculto);
+      salir();
+    };
+  }, []);
+
   const compartir = async () => {
+    medir("compartir", elegido);
     const url = window.location.href;
     const texto = en ? `${agente.nombre} in the Anonymo room` : `${agente.nombre} en la sala de Anonymo`;
     try {
