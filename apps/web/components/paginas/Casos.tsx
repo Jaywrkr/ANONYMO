@@ -5,6 +5,7 @@ import { casosPublicos } from "@/lib/proyectos";
 
 import { enlace, type Idioma } from "@/lib/idioma";
 import { PruebaSocial } from "@/components/ui/PruebaSocial";
+import { Foto, rutaFoto } from "@/components/ui/Foto";
 
 const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 
@@ -33,7 +34,11 @@ export function Casos({ idioma }: { idioma: Idioma }) {
           </dl>
           <Link href={enlace("/sala", idioma)} className="mt-8 inline-block font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">{en ? "See it in the room →" : "Verlo en la sala →"}</Link>
         </div>
-        <AgenteVista agente={lumen} className="aspect-square w-full md:col-span-5" distancia={5.2} />
+        {rutaFoto("estudio") ? (
+          <Foto nombre="estudio" alt={en ? "The studio" : "El estudio"} pendiente="" proporcion="3 / 2" className="md:col-span-5" />
+        ) : (
+          <AgenteVista agente={lumen} className="aspect-square w-full md:col-span-5" distancia={5.2} />
+        )}
       </article>
 
       <section className="grid gap-3 border-t border-tinta py-12 md:grid-cols-3">

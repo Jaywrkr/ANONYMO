@@ -11,6 +11,7 @@ const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 import { enlace, type Idioma } from "@/lib/idioma";
 import { PruebaSocial } from "@/components/ui/PruebaSocial";
 import { DatosEstructurados } from "@/components/ui/DatosEstructurados";
+import { Foto, rutaFoto } from "@/components/ui/Foto";
 import { T } from "@/lib/textos";
 
 export function Inicio({ idioma }: { idioma: Idioma }) {
@@ -40,6 +41,10 @@ export function Inicio({ idioma }: { idioma: Idioma }) {
           <p className="max-w-[30ch] text-[clamp(26px,3.2vw,46px)] font-light leading-[1.12] tracking-[-0.02em]">
             {t.manifiesto}
           </p>
+          <div className="mt-12 grid max-w-3xl grid-cols-2 gap-3">
+            <Foto nombre="jay" alt={idioma === "en" ? "Portrait of Jay" : "Retrato de Jay"} pendiente={idioma === "en" ? "Jay · portrait coming" : "Jay · retrato en camino"} colores={["#9c8cff", "#f2efff"]} />
+            <Foto nombre="luna" alt={idioma === "en" ? "Portrait of Luna" : "Retrato de Luna"} pendiente={idioma === "en" ? "Luna · portrait coming" : "Luna · retrato en camino"} colores={["#ff6fb1", "#ffe7f3"]} />
+          </div>
           <p className="display mt-16 text-[clamp(64px,11vw,180px)]">
             <span className="block">{t.lema[0]}</span><span className="block pt-[0.14em]">{t.lema[1]}</span>
           </p>
@@ -60,6 +65,7 @@ export function Inicio({ idioma }: { idioma: Idioma }) {
 
       {/* Eventos: la capa de Luna, psicodélica y con grano. */}
       <section className="relative overflow-hidden bg-noche text-hueso">
+        {rutaFoto("evento") && <Foto nombre="evento" alt={idioma === "en" ? "An event by Luna" : "Un evento de Luna"} pendiente="" proporcion="auto" className="!absolute inset-0 !rounded-none opacity-60" tamanos="100vw" />}
         <div className="absolute inset-0 opacity-90" style={{ background: "radial-gradient(40% 55% at 20% 30%, #ff3d8f 0%, transparent 70%), radial-gradient(45% 50% at 75% 65%, #ff8a1f 0%, transparent 70%), radial-gradient(35% 45% at 60% 15%, #6c4cf0 0%, transparent 70%), radial-gradient(30% 40% at 35% 85%, #2fd6b0 0%, transparent 70%)", filter: "blur(30px) saturate(1.2)" }} />
         <div className={`relative ${lateral} grid gap-10 py-28 md:grid-cols-12`}>
           <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-hueso/70 md:col-span-3">{t.conLuna}</p>
