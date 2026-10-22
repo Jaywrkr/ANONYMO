@@ -101,7 +101,8 @@ export interface Entrega {
   /** Datos que otros agentes o herramientas usan: finalistas, resultados de dominios, puntajes. */
   datos?: Record<string, unknown>;
   estado: EstadoTarea;
-  modo: "simulado" | "real";
+  /** simulado: estructura · real: API de Anthropic · manual: escrito a mano o en una sesión con Claude */
+  modo: "simulado" | "real" | "manual";
   version: number;
   creado: string;
 }

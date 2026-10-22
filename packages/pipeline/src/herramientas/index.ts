@@ -8,7 +8,7 @@ export interface EntradaHerramientas {
   pedido: Pedido;
   tarea: TareaId;
   lecturas: Entrega[];
-  /** El motor real busca en la web por su cuenta (web_search de Anthropic). */
+  /** El motor real (o quien escribe a mano) busca en la web por su cuenta. */
   motorReal: boolean;
 }
 
@@ -20,7 +20,7 @@ export async function prepararHerramientas({ pedido, tarea, lecturas, motorReal 
       if (h === "web") {
         out.push(
           motorReal
-            ? { herramienta: h, ok: true, resumen: "Búsqueda web activa: el agente busca y cita sus fuentes." }
+            ? { herramienta: h, ok: true, resumen: "Búsqueda web: el agente busca y cita sus fuentes en la entrega." }
             : { herramienta: h, ok: false, resumen: "Búsqueda web: se activa con la clave de Anthropic.", falta: "La clave de Anthropic para buscar en la web." },
         );
       } else if (h === "dominios" || h === "redes") {
