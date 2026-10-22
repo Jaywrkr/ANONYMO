@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AGENTES, AREAS, FASES, agentePorId } from "@anonymo/agentes";
@@ -163,19 +164,27 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
               const a = agentePorId(id)!;
               const solo = activos.length % 2 === 1 && i === 0;
               return (
-                <li key={id} className={solo ? "col-span-2 mx-auto w-2/3 sm:col-span-1 sm:mx-0 sm:w-auto" : undefined}>
+                <motion.li
+                  key={id}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  className={solo ? "col-span-2 mx-auto w-2/3 sm:col-span-1 sm:mx-0 sm:w-auto" : undefined}
+                >
                   <button
                     onClick={() => setSel(id)}
                     aria-pressed={id === elegido}
-                    className={`block w-full rounded-3xl p-2 text-left transition-colors ${id === elegido ? "bg-papel" : "hover:bg-papel/60"}`}
+                    className="relative block w-full rounded-3xl p-2 text-left transition-colors hover:bg-papel/60"
                   >
-                    <AgenteVista agente={a} className="aspect-square w-full" distancia={5.4} />
-                    <span className="flex flex-col gap-1 px-2 pb-1 sm:flex-row sm:items-baseline sm:justify-between">
+                    {/* El fondo de la tarjeta elegida se desliza de un agente a otro. */}
+                    {id === elegido && <motion.span layoutId={`elegido-${pid}`} className="absolute inset-0 -z-0 rounded-3xl bg-papel" transition={{ type: "spring", stiffness: 420, damping: 38 }} />}
+                    <AgenteVista agente={a} className="relative aspect-square w-full" distancia={5.4} />
+                    <span className="relative flex flex-col gap-1 px-2 pb-1 sm:flex-row sm:items-baseline sm:justify-between">
                       <span className="display text-3xl">{a.nombre}</span>
                       <span className={etiqueta}>{ESTADOS[proyecto.mensajes[f.n]?.[id]?.estado ?? "por-empezar"]}</span>
                     </span>
                   </button>
-                </li>
+                </motion.li>
               );
             })}
           </ul>
@@ -183,9 +192,22 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
         </section>
 
         <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start" aria-live="polite">
-          <div className="rounded-3xl bg-papel p-6">
-            <p className={etiqueta}>{nombreArea(agente.area, idioma)} · {agente.rol}</p>
-            <p className="display mt-1 text-7xl">{agente.nombre}</p>
+          <div className="overflow-hidden rounded-3xl bg-papel p-6">
+            <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={`${pid}-${f.n}-${elegido}`}
+              initial={{ opacity: 0, x: -28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 28 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+            <div className="flex items-center gap-4">
+              <AgenteVista agente={agentePorId(elegido)!} className="aspect-square w-24 shrink-0" distancia={4.2} />
+              <div>
+                <p className={etiqueta}>{nombreArea(agente.area, idioma)} · {agente.rol}</p>
+                <p className="display mt-1 text-7xl">{agente.nombre}</p>
+              </div>
+            </div>
             {msg && (
               <>
                 <p className="mt-6 text-xl font-light leading-snug tracking-tight">“{msg.dice}”</p>
@@ -219,6 +241,8 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
             <Link href={enlace(`/agentes/${agente.id}`, idioma)} className="mt-6 inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">
               {en ? `Meet ${agente.nombre} →` : `Ficha de ${agente.nombre} →`}
             </Link>
+            </motion.div>
+            </AnimatePresence>
           </div>
         </aside>
 

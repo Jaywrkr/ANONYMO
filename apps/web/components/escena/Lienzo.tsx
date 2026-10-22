@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor, View } from "@react-three/drei";
 import { decidirCalidad, sin3D, type Calidad } from "@/lib/calidad";
+import { mirarA } from "./Agente3D";
 
 const TECHO: Record<Calidad, number> = { alta: 2, media: 1.5, baja: 1 };
 
@@ -39,6 +40,28 @@ export function Lienzo() {
       window.removeEventListener("touchstart", gesto);
     };
   }, []);
+  // Táctil: los agentes miran al dedo; al hacer scroll, miran hacia donde va la página.
+  useEffect(() => {
+    if (!body || !matchMedia("(pointer: coarse)").matches) return;
+    const dedo = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (t) mirarA((t.clientX / innerWidth) * 2 - 1, -((t.clientY / innerHeight) * 2 - 1));
+    };
+    let ultimoY = scrollY;
+    const scroll = () => {
+      const dy = scrollY - ultimoY;
+      ultimoY = scrollY;
+      if (Math.abs(dy) > 2) mirarA(0, Math.max(-0.8, Math.min(0.8, -dy / 40)));
+    };
+    addEventListener("touchstart", dedo, { passive: true });
+    addEventListener("touchmove", dedo, { passive: true });
+    addEventListener("scroll", scroll, { passive: true });
+    return () => {
+      removeEventListener("touchstart", dedo);
+      removeEventListener("touchmove", dedo);
+      removeEventListener("scroll", scroll);
+    };
+  }, [body]);
   if (!body) return null;
   return (
     <Canvas
