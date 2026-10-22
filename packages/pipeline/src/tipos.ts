@@ -129,6 +129,12 @@ export interface Proyecto {
   puertas: Puerta[];
   /** Notas de "cambiar" pendientes por fase: los agentes las leen al rehacer. */
   cambios: Record<number, string>;
+  /** Rondas automáticas de rehacer por nota del Jurado. */
+  rondasJurado?: number;
+  /** Se detuvo porque el Jurado no llegó al mínimo después de las rondas automáticas. */
+  esperaJurado?: boolean;
+  /** Jay o Luna aceptaron cerrar aunque la nota no llegue. */
+  juradoAceptado?: boolean;
   actualizado: string;
 }
 
