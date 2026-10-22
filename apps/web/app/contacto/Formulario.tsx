@@ -4,12 +4,16 @@ import { useActionState, useMemo, useState } from "react";
 import { FASES, agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { PEDIDOS } from "@/lib/servicio";
+import { usePathname } from "next/navigation";
+import { idiomaDeRuta, pedido as nombrePedido } from "@/lib/idioma";
 import { enviarPedido } from "./acciones";
 
 // Mientras el cliente escribe, ve qué agentes se despiertan para su pedido.
 export function Formulario() {
   const [tipo, setTipo] = useState<keyof typeof PEDIDOS>("web");
   const [estado, enviar, enviando] = useActionState(enviarPedido, null);
+  const idioma = idiomaDeRuta(usePathname());
+  const en = idioma === "en";
   const despiertos = useMemo(() => {
     const ids = new Set<string>();
     PEDIDOS[tipo].fases.forEach((n) => FASES.find((f) => f.n === n)?.agentes.forEach((id) => ids.add(id)));
@@ -23,11 +27,12 @@ export function Formulario() {
     <div className="grid gap-12 lg:grid-cols-12">
       <form action={enviar} className="grid content-start gap-8 lg:col-span-6">
         <input type="hidden" name="tipo" value={tipo} />
+        <input type="hidden" name="idioma" value={idioma} />
         <label aria-hidden className="absolute -left-[9999px]" tabIndex={-1}>
           Sitio web <input name="sitio" tabIndex={-1} autoComplete="off" />
         </label>
         <fieldset>
-          <legend className={etiqueta}>Qué necesitas</legend>
+          <legend className={etiqueta}>{en ? "What do you need" : "Qué necesitas"}</legend>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(PEDIDOS).map(([k, p]) => (
               <button
@@ -37,26 +42,26 @@ export function Formulario() {
                 onClick={() => setTipo(k as keyof typeof PEDIDOS)}
                 className={`rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.12em] ${tipo === k ? "border-tinta bg-tinta text-hueso" : "border-linea text-gris hover:border-tinta hover:text-tinta"}`}
               >
-                {p.nombre}
+                {nombrePedido(k as keyof typeof PEDIDOS, idioma)}
               </button>
             ))}
           </div>
         </fieldset>
         <label className="grid gap-1">
-          <span className={etiqueta}>Tu nombre</span>
-          <input id="nombre" name="nombre" required minLength={2} maxLength={80} autoComplete="name" defaultValue={estado?.campos?.nombre} className={campo} placeholder="Cómo te llamas" />
+          <span className={etiqueta}>{en ? "Your name" : "Tu nombre"}</span>
+          <input id="nombre" name="nombre" required minLength={2} maxLength={80} autoComplete="name" defaultValue={estado?.campos?.nombre} className={campo} placeholder={en ? "What should we call you" : "Cómo te llamas"} />
         </label>
         <label className="grid gap-1">
-          <span className={etiqueta}>Correo</span>
-          <input id="correo" name="correo" type="email" required maxLength={120} autoComplete="email" defaultValue={estado?.campos?.correo} className={campo} placeholder="tu@correo.com" />
+          <span className={etiqueta}>{en ? "Email" : "Correo"}</span>
+          <input id="correo" name="correo" type="email" required maxLength={120} autoComplete="email" defaultValue={estado?.campos?.correo} className={campo} placeholder={en ? "you@email.com" : "tu@correo.com"} />
         </label>
         <label className="grid gap-1">
-          <span className={etiqueta}>Cuéntanos</span>
-          <textarea id="mensaje" name="mensaje" rows={4} required minLength={10} maxLength={3000} defaultValue={estado?.campos?.mensaje} className={`${campo} resize-none`} placeholder="Ej.: una web para mi clínica dental, con citas en línea" />
+          <span className={etiqueta}>{en ? "Tell us" : "Cuéntanos"}</span>
+          <textarea id="mensaje" name="mensaje" rows={4} required minLength={10} maxLength={3000} defaultValue={estado?.campos?.mensaje} className={`${campo} resize-none`} placeholder={en ? "E.g.: a website for my dental clinic, with online booking" : "Ej.: una web para mi clínica dental, con citas en línea"} />
         </label>
         <div className="flex flex-wrap items-center gap-6">
           <button type="submit" disabled={enviando} className="rounded-full bg-tinta px-8 py-4 font-mono text-[12px] uppercase tracking-[0.14em] text-hueso transition-transform hover:-translate-y-0.5 disabled:opacity-60">
-            {enviando ? "Enviando a Atlas…" : "Enviar a Atlas"}
+            {enviando ? (en ? "Sending to Atlas…" : "Enviando a Atlas…") : en ? "Send to Atlas" : "Enviar a Atlas"}
           </button>
           {estado && (
             <p role={estado.ok ? "status" : "alert"} className={`max-w-sm text-[15px] ${estado.ok ? "text-tinta" : "text-[#a3105c]"}`}>
@@ -67,9 +72,9 @@ export function Formulario() {
       </form>
 
       <aside className="lg:col-span-6">
-        <p className={etiqueta}>Para “{PEDIDOS[tipo].nombre.toLowerCase()}” se despiertan</p>
-        <p className="display mt-2 text-7xl">{despiertos.length} agentes</p>
-        <p className="mt-1 text-gris">Fases {PEDIDOS[tipo].fases.map((n) => String(n).padStart(2, "0")).join(" · ")}</p>
+        <p className={etiqueta}>{en ? `For “${nombrePedido(tipo, idioma).toLowerCase()}”, these wake up` : `Para “${PEDIDOS[tipo].nombre.toLowerCase()}” se despiertan`}</p>
+        <p className="display mt-2 text-7xl">{despiertos.length} {en ? "agents" : "agentes"}</p>
+        <p className="mt-1 text-gris">{en ? "Phases" : "Fases"} {PEDIDOS[tipo].fases.map((n) => String(n).padStart(2, "0")).join(" · ")}</p>
         <ul className="mt-6 grid grid-cols-4 gap-2 sm:grid-cols-5">
           {despiertos.map((id) => {
             const a = agentePorId(id)!;

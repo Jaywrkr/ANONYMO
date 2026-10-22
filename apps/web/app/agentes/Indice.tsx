@@ -1,16 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { AREAS, AGENTES, type AreaId } from "@anonymo/agentes";
+import { area as nombreArea, idiomaDeRuta } from "@/lib/idioma";
+import { T } from "@/lib/textos";
 import { Equipo } from "@/components/ui/Equipo";
 
 export function Indice() {
   const [area, setArea] = useState<AreaId | null>(null);
   const areas = Object.values(AREAS);
+  const idioma = idiomaDeRuta(usePathname());
+  const t = T[idioma].agentes;
   return (
     <>
-      <div role="group" aria-label="Filtrar por área" className="mb-10 flex flex-wrap gap-2">
-        {[{ id: null, nombre: "Todos", n: AGENTES.length }, ...areas.map((a) => ({ id: a.id, nombre: a.nombre, n: AGENTES.filter((x) => x.area === a.id).length }))].map((a) => (
+      <div role="group" aria-label={t.filtrar} className="mb-10 flex flex-wrap gap-2">
+        {[{ id: null, nombre: t.todos, n: AGENTES.length }, ...areas.map((a) => ({ id: a.id, nombre: nombreArea(a.id, idioma), n: AGENTES.filter((x) => x.area === a.id).length }))].map((a) => (
           <button
             key={a.nombre}
             onClick={() => setArea(a.id as AreaId | null)}
