@@ -1,4 +1,9 @@
+import { join } from "node:path";
 import type { NextConfig } from "next";
+import { loadEnvConfig } from "@next/env";
+
+// Un solo .env.local en la raíz del repo para la web y para la terminal.
+loadEnvConfig(join(process.cwd(), "../.."));
 
 const config: NextConfig = {
   transpilePackages: ["@anonymo/agentes", "@anonymo/pipeline"],

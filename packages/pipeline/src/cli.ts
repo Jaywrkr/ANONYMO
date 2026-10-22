@@ -16,6 +16,7 @@ import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
 import { presupuestoVivo } from "./presupuesto.ts";
 import { buscar } from "./buscar.ts";
 import { bajarProyecto, proyectosEnNube, subirProyecto } from "./nube.ts";
+import { revisarSistema } from "./doctor.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
@@ -45,6 +46,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  doctor    [--en-vivo]          qué está listo y qué falta configurar
   subir     <id>                 copia el proyecto al almacén privado (Supabase)
   bajar     <id>                 trae el proyecto desde el almacén privado
   nube                           proyectos guardados en el almacén privado
@@ -240,6 +242,15 @@ async function main() {
       const b = presupuestoVivo(leerProyecto(necesitaId()));
       console.log(`Base: ${b.base ?? "sin definir"} h · Cambios: +${b.extra} h · Total: ${b.total ?? "—"} h${b.precio ? ` · $${b.precio}` : ""}`);
       for (const a of b.ajustes) console.log(`  +${a.horas} h  ${nombreTarea(a.tarea as `${number}.${string}`)}  ${a.motivo}${a.incluido ? " (ya en el total de Ledger)" : ""}`);
+      return;
+    }
+    case "doctor": {
+      const r = await revisarSistema(op["en-vivo"] === true);
+      const icono = { ok: "✓", falta: "✗", opcional: "·" };
+      for (const x of r) console.log(`  ${icono[x.nivel]} ${x.nombre.padEnd(32)} ${x.detalle}${x.arreglo && x.nivel !== "ok" ? `\n      → ${x.arreglo}` : ""}`);
+      const fallas = r.filter((x) => x.nivel === "falta").length;
+      console.log(fallas ? `\n${fallas} cosa(s) por arreglar.` : "\nTodo lo necesario está listo.");
+      if (fallas) process.exitCode = 1;
       return;
     }
     case "subir":
