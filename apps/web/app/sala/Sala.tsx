@@ -62,6 +62,22 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
         </div>
       )}
 
+      {proyecto.cliente && proyecto.cliente.length > 0 && (
+        <section aria-label="Lo que dijo el cliente" className="mb-6 grid gap-3 border-t border-linea pt-4 md:grid-cols-[180px_1fr]">
+          <p className={etiqueta}>Lo que dijo el cliente</p>
+          <ul className="grid gap-3">
+            {proyecto.cliente.map((n) => (
+              <li key={n.fecha + n.texto} className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4">
+                <span className="text-xl font-light tracking-tight">“{n.texto}”</span>
+                <span className={etiqueta}>
+                  {n.fecha} · lo atienden {n.agentes.map((a) => agentePorId(a)?.nombre).join(", ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="relative border-y border-tinta">
         <div role="tablist" aria-label="Fases" className="-mx-1 flex gap-1 overflow-x-auto py-2 pr-10">
           {FASES.map((x) => {

@@ -14,6 +14,8 @@ export interface VistaProyecto {
   mensajes: Record<number, Record<string, Mensaje & { tarea?: string; modo?: string }>>;
   nota?: number;
   estado?: string;
+  /** Lo que dijo el cliente y a quién se lo mandó Atlas. */
+  cliente?: { fecha: string; texto: string; quien: string; agentes: string[] }[];
 }
 
 interface EstadoArchivo {
@@ -21,6 +23,7 @@ interface EstadoArchivo {
   plan: { fases: number[]; tareas: string[] };
   tareas: Record<string, string>;
   estado: string;
+  notasCliente?: { fecha: string; texto: string; quien: string; tareas: string[] }[];
 }
 
 export interface EntregaArchivo {
@@ -67,7 +70,8 @@ function leerCliente(id: string): VistaProyecto | undefined {
       modo: e?.modo,
     };
   }
-  return { id, nombre: p.pedido.cliente, fases: p.plan.fases, mensajes, nota: leerEntrega(id, "6.trofeo")?.nota, estado: p.estado };
+  const cliente = (p.notasCliente ?? []).map((n) => ({ fecha: n.fecha.slice(0, 10), texto: n.texto, quien: n.quien, agentes: n.tareas.map((t) => t.split(".")[1]) }));
+  return { id, nombre: p.pedido.cliente, fases: p.plan.fases, mensajes, nota: leerEntrega(id, "6.trofeo")?.nota, estado: p.estado, cliente };
 }
 
 export function listarProyectos(): VistaProyecto[] {

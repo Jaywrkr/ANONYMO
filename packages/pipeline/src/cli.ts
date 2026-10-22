@@ -4,6 +4,8 @@ import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CARPETA, leerEntrega, leerProyecto, listar } from "./almacen.ts";
 import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
+import { anotar, enrutar, nombreTarea } from "./cliente.ts";
+import { dependientes } from "./contratos.ts";
 import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
 import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
@@ -26,6 +28,8 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   pausas    <id> <clave|nunca|cada-fase|1,4>    cambia dónde se detiene
   seguir    <id>                 continúa si quedó a medias
   url       <id> <url>           la web que audita Prisma
+  cliente   <id> "lo que dijo" [--agentes mira,orla] [--ver]
+                                 Atlas lo reparte, se rehace lo necesario y todos lo leen desde ahora
 
 Herramientas sueltas:
   dominios  "Nombre 1" "Nombre 2"   dominios libres y enlaces de redes
@@ -162,6 +166,19 @@ async function main() {
     case "pausas": {
       if (!pos[2]) throw new Error("Falta el valor: clave, nunca, cada-fase o 1,4");
       cambiarPausas(necesitaId(), pos[2]);
+      return resumen(await avanzar(necesitaId(), motor));
+    }
+    case "cliente": {
+      const texto = pos[2];
+      if (!texto) throw new Error('Falta el texto: pipeline cliente <id> "La web de estética tiene que ser más elegante"');
+      const forzadas = texto && typeof op.agentes === "string" ? op.agentes.split(",").map((x) => x.trim().toLowerCase()) : undefined;
+      const p0 = leerProyecto(necesitaId());
+      const base = enrutar(texto, p0.plan, forzadas);
+      const rehacer = dependientes(base, p0.plan.tareas);
+      console.log(`\nAtlas manda "${texto}" a: ${base.map(nombreTarea).join(", ")}`);
+      console.log(`Se rehacen ${rehacer.length} tareas: ${rehacer.map(nombreTarea).join(", ")}`);
+      if (op.ver) return console.log("\n(--ver: no se cambió nada)");
+      anotar(necesitaId(), texto, quien === "luna" ? "luna" : "jay", forzadas);
       return resumen(await avanzar(necesitaId(), motor));
     }
     case "url":
