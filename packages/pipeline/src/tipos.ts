@@ -24,6 +24,8 @@ export interface Pedido {
   };
   /** Dónde se detiene para que Jay o Luna revisen. Si no viene, lo propone Atlas. */
   pausas?: Pausas;
+  /** Quién aprueba cada fase en este proyecto, si no es el de siempre (sistema/14). */
+  responsables?: Record<number, "jay" | "luna">;
   /** Punto de partida por rubro (sistema/13): salud, comida, profesionales, tienda, espacios. */
   plantilla?: string;
   creado: string; // ISO

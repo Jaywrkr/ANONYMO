@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, responsable } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
+import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
@@ -62,7 +62,18 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             const fase = FASES.find((x) => x.n === f)!;
             return (
               <div key={f} className="border-t border-tinta py-4">
-                <p className={etiqueta}>{String(f).padStart(2, "0")} · {fase.nombre}{p.plan.pausas.includes(f) ? " · con pausa" : ""}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className={etiqueta}>{String(f).padStart(2, "0")} · {fase.nombre}{p.plan.pausas.includes(f) ? " · con pausa" : ""}</p>
+                  <form action={accionResponsable} className="flex items-center gap-2">
+                    {comunes}
+                    <input type="hidden" name="fase" value={f} />
+                    <label className={etiqueta} htmlFor={`socio-${f}`}>Aprueba</label>
+                    <select id={`socio-${f}`} name="socio" defaultValue={responsable(p, f)} className="rounded-full border border-linea bg-papel px-3 py-1 text-[13px]">
+                      <option value="jay">Jay</option><option value="luna">Luna</option>
+                    </select>
+                    <button className="font-mono text-[11px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Guardar</button>
+                  </form>
+                </div>
                 <ul className="mt-3 grid gap-2">
                   {deFase(f).map((t) => {
                     const c = contratoPorId(t)!;
@@ -144,13 +155,14 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           {p.estado === "esperando" && (
             <div className="rounded-3xl bg-papel p-6">
               <p className={etiqueta}>{p.esperaJurado ? "El Jurado no llegó a 7" : `Terminó ${FASES.find((x) => x.n === p.faseActual)?.nombre}`}</p>
-              <p className="display mt-1 text-5xl">Tu decisión</p>
+              <p className="display mt-1 text-5xl">Le toca a {responsable(p, p.faseActual) === "luna" ? "Luna" : "Jay"}</p>
               <form action={accionAprobar} className="mt-4 grid gap-2">
                 {comunes}
                 <label className="grid gap-1">
                   <span className={etiqueta}>Quién decide</span>
-                  <select name="quien" className={campo} defaultValue="jay"><option value="jay">Jay</option><option value="luna">Luna</option></select>
+                  <select name="quien" className={campo} defaultValue={responsable(p, p.faseActual)}><option value="jay">Jay</option><option value="luna">Luna</option></select>
                 </label>
+                <label className="flex items-center gap-2 text-[14px] text-gris"><input type="checkbox" name="forzar" value="1" /> Aprobar aunque no me toque</label>
                 <input name="nota" placeholder="Nota (opcional)" className={campo} />
                 <button className={botonLleno}>Aprobar y seguir</button>
               </form>
