@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { AREAS, FASES, agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { enlace, fase, idiomaDeRuta, servicio, type Idioma } from "@/lib/idioma";
+import { precioFase } from "@/lib/precios";
 
 function Tarjeta({ n, idioma }: { n: number; idioma: Idioma }) {
   const f = fase(n, idioma);
@@ -24,6 +25,7 @@ function Tarjeta({ n, idioma }: { n: number; idioma: Idioma }) {
         <ul className="mt-6 grid gap-1 border-t border-linea pt-4 text-lg font-light tracking-tight">
           {s.entrega.map((e) => <li key={e}>{e}</li>)}
         </ul>
+        <p className="mt-4 font-mono text-[12px] uppercase tracking-[0.14em] text-tinta">{precioFase(n, idioma).texto}</p>
       </div>
       <ul className="mt-6 flex flex-wrap gap-1">
         {f.agentes.map((id) => {
