@@ -1,7 +1,10 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
-import type { Entrega, Pedido, ResultadoHerramienta, TareaId } from "./tipos.ts";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { CARPETA } from "./almacen.ts";
+import { archivoEntrega, type Entrega, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
 
 export interface Contexto {
   pedido: Pedido;
@@ -24,7 +27,7 @@ const datosHerramientas = (h: ResultadoHerramienta[]) =>
   Object.fromEntries(h.filter((x) => x.datos !== undefined).map((x) => [x.herramienta, x.datos]));
 
 export interface Motor {
-  nombre: "simulado" | "real";
+  nombre: "simulado" | "real" | "manual";
   trabajar(ctx: Contexto): Promise<Resultado>;
 }
 
@@ -170,4 +173,39 @@ export const real: Motor = {
   },
 };
 
-export const elegirMotor = (forzarSimulado = false): Motor => (!forzarSimulado && process.env.ANTHROPIC_API_KEY ? real : simulado);
+/**
+ * Motor manual: usa borradores escritos a mano (o en una sesión con Claude) en
+ * proyectos/<id>/borradores/<fase>-<agente>.md, con el mismo frontmatter que una entrega.
+ * Para una versión nueva: <fase>-<agente>.v2.md. Si falta un borrador, cae al simulado.
+ */
+export const manual: Motor = {
+  nombre: "manual",
+  async trabajar(ctx) {
+    const base = join(CARPETA, ctx.pedido.id, "borradores", archivoEntrega(ctx.tarea).replace(".md", ""));
+    const ruta = [`${base}.v${ctx.version}.md`, `${base}.md`].find(existsSync);
+    if (!ruta) return simulado.trabajar(ctx);
+    const texto = readFileSync(ruta, "utf8");
+    const m = texto.match(/^---\n([\s\S]*?)\n---\n\n?([\s\S]*)$/);
+    const datos: Record<string, unknown> = {};
+    for (const l of (m?.[1] ?? "").split("\n")) {
+      const i = l.indexOf(": ");
+      if (i > 0) datos[l.slice(0, i)] = JSON.parse(l.slice(i + 2));
+    }
+    const contenido = (m?.[2] ?? texto).trim();
+    const extra = { ...datosHerramientas(ctx.herramientas), ...((datos.datos as Record<string, unknown>) ?? {}) };
+    return {
+      dice: String(datos.dice ?? ""),
+      necesita: String(datos.necesita ?? ""),
+      contenido: [contenido, "", ...seccionHerramientas(ctx.herramientas)].join("\n").trim(),
+      nota: typeof datos.nota === "number" ? datos.nota : undefined,
+      datos: Object.keys(extra).length ? extra : undefined,
+      modo: "manual",
+    };
+  },
+};
+
+export function elegirMotor(op: { simulado?: boolean; manual?: boolean } | boolean = false): Motor {
+  const o = typeof op === "boolean" ? { simulado: op } : op;
+  if (o.manual) return manual;
+  return !o.simulado && process.env.ANTHROPIC_API_KEY ? real : simulado;
+}

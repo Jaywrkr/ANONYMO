@@ -109,6 +109,18 @@ proyectos/<id>/
 
 Cada entrega es markdown con frontmatter: agente, título, lo que "dice" en la sala, lo que necesita, estado, modo (`simulado` o `real`) y versión.
 
+## Caso dentistas (5.6) y motor manual
+
+Con `--manual`, cada agente usa el borrador de `proyectos/<id>/borradores/<fase>-<agente>.md` (mismo frontmatter que una entrega: `dice`, `necesita`, `nota`, `datos`). Sirve para escribir las entregas a mano o en una sesión con Claude mientras no hay clave. Las herramientas corren igual.
+
+```bash
+npm run pipeline -- nuevo --id gabriela-y-sebastian --cliente "Gabriela y Sebastián" --tipo web --sin-marca --pausas nunca --manual --descripcion "..."
+```
+
+La sala lee `proyectos/*/estado.json` al compilar: aparece un selector de proyecto, las fases que no aplican se tachan y cada entrega se lee completa en `/sala/<proyecto>/<fase>-<agente>`.
+
+Los proyectos de clientes están en `.gitignore`: el repo es público y no se suben sin permiso del cliente.
+
 ## Lo que sigue
 
 | Sub-fase | Qué |
@@ -116,6 +128,6 @@ Cada entrega es markdown con frontmatter: agente, título, lo que "dice" en la s
 | 5.2 + 5.3 | Atlas y ejecución con pausas por proyecto. **Hecho** |
 | 5.4 Herramientas | Búsqueda web, dominios, redes, auditoría. **Hecho** (búsqueda web se activa con la clave) |
 | 5.5 Calidad | Nota del Jurado y vuelta atrás si no llega a 7. **Hecho** |
-| 5.6 Caso dentistas | Pedido real de punta a punta y la sala mostrando el proyecto |
+| 5.6 Caso dentistas | Pedido real de punta a punta y la sala mostrando el proyecto. **Hecho** (contenido escrito en sesión; fuera del repo) |
 
 La clave de Anthropic la pone Jay en `ANTHROPIC_API_KEY`. Sin clave, todo corre en modo simulado. Con clave, `--simulado` fuerza el modo simulado. El modelo se cambia con `ANTHROPIC_MODEL`.

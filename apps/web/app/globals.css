@@ -36,3 +36,21 @@ html[data-noche="1"] .hero .border-tinta { border-color: var(--color-hueso); }
 html[data-noche="1"] .hero .text-gris { color: #b9b6ae; }
 html[data-noche="1"] .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: -160px; height: 160px; background: linear-gradient(var(--color-noche), var(--color-hueso)); pointer-events: none; }
 html[data-noche="1"] .hero + section { padding-top: 12rem; }
+
+/* Entregas del pipeline (markdown) */
+.entrega { font-size: 17px; line-height: 1.6; }
+.entrega h2 { font-family: var(--font-display); text-transform: uppercase; font-weight: 340; font-size: 40px; line-height: .95; margin: 2.2em 0 .6em; }
+.entrega h3 { font-size: 20px; font-weight: 500; margin: 1.6em 0 .4em; }
+.entrega p, .entrega ul, .entrega ol, .entrega blockquote, .entrega table, .entrega pre { margin: 0 0 1em; }
+.entrega ul { list-style: disc; padding-left: 1.2em; }
+.entrega ol { list-style: decimal; padding-left: 1.4em; }
+.entrega li { margin: .25em 0; }
+.entrega a { text-decoration: underline; text-underline-offset: 3px; }
+.entrega strong { font-weight: 600; }
+.entrega blockquote { border-left: 2px solid var(--color-tinta); padding-left: 1em; color: var(--color-gris); }
+.entrega code { font-family: var(--font-mono); font-size: .88em; background: var(--color-papel); padding: .1em .35em; border-radius: 4px; }
+.entrega pre { background: var(--color-papel); padding: 1em; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+.entrega pre code { background: none; padding: 0; }
+.entrega table { width: 100%; border-collapse: collapse; font-size: 15px; display: block; overflow-x: auto; }
+.entrega th, .entrega td { border-bottom: 1px solid var(--color-linea); padding: .55em .8em .55em 0; text-align: left; vertical-align: top; }
+.entrega th { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--color-gris); font-weight: 400; }

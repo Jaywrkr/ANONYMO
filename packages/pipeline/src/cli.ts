@@ -33,6 +33,7 @@ Herramientas sueltas:
 
   --quien jay|luna  quién decide (por defecto jay)
   --simulado        no usa la clave aunque exista
+  --manual          usa los borradores de proyectos/<id>/borradores (escritos a mano o con Claude)
 `;
 
 function leerArgs(argv: string[]) {
@@ -98,7 +99,7 @@ function resumen(p: Proyecto) {
 async function main() {
   const { pos, op } = leerArgs(process.argv.slice(2));
   const [cmd, id] = pos;
-  const motor = elegirMotor(op.simulado === true);
+  const motor = elegirMotor({ simulado: op.simulado === true, manual: op.manual === true });
   const quien = (texto(op.quien) ?? "jay") as Puerta["quien"];
   if (!["jay", "luna"].includes(quien)) throw new Error("--quien debe ser jay o luna.");
   const necesitaId = () => {
