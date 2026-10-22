@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Reloj } from "./Reloj";
 import { InterruptorMovimiento } from "./Movimiento";
+import { InterruptorNoche } from "./InterruptorNoche";
 import { enlace, idiomaDeRuta, otroIdioma } from "@/lib/idioma";
 import { T } from "@/lib/textos";
 
@@ -104,6 +105,7 @@ export function Pie() {
           <Link className="hover:text-tinta" href="/sistema">{t.nav.sistema}</Link>
           <Link className="hover:text-tinta" href={otro.href} hrefLang={otro.idioma} lang={otro.idioma}>{t.cambiar}</Link>
           <InterruptorMovimiento />
+          <InterruptorNoche />
         </nav>
         <span>{t.lugar}</span>
       </div>
