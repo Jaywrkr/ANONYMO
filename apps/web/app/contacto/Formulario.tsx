@@ -7,6 +7,8 @@ import { PEDIDOS } from "@/lib/servicio";
 import { usePathname } from "next/navigation";
 import { idiomaDeRuta, pedido as nombrePedido } from "@/lib/idioma";
 import { enviarPedido } from "./acciones";
+import { medir } from "@/lib/medir";
+import { useEffect } from "react";
 
 // Mientras el cliente escribe, ve qué agentes se despiertan para su pedido.
 export function Formulario() {
@@ -14,6 +16,9 @@ export function Formulario() {
   const [estado, enviar, enviando] = useActionState(enviarPedido, null);
   const idioma = idiomaDeRuta(usePathname());
   const en = idioma === "en";
+  useEffect(() => {
+    if (estado?.ok) medir("formulario", tipo);
+  }, [estado, tipo]);
   const despiertos = useMemo(() => {
     const ids = new Set<string>();
     PEDIDOS[tipo].fases.forEach((n) => FASES.find((f) => f.n === n)?.agentes.forEach((id) => ids.add(id)));
