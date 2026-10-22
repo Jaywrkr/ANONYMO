@@ -1,26 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, existe, leerBitacora, leerEntrega, leerNota, leerProyecto, type TareaId } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, enrutar, existe, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId } from "@anonymo/pipeline";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionAprobar, accionCambiar, accionParar, accionPausas, accionPortal, accionReanudar, accionSeguir } from "../acciones";
+import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionSeguir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string; vista?: string; pendiente?: string }> };
 
 const ESTADO_TAREA: Record<string, string> = { lista: "Lista", "en-curso": "En curso", "por-empezar": "Por empezar", rehacer: "Por rehacer" };
 
 export default async function ProyectoEstudio({ params, searchParams }: Props) {
   exigirEstudio();
   const { id } = await params;
-  const { ok, error } = await searchParams;
+  const { ok, error, vista, pendiente } = await searchParams;
   if (!existe(id)) notFound();
   const p = leerProyecto(id);
   const nota = leerNota(leerEntrega(id, "6.trofeo"));
   const deFase = (f: number) => p.plan.tareas.filter((t) => t.startsWith(`${f}.`)) as TareaId[];
   const actuales = deFase(p.faseActual);
+  // Vista previa del reparto de un comentario del cliente.
+  const reparto = vista ? enrutar(vista, p.plan) : [];
+  const arrastra = vista ? dependientes(reparto, p.plan.tareas) : [];
+  const conTarea = [...new Set(p.plan.tareas.map((t) => t.split(".")[1]))];
   const comunes = (
     <>
       <input type="hidden" name="id" value={id} />
@@ -71,6 +75,60 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               </div>
             );
           })}
+          <section id="cliente" aria-label="Lo que dijo el cliente" className="mt-6 border-t border-tinta pt-4">
+            <p className={etiqueta}>Lo que dijo el cliente</p>
+            {(p.pendientesCliente ?? []).length > 0 && (
+              <ul className="mt-3 grid gap-2">
+                {p.pendientesCliente!.map((c) => (
+                  <li key={c.fecha} className="rounded-2xl bg-[#fff5d6] p-4">
+                    <p className={etiqueta}>Desde su portal · {c.fecha.slice(0, 10)} · sin mandar al equipo</p>
+                    <p className="mt-1 text-lg font-light">“{c.texto}”</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <form action={accionVerReparto}>{comunes}<input type="hidden" name="texto" value={c.texto} /><input type="hidden" name="pendiente" value={c.fecha} /><button className={boton}>Ver a quién va</button></form>
+                      <form action={accionDescartarPendiente}>{comunes}<input type="hidden" name="pendiente" value={c.fecha} /><button className="min-h-11 font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Descartar</button></form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {(p.notasCliente ?? []).length > 0 && (
+              <ul className="mt-3 grid gap-1 text-[15px]">
+                {p.notasCliente!.map((n) => (
+                  <li key={n.fecha}>“{n.texto}” <span className="text-gris">· {n.fecha.slice(0, 10)} · {n.tareas.map(nombreTarea).join(", ")}</span></li>
+                ))}
+              </ul>
+            )}
+            {vista ? (
+              <form action={accionMandarCliente} className="mt-4 grid gap-3 rounded-3xl bg-papel p-5">
+                {comunes}
+                <input type="hidden" name="texto" value={vista} />
+                {pendiente && <><input type="hidden" name="pendiente" value={pendiente} /><input type="hidden" name="origen" value="cliente" /></>}
+                <p className="text-lg font-light">“{vista}”</p>
+                <fieldset>
+                  <legend className={etiqueta}>Atlas lo manda a (puedes cambiarlo)</legend>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {conTarea.map((a) => (
+                      <label key={a} className="flex min-h-11 items-center gap-2 rounded-full border border-linea px-3">
+                        <input type="checkbox" name="agentes" value={a} defaultChecked={reparto.some((t) => t.endsWith(`.${a}`))} />
+                        {agentePorId(a)?.nombre}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <p className="text-[14px] text-gris">Con este reparto se rehacen {arrastra.length} tareas: {arrastra.map(nombreTarea).join(", ")}.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button className={botonLleno}>Mandar al equipo</button>
+                  <a href={`/estudio/${id}#cliente`} className="inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Cancelar</a>
+                </div>
+              </form>
+            ) : (
+              <form action={accionVerReparto} className="mt-4 grid gap-2">
+                {comunes}
+                <textarea name="texto" rows={3} required placeholder="Ej.: la de estética tiene que ser mucho más elegante" className={campo} aria-label="Lo que dijo el cliente" />
+                <button className={boton}>Ver a quién va</button>
+              </form>
+            )}
+          </section>
         </section>
 
         <aside className="grid content-start gap-6 lg:sticky lg:top-6">

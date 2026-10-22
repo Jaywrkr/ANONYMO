@@ -33,3 +33,10 @@ export function comentarioPortal(id: string, texto: string) {
   guardarProyecto(p);
   bitacora(id, `El cliente comentó desde su portal: "${limpio.slice(0, 120)}"`);
 }
+
+/** Saca un comentario pendiente del portal (ya se mandó al equipo o se descartó). */
+export function quitarPendiente(id: string, fecha: string) {
+  const p = leerProyecto(id);
+  p.pendientesCliente = (p.pendientesCliente ?? []).filter((x) => x.fecha !== fecha);
+  guardarProyecto(p);
+}

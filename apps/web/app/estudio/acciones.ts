@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, reanudar, tokenPortal } from "@anonymo/pipeline";
+import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, quitarPendiente, reanudar, tokenPortal } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -68,4 +68,34 @@ export async function accionSeguir(f: FormData) {
 export async function accionPortal(f: FormData) {
   const { id } = leer(f);
   await correr(id, () => tokenPortal(id, f.get("nuevo") === "1"), f.get("nuevo") === "1" ? "Enlace nuevo creado: el anterior ya no sirve." : "Enlace del cliente listo.");
+}
+
+/** Primer paso: ver a quién manda Atlas el comentario, sin cambiar nada. */
+export async function accionVerReparto(f: FormData) {
+  exigirEstudio();
+  const { id } = leer(f);
+  const texto = String(f.get("texto") ?? "").trim();
+  const pendiente = String(f.get("pendiente") ?? "");
+  redirect(`/estudio/${id}?vista=${encodeURIComponent(texto)}${pendiente ? `&pendiente=${encodeURIComponent(pendiente)}` : ""}#cliente`);
+}
+
+/** Segundo paso: el comentario entra al proyecto, va a los agentes elegidos y el equipo rehace. */
+export async function accionMandarCliente(f: FormData) {
+  const { id, quien, motor } = leer(f);
+  const texto = String(f.get("texto") ?? "").trim();
+  const agentes = f.getAll("agentes").map(String).filter(Boolean);
+  const pendiente = String(f.get("pendiente") ?? "");
+  const origen = f.get("origen") === "cliente" ? "cliente" : quien;
+  await correr(id, async () => {
+    if (!texto) throw new Error("El comentario está vacío.");
+    if (!agentes.length) throw new Error("Elige al menos un agente.");
+    anotar(id, texto, origen, agentes);
+    if (pendiente) quitarPendiente(id, pendiente);
+    await avanzar(id, motor, silencio);
+  }, "Comentario enviado: el equipo rehízo lo necesario.");
+}
+
+export async function accionDescartarPendiente(f: FormData) {
+  const { id } = leer(f);
+  await correr(id, () => quitarPendiente(id, String(f.get("pendiente") ?? "")), "Comentario descartado.");
 }
