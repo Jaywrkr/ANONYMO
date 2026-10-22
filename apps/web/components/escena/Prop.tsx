@@ -83,6 +83,29 @@ function Pulso() {
 }
 
 
+// Montura rectangular con esquinas redondeadas para los lentes 3D.
+function Marco() {
+  const geo = useMemo(() => {
+    const rr = (w: number, h: number, r: number) => {
+      const p = new THREE.Shape();
+      p.moveTo(-w / 2 + r, -h / 2);
+      p.lineTo(w / 2 - r, -h / 2); p.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+      p.lineTo(w / 2, h / 2 - r); p.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+      p.lineTo(-w / 2 + r, h / 2); p.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
+      p.lineTo(-w / 2, -h / 2 + r); p.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+      return p;
+    };
+    const s = rr(0.42, 0.3, 0.06);
+    s.holes.push(rr(0.34, 0.22, 0.04) as unknown as THREE.Path);
+    return new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: false });
+  }, []);
+  return (
+    <mesh geometry={geo} position={[0, 0, -0.01]}>
+      <Mat color={TINTA} />
+    </mesh>
+  );
+}
+
 function Microfono() {
   const geo = useMemo(() => {
     const c = new THREE.CatmullRomCurve3([
@@ -256,12 +279,13 @@ export function Prop({ tipo }: { tipo: PropId }) {
                 <boxGeometry args={[0.36, 0.24, 0.03]} />
                 <meshStandardMaterial color={c as string} transparent opacity={0.5} roughness={0.2} />
               </mesh>
-              <mesh>
-                <torusGeometry args={[0.19, 0.022, 6, 4, Math.PI * 2]} />
-                <Mat color={TINTA} />
-              </mesh>
+              <Marco />
             </group>
           ))}
+          <mesh position={[0, 0.04, 0.01]}>
+            <boxGeometry args={[0.08, 0.03, 0.03]} />
+            <Mat color={TINTA} />
+          </mesh>
         </group>
       );
     case "laptop":
