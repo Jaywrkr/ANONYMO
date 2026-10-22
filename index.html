@@ -1,0 +1,718 @@
+<title>Mundo Metaverso</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una sala sobria (blanco/negro, mono, aire) donde solo los blobs tienen color; fases arriba, sala a la izquierda, el agente que habla a la derecha */
+:root {
+  --bg: #f4f4f6;
+  --surface: #ffffff;
+  --fg: #111114;
+  --muted: #6c6c7a;
+  --line: #dddde4;
+  --soft: #ebebf0;
+  --ok: #1f9d63;
+  --wip: #c98a00;
+  --todo: #8a8a98;
+  --glowmix: 30%;
+  --font-display: "Geist", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0b0e; --surface: #15151a; --fg: #f1f1f4; --muted: #9a9aa9; --line: #2a2a33; --soft: #1d1d24;
+    --ok: #4fd18f; --wip: #f2b84b; --todo: #8a8a98; --glowmix: 16%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0b0e; --surface: #15151a; --fg: #f1f1f4; --muted: #9a9aa9; --line: #2a2a33; --soft: #1d1d24;
+  --ok: #4fd18f; --wip: #f2b84b; --todo: #8a8a98; --glowmix: 16%;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-display); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 72px;
+}
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3 { font-weight: 300; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; border-radius: 8px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--font-mono); }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.top nav { display: flex; gap: 18px; flex-wrap: wrap; }
+.top a { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-decoration: none; }
+.top a:hover { color: var(--fg); }
+
+.intro { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; padding-block: 40px 24px; }
+.intro h1 { font-size: clamp(36px, 6vw, 68px); line-height: 1; }
+.intro p { color: var(--muted); max-width: 46ch; margin-top: 14px; }
+.project { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: var(--surface); display: inline-flex; align-items: center; gap: 8px; }
+.pill.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.pill.dim { color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: currentColor; }
+
+/* phases */
+.phases { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.ph { flex: none; min-width: 150px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 10px 12px; cursor: pointer; display: grid; gap: 2px; }
+.ph:hover { border-color: var(--fg); }
+.ph[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.ph[aria-pressed="true"] .label { color: inherit; opacity: .7; }
+.ph b { font-weight: 500; }
+.st { font-family: var(--font-mono); font-size: 11px; display: inline-flex; align-items: center; gap: 6px; }
+.st.ok { color: var(--ok); } .st.wip { color: var(--wip); } .st.todo { color: var(--todo); }
+.ph[aria-pressed="true"] .st { color: inherit; }
+
+.phase-line { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline; margin-block: 20px 14px; }
+.phase-line h2 { font-size: clamp(24px, 3.4vw, 34px); }
+.phase-line p { color: var(--muted); max-width: 60ch; }
+
+/* room */
+.room { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .room { grid-template-columns: 1fr; } }
+.stage { --g1: transparent; --g2: transparent; --g3: transparent;
+  background: radial-gradient(55% 45% at 12% 8%, color-mix(in srgb, var(--g1) var(--glowmix), transparent), transparent 72%), radial-gradient(50% 45% at 92% 88%, color-mix(in srgb, var(--g2) var(--glowmix), transparent), transparent 72%), radial-gradient(40% 40% at 70% 20%, color-mix(in srgb, var(--g3) var(--glowmix), transparent), transparent 70%), var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px 4px; position: relative; overflow: hidden; }
+.agent { border: 0; background: none; cursor: pointer; display: grid; justify-items: center; gap: 0; padding: 4px 2px 8px; border-radius: 16px; transition: opacity .45s ease, filter .45s ease; position: relative; }
+.agent .nm { font-size: 13px; font-weight: 500; }
+.agent .rl { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.25; }
+.agent .blobwrap { transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+.agent:hover .blobwrap { transform: translateY(-3px) scale(1.04); }
+.agent.off { opacity: .28; filter: grayscale(.7) blur(1.2px); }
+.agent.off .blobwrap { transform: scale(.78); }
+.agent.on .blobwrap { transform: scale(1.08); }
+.agent.sel { background: var(--soft); }
+.agent.sel .nm::after { content: " ●"; font-size: 9px; vertical-align: 2px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.legend i { width: 10px; height: 10px; border-radius: 50%; }
+
+.talk { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 22px; display: grid; gap: 16px; align-content: start; min-height: 520px; }
+.talk-head { display: flex; gap: 16px; align-items: center; }
+.talk-head h3 { font-size: 40px; line-height: 1; }
+.bubble { position: relative; background: var(--soft); border-radius: 18px; padding: 16px 18px; font-size: 16px; line-height: 1.55; }
+.bubble::before { content: ""; position: absolute; top: -8px; left: 44px; width: 16px; height: 16px; background: var(--soft); transform: rotate(45deg); border-radius: 3px; }
+.talk dl { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px 14px; margin: 0; }
+.talk dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.talk dd { margin: 0; font-size: 14px; }
+.talk details { border-top: 1px solid var(--line); padding-top: 12px; }
+.talk summary { cursor: pointer; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.talk details dl { margin-top: 12px; }
+.talk .nav { display: flex; justify-content: space-between; gap: 8px; }
+.talk .nav button { border: 1px solid var(--line); background: none; border-radius: 999px; padding: 7px 13px; font-family: var(--font-mono); font-size: 12px; cursor: pointer; }
+.talk .nav button:hover { border-color: var(--fg); }
+.talk a { color: var(--fg); }
+@media (max-width: 900px) { .talk { position: static; min-height: 0; } }
+
+/* blob animation */
+.blob { display: block; overflow: visible; }
+.blob .bd { transform-origin: 50% 60%; animation: wob var(--dur, 6s) ease-in-out infinite; animation-delay: var(--del, 0s); }
+.blob.bodyless .bd { animation: none; }
+.b3 { position: relative; flex: none; }
+.b3::before { content: ""; position: absolute; inset: 14% 12% 6%; border-radius: 50%; background: var(--glow, transparent); filter: blur(22px); opacity: .55; }
+.b3 canvas, .b3 svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.blob .eyes { transform-box: fill-box; transform-origin: center; animation: blink var(--blink, 5s) infinite; animation-delay: var(--del, 0s); }
+.blob .halo { opacity: .5; animation: glow var(--dur, 6s) ease-in-out infinite; animation-delay: var(--del, 0s); }
+@keyframes wob { 0%,100% { transform: rotate(-2.5deg) scale(1, 1); } 50% { transform: rotate(2.5deg) scale(1.03, .97); } }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes glow { 0%,100% { opacity: .4; } 50% { opacity: .7; } }
+@media (prefers-reduced-motion: reduce) {
+  .blob .bd, .blob .eyes, .blob .halo { animation: none !important; }
+  .agent, .agent .blobwrap { transition: none; }
+}
+
+section { padding-top: 64px; }
+.sec-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; margin-bottom: 22px; }
+.sec-head h2 { font-size: clamp(28px, 4vw, 42px); margin-top: 8px; }
+.sec-head p { color: var(--muted); max-width: 56ch; }
+
+/* finalists */
+.finals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 28px; }
+@media (max-width: 900px) { .finals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .finals { grid-template-columns: 1fr; } }
+.fin { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 6px; align-content: start; }
+.fin.pick { border-color: var(--fg); }
+.fin h3 { font-size: 34px; }
+.fin p { color: var(--muted); font-size: 14px; }
+.fin .tag { font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.fin q { font-size: 15px; }
+
+/* matrix */
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.tools input[type="search"] { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; min-width: 0; width: 220px; max-width: 100%; }
+.tools select { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 12px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-family: var(--font-mono); font-size: 12px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.fams { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.count { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-left: auto; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; min-width: 860px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; position: sticky; top: 0; background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+td.nm { font-size: 17px; white-space: nowrap; }
+td.dom { font-family: var(--font-mono); font-size: 12px; }
+td.stars { font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: 1px; }
+td.risk { color: var(--muted); font-size: 13px; }
+.fav { border: 0; background: none; cursor: pointer; font-size: 18px; line-height: 1; color: var(--muted); padding: 2px; }
+.fav[aria-pressed="true"] { color: var(--wip); }
+.note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.note a { color: var(--fg); }
+
+.decide ol { margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.decide li { list-style: none; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.decide .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); padding-top: 3px; }
+.decide p { color: var(--muted); font-size: 14px; margin-top: 2px; max-width: 70ch; }
+.cta { display: inline-flex; margin-top: 20px; font-family: var(--font-mono); font-size: 13px; color: var(--fg); border: 1px solid var(--fg); border-radius: 999px; padding: 10px 16px; text-decoration: none; }
+.cta:hover { background: var(--fg); color: var(--bg); }
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--muted); font-family: var(--font-mono); font-size: 12px; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="mono" style="font-size:12px">MUNDO METAVERSO · v0.3</span>
+    <nav aria-label="Secciones">
+      <a href="#sala">La sala</a>
+      <a href="#nombres">Nombres</a>
+      <a href="#decidir">Para decidir</a>
+    </nav>
+  </header>
+
+  <div class="intro">
+    <div>
+      <div class="label">Agencia de Jay y Luna · nombre por definir</div>
+      <h1 style="margin-top:12px">2 humanos. 22 agentes.<br>7 fases.</h1>
+      <p>Elige una fase y sus agentes pasan al frente. Toca uno y te cuenta qué hizo, qué opina y qué necesita de ustedes.</p>
+    </div>
+    <div class="project" aria-label="Proyecto">
+      <span class="pill on"><span class="dot" style="color:var(--ok)"></span>Proyecto: nuestra agencia</span>
+      <span class="pill dim">Próximo cliente · mismo flujo</span>
+    </div>
+  </div>
+
+  <section id="sala" style="padding-top:0">
+    <div class="phases" id="phases" role="group" aria-label="Fases del proyecto"></div>
+    <div class="phase-line">
+      <h2 id="phTitle"></h2>
+      <p id="phDesc"></p>
+    </div>
+    <div class="room">
+      <div>
+        <div class="stage" id="stage"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <aside class="talk" id="talk" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="nombres">
+    <div class="sec-head">
+      <div>
+        <div class="label">Naming · por Verba</div>
+        <h2>108 nombres con dominio libre</h2>
+      </div>
+      <p>Italiano, quechua, jerga ecuatoriana, Milán, la noche. El nombre no tiene que explicar la agencia: la creatividad puede estar en el nombre mismo.</p>
+    </div>
+    <div class="finals" id="finals"></div>
+    <div class="tools">
+      <input type="search" id="q" placeholder="Buscar nombre o idioma" aria-label="Buscar nombre">
+      <select id="minp" aria-label="Puntaje mínimo">
+        <option value="1">Todas las estrellas</option>
+        <option value="3">3 estrellas o más</option>
+        <option value="4" selected>4 estrellas o más</option>
+        <option value="5">Solo 5 estrellas</option>
+      </select>
+      <button class="chip" id="onlyFav" aria-pressed="false">★ Solo mis favoritos</button>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="fams" id="fams" role="group" aria-label="Filtrar por familia"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:36px"><span class="label">★</span></th><th>Nombre</th><th>Familia</th><th>Idioma</th><th>Significado</th><th>Dominios libres</th><th>Verba</th><th>Riesgo</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="note">Tus ★ se guardan solo en este navegador. La decisión que ven los dos se marca en la pestaña <a href="https://claude.ai/artifact/4wFEW92fGdiUFYnfR2hDvp" target="_blank" rel="noopener">Naming — matriz del plan maestro</a> (Sí, Quizás o No). Dominios revisados el 21 y 22 de octubre de 2026; Instagram y SENADI quedan por revisar.</p>
+  </section>
+
+  <section id="decidir" class="decide">
+    <div class="sec-head">
+      <div>
+        <div class="label">Para decidir</div>
+        <h2>Lo que solo ustedes pueden decidir</h2>
+      </div>
+    </div>
+    <ol>
+      <li><span class="n">01</span><div><b>El nombre, antes del 26 de octubre</b><p>Marquen Sí, Quizás o No en la matriz. Con tres "Sí", Verba y Sonda hacen la prueba final de Instagram y SENADI.</p></div></li>
+      <li><span class="n">02</span><div><b>¿Agencia nueva o Minervo Studio?</b><p>Minervo ya es tu estudio de diseño, creatividad y tech, con la misma meta de Site of the Year 2027.</p></div></li>
+      <li><span class="n">03</span><div><b>Números para Ledger</b><p>Tarifa objetivo por proyecto y costos fijos al mes. Sin eso no hay precios para clientes.</p></div></li>
+      <li><span class="n">04</span><div><b>Validar con Luna</b><p>El brief, el nombre y la fecha del shooting.</p></div></li>
+    </ol>
+    <a class="cta" href="https://claude.ai/artifact/4wFEW92fGdiUFYnfR2hDvp" target="_blank" rel="noopener">Abrir el plan maestro →</a>
+  </section>
+
+  <footer>
+    <span>Mundo Metaverso · borrador 3</span>
+    <span>22 oct 2026</span>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const AREAS = {
+  mando:        { name: "Mando",            c1: "#f1edff", c2: "#a593ff", c3: "#ffa8d6", c4: "#5b3fe0" },
+  estrategia:   { name: "Estrategia",       c1: "#f4ffd9", c2: "#9be38a", c3: "#62d9c8", c4: "#1c9a78" },
+  marca:        { name: "Marca",            c1: "#fff3dc", c2: "#ffa06a", c3: "#ff76a4", c4: "#e2452f" },
+  producto:     { name: "Producto digital", c1: "#e6f8ff", c2: "#73c6ff", c3: "#9a8dff", c4: "#2756ee" },
+  comunicacion: { name: "Comunicación",     c1: "#ffe8f3", c2: "#ff82bb", c3: "#c493ff", c4: "#cf2f7d" },
+  crecimiento:  { name: "Crecimiento",      c1: "#fff9dc", c2: "#ffd056", c3: "#ffa45e", c4: "#e08600" }
+};
+
+const AGENTS = [
+  { id:"atlas", name:"Atlas", area:"mando", role:"Orquestador", acc:"headset", char:"Calmado. Ve todo el tablero y nunca corre.", mix:"Estrategia de McKinsey + ritmo de productor de Pixar", power:"Decide quién hace qué en segundos.", eyes:"focus", mouth:"smile" },
+  { id:"ledger", name:"Ledger", area:"mando", role:"Operaciones y finanzas", acc:"visor", char:"Tranquilo y preciso. Dice que no con cariño.", mix:"CFO de estudio boutique + rigor de operaciones", power:"Sabe si un proyecto deja plata antes de empezar.", eyes:"sleepy", mouth:"flat" },
+  { id:"nova", name:"Nova", area:"estrategia", role:"Estrategia de marca", acc:"star", char:"Curiosa. Hace las preguntas incómodas.", mix:"Claridad de Collins + olfato cultural de Mother London", power:"Resume una marca en una frase.", eyes:"wide", mouth:"smirk" },
+  { id:"sonda", name:"Sonda", area:"estrategia", role:"Research", acc:"lupa", char:"Detective silencioso.", mix:"Métodos de IDEO + análisis de consultora", power:"Encuentra el dato que nadie buscó.", eyes:"focus", mouth:"o" },
+  { id:"verba", name:"Verba", area:"marca", role:"Naming", acc:"bubble", char:"Juguetona. Piensa en voz alta.", mix:"Lexicon Branding + irreverencia de Liquid Death", power:"Cien nombres antes del desayuno.", eyes:"round", mouth:"grin" },
+  { id:"mira", name:"Mira", area:"marca", role:"Identidad y logo", acc:"beret", char:"Exigente. Mira todo con lupa.", mix:"Rigor de Pentagram + audacia de Sagmeister & Walsh", power:"Logos que funcionan en 16 px y en un edificio.", eyes:"wide", mouth:"smile" },
+  { id:"rhea", name:"Rhea", area:"marca", role:"Copy y tono", acc:"pencil", char:"Ingeniosa y directa.", mix:"Wieden+Kennedy + ingenio de Droga5", power:"Frases que se quedan en la cabeza.", eyes:"wink", mouth:"smirk" },
+  { id:"orla", name:"Orla", area:"producto", role:"Diseño UI", acc:"square", char:"Obsesiva con el ritmo y la tipografía.", mix:"Tipografía de Obys + movimiento de Locomotive + experimentación de Resn", power:"Hace que el scroll se sienta bien.", eyes:"round", mouth:"smile" },
+  { id:"lumen", name:"Lumen", area:"producto", role:"WebGL y 3D", acc:"glasses3d", char:"Soñador técnico.", mix:"Lusion + Active Theory + Bruno Simon", power:"Convierte una idea en un mundo que se toca.", eyes:"wide", mouth:"o" },
+  { id:"vector", name:"Vector", area:"producto", role:"Front-end", acc:"code", char:"Práctico, cero drama.", mix:"Código de Active Theory + obsesión por rendimiento de Vercel", power:"Webs que cargan en menos de un segundo.", eyes:"focus", mouth:"flat" },
+  { id:"kine", name:"Kine", area:"producto", role:"Motion", acc:"speed", char:"Inquieto. Nunca está quieto.", mix:"Buck + ManvsMachine", power:"Le da vida a cualquier cosa.", eyes:"round", mouth:"tongue", fast:true },
+  { id:"eco", name:"Eco", area:"producto", role:"Sonido", acc:"phones", char:"Escucha antes de hablar.", mix:"Antfood + diseño sonoro de videojuegos", power:"Marcas que se reconocen con los ojos cerrados.", eyes:"sleepy", mouth:"smile" },
+  { id:"prisma", name:"Prisma", area:"producto", role:"Calidad y SEO", acc:"clipboard", char:"La más estricta, y la más querida.", mix:"Auditor de rendimiento + estándares de accesibilidad", power:"Encuentra el error antes que el cliente.", eyes:"focus", mouth:"flat" },
+  { id:"tempo", name:"Tempo", area:"producto", role:"Producción", acc:"watch", char:"Ordenado y puntual.", mix:"Productor senior de estudio digital", power:"Convierte el caos en calendario.", eyes:"round", mouth:"flat" },
+  { id:"faro", name:"Faro", area:"comunicacion", role:"Contenido", acc:"lamp", char:"Estratégico. Piensa en series.", mix:"Mother London + el sistema de series de @jaywrkr", power:"Sabe qué publicar el próximo martes.", eyes:"wide", mouth:"smile" },
+  { id:"chispa", name:"Chispa", area:"comunicacion", role:"Community", acc:"phone", char:"Rápida, graciosa, cercana.", mix:"Humor de Duolingo + cercanía de Glossier", power:"Responde como persona, no como marca.", eyes:"wink", mouth:"grin", fast:true },
+  { id:"lente", name:"Lente", area:"comunicacion", role:"Foto y shootings", acc:"camera", char:"Observa la luz antes que nada.", mix:"Lo editorial de Kinfolk + la energía de las campañas de Nike", power:"El moodboard exacto para cada shooting.", eyes:"focus", mouth:"smile" },
+  { id:"corte", name:"Corte", area:"comunicacion", role:"Video", acc:"clap", char:"Ritmo puro.", mix:"Editor de campañas + ritmo de reels", power:"Tres segundos que enganchan.", eyes:"round", mouth:"smirk" },
+  { id:"escena", name:"Escena", area:"comunicacion", role:"Eventos", acc:"party", char:"Anfitriona. Piensa en la gente.", mix:"Productoras de experiencias de marca", power:"Momentos que la gente graba.", eyes:"wide", mouth:"grin" },
+  { id:"iman", name:"Imán", area:"crecimiento", role:"Ventas", acc:"magnet", char:"Escucha más de lo que habla.", mix:"Los principios de Ogilvy aplicados a propuestas", power:"Propuestas que se firman.", eyes:"round", mouth:"smile" },
+  { id:"trofeo", name:"Trofeo", area:"crecimiento", role:"Premios", acc:"laurel", char:"Competitivo, con paciencia.", mix:"Jurados de Awwwards, FWA y Cannes Lions", power:"Sabe qué mira un jurado.", eyes:"wide", mouth:"grin" },
+  { id:"pulso", name:"Pulso", area:"crecimiento", role:"Datos", acc:"pulse", char:"Frío con los números, cálido con la gente.", mix:"Analista de growth", power:"Dice qué funciona en una línea.", eyes:"focus", mouth:"o" }
+];
+
+const ST = { ok: ["ok","Listo"], wip: ["wip","En curso"], todo: ["todo","Por empezar"] };
+
+const PHASES = [
+  { n:1, name:"Arranque", dates:"22–26 oct", st:"wip", desc:"Plan, brief, research y números de la agencia.",
+    msgs: {
+      atlas:{ st:"ok", say:"El plan maestro está listo: 22 agentes, 7 fases y lanzamiento el 14 de diciembre. Hoy el cuello de botella es el nombre: sin nombre, la identidad no arranca.", need:"Que elijan el nombre esta semana y me digan si esto es Minervo o una marca nueva.", gives:"Plan maestro" },
+      ledger:{ st:"todo", say:"Todavía no tengo números. Para poner precio a un proyecto necesito saber cuánto vale su tiempo y qué herramientas pagamos.", need:"Tarifa objetivo por proyecto y costos fijos al mes: dominio, hosting, herramientas de IA.", gives:"Modelo de precios" },
+      sonda:{ st:"ok", say:"En Ecuador, las agencias más premiadas hacen publicidad: Maruri, Paradais, BBA. Ninguna se presenta como estudio de webs de nivel premio. Ese espacio está libre.", need:"Tres marcas que Luna admire y tres clientes soñados.", gives:"Referencias de tu MyMind y mapa de competencia" },
+      nova:{ st:"wip", say:"La agencia vende la precisión de un ingeniero con la energía de una productora de eventos. Directa, simple, sin humo.", need:"Que Luna lea el brief y diga qué le sobra o le falta.", gives:"Brief de marca (borrador)" }
+    } },
+  { n:2, name:"Naming", dates:"22–26 oct", st:"wip", desc:"Elegir el nombre y comprobar dominio, redes y marca registrada.",
+    msgs: {
+      verba:{ st:"wip", say:"Revisé más de 250 dominios y me quedé con 108 libres. Mis finalistas: Corsivo, Lucciola, Nottambulo y Yanantin. Si hoy tuviera que elegir uno, sería Corsivo: es tipografía en movimiento, suena italiano y tiene libres corsivo.studio, corsivostudio.com y corsivo.co.", need:"Marquen Sí, Quizás o No en la matriz. Con tres \"Sí\" hago la prueba final.", gives:"Matriz de 108 nombres", link:"#nombres" },
+      rhea:{ st:"wip", say:"Cada finalista necesita su frase. Corsivo: \"Diseño con inclinación.\" Lucciola: \"Brillamos de noche.\" Nottambulo: \"Trabajamos mientras duermes.\" Yanantin: \"Dos mitades, una obra.\"", need:"El tono que prefieren: elegante, juguetón o directo.", gives:"Frase por finalista" },
+      sonda:{ st:"todo", say:"No pude revisar Instagram ni SENADI desde aquí. Antes de comprar, hay que confirmar que el @usuario está libre y que nadie registró la marca en las clases 35 y 42.", need:"Que busquen los finalistas en Instagram, o que abran Chrome con la extensión de Claude para que lo haga yo.", gives:"Chequeo de redes y marca" }
+    } },
+  { n:3, name:"Identidad", dates:"27 oct – 9 nov", st:"todo", desc:"Logo, tono, movimiento y sonido de la marca.",
+    msgs: {
+      mira:{ st:"todo", say:"Tengo tres territorios: base sobria que se enciende de color, constructivismo digital y laboratorio interactivo. Recomiendo el primero. Arranco el logo el día que haya nombre.", need:"El nombre elegido y el territorio que les guste.", gives:"Tres propuestas de logo" },
+      rhea:{ st:"todo", say:"Con el nombre escribo el manifiesto y el tono de voz: frases cortas, palabras comunes, cero jerga de agencia.", need:"Que Luna y tú me digan tres palabras que describan la agencia.", gives:"Manifiesto y guía de tono" },
+      kine:{ st:"todo", say:"El logo tiene que moverse. Propongo que se encienda como los blobs de esta página.", need:"El logo en vector.", gives:"Logo animado y reglas de movimiento" },
+      eco:{ st:"todo", say:"Una firma de sonido de dos notas: una por Jay, una por Luna. Suena solo si el visitante la activa.", need:"Nada por ahora.", gives:"Logo sonoro" }
+    } },
+  { n:4, name:"Web", dates:"3 nov – 7 dic", st:"todo", desc:"Diseñar y construir la web que va a premios.",
+    msgs: {
+      orla:{ st:"todo", say:"La web de la agencia tiene que ser su mejor caso. Propongo que la web sea esta sala: el visitante conoce a los agentes y ve un proyecto avanzar por fases.", need:"La identidad aprobada.", gives:"Diseño de la web" },
+      lumen:{ st:"todo", say:"Los blobs pasan a 3D: luz suave, gradientes reales y reacción al cursor. Si no corre fluido en un celular, se queda en 2D.", need:"Nada por ahora.", gives:"Escena 3D de la sala" },
+      vector:{ st:"todo", say:"Construyo en Next.js y publico en Vercel, como Minervo. Meta: menos de 2 segundos de carga en un celular medio.", need:"Acceso al repositorio y al dominio.", gives:"Web publicada" },
+      kine:{ st:"todo", say:"Transiciones entre fases y una entrada distinta para cada agente.", need:"Nada por ahora.", gives:"Sistema de movimiento web" },
+      eco:{ st:"todo", say:"Sonidos de interfaz suaves, apagados por defecto.", need:"Nada por ahora.", gives:"Sonidos de la web" },
+      tempo:{ st:"wip", say:"Si el nombre se decide hasta el 26 de octubre, la web sale el 14 de diciembre. Cada semana de retraso mueve el lanzamiento una semana.", need:"La decisión del nombre antes del 26 de octubre.", gives:"Calendario y riesgos" }
+    } },
+  { n:5, name:"Contenido y lanzamiento", dates:"24 nov – 14 dic", st:"todo", desc:"Redes, shooting, video y evento de lanzamiento.",
+    msgs: {
+      faro:{ st:"todo", say:"Lanzamiento en series, como @jaywrkr: \"Conoce a un agente\", una pieza por día, 22 piezas.", need:"La fecha de lanzamiento confirmada.", gives:"Plan de contenido" },
+      chispa:{ st:"todo", say:"Cuentas en Instagram, TikTok y LinkedIn con el mismo @usuario. Respuestas humanas y rápidas desde el día uno.", need:"El @usuario reservado en las tres redes.", gives:"Cuentas listas y guía de respuestas" },
+      lente:{ st:"todo", say:"Shooting de Jay y Luna: retratos en blanco y negro con un toque del color de cada área.", need:"Fecha con Luna y locación en Cuenca.", gives:"Fotos de los fundadores" },
+      corte:{ st:"todo", say:"Un reel de 15 segundos por fase y un video de lanzamiento de 30.", need:"Material del shooting.", gives:"Reels y video de lanzamiento" },
+      escena:{ st:"todo", say:"Evento de lanzamiento en Cuenca: la sala de los agentes proyectada en vivo, con visuales de Jay.", need:"Presupuesto y lugar.", gives:"Concepto y producción del evento" }
+    } },
+  { n:6, name:"Revisión y premios", dates:"8 – 15 dic", st:"todo", desc:"Control de calidad, postulación y medición.",
+    msgs: {
+      prisma:{ st:"todo", say:"Del 8 al 11 de diciembre reviso velocidad, accesibilidad y SEO en celulares reales. Nada sale con errores.", need:"La web en un entorno de prueba.", gives:"Informe de calidad y aprobación" },
+      trofeo:{ st:"todo", say:"Postulo a Awwwards el 15 de diciembre. El jurado premia un punto de vista propio y una ejecución impecable, no la cantidad de 3D. Meta realista: Site of the Day. El Site of the Year se pelea en 2027.", need:"Textos y capturas del caso.", gives:"Postulación a Awwwards" },
+      pulso:{ st:"todo", say:"Desde el día uno mido visitas, tiempo en la sala y contactos recibidos.", need:"Acceso a la analítica de Vercel.", gives:"Tablero de métricas" }
+    } },
+  { n:7, name:"Primer cliente", dates:"desde ene 2027", st:"todo", desc:"El mismo flujo, aplicado a un cliente.",
+    msgs: {
+      iman:{ st:"todo", say:"Con la web publicada, armo la propuesta base: las mismas 7 fases, adaptadas a cada cliente.", need:"La lista de clientes soñados.", gives:"Propuesta comercial base" },
+      ledger:{ st:"todo", say:"Vendemos por fases: naming, identidad, web y lanzamiento. El cliente puede entrar en cualquiera.", need:"Los números de la fase 1.", gives:"Paquetes y precios" },
+      atlas:{ st:"todo", say:"Cada cliente nuevo entra por la fase 1. Esta sala muestra su proyecto igual que muestra el nuestro.", need:"El primer cliente.", gives:"Proyecto del cliente en la sala" }
+    } }
+];
+
+const NAMES = [{"f": "Pareja y dos", "n": "Yanantin", "i": "Quechua", "s": "Dos opuestos que se completan", "d": "yanantin.studio", "o": "yanantinstudio.com · .co · .agency · .design", "p": 5, "r": ".com tomado"}, {"f": "Pareja y dos", "n": "Parea", "i": "Griego", "s": "El grupo cercano que comparte ideas", "d": "parea.studio", "o": "pareastudio.co", "p": 4, "r": ".com tomado"}, {"f": "Pareja y dos", "n": "Ishkay", "i": "Kichwa", "s": "Dos", "d": "ishkay.studio", "o": "ishkaystudio.com · .co · .agency", "p": 4, "r": "Hay que explicarlo"}, {"f": "Pareja y dos", "n": "Iskay", "i": "Quechua", "s": "Dos (variante peruana)", "d": "iskay.studio", "o": "iskaystudio.com · .co", "p": 3, "r": "Menos local que Ishkay"}, {"f": "Pareja y dos", "n": "Insieme", "i": "Italiano", "s": "Juntos", "d": "insieme.studio", "o": "insiemestudio.co · .agency", "p": 4, "r": ".com tomado"}, {"f": "Pareja y dos", "n": "Ambo", "i": "Latín / italiano", "s": "Los dos", "d": "ambo.studio", "o": "ambo.agency", "p": 3, "r": "Ambo es un pueblo de Perú"}, {"f": "Pareja y dos", "n": "Coppia", "i": "Italiano", "s": "Pareja", "d": "coppia.studio", "o": "", "p": 3, "r": "Suena a \"copia\" en español"}, {"f": "Pareja y dos", "n": "Gemelli", "i": "Italiano", "s": "Gemelos", "d": "gemelli.studio", "o": "gemelli.co", "p": 3, "r": "Ustedes no son gemelos"}, {"f": "Pareja y dos", "n": "Mitades", "i": "Español", "s": "Dos mitades de un todo", "d": "mitades.studio", "o": "mitad.co", "p": 3, "r": ""}, {"f": "Pareja y dos", "n": "Ambos", "i": "Español", "s": "Los dos", "d": "ambos.studio", "o": "", "p": 2, "r": "Palabra muy común"}, {"f": "Pareja y dos", "n": "Masintin", "i": "Quechua", "s": "Unión entre iguales", "d": "masintin.studio", "o": "masintin.co", "p": 2, "r": "Difícil de pronunciar"}, {"f": "Pareja y dos", "n": "Odd Couple", "i": "Inglés", "s": "La pareja dispareja", "d": "oddcouple.studio", "o": "", "p": 3, "r": "Título de una película y una serie"}, {"f": "Pareja y dos", "n": "Both Hands", "i": "Inglés", "s": "Con las dos manos", "d": "bothhands.studio", "o": "", "p": 3, "r": ""}, {"f": "Pareja y dos", "n": "Dualo", "i": "Inventado", "s": "Dual, en corto", "d": "dualo.studio", "o": "", "p": 2, "r": "Sin historia propia"}, {"f": "Pareja y dos", "n": "Duale", "i": "Italiano", "s": "Dual", "d": "duale.studio", "o": "", "p": 2, "r": ""}, {"f": "Pareja y dos", "n": "Dyo", "i": "Griego", "s": "Dos", "d": "dyo.studio", "o": "dyo.agency", "p": 2, "r": "Existe Dyo Studio en Sevilla"}, {"f": "Pareja y dos", "n": "Kaksi", "i": "Finlandés", "s": "Dos", "d": "kaksi.studio", "o": "", "p": 2, "r": "No conecta con la agencia"}, {"f": "Pareja y dos", "n": "Zwo", "i": "Alemán", "s": "Dos (coloquial)", "d": "zwo.studio", "o": "", "p": 2, "r": "No conecta con la agencia"}, {"f": "Pareja y dos", "n": "Dvoje", "i": "Croata", "s": "Los dos", "d": "dvoje.studio", "o": "", "p": 1, "r": "Difícil de leer"}, {"f": "Pareja y dos", "n": "Mbili", "i": "Suajili", "s": "Dos", "d": "mbili.studio", "o": "", "p": 1, "r": "Lejano"}, {"f": "Pareja y dos", "n": "Dua", "i": "Indonesio", "s": "Dos", "d": "dua.studio", "o": "", "p": 2, "r": "Se asocia a Dua Lipa"}, {"f": "Pareja y dos", "n": "Dos Dos", "i": "Español", "s": "Dos y dos", "d": "dosdos.studio", "o": "", "p": 2, "r": ""}, {"f": "Pareja y dos", "n": "Pares", "i": "Español", "s": "Pares", "d": "pares.studio", "o": "", "p": 2, "r": ""}, {"f": "Pareja y dos", "n": "Dobles", "i": "Español", "s": "Dobles", "d": "dobles.studio", "o": "", "p": 1, "r": ""}, {"f": "Equipo y banda", "n": "Jorga", "i": "Ecuador", "s": "Grupo de amigos (jerga ecuatoriana)", "d": "jorga.studio", "o": "jorga.co · jorgastudio.com · estudiojorga.com", "p": 4, "r": "Muy local fuera de Ecuador"}, {"f": "Equipo y banda", "n": "Pandilla", "i": "Español", "s": "Banda de amigos", "d": "pandilla.studio", "o": "pandilla.co · pandillastudio.com", "p": 3, "r": "Puede sonar a pandilla delictiva"}, {"f": "Equipo y banda", "n": "Tropa", "i": "Español", "s": "Grupo que avanza junto", "d": "tropa.studio", "o": "", "p": 3, "r": ""}, {"f": "Equipo y banda", "n": "Ayllu", "i": "Quechua", "s": "Comunidad, familia extendida", "d": "ayllu.studio", "o": "aylluestudio.com", "p": 3, "r": ""}, {"f": "Equipo y banda", "n": "Tertulia", "i": "Español", "s": "Reunión para conversar", "d": "tertulia.studio", "o": "", "p": 3, "r": ""}, {"f": "Equipo y banda", "n": "Querencia", "i": "Español", "s": "El lugar donde uno se siente fuerte", "d": "querencia.studio", "o": "", "p": 3, "r": ""}, {"f": "Equipo y banda", "n": "Cuates", "i": "México", "s": "Amigos", "d": "cuates.studio", "o": "", "p": 2, "r": "Muy mexicano"}, {"f": "Noche", "n": "Lucciola", "i": "Italiano", "s": "Luciérnaga: brilla de noche", "d": "lucciola.studio", "o": "", "p": 5, "r": "Pronunciación: lu-chó-la"}, {"f": "Noche", "n": "Nottambulo", "i": "Italiano", "s": "Noctámbulo", "d": "nottambulo.studio", "o": "nottambulostudio.com", "p": 5, "r": "Largo"}, {"f": "Noche", "n": "Mezzanotte", "i": "Italiano", "s": "Medianoche", "d": "mezzanotte.design", "o": "mezzanottestudio.com · .agency", "p": 4, "r": ".studio tomado"}, {"f": "Noche", "n": "Notte", "i": "Italiano", "s": "Noche", "d": "notte.studio", "o": "nottestudio.com", "p": 4, "r": ""}, {"f": "Noche", "n": "Civetta", "i": "Italiano", "s": "Lechucita", "d": "civetta.studio", "o": "civettastudio.com", "p": 4, "r": "En italiano también es \"coqueta\""}, {"f": "Noche", "n": "Gufo", "i": "Italiano", "s": "Búho", "d": "gufo.studio", "o": "", "p": 4, "r": "En Italia también es \"aguafiestas\""}, {"f": "Noche", "n": "Sveglia", "i": "Italiano", "s": "¡Despierta! / despertador", "d": "sveglia.studio", "o": "sveglia.co · .agency", "p": 4, "r": ""}, {"f": "Noche", "n": "Cometa", "i": "Italiano / español", "s": "Cometa", "d": "cometa.studio", "o": "", "p": 3, "r": "Muy usado"}, {"f": "Noche", "n": "Tramonto", "i": "Italiano", "s": "Atardecer", "d": "tramonto.studio", "o": "tramontostudio.com", "p": 3, "r": ""}, {"f": "Noche", "n": "Nebbia", "i": "Italiano", "s": "Niebla", "d": "nebbia.studio", "o": "", "p": 2, "r": ""}, {"f": "Noche", "n": "Turno Noche", "i": "Español", "s": "Trabajamos mientras duermes", "d": "turnonoche.studio", "o": "turnonochestudio.com · .co", "p": 4, "r": "No se entiende en inglés"}, {"f": "Noche", "n": "Desvelo", "i": "Español", "s": "Quedarse despierto creando", "d": "desvelostudio.com", "o": "desvelo.studio · .co", "p": 4, "r": ""}, {"f": "Noche", "n": "Moonshift", "i": "Inglés", "s": "Luna + turno + moonshot", "d": "moonshift.studio", "o": "moonshift.co", "p": 4, "r": ""}, {"f": "Noche", "n": "Medianoche", "i": "Español", "s": "Medianoche", "d": "medianoche.studio", "o": "", "p": 3, "r": ""}, {"f": "Noche", "n": "Insomnio", "i": "Español", "s": "Insomnio", "d": "insomnio.studio", "o": "", "p": 3, "r": "Connotación negativa"}, {"f": "Noche", "n": "Vigilia", "i": "Español", "s": "Estar despierto, alerta", "d": "vigilia.studio", "o": "", "p": 3, "r": "Tono religioso"}, {"f": "Noche", "n": "Night Office", "i": "Inglés", "s": "La oficina nocturna", "d": "nightoffice.studio", "o": "", "p": 2, "r": ""}, {"f": "Noche", "n": "Hecho de Noche", "i": "Español", "s": "Hecho de noche", "d": "hechodenoche.com", "o": "hechodenoche.studio", "p": 3, "r": "Largo para un logo"}, {"f": "Oficio creativo", "n": "Corsivo", "i": "Italiano", "s": "Cursiva, la letra en movimiento", "d": "corsivo.studio", "o": "corsivostudio.com · corsivo.co", "p": 5, "r": ""}, {"f": "Oficio creativo", "n": "Scintilla", "i": "Italiano", "s": "Chispa", "d": "scintilla.design", "o": "scintilla.agency", "p": 4, "r": ".studio tomado"}, {"f": "Oficio creativo", "n": "Capriccio", "i": "Italiano", "s": "Capricho, pieza libre", "d": "capriccio.studio", "o": "capriccio.design", "p": 4, "r": ""}, {"f": "Oficio creativo", "n": "Bottega", "i": "Italiano", "s": "El taller del Renacimiento", "d": "bottega.design", "o": "", "p": 4, "r": "Bottega Veneta"}, {"f": "Oficio creativo", "n": "Sprezzatura", "i": "Italiano", "s": "Hacer difícil lo que parece fácil", "d": "sprezzatura.agency", "o": "", "p": 4, "r": "Difícil de escribir"}, {"f": "Oficio creativo", "n": "Inchiostro", "i": "Italiano", "s": "Tinta", "d": "inchiostro.studio", "o": "inchiostrostudio.com", "p": 3, "r": "Difícil de escribir"}, {"f": "Oficio creativo", "n": "Maiuscolo", "i": "Italiano", "s": "Mayúscula", "d": "maiuscolo.studio", "o": "maiuscolostudio.com", "p": 3, "r": ""}, {"f": "Oficio creativo", "n": "Schizzo", "i": "Italiano", "s": "Boceto, salpicadura", "d": "schizzo.studio", "o": "", "p": 3, "r": "Suena a \"esquizo\""}, {"f": "Oficio creativo", "n": "Bozzetto", "i": "Italiano", "s": "Boceto", "d": "bozzetto.studio", "o": "", "p": 3, "r": ""}, {"f": "Oficio creativo", "n": "Fiammifero", "i": "Italiano", "s": "Fósforo", "d": "fiammifero.studio", "o": "fiammiferostudio.com", "p": 3, "r": "Largo"}, {"f": "Oficio creativo", "n": "Fucina", "i": "Italiano", "s": "Forja", "d": "fucina.design", "o": "", "p": 3, "r": ""}, {"f": "Oficio creativo", "n": "Cantiere", "i": "Italiano", "s": "Obra en construcción", "d": "cantiere.studio", "o": "", "p": 3, "r": ""}, {"f": "Oficio creativo", "n": "Pazzia", "i": "Italiano", "s": "Locura", "d": "pazzia.studio", "o": "pazziastudio.com", "p": 3, "r": ""}, {"f": "Oficio creativo", "n": "Tavolozza", "i": "Italiano", "s": "Paleta de colores", "d": "tavolozza.studio", "o": "", "p": 2, "r": "Difícil de escribir"}, {"f": "Oficio creativo", "n": "Pennello", "i": "Italiano", "s": "Pincel", "d": "pennello.studio", "o": "", "p": 2, "r": ""}, {"f": "Oficio creativo", "n": "Abbozzo", "i": "Italiano", "s": "Esbozo", "d": "abbozzo.studio", "o": "", "p": 2, "r": ""}, {"f": "Oficio creativo", "n": "Grassetto", "i": "Italiano", "s": "Negrita", "d": "grassetto.studio", "o": "grassettostudio.com", "p": 2, "r": "Contradice tu estilo sin negritas"}, {"f": "Oficio creativo", "n": "Tinta", "i": "Español", "s": "Tinta", "d": "tinta.studio", "o": "", "p": 3, "r": "Muy común"}, {"f": "Oficio creativo", "n": "Máquina Simple", "i": "Español", "s": "\"Simple\" + las máquinas", "d": "maquinasimple.studio", "o": "", "p": 3, "r": ".com tomado"}, {"f": "Vida italiana", "n": "Insomma", "i": "Italiano", "s": "\"En fin\", la muletilla", "d": "insomma.studio", "o": "insommastudio.com", "p": 4, "r": ""}, {"f": "Vida italiana", "n": "Boh", "i": "Italiano", "s": "\"Ni idea\", con los hombros", "d": "boh.studio", "o": "", "p": 3, "r": "Muy corto para buscar"}, {"f": "Vida italiana", "n": "Fiato", "i": "Italiano", "s": "Aliento", "d": "fiato.studio", "o": "", "p": 3, "r": ""}, {"f": "Vida italiana", "n": "Terrazza", "i": "Italiano", "s": "Terraza", "d": "terrazza.studio", "o": "", "p": 3, "r": ""}, {"f": "Vida italiana", "n": "Cortile", "i": "Italiano", "s": "Patio interior", "d": "cortile.studio", "o": "", "p": 3, "r": ""}, {"f": "Vida italiana", "n": "Finestra", "i": "Italiano", "s": "Ventana", "d": "finestra.studio", "o": "", "p": 3, "r": ""}, {"f": "Vida italiana", "n": "Farniente", "i": "Italiano", "s": "El dulce no hacer nada", "d": "farniente.studio", "o": "farnientestudio.com", "p": 2, "r": "Bodega Far Niente en California"}, {"f": "Vida italiana", "n": "Cornetto", "i": "Italiano", "s": "Croissant italiano", "d": "cornetto.studio", "o": "", "p": 1, "r": "Marca de helado de Unilever"}, {"f": "Milán", "n": "Navigli", "i": "Italiano", "s": "Los canales de Milán", "d": "navigli.studio", "o": "navigli.co · navigli.design", "p": 4, "r": ""}, {"f": "Milán", "n": "Tortona", "i": "Italiano", "s": "El barrio del diseño en Milán", "d": "tortona.studio", "o": "tortonastudio.com", "p": 4, "r": ""}, {"f": "Milán", "n": "Lambrate", "i": "Italiano", "s": "Barrio creativo de Milán", "d": "lambrate.studio", "o": "", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "Pilas", "i": "Ecuador", "s": "\"¡Atento!\", despierto", "d": "pilas.studio", "o": "pilasstudio.com", "p": 4, "r": ""}, {"f": "Ecuador y Andes", "n": "Babaco", "i": "Ecuador", "s": "Fruta ecuatoriana", "d": "babaco.studio", "o": "babaco.co", "p": 4, "r": ""}, {"f": "Ecuador y Andes", "n": "Chévere", "i": "Ecuador", "s": "Bacán, buenísimo", "d": "chevere.studio", "o": "chevere.agency", "p": 3, "r": "Lleva tilde"}, {"f": "Ecuador y Andes", "n": "Naranjilla", "i": "Ecuador", "s": "Fruta ecuatoriana", "d": "naranjilla.studio", "o": "", "p": 3, "r": "Largo"}, {"f": "Ecuador y Andes", "n": "Guayaba", "i": "Español", "s": "Fruta tropical", "d": "guayaba.studio", "o": "", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "Achachay", "i": "Ecuador", "s": "\"¡Qué frío!\" en cuencano", "d": "achachay.studio", "o": "", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "Mashi", "i": "Kichwa", "s": "Compañero", "d": "mashi.studio", "o": "", "p": 1, "r": "Asociado a Rafael Correa"}, {"f": "Ecuador y Andes", "n": "Guagua", "i": "Ecuador", "s": "Niño pequeño", "d": "guagua.studio", "o": "", "p": 2, "r": "En el Caribe es \"bus\""}, {"f": "Ecuador y Andes", "n": "Cuatro Ríos", "i": "Español", "s": "Los cuatro ríos de Cuenca", "d": "cuatrorios.studio", "o": "cuatroriosstudio.com · .co", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "Tomebamba", "i": "Español", "s": "Nombre antiguo de Cuenca", "d": "tomebamba.studio", "o": "", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "2560", "i": "Número", "s": "Altura de Cuenca en metros", "d": "2560.studio", "o": "estudio2560.com · 2560.co", "p": 3, "r": "Hay que explicarlo"}, {"f": "Ecuador y Andes", "n": "Cero Grados", "i": "Español", "s": "Latitud cero, la mitad del mundo", "d": "cerogrados.studio", "o": "cerogradosstudio.com", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "Zero Degrees", "i": "Inglés", "s": "Latitud cero", "d": "zerodegrees.studio", "o": "latitudezero.studio", "p": 3, "r": ""}, {"f": "Ecuador y Andes", "n": "Tinku", "i": "Quechua", "s": "Encuentro de dos fuerzas", "d": "tinku.design", "o": "", "p": 2, "r": ".studio tomado"}, {"f": "Luna y crecimiento", "n": "Creciente", "i": "Español", "s": "Luna creciente y crecimiento", "d": "creciente.studio", "o": "crecientestudio.com · creciente.io", "p": 3, "r": ""}, {"f": "Luna y crecimiento", "n": "Modo Lunar", "i": "Español", "s": "Luna + modo", "d": "modolunar.com", "o": "modolunar.co · .io · .studio", "p": 3, "r": "Ya existen Lunar (Perú) y MODO (Uruguay)"}, {"f": "Luna y crecimiento", "n": "Luna Nueva", "i": "Español", "s": "Un comienzo", "d": "lunanueva.studio", "o": "", "p": 2, "r": "Usa el nombre de Luna"}, {"f": "Luna y crecimiento", "n": "Jalu", "i": "Inventado", "s": "Jay + Luna", "d": "jalu.studio", "o": "", "p": 2, "r": "Usa sus nombres"}, {"f": "Luna y crecimiento", "n": "Jota Luna", "i": "Español", "s": "Los dos fundadores", "d": "jotaluna.com", "o": "jotaluna.studio", "p": 2, "r": "Usa sus nombres"}, {"f": "Luna y crecimiento", "n": "Lunática", "i": "Español", "s": "Descarada y memorable", "d": "lunatica.studio", "o": "", "p": 2, "r": "Puede no gustar a clientes corporativos"}, {"f": "Directo", "n": "Sin Humo", "i": "Español", "s": "Cero relleno", "d": "sinhumo.studio", "o": "", "p": 3, "r": ""}, {"f": "Directo", "n": "Al Grano", "i": "Español", "s": "Directo al punto", "d": "algrano.studio", "o": "", "p": 3, "r": ""}, {"f": "Directo", "n": "Simplo", "i": "Inventado", "s": "\"Simple\" como marca", "d": "simplo.studio", "o": "", "p": 3, "r": ""}, {"f": "Directo", "n": "Rareza", "i": "Español", "s": "Lo raro como virtud", "d": "rareza.studio", "o": "", "p": 3, "r": ""}, {"f": "Directo", "n": "Descarado", "i": "Español", "s": "Sin vergüenza de crear", "d": "descarado.studio", "o": "", "p": 2, "r": ""}, {"f": "Directo", "n": "Bacán", "i": "Español", "s": "Buenísimo", "d": "bacan.studio", "o": "", "p": 2, "r": "Lleva tilde"}, {"f": "Señal y sonido", "n": "Señal y Ruido", "i": "Español", "s": "Telecom + música", "d": "senalyruido.com", "o": "senalyruido.co · .studio", "p": 3, "r": "Título de un libro de Nate Silver"}, {"f": "Señal y sonido", "n": "Ruido Blanco", "i": "Español", "s": "Natural Noise + noche", "d": "ruidoblanco.studio", "o": "", "p": 2, "r": ""}, {"f": "Señal y sonido", "n": "Kilohertz", "i": "Inglés", "s": "Tu lado telecom", "d": "kilohertz.studio", "o": "", "p": 2, "r": ""}];
+const FINALS = [
+  { n:"Corsivo", why:"Cursiva en italiano: la letra en movimiento. Tipografía, Milán y elegancia.", dom:"corsivo.studio · corsivostudio.com · corsivo.co", line:"Diseño con inclinación.", pick:true },
+  { n:"Lucciola", why:"Luciérnaga: brilla de noche, como los agentes.", dom:"lucciola.studio", line:"Brillamos de noche." },
+  { n:"Nottambulo", why:"Noctámbulo: la agencia que no duerme.", dom:"nottambulo.studio · nottambulostudio.com", line:"Trabajamos mientras duermes." },
+  { n:"Yanantin", why:"Quechua: dos opuestos que se completan. Jay y Luna.", dom:"yanantin.studio · yanantinstudio.com · .co", line:"Dos mitades, una obra." }
+];
+
+/* ---------- blob drawing ---------- */
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let UID = 0;
+const INK = "#16161c";
+function seeded(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; }; }
+function shape(seed, t) {
+  const rnd = seeded(seed), n = 6, p = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rnd() * .22, ph = rnd() * 6.283, w = .55 + rnd() * .55;
+    const rr = 33 * (.94 + rnd() * .09 + .045 * Math.sin(t * w + ph));
+    p.push([50 + Math.cos(a) * rr, 56 + Math.sin(a) * rr * .95]);
+  }
+  let d = "";
+  for (let i = 0; i < n; i++) {
+    const p0 = p[(i - 1 + n) % n], p1 = p[i], p2 = p[(i + 1) % n], p3 = p[(i + 2) % n];
+    if (!i) d += `M${p1[0].toFixed(2)} ${p1[1].toFixed(2)}`;
+    d += `C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(2)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(2)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(2)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(2)} ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+  }
+  return d + "Z";
+}
+function globalDefs() {
+  const g = Object.entries(AREAS).map(([k, A]) => `
+    <radialGradient id="body-${k}" cx="34%" cy="28%" r="82%">
+      <stop offset="0" stop-color="${A.c1}"/><stop offset=".42" stop-color="${A.c2}"/><stop offset="1" stop-color="${A.c4}"/>
+    </radialGradient>`).join("");
+  return `<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>${g}
+    <filter id="fx-soft" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="fx-halo" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="fx-spec" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="1.8"/></filter>
+    <filter id="fx-grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </defs></svg>`;
+}
+function eye(x, y, k, side) {
+  if (k === "sleepy") return `<g><ellipse cx="${x}" cy="${y}" rx="6.5" ry="6.5" fill="#fff"/><circle class="pp" cx="${x}" cy="${y + 1.5}" r="3.3" fill="${INK}"/><path d="M${x - 7.5} ${y - .5}Q${x} ${y - 4.5} ${x + 7.5} ${y - .5}" stroke="${INK}" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>`;
+  if (k === "wink" && side === "r") return `<path d="M${x - 6} ${y}Q${x} ${y + 5} ${x + 6} ${y}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  if (k === "focus") return `<g><ellipse cx="${x}" cy="${y}" rx="6.2" ry="7" fill="#fff"/><circle class="pp" cx="${x}" cy="${y}" r="3.5" fill="${INK}"/><path d="M${x - 7} ${y - 10}L${x + 7} ${y - (side === "l" ? 8 : 12)}" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/></g>`;
+  const rx = k === "wide" ? 8 : 6.8, ry = k === "wide" ? 9 : 7.4;
+  return `<g><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#fff"/><circle class="pp" cx="${x}" cy="${y}" r="${k === "wide" ? 4 : 3.5}" fill="${INK}"/><circle class="pp" cx="${x + 1.5}" cy="${y - 1.7}" r="1.1" fill="#fff"/></g>`;
+}
+function mouth(k, x, y) {
+  switch (k) {
+    case "grin": return `<path d="M${x - 10} ${y - 2}Q${x} ${y + 12} ${x + 10} ${y - 2}Z" fill="${INK}"/><path d="M${x - 4.5} ${y + 4.5}Q${x} ${y + 8} ${x + 4.5} ${y + 4.5}" fill="#ff6b86"/>`;
+    case "o": return `<ellipse cx="${x}" cy="${y + 2}" rx="4.2" ry="5.2" fill="${INK}"/>`;
+    case "flat": return `<path d="M${x - 7} ${y + 1}L${x + 7} ${y + 1}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`;
+    case "smirk": return `<path d="M${x - 8} ${y + 2}Q${x + 2} ${y + 6} ${x + 9} ${y - 3}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+    case "tongue": return `<path d="M${x - 9} ${y - 1}Q${x} ${y + 10} ${x + 9} ${y - 1}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M${x - 1} ${y + 4}q4 0 4 6q-2 3 -4 0z" fill="#ff6b86"/>`;
+    default: return `<path d="M${x - 8.5} ${y}Q${x} ${y + 8.5} ${x + 8.5} ${y}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  }
+}
+// Accessories: one physical marker per role. Coordinates in a 100x100 box, body centred near (50,56).
+function acc(k, A) {
+  const S = `stroke="${INK}" stroke-linecap="round" stroke-linejoin="round"`;
+  switch (k) {
+    case "headset": return `<path d="M20 50 Q20 18 50 18 Q80 18 80 50" fill="none" stroke-width="3.5" ${S}/><rect x="13" y="44" width="10" height="16" rx="4" fill="${INK}"/><rect x="77" y="44" width="10" height="16" rx="4" fill="${INK}"/><path d="M18 60 Q22 74 38 72" fill="none" stroke-width="2.5" ${S}/><circle cx="39" cy="72" r="3" fill="${INK}"/>`;
+    case "visor": return `<path d="M24 36 Q50 22 76 36 L80 40 Q50 32 20 40Z" fill="#3fbf8a" stroke="${INK}" stroke-width="1.6"/><path d="M20 40 Q50 32 80 40 Q50 48 20 40Z" fill="#3fbf8a" fill-opacity=".55" stroke="${INK}" stroke-width="1.6"/>`;
+    case "star": return `<path d="M50 23 L50 10" stroke-width="2.4" ${S}/><path d="M50 0 L52.6 6.4 L59 9 L52.6 11.6 L50 18 L47.4 11.6 L41 9 L47.4 6.4Z" fill="#fff7b0" stroke="${INK}" stroke-width="1.6"/>`;
+    case "lupa": return `<path d="M89 82 L97 92" stroke-width="5" ${S}/><circle cx="83" cy="74" r="10" fill="#ffffff" fill-opacity=".45" stroke="${INK}" stroke-width="3"/><path d="M78 70 Q80 67 84 67" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    case "bubble": return `<rect x="62" y="2" width="34" height="20" rx="8" fill="#fff" stroke="${INK}" stroke-width="1.8"/><path d="M68 21 L64 28 L74 21" fill="#fff" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/><text x="79" y="16.5" text-anchor="middle" font-family="Georgia, serif" font-size="11" font-style="italic" fill="${INK}">Aa</text>`;
+    case "beret": return `<path d="M26 30 Q34 14 56 15 Q74 16 76 26 Q60 34 26 30Z" fill="#20202a" stroke="${INK}" stroke-width="1.2"/><path d="M55 15 L58 9" stroke-width="2.4" ${S}/>`;
+    case "pencil": return `<g transform="rotate(-38 82 34)"><rect x="66" y="30" width="30" height="7" rx="1.5" fill="#ffd34d" stroke="${INK}" stroke-width="1.5"/><rect x="92" y="30" width="5" height="7" fill="#ff8fa8" stroke="${INK}" stroke-width="1.5"/><path d="M66 30 L59 33.5 L66 37Z" fill="#f2d4a7" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/><path d="M59 33.5 L61.5 32.3 L61.5 34.7Z" fill="${INK}"/></g>`;
+    case "square": return `<path d="M8 10 L8 40 L38 40Z" fill="#ffffff" fill-opacity=".6" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><path d="M14 22 L14 34 L26 34Z" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 16 h4 M8 22 h3 M8 28 h4 M8 34 h3" stroke="${INK}" stroke-width="1.2"/>`;
+    case "glasses3d": return `<rect x="27" y="40" width="20" height="16" rx="3" fill="#ff3b3b" fill-opacity=".55" stroke="${INK}" stroke-width="2.2"/><rect x="53" y="40" width="20" height="16" rx="3" fill="#22d3ee" fill-opacity=".55" stroke="${INK}" stroke-width="2.2"/><path d="M47 46 Q50 43 53 46" fill="none" stroke-width="2.2" ${S}/><path d="M27 45 L18 42 M73 45 L82 42" stroke-width="2.2" ${S}/>`;
+    case "code": return `<path d="M20 34 Q50 24 80 34 L80 41 Q50 31 20 41Z" fill="#16161c"/><text x="50" y="38.5" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="7.5" font-weight="700" fill="#7cffd6">&lt;/&gt;</text>`;
+    case "speed": return `<path d="M2 46 H14 M0 56 H12 M4 66 H15" stroke-width="3" ${S}/><path d="M86 84 q6 -2 10 2 q-2 5 -10 4 z" fill="#fff" stroke="${INK}" stroke-width="1.6"/><path d="M14 84 q-6 -2 -10 2 q2 5 10 4 z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>`;
+    case "phones": return `<path d="M18 52 Q18 14 50 14 Q82 14 82 52" fill="none" stroke-width="5" stroke="#ff8fc7" stroke-linecap="round"/><path d="M18 52 Q18 14 50 14 Q82 14 82 52" fill="none" stroke-width="1.6" ${S}/><ellipse cx="16" cy="56" rx="8" ry="11" fill="#ff8fc7" stroke="${INK}" stroke-width="2"/><ellipse cx="84" cy="56" rx="8" ry="11" fill="#ff8fc7" stroke="${INK}" stroke-width="2"/>`;
+    case "clipboard": return `<g transform="rotate(10 82 76)"><rect x="70" y="62" width="24" height="30" rx="3" fill="#f6e7c8" stroke="${INK}" stroke-width="2"/><rect x="77" y="59" width="10" height="6" rx="2" fill="${INK}"/><path d="M75 76 L80 81 L89 70" fill="none" stroke="#1f9d63" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M75 87 H89" stroke="${INK}" stroke-width="1.4"/></g>`;
+    case "watch": return `<rect x="46" y="8" width="8" height="5" rx="1.5" fill="${INK}"/><circle cx="50" cy="22" r="10" fill="#fff" stroke="${INK}" stroke-width="2.4"/><path d="M50 22 L50 15.5 M50 22 L55 24" stroke-width="2" ${S}/><path d="M58 13 l3 -3" stroke-width="2.4" ${S}/>`;
+    case "lamp": return `<path d="M50 20 L22 2 L30 0Z M50 20 L78 2 L70 0Z" fill="#fff3a6" fill-opacity=".85"/><rect x="42" y="10" width="16" height="16" rx="2" fill="#fff" stroke="${INK}" stroke-width="2"/><path d="M42 16 H58 M42 21 H58" stroke="#ff4d6d" stroke-width="2.6"/><path d="M40 10 H60 L56 5 H44Z" fill="${INK}"/>`;
+    case "phone": return `<g transform="rotate(-14 16 76)"><rect x="6" y="62" width="18" height="30" rx="4" fill="#20202a" stroke="${INK}" stroke-width="1.6"/><rect x="8.5" y="66" width="13" height="21" rx="2" fill="#ffd6ea"/></g><path d="M18 52 c-3 -5 -10 -1 -6 4 l6 5 l6 -5 c4 -5 -3 -9 -6 -4z" fill="#ff3d7f" stroke="${INK}" stroke-width="1.2"/>`;
+    case "camera": return `<path d="M24 66 L42 82 M76 66 L58 82" stroke-width="2" ${S}/><rect x="36" y="76" width="28" height="18" rx="4" fill="#20202a" stroke="${INK}" stroke-width="1.6"/><circle cx="50" cy="85" r="6" fill="#4a4a58" stroke="#fff" stroke-width="1.6"/><circle cx="50" cy="85" r="2.4" fill="#9fd3ff"/><rect x="40" y="73" width="7" height="4" rx="1" fill="#20202a"/>`;
+    case "clap": return `<g transform="rotate(14 80 22)"><rect x="64" y="16" width="32" height="20" rx="2" fill="#20202a" stroke="${INK}" stroke-width="1.6"/><path d="M64 10 L96 10 L96 16 L64 16Z" fill="#fff" stroke="${INK}" stroke-width="1.6"/><path d="M70 10 L74 16 M78 10 L82 16 M86 10 L90 16" stroke="${INK}" stroke-width="2.4"/><path d="M68 24 H86 M68 29 H80" stroke="#fff" stroke-width="1.6"/></g>`;
+    case "party": return `<path d="M38 24 L50 -2 L62 24 Q50 28 38 24Z" fill="#ffd34d" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/><path d="M42 16 L58 16 M45 9 L55 9" stroke="#e8368f" stroke-width="2.4"/><circle cx="50" cy="-3" r="3.5" fill="#e8368f" stroke="${INK}" stroke-width="1.2"/><circle cx="18" cy="16" r="2.2" fill="#2f6bff"/><circle cx="84" cy="12" r="2.2" fill="#3fbf8a"/><rect x="80" y="26" width="4" height="4" fill="#ff9a1f" transform="rotate(30 82 28)"/><rect x="14" y="30" width="4" height="4" fill="#e8368f" transform="rotate(20 16 32)"/>`;
+    case "magnet": return `<g transform="rotate(-20 84 72)"><path d="M74 60 V76 A10 10 0 0 0 94 76 V60" fill="none" stroke="#e8364a" stroke-width="7"/><path d="M74 60 V76 A10 10 0 0 0 94 76 V60" fill="none" stroke="${INK}" stroke-width="1.4"/><rect x="70.5" y="56" width="7" height="6" fill="#d9dbe3" stroke="${INK}" stroke-width="1.2"/><rect x="90.5" y="56" width="7" height="6" fill="#d9dbe3" stroke="${INK}" stroke-width="1.2"/></g><path d="M98 52 l2 -4 M100 60 l4 -1" stroke-width="1.6" ${S}/>`;
+    case "laurel": {
+      let s = "";
+      for (let i = 0; i < 5; i++) { const t = .55 + i * .14; const xl = 50 - Math.sin(t) * 32, yl = 46 - Math.cos(t) * 30, xr = 50 + Math.sin(t) * 32; s += `<ellipse cx="${xl.toFixed(1)}" cy="${yl.toFixed(1)}" rx="5.5" ry="2.6" fill="#7cc46a" stroke="${INK}" stroke-width="1" transform="rotate(${(-60 + i * 14).toFixed(0)} ${xl.toFixed(1)} ${yl.toFixed(1)})"/><ellipse cx="${xr.toFixed(1)}" cy="${yl.toFixed(1)}" rx="5.5" ry="2.6" fill="#7cc46a" stroke="${INK}" stroke-width="1" transform="rotate(${(60 - i * 14).toFixed(0)} ${xr.toFixed(1)} ${yl.toFixed(1)})"/>`; }
+      return s + `<circle cx="50" cy="14" r="3.2" fill="#ffd34d" stroke="${INK}" stroke-width="1.2"/>`;
+    }
+    case "pulse": return `<rect x="34" y="76" width="32" height="14" rx="4" fill="#16161c"/><path d="M37 83 H44 L47 78 L51 88 L54 81 L56 83 H63" fill="none" stroke="#7cffd6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  return "";
+}
+function blob(a, size, bodyless) {
+  const A = AREAS[a.area], u = "b" + (++UID), rnd = seeded(a.id + "m");
+  const dur = (a.fast ? 3.2 : 5.5) + rnd() * 2.5, del = -rnd() * 6, blink = 4 + rnd() * 4;
+  const d = shape(a.id, 0), mx = 28 + rnd() * 44, my = 36 + rnd() * 26;
+  const body = bodyless ? "" : `
+      <ellipse cx="50" cy="97" rx="25" ry="4" fill="${A.c4}" opacity=".22" filter="url(#fx-halo)"/>
+      <path class="sh halo" d="${d}" fill="${A.c2}" filter="url(#fx-halo)" transform="translate(0 3)"/>
+      <clipPath id="${u}c"><path class="sh" d="${d}"/></clipPath>
+      <path class="sh" d="${d}" fill="url(#body-${a.area})"/>
+      <g clip-path="url(#${u}c)">
+        <circle cx="${mx.toFixed(0)}" cy="${(my + 20).toFixed(0)}" r="24" fill="${A.c3}" opacity=".85" filter="url(#fx-soft)"/>
+        <circle cx="${(100 - mx).toFixed(0)}" cy="30" r="17" fill="${A.c1}" opacity=".9" filter="url(#fx-soft)"/>
+        <ellipse cx="50" cy="94" rx="36" ry="15" fill="${A.c4}" opacity=".6" filter="url(#fx-soft)"/>
+        <rect x="-6" y="-8" width="112" height="112" filter="url(#fx-grain)" opacity=".16" style="mix-blend-mode:overlay"/>
+      </g>
+      <ellipse cx="36" cy="34" rx="9" ry="5" fill="#fff" opacity=".8" filter="url(#fx-spec)" transform="rotate(-28 36 34)"/>`;
+  return `<svg class="blob${bodyless ? " bodyless" : ""}" data-seed="${a.id}" viewBox="-6 -8 112 112" width="${size}" height="${size}" style="--dur:${dur.toFixed(1)}s;--del:${del.toFixed(1)}s;--blink:${blink.toFixed(1)}s" role="img" aria-label="${a.name}, ${a.role}">
+    <g class="bd">${body}
+      <ellipse cx="33" cy="66" rx="6" ry="3.4" fill="#ff5d86" opacity=".28" filter="url(#fx-spec)"/>
+      <ellipse cx="67" cy="66" rx="6" ry="3.4" fill="#ff5d86" opacity=".28" filter="url(#fx-spec)"/>
+      <g class="eyes">${eye(40, 51, a.eyes, "l")}${eye(60, 51, a.eyes, "r")}</g>
+      ${mouth(a.mouth, 50, 65)}
+      ${acc(a.acc, A)}
+    </g>
+  </svg>`;
+}
+
+/* ---------- WebGL hero blob for the agent who is talking ---------- */
+const NOISE = `vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){const vec2 C=vec2(1.0/6.0,1.0/3.0);const vec4 D=vec4(0.0,0.5,1.0,2.0);vec3 i=floor(v+dot(v,C.yyy));vec3 x0=v-i+dot(i,C.xxx);vec3 g=step(x0.yzx,x0.xyz);vec3 l=1.0-g;vec3 i1=min(g.xyz,l.zxy);vec3 i2=max(g.xyz,l.zxy);vec3 x1=x0-i1+C.xxx;vec3 x2=x0-i2+C.yyy;vec3 x3=x0-D.yyy;i=mod289(i);vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));float n_=0.142857142857;vec3 ns=n_*D.wyz-D.xzx;vec4 j=p-49.0*floor(p*ns.z*ns.z);vec4 x_=floor(j*ns.z);vec4 y_=floor(j-7.0*x_);vec4 x=x_*ns.x+ns.yyyy;vec4 y=y_*ns.x+ns.yyyy;vec4 h=1.0-abs(x)-abs(y);vec4 b0=vec4(x.xy,y.xy);vec4 b1=vec4(x.zw,y.zw);vec4 s0=floor(b0)*2.0+1.0;vec4 s1=floor(b1)*2.0+1.0;vec4 sh=-step(h,vec4(0.0));vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=vec3(a1.zw,h.w);vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);m=m*m;return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));}`;
+const GL = (() => {
+  if (!window.THREE) return null;
+  try {
+    const canvas = document.createElement("canvas");
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, premultipliedAlpha: false });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    const scene = new THREE.Scene();
+    // orthographic frame matched to the SVG viewBox (-6 -8 112 112), sphere = body circle at (50,56) r 33
+    const cam = new THREE.OrthographicCamera(-56 / 33, 56 / 33, 64 / 33, -48 / 33, .1, 10);
+    cam.position.z = 5;
+    const col = h => new THREE.Color(h);
+    const uni = { uTime: { value: 0 }, c1: { value: col("#fff") }, c2: { value: col("#fff") }, c3: { value: col("#fff") }, c4: { value: col("#fff") } };
+    const mat = new THREE.ShaderMaterial({
+      uniforms: uni,
+      vertexShader: NOISE + `uniform float uTime;varying vec3 vN;varying vec3 vP;varying float vNz;
+        void main(){float n=snoise(normal*1.05+vec3(uTime*.2,uTime*.15,-uTime*.1));vNz=n;vec3 p=position+normal*n*.045;vN=normalize(normalMatrix*normal);vP=p;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}`,
+      fragmentShader: NOISE + `uniform float uTime;uniform vec3 c1;uniform vec3 c2;uniform vec3 c3;uniform vec3 c4;varying vec3 vN;varying vec3 vP;varying float vNz;
+        void main(){vec3 n=normalize(vN);vec3 L=normalize(vec3(-.55,.7,.65));float d=dot(n,L)*.5+.5;
+          vec3 c=mix(c4,c2,smoothstep(.12,.68,d));c=mix(c,c1,smoothstep(.72,1.0,d));
+          float flow=snoise(vP*1.3+vec3(0.0,uTime*.15,uTime*.1));float band=smoothstep(-.25,.55,flow+vP.x*.5-vP.y*.35);
+          c=mix(c,c3,band*.5);
+          float fres=pow(1.0-max(n.z,0.0),2.2);c=mix(c,c1,fres*.35);
+          float spec=pow(max(dot(n,normalize(L+vec3(0.,0.,1.))),0.0),36.0);c+=spec*.5;
+          gl_FragColor=vec4(c,1.0);}`
+    });
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 96), mat);
+    scene.add(mesh);
+    const host = document.createElement("div");
+    host.className = "b3";
+    host.appendChild(canvas);
+    let raf = 0, t0 = performance.now();
+    const loop = now => { uni.uTime.value = (now - t0) / 1000; mesh.rotation.y = Math.sin(uni.uTime.value * .3) * .25; renderer.render(scene, cam); raf = requestAnimationFrame(loop); };
+    return {
+      host,
+      set(a, size) {
+        const A = AREAS[a.area];
+        uni.c1.value.set(A.c1); uni.c2.value.set(A.c2); uni.c3.value.set(A.c3); uni.c4.value.set(A.c4);
+        renderer.setSize(size, size);
+        host.style.width = host.style.height = size + "px";
+        host.style.setProperty("--glow", A.c2);
+        [...host.querySelectorAll("svg")].forEach(n => n.remove());
+        host.insertAdjacentHTML("beforeend", blob(a, size, true));
+        if (reduceMotion) { uni.uTime.value = 1.7; renderer.render(scene, cam); }
+        else if (!raf) raf = requestAnimationFrame(loop);
+      }
+    };
+  } catch (e) { return null; }
+})();
+
+/* ---------- state ---------- */
+const byId = Object.fromEntries(AGENTS.map(a => [a.id, a]));
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;" }[c]));
+let phase = 2, sel = "verba";
+try { const v = localStorage.getItem("mm-phase"); const p = Number(v); if (v !== null && v !== "" && p >= 0 && p <= 7) phase = p; } catch (_) {}
+const reduce = reduceMotion;
+document.body.insertAdjacentHTML("afterbegin", globalDefs());
+
+/* phases bar */
+function renderPhases() {
+  const all = `<button class="ph" data-ph="0" aria-pressed="${phase === 0}"><span class="label">Todo el equipo</span><b>22 agentes</b><span class="st todo">Ver a todos</span></button>`;
+  $("#phases").innerHTML = all + PHASES.map(p => `
+    <button class="ph" data-ph="${p.n}" aria-pressed="${phase === p.n}">
+      <span class="label">Fase ${p.n} · ${p.dates}</span>
+      <b>${p.name}</b>
+      <span class="st ${ST[p.st][0]}"><span class="dot"></span>${ST[p.st][1]}</span>
+    </button>`).join("");
+}
+
+/* stage with FLIP reorder */
+const stage = $("#stage");
+stage.innerHTML = AGENTS.map(a => `
+  <button class="agent" data-id="${a.id}" aria-label="${a.name}, ${a.role}">
+    <span class="blobwrap">${blob(a, 92)}</span>
+    <span class="nm">${a.name}</span><span class="rl">${a.role}</span>
+  </button>`).join("");
+$("#legend").innerHTML = Object.values(AREAS).map(A => `<span><i style="background:linear-gradient(135deg, ${A.c1}, ${A.c2})"></i>${A.name}</span>`).join("");
+
+function activeIds() { if (!phase) return AGENTS.map(a => a.id); return Object.keys(PHASES[phase - 1].msgs); }
+function layout() {
+  const act = activeIds();
+  const nodes = [...stage.children];
+  const first = new Map(nodes.map(n => [n, n.getBoundingClientRect()]));
+  const order = phase ? [...act, ...AGENTS.map(a => a.id).filter(id => !act.includes(id))] : AGENTS.map(a => a.id);
+  nodes.forEach(n => {
+    const id = n.dataset.id, on = act.includes(id);
+    n.style.order = order.indexOf(id);
+    n.classList.toggle("on", !!phase && on);
+    n.classList.toggle("off", !!phase && !on);
+    n.classList.toggle("sel", id === sel);
+    n.setAttribute("aria-pressed", id === sel);
+  });
+  const areas = [...new Set(act.map(id => byId[id].area))];
+  const pick = i => AREAS[areas[i % areas.length]];
+  stage.style.setProperty("--g1", pick(0).c2); stage.style.setProperty("--g2", pick(1).c3); stage.style.setProperty("--g3", pick(2).c1);
+  if (reduce) return;
+  nodes.forEach(n => {
+    const a = first.get(n), b = n.getBoundingClientRect();
+    const dx = a.left - b.left, dy = a.top - b.top;
+    if (!dx && !dy) return;
+    n.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" });
+  });
+}
+
+/* talk panel */
+function renderTalk() {
+  const a = byId[sel], A = AREAS[a.area];
+  const P = phase ? PHASES[phase - 1] : null;
+  const m = P && P.msgs[a.id];
+  const others = PHASES.filter(p => p.msgs[a.id]).map(p => `Fase ${p.n} · ${p.name}`).join(" · ");
+  const list = phase ? activeIds() : AGENTS.map(x => x.id);
+  const i = list.indexOf(a.id);
+  const prev = byId[list[(i - 1 + list.length) % list.length]], next = byId[list[(i + 1) % list.length]];
+  let body;
+  if (m) {
+    body = `
+      <div class="bubble">${esc(m.say)}</div>
+      <dl>
+        <dt>Estado</dt><dd><span class="st ${ST[m.st][0]}"><span class="dot"></span>${ST[m.st][1]}</span></dd>
+        <dt>Entrega</dt><dd>${esc(m.gives)}${m.link ? ` · <a href="${m.link}">ver</a>` : ""}</dd>
+        <dt>Necesita</dt><dd>${esc(m.need)}</dd>
+      </dl>`;
+  } else if (phase) {
+    body = `<div class="bubble">En esta fase no tengo trabajo. Me toca en: ${others || "ninguna fase del proyecto"}.</div>`;
+  } else {
+    body = `<div class="bubble">Trabajo en: ${others || "ninguna fase todavía"}. Elige una fase arriba para ver lo que tengo que decir ahí.</div>`;
+  }
+  $("#talk").innerHTML = `
+    <div class="talk-head"><span class="b3slot"></span><div><span class="label">${A.name} · ${esc(a.role)}</span><h3 style="margin-top:6px">${a.name}</h3></div></div>
+    ${body}
+    <details ${m ? "" : "open"}>
+      <summary>Quién es ${a.name}</summary>
+      <dl>
+        <dt>Carácter</dt><dd>${esc(a.char)}</dd>
+        <dt>Su ADN</dt><dd>${esc(a.mix)}</dd>
+        <dt>Superpoder</dt><dd>${esc(a.power)}</dd>
+        <dt>Sus fases</dt><dd>${others || "Ninguna todavía"}</dd>
+      </dl>
+    </details>
+    <div class="nav"><button data-go="${prev.id}">← ${prev.name}</button><button data-go="${next.id}">${next.name} →</button></div>`;
+  const slot = $(".b3slot");
+  if (GL) { GL.set(a, 150); slot.replaceWith(GL.host); }
+  else slot.outerHTML = blob(a, 150);
+}
+function renderPhaseLine() {
+  if (!phase) { $("#phTitle").textContent = "Todo el equipo"; $("#phDesc").textContent = "Los 22 agentes, por color de área. Elige una fase para ver quién trabaja en ella."; return; }
+  const P = PHASES[phase - 1];
+  $("#phTitle").textContent = `Fase ${P.n} · ${P.name}`;
+  $("#phDesc").textContent = `${P.dates}. ${P.desc} Trabajan ${Object.keys(P.msgs).length} agentes.`;
+}
+function setPhase(n) {
+  phase = n;
+  try { localStorage.setItem("mm-phase", String(n)); } catch (_) {}
+  const act = activeIds();
+  if (!act.includes(sel)) sel = act[0];
+  renderPhases(); renderPhaseLine(); layout(); renderTalk();
+}
+function select(id, scroll) {
+  sel = id; layout(); renderTalk();
+  if (scroll && innerWidth <= 900) $("#talk").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+}
+$("#phases").addEventListener("click", e => { const b = e.target.closest("[data-ph]"); if (b) setPhase(Number(b.dataset.ph)); });
+stage.addEventListener("click", e => { const b = e.target.closest(".agent"); if (b) select(b.dataset.id, true); });
+$("#talk").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) select(b.dataset.go, false); });
+setPhase(phase);
+
+/* ---------- naming ---------- */
+let favs = new Set();
+try { favs = new Set(JSON.parse(localStorage.getItem("mm-favs") || "[]")); } catch (_) {}
+const saveFavs = () => { try { localStorage.setItem("mm-favs", JSON.stringify([...favs])); } catch (_) {} };
+$("#finals").innerHTML = FINALS.map(f => `
+  <div class="fin${f.pick ? " pick" : ""}">
+    <span class="label">${f.pick ? "Favorito de Verba" : "Finalista"}</span>
+    <h3>${f.n}</h3>
+    <p>${f.why}</p>
+    <q>${f.line}</q>
+    <span class="tag">${f.dom}</span>
+  </div>`).join("");
+const FAMS = ["Todas", ...new Set(NAMES.map(n => n.f))];
+let fam = "Todas", onlyFav = false;
+function renderFams() { $("#fams").innerHTML = FAMS.map(f => `<button class="chip" data-fam="${esc(f)}" aria-pressed="${f === fam}">${esc(f)}</button>`).join(""); }
+function renderRows() {
+  const q = $("#q").value.trim().toLowerCase(), minp = Number($("#minp").value);
+  const list = NAMES.filter(n => (fam === "Todas" || n.f === fam) && n.p >= minp && (!onlyFav || favs.has(n.n)) && (!q || (n.n + " " + n.i + " " + n.s).toLowerCase().includes(q)))
+    .sort((a, b) => b.p - a.p || a.n.localeCompare(b.n, "es"));
+  $("#count").textContent = `${list.length} de ${NAMES.length}`;
+  $("#rows").innerHTML = list.length ? list.map(n => `
+    <tr>
+      <td><button class="fav" data-fav="${esc(n.n)}" aria-pressed="${favs.has(n.n)}" aria-label="Marcar ${esc(n.n)} como favorito">${favs.has(n.n) ? "★" : "☆"}</button></td>
+      <td class="nm">${esc(n.n)}</td><td>${esc(n.f)}</td><td>${esc(n.i)}</td><td>${esc(n.s)}</td>
+      <td class="dom">${esc(n.d)}${n.o ? `<br><span style="color:var(--muted)">${esc(n.o)}</span>` : ""}</td>
+      <td class="stars" aria-label="${n.p} de 5">${"★".repeat(n.p)}<span style="color:var(--line)">${"★".repeat(5 - n.p)}</span></td>
+      <td class="risk">${esc(n.r || "—")}</td>
+    </tr>`).join("") : `<tr><td colspan="8" style="color:var(--muted)">Ningún nombre cumple estos filtros. Baja el puntaje mínimo o cambia de familia.</td></tr>`;
+}
+renderFams(); renderRows();
+$("#fams").addEventListener("click", e => { const b = e.target.closest("[data-fam]"); if (!b) return; fam = b.dataset.fam; renderFams(); renderRows(); });
+$("#q").addEventListener("input", renderRows);
+$("#minp").addEventListener("change", renderRows);
+$("#onlyFav").addEventListener("click", e => { onlyFav = !onlyFav; e.currentTarget.setAttribute("aria-pressed", onlyFav); renderRows(); });
+$("#rows").addEventListener("click", e => {
+  const b = e.target.closest("[data-fav]"); if (!b) return;
+  const n = b.dataset.fav; favs.has(n) ? favs.delete(n) : favs.add(n); saveFavs(); renderRows();
+});
+
+/* blobs breathe: shapes morph slowly */
+if (!reduce) {
+  let last = 0;
+  const tick = now => {
+    if (now - last > 40) {
+      last = now;
+      const t = now / 1000;
+      document.querySelectorAll("svg.blob[data-seed]:not(.bodyless)").forEach(svg => {
+        const r = svg.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > innerHeight) return;
+        const d = shape(svg.dataset.seed, t);
+        svg.querySelectorAll(".sh").forEach(p => p.setAttribute("d", d));
+      });
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+/* pupils follow the pointer */
+if (!reduce) {
+  let raf = 0, px = 0, py = 0;
+  addEventListener("pointermove", e => {
+    px = e.clientX; py = e.clientY; if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      document.querySelectorAll(".blob").forEach(svg => {
+        const r = svg.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return;
+        const dx = px - (r.left + r.width / 2), dy = py - (r.top + r.height / 2), len = Math.hypot(dx, dy) || 1, m = Math.min(2.2, len / 60);
+        const t = `translate(${(dx / len * m).toFixed(2)} ${(dy / len * m).toFixed(2)})`;
+        svg.querySelectorAll(".pp").forEach(p => p.setAttribute("transform", t));
+      });
+    });
+  });
+}
+</script>
