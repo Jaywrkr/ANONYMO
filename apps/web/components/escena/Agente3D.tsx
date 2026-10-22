@@ -7,6 +7,7 @@ import { AREAS, type Agente } from "@anonymo/agentes";
 import { crearMaterialEsfera, factorForma, FORMA_AREA } from "./material";
 import { Prop } from "./Prop";
 import { calidad } from "@/lib/calidad";
+import { estaQuieto } from "@/lib/movimiento";
 
 function semilla(id: string) {
   let h = 2166136261;
@@ -122,32 +123,34 @@ export function Agente3D({ agente, apagado = false, conProp = true, escala = 1, 
     const reloj = state.clock.elapsedTime;
     const t = reloj + forma.fase;
     const dt = Math.min(delta, 0.05);
+    // Movimiento reducido: quietos, sin flotar, saltar ni rebotar. Solo miran.
+    const quieto = estaQuieto();
 
     // Mirada: cursor real o paseo automático.
     if (state.pointer.x !== e.px || state.pointer.y !== e.py) {
       e.px = state.pointer.x; e.py = state.pointer.y; mirada.ultimo = reloj;
       mirada.x = state.pointer.x; mirada.y = state.pointer.y;
-    } else if (reloj - mirada.ultimo > 3) {
+    } else if (!quieto && reloj - mirada.ultimo > 3) {
       const k = Math.min(1, (reloj - mirada.ultimo - 3) / 2);
       mirada.x = Math.sin(reloj * 0.35) * 0.35 * k;
       mirada.y = Math.sin(reloj * 0.23 + 1) * 0.2 * k;
     }
 
-    if (toque !== e.ultimoToque) { e.ultimoToque = toque; e.rebote = 1; }
+    if (toque !== e.ultimoToque) { e.ultimoToque = toque; e.rebote = quieto ? 0 : 1; }
     e.rebote = Math.max(0, e.rebote - dt * 1.8);
     e.dim = THREE.MathUtils.damp(e.dim, apagado ? 1 : 0, 6, dt);
-    e.entra = Math.min(1, e.entra + dt * 1.6);
+    e.entra = quieto ? 1 : Math.min(1, e.entra + dt * 1.6);
     // Entrada con rebote: llega desde abajo y se asienta.
     const c1 = 1.70158, c3 = c1 + 1, u = e.entra - 1;
     const entrada = 1 + c3 * u * u * u + c1 * u * u;
     e.hover = THREE.MathUtils.damp(e.hover, encima && !apagado ? 1 : 0, 9, dt);
-    material.uniforms.uTime.value = reloj;
+    if (!quieto) material.uniforms.uTime.value = reloj;
     material.uniforms.uDim.value = e.dim;
 
     // Rebote amortiguado tras un clic.
     const rb = e.rebote > 0 ? Math.sin((1 - e.rebote) * Math.PI * 3) * e.rebote : 0;
-    const salto = car.salto ? Math.max(0, Math.sin(t * car.ritmo * 2.2)) ** 6 * car.salto : 0;
-    const y = Math.sin(t * car.ritmo) * car.flota + salto + e.hover * 0.12 + Math.max(0, rb) * 0.25;
+    const salto = !quieto && car.salto ? Math.max(0, Math.sin(t * car.ritmo * 2.2)) ** 6 * car.salto : 0;
+    const y = quieto ? 0 : Math.sin(t * car.ritmo) * car.flota + salto + e.hover * 0.12 + Math.max(0, rb) * 0.25;
 
     if (grupo.current) {
       const s = escala * (1 - e.dim * 0.22) * (1 + e.hover * 0.06) * Math.max(0.001, entrada);
@@ -155,10 +158,10 @@ export function Agente3D({ agente, apagado = false, conProp = true, escala = 1, 
       grupo.current.position.set(0, y * escala, 0);
       grupo.current.rotation.y = THREE.MathUtils.damp(grupo.current.rotation.y, THREE.MathUtils.clamp(mirada.x, -1, 1) * 0.36 * (1 - e.dim), 4, dt);
       grupo.current.rotation.x = THREE.MathUtils.damp(grupo.current.rotation.x, -mirada.y * 0.24 * (1 - e.dim), 4, dt);
-      grupo.current.rotation.z = Math.sin(t * car.ritmo * 0.8) * car.balanceo;
+      grupo.current.rotation.z = quieto ? 0 : Math.sin(t * car.ritmo * 0.8) * car.balanceo;
     }
     if (cuerpo.current) {
-      const resp = Math.sin(t * 1.3) * 0.015;
+      const resp = quieto ? 0 : Math.sin(t * 1.3) * 0.015;
       const squash = rb * 0.12 + salto * 0.35;
       cuerpo.current.scale.set(forma.ancho + resp + squash, forma.alto - resp - squash, forma.ancho + resp + squash);
     }
