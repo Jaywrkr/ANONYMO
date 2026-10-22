@@ -26,6 +26,8 @@ export interface Pedido {
   pausas?: Pausas;
   /** Quién aprueba cada fase en este proyecto, si no es el de siempre (sistema/14). */
   responsables?: Record<number, "jay" | "luna">;
+  /** Idioma de las entregas, el portal y el PDF (sistema/20). Por defecto español. */
+  idioma?: "es" | "en";
   /** Punto de partida por rubro (sistema/13): salud, comida, profesionales, tienda, espacios. */
   plantilla?: string;
   creado: string; // ISO

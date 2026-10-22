@@ -5,6 +5,7 @@ import { AgenteVista } from "@/components/escena/AgenteVista";
 import { botonLleno, campo, etiqueta, lateral, portalActivo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
 import { Calendario } from "@/components/estudio/Calendario";
+import { TEXTOS_PORTAL } from "@/lib/textos-portal";
 import { portalAprobar, portalComentar, portalResponder, portalSubir } from "./acciones";
 
 export const dynamic = "force-dynamic";
@@ -24,43 +25,44 @@ export default async function Portal({ params, searchParams }: Props) {
   const entregaAbierta = abierta && visibles.includes(abierta) ? leerEntrega(id, abierta) : undefined;
   const esperaCliente = p.estado === "esperando" && !p.esperaJurado;
   const fase = FASES.find((f) => f.n === p.faseActual);
+  const tx = TEXTOS_PORTAL[p.pedido.idioma ?? "es"];
   const ocultos = <><input type="hidden" name="id" value={id} /><input type="hidden" name="t" value={t} /></>;
 
   return (
-    <main className={`${lateral} pb-16`}>
-      <p className={`${etiqueta} pt-4`}>Tu proyecto con Jay y Luna</p>
+    <main lang={p.pedido.idioma ?? "es"} className={`${lateral} pb-16`}>
+      <p className={`${etiqueta} pt-4`}>{tx.tuProyecto}</p>
       <h1 className="display mt-2 text-[clamp(56px,9vw,144px)]">{p.pedido.cliente}</h1>
       <p className="mt-2 max-w-2xl text-xl font-light">{p.pedido.descripcion}</p>
       <div className="mt-6 h-1 w-full max-w-xl overflow-hidden rounded-full bg-linea">
         <div className="h-full bg-tinta" style={{ width: `${(listas / Math.max(1, visibles.length)) * 100}%` }} />
       </div>
-      <p className={`${etiqueta} mt-2`}>{listas} de {visibles.length} entregas listas · fase {fase?.nombre}</p>
+      <p className={`${etiqueta} mt-2`}>{tx.listas(listas, visibles.length, fase?.nombre)}</p>
 
-      <section aria-label="Calendario" className="mt-8 max-w-3xl"><p className={`${etiqueta} mb-3`}>Fechas</p><Calendario tramos={calendario(p)} /></section>
+      <section aria-label="Calendario" className="mt-8 max-w-3xl"><p className={`${etiqueta} mb-3`}>{tx.fechas}</p><Calendario tramos={calendario(p)} /></section>
 
       {m && <p role="status" className="mt-6 max-w-xl rounded-2xl bg-papel p-4">{m}</p>}
 
       {esperaCliente && (
         <form action={portalAprobar} className="mt-8 max-w-xl rounded-3xl bg-papel p-6">
           {ocultos}
-          <p className="display text-5xl">Terminamos {fase?.nombre}</p>
-          <p className="mt-2 text-[17px]">Revisa lo que entregó el equipo. Si está bien, apruébala y seguimos. Si algo no te convence, déjanos un comentario abajo.</p>
-          <button className={`${botonLleno} mt-4`}>Aprobar {fase?.nombre}</button>
+          <p className="display text-5xl">{tx.terminamos(fase?.nombre)}</p>
+          <p className="mt-2 text-[17px]">{tx.revisa}</p>
+          <button className={`${botonLleno} mt-4`}>{tx.aprobar(fase?.nombre)}</button>
         </form>
       )}
 
       {p.plan.preguntas.length > 0 && (
         <form action={portalResponder} className="mt-8 grid max-w-2xl gap-4 rounded-3xl border border-tinta p-6">
           {ocultos}
-          <p className="display text-5xl">Antes de seguir, cuéntanos</p>
-          <p className="text-[15px] text-gris">Responde lo que sepas. Lo que dejes en blanco te lo preguntamos después.</p>
+          <p className="display text-5xl">{tx.antes}</p>
+          <p className="text-[15px] text-gris">{tx.antesDetalle}</p>
           {p.plan.preguntas.map((q, i) => (
             <label key={q} className="grid gap-1">
               <span className="text-[17px]">{q}</span>
               <textarea name={`r${i}`} rows={2} maxLength={2000} className={campo} />
             </label>
           ))}
-          <button className={botonLleno}>Enviar respuestas</button>
+          <button className={botonLleno}>{tx.enviarResp}</button>
         </form>
       )}
 
@@ -84,7 +86,7 @@ export default async function Portal({ params, searchParams }: Props) {
                             <span className="font-medium">{a.nombre}</span> · {e?.titulo}
                           </a>
                         ) : (
-                          <span className="block px-3 py-2 text-gris">{a.nombre} · {contratoPorId(x)?.entrega} (en camino)</span>
+                          <span className="block px-3 py-2 text-gris">{a.nombre} · {contratoPorId(x)?.entrega} ({tx.enCamino})</span>
                         )}
                       </li>
                     );
@@ -96,18 +98,18 @@ export default async function Portal({ params, searchParams }: Props) {
           <form action={portalComentar} className="mt-6 grid gap-2 border-t border-tinta pt-4">
             {ocultos}
             <label className="grid gap-1">
-              <span className={etiqueta}>Tu comentario</span>
-              <textarea name="texto" rows={4} required maxLength={2000} placeholder="Ej.: me gusta, pero la quiero más elegante" className={campo} />
+              <span className={etiqueta}>{tx.comentario}</span>
+              <textarea name="texto" rows={4} required maxLength={2000} placeholder={tx.comentarioEj} className={campo} />
             </label>
-            <button className={botonLleno}>Enviar comentario</button>
+            <button className={botonLleno}>{tx.enviarCom}</button>
           </form>
           <form action={portalSubir} className="mt-6 grid gap-2 border-t border-linea pt-4">
             {ocultos}
             <label className="grid gap-1">
-              <span className={etiqueta}>Fotos, logos o documentos</span>
+              <span className={etiqueta}>{tx.archivos}</span>
               <input type="file" name="archivos" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" className="text-[14px]" />
             </label>
-            <button className={botonLleno}>Enviar archivos</button>
+            <button className={botonLleno}>{tx.enviarArch}</button>
           </form>
         </section>
 
@@ -125,7 +127,7 @@ export default async function Portal({ params, searchParams }: Props) {
               <div className="entrega mt-6" dangerouslySetInnerHTML={{ __html: html(entregaAbierta.contenido) }} />
             </>
           ) : (
-            <p className="text-xl font-light text-gris">Elige una entrega para leerla completa.</p>
+            <p className="text-xl font-light text-gris">{tx.elige}</p>
           )}
         </article>
       </div>

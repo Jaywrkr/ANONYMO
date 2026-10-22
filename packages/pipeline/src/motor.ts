@@ -44,6 +44,11 @@ function semilla(texto: string) {
   return (h >>> 0) / 4294967295;
 }
 
+const TXT = {
+  es: { modo: (n: string) => `> Modo simulado. Esta es la estructura que ${n} va a llenar cuando haya clave de Anthropic.`, pedido: "Pedido", objetivo: "Objetivo", lei: "Leí", solo: "- Solo el pedido.", revisa: "Se revisa con", borrador: "Borrador", pendiente: (n: string, c: string) => `Pendiente: ${n} lo resuelve para ${c}.` },
+  en: { modo: (n: string) => `> Simulated mode. This is the structure ${n} will fill in once there is an Anthropic key.`, pedido: "Brief", objetivo: "Goal", lei: "What I read", solo: "- Only the brief.", revisa: "Reviewed against", borrador: "Draft", pendiente: (n: string, c: string) => `Pending: ${n} will solve this for ${c}.` },
+};
+
 export const simulado: Motor = {
   nombre: "simulado",
   async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos }) {
@@ -53,13 +58,13 @@ export const simulado: Motor = {
     const lineas = [
       `# ${c.entrega} · ${pedido.cliente}`,
       "",
-      `> Modo simulado. Esta es la estructura que ${a.nombre} va a llenar cuando haya clave de Anthropic.`,
+      TXT[pedido.idioma ?? "es"].modo(a.nombre),
       "",
       `**Fase ${c.fase} · ${fase.nombre}** · ${a.nombre}, ${a.rol.toLowerCase()} · versión ${version}`,
       "",
-      `**Pedido:** ${pedido.descripcion}`,
+      `**${TXT[pedido.idioma ?? "es"].pedido}:** ${pedido.descripcion}`,
       "",
-      `**Objetivo:** ${c.objetivo}`,
+      `**${TXT[pedido.idioma ?? "es"].objetivo}:** ${c.objetivo}`,
       "",
     ];
     if (cambio) lineas.push(`**Cambio pedido:** ${cambio}`, "");
@@ -68,11 +73,12 @@ export const simulado: Motor = {
     const resp = pedido.contexto?.respuestas ?? [];
     if (resp.length) lineas.push("## Respuestas del cliente", "", ...resp.map((r) => `- ${r.pregunta} → ${r.respuesta}`), "");
     if (archivos?.length) lineas.push("## Archivos del cliente", "", ...archivos.map((x) => `- ${x.nombre}${x.nota ? ` — ${x.nota}` : ""}`), "");
-    lineas.push("## Leí", "");
-    lineas.push(...(lecturas.length ? lecturas.map((e) => `- ${agentePorId(e.agente)?.nombre}: ${e.titulo} (v${e.version})`) : ["- Solo el pedido."]), "");
-    lineas.push("## Se revisa con", "", ...c.criterios.map((k) => `- [ ] ${k}`), "");
-    lineas.push("## Borrador", "");
-    for (const k of c.criterios) lineas.push(`### ${k}`, "", `Pendiente: ${a.nombre} lo resuelve para ${pedido.cliente}.`, "");
+    const tx = TXT[pedido.idioma ?? "es"];
+    lineas.push(`## ${tx.lei}`, "");
+    lineas.push(...(lecturas.length ? lecturas.map((e) => `- ${agentePorId(e.agente)?.nombre}: ${e.titulo} (v${e.version})`) : [tx.solo]), "");
+    lineas.push(`## ${tx.revisa}`, "", ...c.criterios.map((k) => `- [ ] ${k}`), "");
+    lineas.push(`## ${tx.borrador}`, "");
+    for (const k of c.criterios) lineas.push(`### ${k}`, "", tx.pendiente(a.nombre, pedido.cliente), "");
     lineas.push(...seccionHerramientas(herramientas));
 
     let nota: number | undefined;
@@ -115,7 +121,9 @@ export const real: Motor = {
     const sistema = [
       `Eres ${a.nombre}, ${a.rol} en una agencia creativa de Cuenca, Ecuador, dirigida por Jay y Luna.`,
       `Carácter: ${a.caracter} Tu ADN: ${a.adn}. Tu superpoder: ${a.superpoder} Tu frase: "${a.frase}"`,
-      "Escribes en español, directo y simple: frases cortas, palabras comunes, cero jerga y cero relleno.",
+      pedido.idioma === "en"
+        ? "Write in English for the client: plain and direct, short sentences, common words, no jargon, no filler. Keep the markers DICE/NECESITA/NOTA/FINALISTAS/HORAS exactly as written, but write their content in English."
+        : "Escribes en español, directo y simple: frases cortas, palabras comunes, cero jerga y cero relleno.",
       "No inventes datos, enlaces ni precios de terceros: si algo hay que verificarlo, márcalo como [verificar].",
       buscaEnWeb ? "Puedes buscar en la web. Usa fuentes reales y pon el enlace de cada una." : "",
       "Responde en markdown. Al final agrega exactamente dos líneas:",

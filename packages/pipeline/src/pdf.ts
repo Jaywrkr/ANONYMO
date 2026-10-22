@@ -17,7 +17,8 @@ const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 export function htmlDelProyecto(id: string, opciones: { internas?: boolean } = {}): string {
   const p = leerProyecto(id);
   const tareas = p.plan.tareas.filter((t) => p.tareas[t] === "lista" && (opciones.internas || !contratoPorId(t)?.interna)) as TareaId[];
-  const fecha = new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" });
+  const en = p.pedido.idioma === "en";
+  const fecha = new Date().toLocaleDateString(en ? "en-US" : "es-EC", { day: "numeric", month: "long", year: "numeric" });
   const secciones = tareas
     .map((t, i) => {
       const e = leerEntrega(id, t)!;
@@ -40,7 +41,7 @@ export function htmlDelProyecto(id: string, opciones: { internas?: boolean } = {
     })
     .join("");
 
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(p.pedido.cliente)}</title><style>
+  return `<!doctype html><html lang="${en ? "en" : "es"}"><head><meta charset="utf-8"><title>${esc(p.pedido.cliente)}</title><style>
   @font-face { font-family: Display; src: ${fuente("@fontsource-variable/big-shoulders-display/files/big-shoulders-display-latin-wght-normal.woff2")}; font-weight: 100 900; }
   @font-face { font-family: Sans; src: ${fuente("geist/dist/fonts/geist-sans/Geist-Regular.woff2")}; font-weight: 400; }
   @font-face { font-family: Sans; src: ${fuente("geist/dist/fonts/geist-sans/Geist-Light.woff2")}; font-weight: 300; }
@@ -70,11 +71,11 @@ export function htmlDelProyecto(id: string, opciones: { internas?: boolean } = {
   a { color: inherit; }
 </style></head><body>
   <section class="portada">
-    <p class="meta">Anonymo · Jay y Luna · ${esc(fecha)}</p>
+    <p class="meta">Anonymo · Jay ${en ? "&amp;" : "y"} Luna · ${esc(fecha)}</p>
     <div><h1>${esc(p.pedido.cliente)}</h1><p class="desc">${esc(p.pedido.descripcion)}</p></div>
-    <p class="meta">${tareas.length} entregas · fases ${p.plan.fases.join(" · ")}</p>
+    <p class="meta">${tareas.length} ${en ? "deliverables · phases" : "entregas · fases"} ${p.plan.fases.join(" · ")}</p>
   </section>
-  <section class="indice"><h2>Contenido</h2><ol>${indice}</ol></section>
+  <section class="indice"><h2>${en ? "Contents" : "Contenido"}</h2><ol>${indice}</ol></section>
   ${secciones}
 </body></html>`;
 }
