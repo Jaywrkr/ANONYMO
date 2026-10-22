@@ -27,7 +27,7 @@ export async function portalComentar(f: FormData) {
   const { id, t } = validar(f);
   let msj = "Recibido. Jay o Luna lo pasan al equipo.";
   try {
-    comentarioPortal(id, String(f.get("texto") ?? ""));
+    await comentarioPortal(id, String(f.get("texto") ?? ""));
   } catch (e) {
     msj = (e as Error).message;
   }
