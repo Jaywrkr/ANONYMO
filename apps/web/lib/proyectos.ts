@@ -1,9 +1,12 @@
 // Lee los proyectos de clientes que deja el pipeline en proyectos/<id>/. Solo en el servidor, al compilar.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { contratoPorId, type TareaId } from "@anonymo/pipeline";
 import { PROYECTO, type Estado, type Mensaje } from "./proyecto";
 
-const RAIZ = join(process.cwd(), "../../proyectos");
+const local = () => process.env.ESTUDIO === "1" || process.env.NODE_ENV === "development";
+
+const RAIZ = process.env.ANONYMO_PROYECTOS ?? join(process.cwd(), "../../proyectos");
 
 /** Lo que necesita la sala: el mismo formato para la agencia y para cada cliente. */
 export interface VistaProyecto {
@@ -16,10 +19,15 @@ export interface VistaProyecto {
   estado?: string;
   /** Lo que dijo el cliente y a quién se lo mandó Atlas. */
   cliente?: { fecha: string; texto: string; quien: string; agentes: string[] }[];
+  /** Publicado como caso, con permiso del cliente. */
+  publico?: boolean;
+  resumen?: string;
+  descripcion?: string;
 }
 
 interface EstadoArchivo {
-  pedido: { id: string; cliente: string };
+  pedido: { id: string; cliente: string; descripcion?: string };
+  caso?: { publico: boolean; resumen?: string };
   plan: { fases: number[]; tareas: string[] };
   tareas: Record<string, string>;
   estado: string;
@@ -59,6 +67,8 @@ function leerCliente(id: string): VistaProyecto | undefined {
   const p = JSON.parse(readFileSync(ruta, "utf8")) as EstadoArchivo;
   const mensajes: VistaProyecto["mensajes"] = {};
   for (const t of p.plan.tareas) {
+    // En la web pública no salen precios internos, la nota del jurado ni ventas.
+    if (!local() && contratoPorId(t as TareaId)?.interna) continue;
     const [f, agente] = t.split(".");
     const e = leerEntrega(id, t);
     (mensajes[Number(f)] ??= {})[agente] = {
@@ -71,15 +81,20 @@ function leerCliente(id: string): VistaProyecto | undefined {
     };
   }
   const cliente = (p.notasCliente ?? []).map((n) => ({ fecha: n.fecha.slice(0, 10), texto: n.texto, quien: n.quien, agentes: n.tareas.map((t) => t.split(".")[1]) }));
-  return { id, nombre: p.pedido.cliente, fases: p.plan.fases, mensajes, nota: leerEntrega(id, "6.trofeo")?.nota, estado: p.estado, cliente };
+  return { id, nombre: p.pedido.cliente, fases: p.plan.fases, mensajes, nota: local() ? leerEntrega(id, "6.trofeo")?.nota : undefined, estado: p.estado, cliente, publico: !!p.caso?.publico, resumen: p.caso?.resumen, descripcion: p.pedido.descripcion };
 }
 
+/**
+ * Proyectos para la sala. En la web pública solo salen los publicados con permiso del cliente;
+ * en local (estudio) salen todos.
+ */
 export function listarProyectos(): VistaProyecto[] {
   const agencia: VistaProyecto = { id: "agencia", nombre: PROYECTO.nombre, fases: [1, 2, 3, 4, 5, 6, 7], mensajes: PROYECTO.mensajes };
   if (!existsSync(RAIZ)) return [agencia];
   const clientes = readdirSync(RAIZ)
     .map(leerCliente)
-    .filter((p): p is VistaProyecto => !!p);
+    .filter((p): p is VistaProyecto => !!p)
+    .filter((p) => p.publico || local());
   return [agencia, ...clientes];
 }
 
@@ -88,3 +103,6 @@ export function rutasDeEntregas() {
     .filter((p) => p.id !== "agencia")
     .flatMap((p) => Object.values(p.mensajes).flatMap((m) => Object.values(m)).filter((m) => m.tarea && leerEntrega(p.id, m.tarea)).map((m) => ({ proyecto: p.id, tarea: m.tarea!.replace(".", "-") })));
 }
+
+/** Casos publicados con permiso del cliente. */
+export const casosPublicos = () => listarProyectos().filter((p) => p.id !== "agencia" && p.publico);

@@ -244,3 +244,19 @@ export function restaurar(id: string, tarea: TareaId, version: number) {
   // Lo que se armó sobre la versión que se descarta conviene revisarlo.
   return { nueva, revisar: dependientes([tarea], p.plan.tareas).filter((t) => t !== tarea && !t.startsWith("6.")) };
 }
+
+/** Publica (o retira) el proyecto como caso en la web. Exige decir cómo se obtuvo el permiso del cliente. */
+export function publicarCaso(id: string, permiso: string | undefined, resumen?: string, retirar = false) {
+  const p = leerProyecto(id);
+  if (retirar) {
+    p.caso = { ...(p.caso ?? { permiso: "", fecha: "" }), publico: false };
+    guardarProyecto(p);
+    bitacora(id, "El caso se retiró de la web.");
+    return p;
+  }
+  if (!permiso || permiso.trim().length < 5) throw new Error('Falta el permiso del cliente. Ej.: --permiso "Correo de Gabriela del 22/10/2026"');
+  p.caso = { publico: true, permiso: permiso.trim(), fecha: new Date().toISOString(), resumen };
+  guardarProyecto(p);
+  bitacora(id, `Publicado como caso (permiso: ${permiso.trim()}).`);
+  return p;
+}

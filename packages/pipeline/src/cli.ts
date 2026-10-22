@@ -21,7 +21,7 @@ import { revisarSistema } from "./doctor.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
-import { aprobar, avanzar, cambiar, cambiarPausas, cambiarResponsable, cambiarUrl, nuevo, parar, reanudar, responsable, restaurar } from "./correr.ts";
+import { aprobar, avanzar, cambiar, publicarCaso, cambiarPausas, cambiarResponsable, cambiarUrl, nuevo, parar, reanudar, responsable, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
 import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
 import { elegirMotor } from "./motor.ts";
@@ -47,6 +47,8 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  caso      <id> --permiso "cómo lo autorizó el cliente" [--resumen "..."] | --retirar
+                                 muestra el proyecto como caso en /casos (nunca sin permiso)
   idioma    <id> es|en           idioma de las entregas, el portal y el PDF (rehace con: cambiar)
   doctor    [--en-vivo]          qué está listo y qué falta configurar
   subir     <id>                 copia el proyecto al almacén privado (Supabase)
@@ -246,6 +248,10 @@ async function main() {
       console.log(`Base: ${b.base ?? "sin definir"} h · Cambios: +${b.extra} h · Total: ${b.total ?? "—"} h${b.precio ? ` · $${b.precio}` : ""}`);
       for (const a of b.ajustes) console.log(`  +${a.horas} h  ${nombreTarea(a.tarea as `${number}.${string}`)}  ${a.motivo}${a.incluido ? " (ya en el total de Ledger)" : ""}`);
       return;
+    }
+    case "caso": {
+      const p = publicarCaso(necesitaId(), texto(op.permiso), texto(op.resumen), op.retirar === true);
+      return console.log(p.caso?.publico ? `Publicado en /casos/${id} al compilar la web.` : "Retirado de /casos.");
     }
     case "idioma": {
       const p = leerProyecto(necesitaId());

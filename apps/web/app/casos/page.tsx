@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
+import { casosPublicos } from "@/lib/proyectos";
 
 export const metadata = { title: "Casos — Anonymo" };
 const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 
 export default function Casos() {
   const lumen = agentePorId("lumen")!;
+  const casos = casosPublicos();
+  const huecos = Math.max(0, 3 - casos.length);
   return (
     <main className={lateral}>
       <div className="grid gap-6 pb-16 pt-4 md:grid-cols-12 md:items-end">
@@ -31,7 +34,16 @@ export default function Casos() {
       </article>
 
       <section className="grid gap-3 border-t border-tinta py-12 md:grid-cols-3">
-        {["02", "03", "04"].map((n) => (
+        {casos.map((c, i) => (
+          <Link key={c.id} href={`/casos/${c.id}`} className="group flex aspect-[4/5] flex-col justify-between rounded-3xl bg-papel p-6 transition-transform hover:-translate-y-1">
+            <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Caso {String(i + 2).padStart(2, "0")}</span>
+            <span>
+              <span className="display block text-6xl">{c.nombre}</span>
+              <span className="mt-3 block text-[15px] text-gris">{c.resumen ?? c.descripcion}</span>
+            </span>
+          </Link>
+        ))}
+        {Array.from({ length: huecos }, (_, i) => String(casos.length + i + 2).padStart(2, "0")).map((n) => (
           <Link key={n} href="/contacto" className="group flex aspect-[4/5] flex-col justify-between rounded-3xl border border-dashed border-linea p-6 transition-colors hover:border-tinta">
             <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Caso {n}</span>
             <span className="display text-6xl text-gris transition-colors group-hover:text-tinta">Tu proyecto aquí</span>
