@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { FASES, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, existe, leerEntrega, leerProyecto, tokenValido, type TareaId } from "@anonymo/pipeline";
+import { contratoPorId, existe, leerEntrega, leerProyecto, tokenValido, type TareaId, calendario } from "@anonymo/pipeline";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { botonLleno, campo, etiqueta, lateral, portalActivo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
+import { Calendario } from "@/components/estudio/Calendario";
 import { portalAprobar, portalComentar, portalResponder, portalSubir } from "./acciones";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,8 @@ export default async function Portal({ params, searchParams }: Props) {
         <div className="h-full bg-tinta" style={{ width: `${(listas / Math.max(1, visibles.length)) * 100}%` }} />
       </div>
       <p className={`${etiqueta} mt-2`}>{listas} de {visibles.length} entregas listas · fase {fase?.nombre}</p>
+
+      <section aria-label="Calendario" className="mt-8 max-w-3xl"><p className={`${etiqueta} mb-3`}>Fechas</p><Calendario tramos={calendario(p)} /></section>
 
       {m && <p role="status" className="mt-6 max-w-xl rounded-2xl bg-papel p-4">{m}</p>}
 

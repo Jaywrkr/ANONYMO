@@ -10,6 +10,7 @@ import { avisar, canalesActivos } from "./avisos.ts";
 import { adjuntar, listarArchivos } from "./archivos.ts";
 import { responder } from "./cuestionario.ts";
 import { exportarPdf } from "./pdf.ts";
+import { calendario } from "./calendario.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
@@ -37,6 +38,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  calendario <id>                fechas de cada fase (reales si ya se aprobó, estimadas si no)
   pdf       <id> [--internas]    PDF para el cliente con las entregas listas (en proyectos/<id>/)
   responder <id> <n> "respuesta"   responde la pregunta n de Atlas (las ves con: estado <id>)
   avisos    <id>                 manda un aviso de prueba y dice qué canales están activos
@@ -199,6 +201,11 @@ async function main() {
       const rutas = pos.slice(2);
       if (!rutas.length) throw new Error("Pasa uno o más archivos.");
       for (const r of rutas) console.log(`  + ${adjuntar(necesitaId(), r, texto(op.nota)).nombre}`);
+      return;
+    }
+    case "calendario": {
+      for (const t of calendario(leerProyecto(necesitaId())))
+        console.log(`  ${String(t.fase).padStart(2, "0")} ${t.nombre.padEnd(12)} ${t.inicio} → ${t.fin}  ${t.estado}${t.real ? "" : " (estimado)"}`);
       return;
     }
     case "pdf": {
