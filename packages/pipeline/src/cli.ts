@@ -7,7 +7,7 @@ import { contratoPorId } from "./contratos.ts";
 import { anotar, enrutar, nombreTarea } from "./cliente.ts";
 import { tokenPortal } from "./portal.ts";
 import { dependientes } from "./contratos.ts";
-import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar } from "./correr.ts";
+import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
 import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
 import { elegirMotor } from "./motor.ts";
@@ -29,6 +29,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   pausas    <id> <clave|nunca|cada-fase|1,4>    cambia dónde se detiene
   seguir    <id>                 continúa si quedó a medias
   url       <id> <url>           la web que audita Prisma
+  volver    <id> <fase-agente> <versión>   vuelve a una versión anterior (ej.: volver mi-cliente 3-mira 1)
   portal    <id> [--nuevo]       enlace privado para el cliente (--nuevo invalida el anterior)
   cliente   <id> "lo que dijo" [--agentes mira,orla] [--ver]
                                  Atlas lo reparte, se rehace lo necesario y todos lo leen desde ahora
@@ -182,6 +183,13 @@ async function main() {
       if (op.ver) return console.log("\n(--ver: no se cambió nada)");
       anotar(necesitaId(), texto, quien === "luna" ? "luna" : "jay", forzadas);
       return resumen(await avanzar(necesitaId(), motor));
+    }
+    case "volver": {
+      const [, , tarea, v] = pos;
+      if (!tarea || !v) throw new Error("Uso: pipeline volver <id> <fase-agente> <versión>");
+      const r = restaurar(necesitaId(), tarea.replace("-", ".") as `${number}.${string}`, Number(v));
+      console.log(`Listo: la v${v} quedó como v${r.nueva}.${r.revisar.length ? ` Conviene revisar: ${r.revisar.map(nombreTarea).join(", ")}.` : ""}`);
+      return;
     }
     case "portal": {
       const token = tokenPortal(necesitaId(), op.nuevo === true);

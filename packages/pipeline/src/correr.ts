@@ -2,7 +2,7 @@
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
-import { contratoPorId, lecturas } from "./contratos.ts";
+import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Motor } from "./motor.ts";
@@ -180,4 +180,19 @@ export function cambiarUrl(id: string, url: string) {
   guardarProyecto(p);
   bitacora(id, `URL para auditar: ${url}`);
   return p;
+}
+
+/** Vuelve a una versión anterior de una entrega: queda como versión nueva con el contenido viejo. */
+export function restaurar(id: string, tarea: TareaId, version: number) {
+  const p = leerProyecto(id);
+  if (!p.plan.tareas.includes(tarea)) throw new Error(`${tarea} no está en el plan.`);
+  const vieja = leerEntrega(id, tarea, version);
+  const actual = leerEntrega(id, tarea);
+  if (!vieja || !actual) throw new Error(`No existe la versión ${version} de ${tarea}.`);
+  if (vieja.version === actual.version) throw new Error("Esa ya es la versión actual.");
+  const nueva = actual.version + 1;
+  guardarEntrega(id, { ...vieja, version: nueva, creado: new Date().toISOString(), contenido: vieja.contenido });
+  bitacora(id, `${agentePorId(vieja.agente)?.nombre}: se volvió a la v${version} de ${vieja.titulo} (queda como v${nueva}).`);
+  // Lo que se armó sobre la versión que se descarta conviene revisarlo.
+  return { nueva, revisar: dependientes([tarea], p.plan.tareas).filter((t) => t !== tarea && !t.startsWith("6.")) };
 }

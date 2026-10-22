@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, quitarPendiente, reanudar, tokenPortal } from "@anonymo/pipeline";
+import { anotar, aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, quitarPendiente, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -98,4 +98,20 @@ export async function accionMandarCliente(f: FormData) {
 export async function accionDescartarPendiente(f: FormData) {
   const { id } = leer(f);
   await correr(id, () => quitarPendiente(id, String(f.get("pendiente") ?? "")), "Comentario descartado.");
+}
+
+export async function accionRestaurar(f: FormData) {
+  exigirEstudio();
+  const { id } = leer(f);
+  const tarea = String(f.get("tarea") ?? "") as TareaId;
+  const v = Number(f.get("v"));
+  let destino = `/estudio/${id}/${tarea.replace(".", "-")}`;
+  try {
+    const r = restaurar(id, tarea, v);
+    destino += `?ok=${encodeURIComponent(`La v${v} quedó como v${r.nueva}.${r.revisar.length ? ` Revisa lo que dependía de ella: ${r.revisar.join(", ")}.` : ""}`)}`;
+  } catch (e) {
+    destino += `?error=${encodeURIComponent((e as Error).message)}`;
+  }
+  revalidatePath(destino.split("?")[0]);
+  redirect(destino);
 }

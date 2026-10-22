@@ -5,16 +5,17 @@ import { contarCambios, diferencias, existe, leerEntrega, leerProyecto, versione
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
+import { accionRestaurar } from "../../acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Entrega — Estudio", robots: { index: false } };
 
-type Props = { params: Promise<{ id: string; tarea: string }>; searchParams: Promise<{ v?: string; comparar?: string }> };
+type Props = { params: Promise<{ id: string; tarea: string }>; searchParams: Promise<{ v?: string; comparar?: string; ok?: string; error?: string }> };
 
 export default async function EntregaEstudio({ params, searchParams }: Props) {
   exigirEstudio();
   const { id, tarea } = await params;
-  const { v, comparar } = await searchParams;
+  const { v, comparar, ok, error } = await searchParams;
   const t = tarea.replace("-", ".") as TareaId;
   if (!existe(id)) notFound();
   const p = leerProyecto(id);
@@ -52,6 +53,16 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
                 </span>
               ))}
             </nav>
+          )}
+          {(ok || error) && <p role="status" className={`mt-4 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>}
+          {v && actual && Number(v) !== actual.version && (
+            <form action={accionRestaurar} className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-linea p-4">
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="tarea" value={t} />
+              <input type="hidden" name="v" value={v} />
+              <span className="text-[15px]">Estás viendo la v{v}.</span>
+              <button className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Volver a esta versión</button>
+            </form>
           )}
           {diff ? (
             <div className="mt-8">
