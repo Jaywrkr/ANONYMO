@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anotar, aprobar, cambiarResponsable, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { anotar, aprobar, archivarSolicitud, listarSolicitudes, nuevo, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 type Quien = "jay" | "luna";
@@ -139,4 +139,33 @@ export async function accionResponsable(f: FormData) {
   const fase = Number(f.get("fase"));
   const socio = f.get("socio") === "luna" ? "luna" : "jay";
   await correr(id, () => cambiarResponsable(id, fase, socio), `La fase ${fase} la aprueba ahora ${socio === "luna" ? "Luna" : "Jay"}.`);
+}
+
+export async function accionConvertirSolicitud(f: FormData) {
+  exigirEstudio();
+  const sid = String(f.get("solicitud") ?? "");
+  const plantilla = String(f.get("plantilla") ?? "") || undefined;
+  const motor = elegirMotor({ simulado: f.get("motor") === "simulado" });
+  let destino = "/estudio";
+  try {
+    const s = listarSolicitudes().find((x) => x.id === sid);
+    if (!s) throw new Error("La solicitud ya no existe.");
+    const pedido = { ...pedidoDeSolicitud(s), plantilla };
+    await nuevo(pedido, motor, silencio);
+    archivarSolicitud(sid);
+    destino = `/estudio/${pedido.id}?ok=${encodeURIComponent("Proyecto creado: Atlas armó el plan y el equipo empezó.")}`;
+  } catch (e) {
+    destino = `/estudio?error=${encodeURIComponent((e as Error).message)}`;
+  }
+  revalidatePath("/estudio");
+  redirect(destino);
+}
+
+export async function accionDescartarSolicitud(f: FormData) {
+  exigirEstudio();
+  try {
+    archivarSolicitud(String(f.get("solicitud") ?? ""));
+  } catch {}
+  revalidatePath("/estudio");
+  redirect("/estudio");
 }

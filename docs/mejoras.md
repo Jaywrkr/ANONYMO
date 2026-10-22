@@ -32,3 +32,4 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | Rama | Qué hace | Cómo se usa |
 |---|---|---|
 | web/01-rendimiento-movil | three.js en su propio paquete, lienzo creado cuando el navegador está libre, calidad según el equipo (resolución, antialias, caras), óvalos planos de respaldo y nada de 3D con ahorro de datos. Lighthouse celular aquí (sin GPU): 45 → 57 en inicio, 63 en equipo | Automático |
+| web/02-formulario-real | "Enviar a Atlas" funciona: valida, frena bots y spam, guarda la solicitud y avisa; en el estudio aparece con "Crear proyecto" (eligiendo plantilla) o "Descartar" | `/contacto` → estudio "Solicitudes desde la web" |

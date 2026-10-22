@@ -36,11 +36,15 @@ export function canalesActivos() {
 export async function avisar(a: AvisoProyecto): Promise<string[]> {
   const enlace = a.enlace ?? `${process.env.ANONYMO_URL ?? "http://localhost:3000"}/estudio/${a.proyecto}`;
   const hechos: string[] = ["archivo"];
-  const dir = join(CARPETA, a.proyecto);
-  mkdirSync(dir, { recursive: true });
-  const ruta = join(dir, "avisos.md");
-  if (!existsSync(ruta)) writeFileSync(ruta, "# Avisos\n\n");
-  appendFileSync(ruta, `- ${new Date().toISOString().slice(0, 16).replace("T", " ")} · ${ASUNTO[a.tipo]}: ${a.titulo}\n`);
+  try {
+    const dir = join(CARPETA, a.proyecto);
+    mkdirSync(dir, { recursive: true });
+    const ruta = join(dir, "avisos.md");
+    if (!existsSync(ruta)) writeFileSync(ruta, "# Avisos\n\n");
+    appendFileSync(ruta, `- ${new Date().toISOString().slice(0, 16).replace("T", " ")} · ${ASUNTO[a.tipo]}: ${a.titulo}\n`);
+  } catch {
+    hechos[0] = "archivo no disponible";
+  }
 
   const c = canalesActivos();
   if (c.correo) {

@@ -20,3 +20,4 @@ export * from "./presupuesto.ts";
 export * from "./buscar.ts";
 export * from "./nube.ts";
 export * from "./doctor.ts";
+export * from "./solicitudes.ts";
