@@ -4,21 +4,25 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, nuevo, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
+import { sesionConfigurada } from "@/lib/sesion";
+import { conNube } from "@/lib/nube";
 
 type Quien = "jay" | "luna";
 
-function leer(f: FormData) {
+/** Con claves configuradas, la acción queda a nombre de quien entró (no de lo que diga el formulario). */
+async function leer(f: FormData) {
+  const sesion = await exigirEstudio();
   const id = String(f.get("id") ?? "");
-  const quien = (f.get("quien") === "luna" ? "luna" : "jay") as Quien;
+  const quien: Quien = sesionConfigurada() ? sesion : f.get("quien") === "luna" ? "luna" : "jay";
   const motor = elegirMotor({ simulado: f.get("motor") === "simulado", manual: f.get("motor") === "manual" });
   return { id, quien, motor, nota: String(f.get("nota") ?? "").trim() || undefined };
 }
 
 async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string) {
-  exigirEstudio();
+  await exigirEstudio();
   let destino = `/estudio/${id}?ok=${encodeURIComponent(ok)}`;
   try {
-    await fn();
+    await conNube([id], fn);
   } catch (e) {
     destino = `/estudio/${id}?error=${encodeURIComponent((e as Error).message)}`;
   }
@@ -29,12 +33,12 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
 const silencio = () => {};
 
 export async function accionAprobar(f: FormData) {
-  const { id, quien, motor, nota } = leer(f);
+  const { id, quien, motor, nota } = await leer(f);
   await correr(id, () => aprobar(id, quien, nota, motor, silencio, f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.");
 }
 
 export async function accionCambiar(f: FormData) {
-  const { id, quien, motor, nota } = leer(f);
+  const { id, quien, motor, nota } = await leer(f);
   const agente = String(f.get("agente") ?? "") || undefined;
   await correr(id, () => {
     if (!nota) throw new Error("Escribe qué hay que cambiar.");
@@ -43,17 +47,17 @@ export async function accionCambiar(f: FormData) {
 }
 
 export async function accionParar(f: FormData) {
-  const { id, quien, nota } = leer(f);
+  const { id, quien, nota } = await leer(f);
   await correr(id, () => parar(id, quien, nota), "Proyecto parado.");
 }
 
 export async function accionReanudar(f: FormData) {
-  const { id } = leer(f);
+  const { id } = await leer(f);
   await correr(id, () => reanudar(id), "Proyecto reanudado: espera tu decisión.");
 }
 
 export async function accionPausas(f: FormData) {
-  const { id, motor } = leer(f);
+  const { id, motor } = await leer(f);
   await correr(id, async () => {
     cambiarPausas(id, String(f.get("pausas") ?? "clave"));
     await avanzar(id, motor, silencio);
@@ -61,19 +65,19 @@ export async function accionPausas(f: FormData) {
 }
 
 export async function accionSeguir(f: FormData) {
-  const { id, motor } = leer(f);
+  const { id, motor } = await leer(f);
   await correr(id, () => avanzar(id, motor, silencio), "El equipo siguió trabajando.");
 }
 
 export async function accionPortal(f: FormData) {
-  const { id } = leer(f);
+  const { id } = await leer(f);
   await correr(id, () => tokenPortal(id, f.get("nuevo") === "1"), f.get("nuevo") === "1" ? "Enlace nuevo creado: el anterior ya no sirve." : "Enlace del cliente listo.");
 }
 
 /** Primer paso: ver a quién manda Atlas el comentario, sin cambiar nada. */
 export async function accionVerReparto(f: FormData) {
-  exigirEstudio();
-  const { id } = leer(f);
+  await exigirEstudio();
+  const { id } = await leer(f);
   const texto = String(f.get("texto") ?? "").trim();
   const pendiente = String(f.get("pendiente") ?? "");
   redirect(`/estudio/${id}?vista=${encodeURIComponent(texto)}${pendiente ? `&pendiente=${encodeURIComponent(pendiente)}` : ""}#cliente`);
@@ -81,7 +85,7 @@ export async function accionVerReparto(f: FormData) {
 
 /** Segundo paso: el comentario entra al proyecto, va a los agentes elegidos y el equipo rehace. */
 export async function accionMandarCliente(f: FormData) {
-  const { id, quien, motor } = leer(f);
+  const { id, quien, motor } = await leer(f);
   const texto = String(f.get("texto") ?? "").trim();
   const agentes = f.getAll("agentes").map(String).filter(Boolean);
   const pendiente = String(f.get("pendiente") ?? "");
@@ -96,18 +100,18 @@ export async function accionMandarCliente(f: FormData) {
 }
 
 export async function accionDescartarPendiente(f: FormData) {
-  const { id } = leer(f);
+  const { id } = await leer(f);
   await correr(id, () => quitarPendiente(id, String(f.get("pendiente") ?? "")), "Comentario descartado.");
 }
 
 export async function accionRestaurar(f: FormData) {
-  exigirEstudio();
-  const { id } = leer(f);
+  await exigirEstudio();
+  const { id } = await leer(f);
   const tarea = String(f.get("tarea") ?? "") as TareaId;
   const v = Number(f.get("v"));
   let destino = `/estudio/${id}/${tarea.replace(".", "-")}`;
   try {
-    const r = restaurar(id, tarea, v);
+    const r = await conNube([id], () => restaurar(id, tarea, v));
     destino += `?ok=${encodeURIComponent(`La v${v} quedó como v${r.nueva}.${r.revisar.length ? ` Revisa lo que dependía de ella: ${r.revisar.join(", ")}.` : ""}`)}`;
   } catch (e) {
     destino += `?error=${encodeURIComponent((e as Error).message)}`;
@@ -117,7 +121,7 @@ export async function accionRestaurar(f: FormData) {
 }
 
 export async function accionSubir(f: FormData) {
-  const { id } = leer(f);
+  const { id } = await leer(f);
   const nota = String(f.get("nota") ?? "").trim() || undefined;
   const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0);
   await correr(id, async () => {
@@ -127,7 +131,7 @@ export async function accionSubir(f: FormData) {
 }
 
 export async function accionResponder(f: FormData) {
-  const { id, quien } = leer(f);
+  const { id, quien } = await leer(f);
   await correr(id, () => {
     const preguntas = leerProyecto(id).plan.preguntas;
     responder(id, Object.fromEntries(preguntas.map((q, i) => [q, String(f.get(`r${i}`) ?? "")])), quien);
@@ -135,24 +139,27 @@ export async function accionResponder(f: FormData) {
 }
 
 export async function accionResponsable(f: FormData) {
-  const { id } = leer(f);
+  const { id } = await leer(f);
   const fase = Number(f.get("fase"));
   const socio = f.get("socio") === "luna" ? "luna" : "jay";
   await correr(id, () => cambiarResponsable(id, fase, socio), `La fase ${fase} la aprueba ahora ${socio === "luna" ? "Luna" : "Jay"}.`);
 }
 
 export async function accionConvertirSolicitud(f: FormData) {
-  exigirEstudio();
+  await exigirEstudio();
   const sid = String(f.get("solicitud") ?? "");
   const plantilla = String(f.get("plantilla") ?? "") || undefined;
   const motor = elegirMotor({ simulado: f.get("motor") === "simulado" });
   let destino = "/estudio";
   try {
-    const s = listarSolicitudes().find((x) => x.id === sid);
-    if (!s) throw new Error("La solicitud ya no existe.");
-    const pedido = { ...pedidoDeSolicitud(s), plantilla };
-    await nuevo(pedido, motor, silencio);
-    archivarSolicitud(sid);
+    const pedido = await conNube(["_solicitudes"], async () => {
+      const s = listarSolicitudes().find((x) => x.id === sid);
+      if (!s) throw new Error("La solicitud ya no existe.");
+      const pedido = { ...pedidoDeSolicitud(s), plantilla };
+      await conNube([pedido.id], () => nuevo(pedido, motor, silencio));
+      archivarSolicitud(sid);
+      return pedido;
+    });
     destino = `/estudio/${pedido.id}?ok=${encodeURIComponent("Proyecto creado: Atlas armó el plan y el equipo empezó.")}`;
   } catch (e) {
     destino = `/estudio?error=${encodeURIComponent((e as Error).message)}`;
@@ -162,9 +169,9 @@ export async function accionConvertirSolicitud(f: FormData) {
 }
 
 export async function accionDescartarSolicitud(f: FormData) {
-  exigirEstudio();
+  await exigirEstudio();
   try {
-    archivarSolicitud(String(f.get("solicitud") ?? ""));
+    await conNube(["_solicitudes"], () => archivarSolicitud(String(f.get("solicitud") ?? "")));
   } catch {}
   revalidatePath("/estudio");
   redirect("/estudio");

@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { avisar, canalesActivos, guardarSolicitud } from "@anonymo/pipeline";
+import { conNube } from "@/lib/nube";
 
 export interface EstadoEnvio { ok: boolean; mensaje: string; campos?: Record<string, string> }
 
@@ -32,7 +33,7 @@ export async function enviarPedido(_: EstadoEnvio | null, f: FormData): Promise<
   envios.set(ip, [...recientes, ahora]);
 
   try {
-    await guardarSolicitud({ tipo, nombre, correo, mensaje, origen: en ? "web-en" : "web" });
+    await conNube(["_solicitudes"], () => guardarSolicitud({ tipo, nombre, correo, mensaje, origen: en ? "web-en" : "web" }));
   } catch {
     // Sin disco (por ejemplo, un hosting estático): al menos el aviso.
     const c = canalesActivos();

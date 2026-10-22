@@ -26,6 +26,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/18-pruebas-automaticas | 20 pruebas del pipeline (contrato, Atlas, pausas, roles, portal, archivos, versiones, cuestionario, búsqueda) en carpetas temporales, y CI en GitHub Actions | `npm run probar`; corre solo en cada PR |
 | sistema/19-revisar-sistema | `doctor`: revisa Node, dependencias, contrato, carpeta, candado, clave (con `--en-vivo` la prueba), navegador, avisos, nube y tarifa, y dice cómo arreglar lo que falta. Un solo `.env.local` en la raíz para web y terminal | `npm run pipeline -- doctor` |
 | sistema/20-entregas-en-ingles | Proyectos en inglés: los agentes escriben en inglés y el portal y el PDF salen en inglés | `pipeline nuevo ... --idioma en`; `pipeline idioma <id> en` |
+| sistema/21-estudio-en-linea | Estudio en línea: entrada con clave para Jay y Luna (sesión firmada, acciones a nombre de quien entró) y proyectos, solicitudes y analítica guardados en el almacén privado de Supabase para funcionar en Vercel | `/entrar` → `/estudio` (ver `docs/pipeline.md`) |
 
 ## Web
 

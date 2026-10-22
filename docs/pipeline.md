@@ -143,7 +143,33 @@ Con `--manual`, el agente usa `<fase>-<agente>.v2.md` si existe; si no, deja su 
 
 `/estudio` es el panel interno: lista de proyectos (primero los que esperan tu decisión), detalle con el plan, botones para aprobar, pedir cambios (a la fase o a un agente), parar, reanudar y cambiar pausas, más la bitácora y las preguntas de Atlas. Cada entrega se lee en `/estudio/<id>/<fase>-<agente>`.
 
-Solo existe en local (`npm run dev`) o con `ESTUDIO=1 npm run start`. En la web pública devuelve 404.
+En tu máquina (`npm run dev`) se abre directo. En línea, ver la sección siguiente.
+
+## Estudio en línea (sistema/21)
+
+Para entrar desde cualquier lado (o que Luna entre desde el suyo) en la misma web de Vercel: `https://<tu-dominio>/estudio`.
+
+**Cómo funciona**
+- **Entrada:** `/entrar`, cada uno con su clave. La sesión dura 30 días, va en una cookie firmada y la acción queda a nombre de quien entró (Luna no puede aprobar como Jay por error). Si cambias tu clave, se cierran tus sesiones. Hay un freno de 8 intentos fallidos cada 15 minutos.
+- **Proyectos:** en Vercel el disco se borra, así que cada página baja el proyecto del almacén privado de Supabase y cada acción lo vuelve a subir. El formulario de contacto y la analítica también guardan ahí.
+- **Sin claves no hay estudio:** si falta `ESTUDIO=1`, el secreto o las claves, `/estudio` da 404 en línea.
+
+**Encenderlo (una vez, en Vercel → Settings → Environment Variables, entorno Production):**
+
+| Variable | Qué |
+|---|---|
+| `ESTUDIO` | `1` |
+| `ESTUDIO_CLAVE_JAY` / `ESTUDIO_CLAVE_LUNA` | la clave de cada uno, 12 caracteres o más |
+| `ESTUDIO_SECRETO` | 32 caracteres o más al azar: `openssl rand -base64 48` |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | proyecto de Supabase con un bucket **privado** llamado `proyectos` |
+| `PORTAL` | `1` si quieres que los clientes usen su portal en línea |
+| `ANTHROPIC_API_KEY` | opcional: agentes con IA real |
+
+Después: **Redeploy** en Vercel para que tome las variables.
+
+**Tus proyectos locales a la nube:** `npm run pipeline -- subir <id>` (y `bajar <id>` para traerlos). Con `ANONYMO_NUBE=1` en tu `.env.local`, la web local también trabaja directo contra la nube.
+
+**Límites de hoy:** cada acción con agentes reales tiene hasta 5 minutos (si una fase grande tarda más, córrela desde la terminal); el PDF necesita Playwright y no funciona en Vercel (sácalo desde tu máquina); la auditoría con Lighthouse tampoco.
 
 ## Lo que sigue
 

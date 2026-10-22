@@ -3,16 +3,19 @@ import { redirect } from "next/navigation";
 import { aprobar, avisar, comentarioPortal, elegirMotor, guardarArchivo, leerProyecto, responder, tokenValido } from "@anonymo/pipeline";
 import { notFound } from "next/navigation";
 import { portalActivo } from "@/lib/estudio";
+import { llevar, traer } from "@/lib/nube";
 
-function validar(f: FormData) {
+async function validar(f: FormData) {
   const id = String(f.get("id") ?? "");
   const t = String(f.get("t") ?? "");
-  if (!portalActivo() || !tokenValido(id, t)) notFound();
+  if (!portalActivo() || !/^[a-z0-9-]+$/.test(id)) notFound();
+  await traer(id);
+  if (!tokenValido(id, t)) notFound();
   return { id, t };
 }
 
 export async function portalAprobar(f: FormData) {
-  const { id, t } = validar(f);
+  const { id, t } = await validar(f);
   let msj = "Gracias. El equipo sigue con la siguiente fase.";
   try {
     if (leerProyecto(id).estado !== "esperando") throw new Error("Esta fase ya no espera aprobación.");
@@ -20,22 +23,24 @@ export async function portalAprobar(f: FormData) {
   } catch (e) {
     msj = (e as Error).message;
   }
+  await llevar(id);
   redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
 }
 
 export async function portalComentar(f: FormData) {
-  const { id, t } = validar(f);
+  const { id, t } = await validar(f);
   let msj = "Recibido. Jay o Luna lo pasan al equipo.";
   try {
     await comentarioPortal(id, String(f.get("texto") ?? ""));
   } catch (e) {
     msj = (e as Error).message;
   }
+  await llevar(id);
   redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
 }
 
 export async function portalSubir(f: FormData) {
-  const { id, t } = validar(f);
+  const { id, t } = await validar(f);
   const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0).slice(0, 10);
   let msj = `Recibimos ${archivos.length} archivo(s). Gracias.`;
   try {
@@ -45,11 +50,12 @@ export async function portalSubir(f: FormData) {
   } catch (e) {
     msj = (e as Error).message;
   }
+  await llevar(id);
   redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
 }
 
 export async function portalResponder(f: FormData) {
-  const { id, t } = validar(f);
+  const { id, t } = await validar(f);
   const preguntas = leerProyecto(id).plan.preguntas;
   const r = Object.fromEntries(preguntas.map((q, i) => [q, String(f.get(`r${i}`) ?? "")]));
   let msj = "Gracias. El equipo ya tiene tus respuestas.";
@@ -59,5 +65,6 @@ export async function portalResponder(f: FormData) {
   } catch (e) {
     msj = (e as Error).message;
   }
+  await llevar(id);
   redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
 }

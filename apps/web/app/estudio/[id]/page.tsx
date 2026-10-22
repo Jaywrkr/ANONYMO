@@ -3,10 +3,14 @@ import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
 import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
+import { sesionConfigurada } from "@/lib/sesion";
+import { traer } from "@/lib/nube";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
+// Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
+export const maxDuration = 300;
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string; vista?: string; pendiente?: string }> };
@@ -14,8 +18,10 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: str
 const ESTADO_TAREA: Record<string, string> = { lista: "Lista", "en-curso": "En curso", "por-empezar": "Por empezar", rehacer: "Por rehacer" };
 
 export default async function ProyectoEstudio({ params, searchParams }: Props) {
-  exigirEstudio();
+  const yo = await exigirEstudio();
+  const conClaves = sesionConfigurada();
   const { id } = await params;
+  await traer(id);
   const { ok, error, vista, pendiente } = await searchParams;
   if (!existe(id)) notFound();
   const p = leerProyecto(id);
@@ -160,7 +166,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 {comunes}
                 <label className="grid gap-1">
                   <span className={etiqueta}>Quién decide</span>
-                  <select name="quien" className={campo} defaultValue={responsable(p, p.faseActual)}><option value="jay">Jay</option><option value="luna">Luna</option></select>
+                  {conClaves ? <><input type="hidden" name="quien" value={yo} /><span className="text-[15px]">{yo === "luna" ? "Luna" : "Jay"}</span></> : <select name="quien" className={campo} defaultValue={responsable(p, p.faseActual)}><option value="jay">Jay</option><option value="luna">Luna</option></select>}
                 </label>
                 <label className="flex items-center gap-2 text-[14px] text-gris"><input type="checkbox" name="forzar" value="1" /> Aprobar aunque no me toque</label>
                 <input name="nota" placeholder="Nota (opcional)" className={campo} />
@@ -168,7 +174,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               </form>
               <form action={accionCambiar} className="mt-6 grid gap-2 border-t border-linea pt-4">
                 {comunes}
-                <input type="hidden" name="quien" value="jay" />
+                <input type="hidden" name="quien" value={yo} />
                 <label className="grid gap-1">
                   <span className={etiqueta}>Pedir cambios</span>
                   <textarea name="nota" rows={3} required placeholder="Qué hay que cambiar" className={campo} />
@@ -288,7 +294,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           {p.plan.preguntas.length > 0 && (
             <form action={accionResponder} className="grid gap-3 rounded-3xl border border-linea p-6">
               {comunes}
-              <input type="hidden" name="quien" value="jay" />
+              <input type="hidden" name="quien" value={yo} />
               <p className={etiqueta}>Atlas necesita saber · también lo ve el cliente en su portal</p>
               {p.plan.preguntas.map((q, i) => (
                 <label key={q} className="grid gap-1 text-[15px]">

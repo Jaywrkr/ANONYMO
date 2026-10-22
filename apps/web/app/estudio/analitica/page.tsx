@@ -1,5 +1,6 @@
 import { agentePorId } from "@anonymo/agentes";
 import { resumenAnalitica } from "@anonymo/pipeline";
+import { traer } from "@/lib/nube";
 import { etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +8,8 @@ export const metadata = { title: "Métricas — Estudio", robots: { index: false
 
 // El tablero de Pulso: lo que pasa en la web, sin cookies (web/19).
 export default async function Analitica({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
-  exigirEstudio();
+  await exigirEstudio();
+  await traer("_analitica");
   const dias = Number((await searchParams).dias) || 30;
   const r = resumenAnalitica(dias);
   const cifra = (n: string | number, t: string) => (

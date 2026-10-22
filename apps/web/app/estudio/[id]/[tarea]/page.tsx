@@ -3,18 +3,22 @@ import { notFound } from "next/navigation";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contarCambios, diferencias, existe, leerEntrega, leerProyecto, versiones, type TareaId } from "@anonymo/pipeline";
 import { AgenteVista } from "@/components/escena/AgenteVista";
+import { traer } from "@/lib/nube";
 import { etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
 import { accionRestaurar } from "../../acciones";
 
 export const dynamic = "force-dynamic";
+// Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
+export const maxDuration = 300;
 export const metadata = { title: "Entrega — Estudio", robots: { index: false } };
 
 type Props = { params: Promise<{ id: string; tarea: string }>; searchParams: Promise<{ v?: string; comparar?: string; ok?: string; error?: string }> };
 
 export default async function EntregaEstudio({ params, searchParams }: Props) {
-  exigirEstudio();
+  await exigirEstudio();
   const { id, tarea } = await params;
+  await traer(id);
   const { v, comparar, ok, error } = await searchParams;
   const t = tarea.replace("-", ".") as TareaId;
   if (!existe(id)) notFound();
