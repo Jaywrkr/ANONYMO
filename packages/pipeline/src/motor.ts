@@ -20,6 +20,8 @@ export interface Contexto {
   herramientas: ResultadoHerramienta[];
   /** Todo lo que ha dicho el cliente, en orden. Manda sobre las suposiciones del equipo. */
   cliente: string[];
+  /** Lo que el equipo ya sabe del rubro (plantilla), para este agente. */
+  consejos?: string[];
   /** Archivos del cliente: nombre, nota y, si es imagen, ruta en disco para mostrársela al agente. */
   archivos?: { nombre: string; nota?: string; ruta?: string; tipo: string }[];
 }
@@ -44,7 +46,7 @@ function semilla(texto: string) {
 
 export const simulado: Motor = {
   nombre: "simulado",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos }) {
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const fase = FASES.find((f) => f.n === c.fase)!;
@@ -62,6 +64,7 @@ export const simulado: Motor = {
     ];
     if (cambio) lineas.push(`**Cambio pedido:** ${cambio}`, "");
     if (cliente.length) lineas.push("## Lo que dijo el cliente", "", ...cliente.map((x) => `- "${x}"`), "");
+    if (consejos?.length) lineas.push("## Lo que sabemos del rubro", "", ...consejos.map((x) => `- ${x}`), "");
     const resp = pedido.contexto?.respuestas ?? [];
     if (resp.length) lineas.push("## Respuestas del cliente", "", ...resp.map((r) => `- ${r.pregunta} → ${r.respuesta}`), "");
     if (archivos?.length) lineas.push("## Archivos del cliente", "", ...archivos.map((x) => `- ${x.nombre}${x.nota ? ` — ${x.nota}` : ""}`), "");
@@ -103,7 +106,7 @@ export const simulado: Motor = {
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos }) {
     const clave = process.env.ANTHROPIC_API_KEY;
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -130,6 +133,7 @@ export const real: Motor = {
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
+      consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
       archivos?.length ? "# Archivos del cliente\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
       cliente.length ? "# Lo que dijo el cliente (manda sobre cualquier suposición)\n" + cliente.map((x) => `- "${x}"`).join("\n") : "",
       cambio ? `# Cambio pedido\n${cambio}` : "",

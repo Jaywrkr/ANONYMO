@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
@@ -39,7 +39,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
       <Link href="/estudio" className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>← Estudio</Link>
       <div className="flex flex-wrap items-end justify-between gap-6 pb-6 pt-2">
         <div>
-          <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre} · {ESTADO_PROYECTO[p.estado]}</p>
+          <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre}{plantillaPorId(p.pedido.plantilla) ? ` · ${plantillaPorId(p.pedido.plantilla)!.nombre}` : ""} · {ESTADO_PROYECTO[p.estado]}</p>
           <h1 className="display mt-2 text-[clamp(56px,8vw,128px)]">{p.pedido.cliente}</h1>
         </div>
         {nota && <p className="display text-7xl">{String(nota.final).replace(".", ",")}</p>}

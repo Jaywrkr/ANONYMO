@@ -12,6 +12,7 @@ import { responder } from "./cuestionario.ts";
 import { exportarPdf } from "./pdf.ts";
 import { calendario } from "./calendario.ts";
 import { sumar, PRECIOS } from "./costo.ts";
+import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
@@ -27,6 +28,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
 
   nuevo     --cliente "Clínica Sonrisa" --tipo web --descripcion "..."
             [--rubro --ciudad --publico --plazo --presupuesto --referencias "a,b"]
+            [--plantilla salud|comida|profesionales|tienda|espacios]
             [--sin-marca | --con-marca] [--url https://...] [--pausas clave|nunca|cada-fase|1,4] [--id slug]
   estado    <id>                 dónde va y qué dijo cada agente
   lista                          todos los proyectos
@@ -39,6 +41,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  plantillas                     puntos de partida por rubro
   costo     <id>                 cuánto va gastado en IA (real) y cuánto costaría con el motor real (estimado)
   calendario <id>                fechas de cada fase (reales si ya se aprobó, estimadas si no)
   pdf       <id> [--internas]    PDF para el cliente con las entregas listas (en proyectos/<id>/)
@@ -152,6 +155,11 @@ async function main() {
           tieneMarca: op["sin-marca"] ? false : op["con-marca"] ? true : undefined,
         },
         pausas: texto(op.pausas) ? leerPausas(texto(op.pausas)!) : undefined,
+        plantilla: (() => {
+          const pl = texto(op.plantilla);
+          if (pl && !plantillaPorId(pl)) throw new Error(`No hay plantilla "${pl}". Opciones: ${PLANTILLAS.map((x) => x.id).join(", ")}`);
+          return pl;
+        })(),
         creado: new Date().toISOString(),
       };
       console.log(`Atlas recibe el pedido de ${cliente} (motor: ${motor.nombre}).`);
@@ -207,6 +215,9 @@ async function main() {
       for (const r of rutas) console.log(`  + ${adjuntar(necesitaId(), r, texto(op.nota)).nombre}`);
       return;
     }
+    case "plantillas":
+      for (const pl of PLANTILLAS) console.log(`  ${pl.id.padEnd(14)} ${pl.nombre} — ${pl.resumen}`);
+      return;
     case "costo": {
       const c = sumar(leerProyecto(necesitaId()));
       console.log(`Real: $${c.real.toFixed(2)} · Estimado con motor real: $${c.estimado.toFixed(2)}  (precios por millón: entrada $${PRECIOS.entrada}, salida $${PRECIOS.salida})`);

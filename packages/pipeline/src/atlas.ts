@@ -2,6 +2,7 @@
 import { FASES, PEDIDOS } from "@anonymo/agentes";
 import { contratosDeFase, ordenar } from "./contratos.ts";
 import type { Pausas, Pedido, Plan, TareaId } from "./tipos.ts";
+import { plantillaPorId } from "./plantillas.ts";
 
 /** Pausas que Atlas propone por tipo: después de lo que el resto del trabajo usa como base. */
 const PAUSAS_CLAVE: Record<Pedido["tipo"], number[]> = {
@@ -55,6 +56,10 @@ export function planificar(pedido: Pedido): Plan {
   if (!c.plazo) preguntas.push("¿Para cuándo lo necesitas?");
   if (!c.presupuesto) preguntas.push("¿Qué rango de inversión tienes en mente?");
   if (c.tieneMarca === undefined && pedido.tipo !== "marca" && pedido.tipo !== "todo") preguntas.push("¿Ya tienes logo y colores?");
+
+  // Las preguntas propias del rubro van primero.
+  const pl = plantillaPorId(pedido.plantilla);
+  if (pl) preguntas.unshift(...pl.preguntas);
 
   return {
     pedido: pedido.id,
