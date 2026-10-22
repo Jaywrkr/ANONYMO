@@ -19,6 +19,8 @@ export interface Pedido {
     tieneMarca?: boolean;
     /** Web publicada o de prueba: la audita Prisma. */
     url?: string;
+    /** Respuestas a las preguntas de Atlas (cuestionario del portal o anotadas por Jay/Luna). */
+    respuestas?: { pregunta: string; respuesta: string; fecha: string; quien: "jay" | "luna" | "cliente" }[];
   };
   /** Dónde se detiene para que Jay o Luna revisen. Si no viene, lo propone Atlas. */
   pausas?: Pausas;

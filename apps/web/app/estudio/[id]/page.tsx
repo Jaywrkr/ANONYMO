@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
 import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId } from "@anonymo/pipeline";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
+import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
@@ -233,9 +233,25 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           </div>
 
           {p.plan.preguntas.length > 0 && (
+            <form action={accionResponder} className="grid gap-3 rounded-3xl border border-linea p-6">
+              {comunes}
+              <input type="hidden" name="quien" value="jay" />
+              <p className={etiqueta}>Atlas necesita saber · también lo ve el cliente en su portal</p>
+              {p.plan.preguntas.map((q, i) => (
+                <label key={q} className="grid gap-1 text-[15px]">
+                  {q}
+                  <input name={`r${i}`} className={campo} placeholder="Lo que dijo el cliente" />
+                </label>
+              ))}
+              <button className={boton}>Anotar respuestas</button>
+            </form>
+          )}
+          {(p.pedido.contexto?.respuestas ?? []).length > 0 && (
             <div className="rounded-3xl border border-linea p-6">
-              <p className={etiqueta}>Atlas necesita saber</p>
-              <ul className="mt-2 grid list-disc gap-1 pl-5 text-[15px]">{p.plan.preguntas.map((q) => <li key={q}>{q}</li>)}</ul>
+              <p className={etiqueta}>Respuestas</p>
+              <ul className="mt-2 grid gap-2 text-[15px]">
+                {p.pedido.contexto!.respuestas!.map((r) => <li key={r.pregunta}><span className="text-gris">{r.pregunta}</span><br />{r.respuesta}</li>)}
+              </ul>
             </div>
           )}
 

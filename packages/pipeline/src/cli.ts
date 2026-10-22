@@ -8,6 +8,7 @@ import { anotar, enrutar, nombreTarea } from "./cliente.ts";
 import { tokenPortal } from "./portal.ts";
 import { avisar, canalesActivos } from "./avisos.ts";
 import { adjuntar, listarArchivos } from "./archivos.ts";
+import { responder } from "./cuestionario.ts";
 import { dependientes } from "./contratos.ts";
 import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
@@ -33,6 +34,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  responder <id> <n> "respuesta"   responde la pregunta n de Atlas (las ves con: estado <id>)
   avisos    <id>                 manda un aviso de prueba y dice qué canales están activos
   volver    <id> <fase-agente> <versión>   vuelve a una versión anterior (ej.: volver mi-cliente 3-mira 1)
   portal    <id> [--nuevo]       enlace privado para el cliente (--nuevo invalida el anterior)
@@ -105,7 +107,7 @@ function resumen(p: Proyecto) {
     console.log(`  npm run pipeline -- parar ${id}`);
   }
   if (p.estado === "listo") console.log(`\nListo. Todo en ${relative(process.cwd(), CARPETA) || "."}/${id}`);
-  if (p.plan.preguntas.length && p.estado !== "listo") console.log(`\nAtlas necesita saber:\n${p.plan.preguntas.map((q) => `  - ${q}`).join("\n")}`);
+  if (p.plan.preguntas.length && p.estado !== "listo") console.log(`\nAtlas necesita saber (responde con: pipeline responder ${id} <n> "..."):\n${p.plan.preguntas.map((q, i) => `  ${i + 1}. ${q}`).join("\n")}`);
 }
 
 async function main() {
@@ -194,6 +196,14 @@ async function main() {
       if (!rutas.length) throw new Error("Pasa uno o más archivos.");
       for (const r of rutas) console.log(`  + ${adjuntar(necesitaId(), r, texto(op.nota)).nombre}`);
       return;
+    }
+    case "responder": {
+      const p = leerProyecto(necesitaId());
+      const n = Number(pos[2]);
+      const q = p.plan.preguntas[n - 1];
+      if (!q || !pos[3]) throw new Error(`Uso: pipeline responder <id> <n> "respuesta". Preguntas:\n${p.plan.preguntas.map((x, i) => `  ${i + 1}. ${x}`).join("\n")}`);
+      responder(p.pedido.id, { [q]: pos[3] }, quien === "luna" ? "luna" : "jay");
+      return console.log(`Anotado: ${q} → ${pos[3]}`);
     }
     case "archivos": {
       const l = listarArchivos(necesitaId());

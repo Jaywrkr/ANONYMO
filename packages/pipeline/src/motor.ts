@@ -61,6 +61,8 @@ export const simulado: Motor = {
     ];
     if (cambio) lineas.push(`**Cambio pedido:** ${cambio}`, "");
     if (cliente.length) lineas.push("## Lo que dijo el cliente", "", ...cliente.map((x) => `- "${x}"`), "");
+    const resp = pedido.contexto?.respuestas ?? [];
+    if (resp.length) lineas.push("## Respuestas del cliente", "", ...resp.map((r) => `- ${r.pregunta} → ${r.respuesta}`), "");
     if (archivos?.length) lineas.push("## Archivos del cliente", "", ...archivos.map((x) => `- ${x.nombre}${x.nota ? ` — ${x.nota}` : ""}`), "");
     lineas.push("## Leí", "");
     lineas.push(...(lecturas.length ? lecturas.map((e) => `- ${agentePorId(e.agente)?.nombre}: ${e.titulo} (v${e.version})`) : ["- Solo el pedido."]), "");
