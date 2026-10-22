@@ -58,7 +58,7 @@ export function anotar(id: string, texto: string, quien: NotaCliente["quien"], f
 
   const ruta = join(CARPETA, id, "cliente.md");
   if (!existsSync(ruta)) writeFileSync(ruta, `# Lo que dijo el cliente\n\n`);
-  appendFileSync(ruta, `- ${nota.fecha.slice(0, 10)} · ${quien === "luna" ? "Luna" : "Jay"} anotó: "${texto}" → ${base.map(nombreTarea).join(", ")}\n`);
+  appendFileSync(ruta, `- ${nota.fecha.slice(0, 10)} · ${quien === "luna" ? "Luna" : quien === "cliente" ? "El cliente" : "Jay"} anotó: "${texto}" → ${base.map(nombreTarea).join(", ")}\n`);
   bitacora(id, `Cliente: "${texto}". Atlas lo manda a ${base.map(nombreTarea).join(", ")}; se rehacen ${rehacer.length} tareas.`);
   return { proyecto: p as Proyecto, base, rehacer };
 }
