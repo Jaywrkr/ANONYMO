@@ -4,7 +4,17 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ARCHIVOS, archivoEntrega, type Entrega, type Pedido, type Plan, type Proyecto, type TareaId } from "./tipos.ts";
 
-const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+/** Raíz del repo: se busca hacia arriba desde donde se corre (sirve igual desde la terminal y desde la web). */
+function buscarRaiz(): string {
+  let d = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    const pkg = join(d, "package.json");
+    if (existsSync(pkg) && JSON.parse(readFileSync(pkg, "utf8")).name === "anonymo") return d;
+    d = dirname(d);
+  }
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+}
+export const RAIZ = buscarRaiz();
 export const CARPETA = process.env.ANONYMO_PROYECTOS ?? join(RAIZ, "proyectos");
 
 const dir = (id: string) => join(CARPETA, id);
@@ -77,4 +87,11 @@ export function leerEntrega(id: string, tarea: TareaId): Entrega | undefined {
     if (i > 0) datos[l.slice(0, i)] = JSON.parse(l.slice(i + 2));
   }
   return { ...(datos as Omit<Entrega, "contenido">), contenido: m[2] };
+}
+
+/** Últimas líneas de la bitácora, de la más nueva a la más vieja. */
+export function leerBitacora(id: string, cuantas = 20): string[] {
+  const ruta = join(dir(id), ARCHIVOS.bitacora);
+  if (!existsSync(ruta)) return [];
+  return readFileSync(ruta, "utf8").trim().split("\n").map((l) => l.replace(/^- /, "")).reverse().slice(0, cuantas);
 }

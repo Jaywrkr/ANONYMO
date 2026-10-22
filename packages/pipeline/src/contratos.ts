@@ -186,3 +186,17 @@ export function lecturas(id: TareaId, plan: TareaId[]): TareaId[] {
   const antes = plan.slice(0, plan.indexOf(id));
   return c.usa === "todo" ? antes : c.usa.filter((u) => antes.includes(u));
 }
+
+/** Lo que hay que rehacer si cambian estas tareas: ellas, todo lo que las lee (directa o indirectamente) y el Jurado en adelante. */
+export function dependientes(base: TareaId[], plan: TareaId[]): TareaId[] {
+  const rehacer = new Set<TareaId>(base);
+  for (const t of plan) {
+    if (rehacer.has(t)) continue;
+    const c = contratoPorId(t);
+    if (!c || c.usa === "todo") continue;
+    if (lecturas(t, plan).some((u) => rehacer.has(u))) rehacer.add(t);
+  }
+  // El Jurado vuelve a calificar y lo posterior (fase 7) se rehace con la nota nueva.
+  for (const t of plan) if (Number(t.split(".")[0]) >= 6) rehacer.add(t);
+  return plan.filter((t) => rehacer.has(t));
+}

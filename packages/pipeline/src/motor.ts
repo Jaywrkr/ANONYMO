@@ -17,6 +17,8 @@ export interface Contexto {
   preguntas: string[];
   /** Lo que ya trajeron las herramientas (dominios, auditoría...). */
   herramientas: ResultadoHerramienta[];
+  /** Todo lo que ha dicho el cliente, en orden. Manda sobre las suposiciones del equipo. */
+  cliente: string[];
 }
 
 export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota" | "modo" | "datos">;
@@ -39,7 +41,7 @@ function semilla(texto: string) {
 
 export const simulado: Motor = {
   nombre: "simulado",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente }) {
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const fase = FASES.find((f) => f.n === c.fase)!;
@@ -56,6 +58,7 @@ export const simulado: Motor = {
       "",
     ];
     if (cambio) lineas.push(`**Cambio pedido:** ${cambio}`, "");
+    if (cliente.length) lineas.push("## Lo que dijo el cliente", "", ...cliente.map((x) => `- "${x}"`), "");
     lineas.push("## Leí", "");
     lineas.push(...(lecturas.length ? lecturas.map((e) => `- ${agentePorId(e.agente)?.nombre}: ${e.titulo} (v${e.version})`) : ["- Solo el pedido."]), "");
     lineas.push("## Se revisa con", "", ...c.criterios.map((k) => `- [ ] ${k}`), "");
@@ -94,7 +97,7 @@ export const simulado: Motor = {
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente }) {
     const clave = process.env.ANTHROPIC_API_KEY;
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -121,7 +124,8 @@ export const real: Motor = {
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
-      cambio ? `# Cambio pedido por Jay o Luna\n${cambio}` : "",
+      cliente.length ? "# Lo que dijo el cliente (manda sobre cualquier suposición)\n" + cliente.map((x) => `- "${x}"`).join("\n") : "",
+      cambio ? `# Cambio pedido\n${cambio}` : "",
       preguntas.length && c.fase === 1 ? "# Preguntas abiertas al cliente\n" + preguntas.map((p) => `- ${p}`).join("\n") : "",
       herramientas.length ? "# Datos de herramientas (reales, úsalos tal cual)\n" + herramientas.map((h) => `## ${h.herramienta}\n${h.resumen}`).join("\n\n") : "",
       ...lecturas.map((e) => `# Entrega de ${agentePorId(e.agente)?.nombre}: ${e.titulo}\n${e.contenido}`),
@@ -182,8 +186,11 @@ export const manual: Motor = {
   nombre: "manual",
   async trabajar(ctx) {
     const base = join(CARPETA, ctx.pedido.id, "borradores", archivoEntrega(ctx.tarea).replace(".md", ""));
-    const ruta = [`${base}.v${ctx.version}.md`, `${base}.md`].find(existsSync);
+    const propia = `${base}.v${ctx.version}.md`;
+    const ruta = [propia, `${base}.md`].find(existsSync);
     if (!ruta) return simulado.trabajar(ctx);
+    // Se rehace pero no hay borrador nuevo: el agente revisó y su entrega sigue igual.
+    const revisado = ctx.version > 1 && ruta !== propia && ctx.cambio ? `> Revisado tras el cambio (${ctx.cambio.replace(/\n/g, " ")}): esta entrega no necesita cambios.\n\n` : "";
     const texto = readFileSync(ruta, "utf8");
     const m = texto.match(/^---\n([\s\S]*?)\n---\n\n?([\s\S]*)$/);
     const datos: Record<string, unknown> = {};
@@ -196,7 +203,8 @@ export const manual: Motor = {
     return {
       dice: String(datos.dice ?? ""),
       necesita: String(datos.necesita ?? ""),
-      contenido: [contenido, "", ...seccionHerramientas(ctx.herramientas)].join("\n").trim(),
+      // La nota de revisión va debajo del título, no encima.
+      contenido: [contenido.replace(/^(# .*\n+)?/, (t) => t + revisado), "", ...seccionHerramientas(ctx.herramientas)].join("\n").trim(),
       nota: typeof datos.nota === "number" ? datos.nota : undefined,
       datos: Object.keys(extra).length ? extra : undefined,
       modo: "manual",

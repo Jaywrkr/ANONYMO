@@ -1,5 +1,5 @@
 // 5.5 Calidad: lee la nota del Jurado y decide qué se rehace si no llega al mínimo.
-import { contratoPorId, lecturas } from "./contratos.ts";
+import { dependientes } from "./contratos.ts";
 import { NOTA_MINIMA, type Entrega, type Plan, type TareaId } from "./tipos.ts";
 
 export type Criterio = "diseno" | "usabilidad" | "creatividad" | "contenido";
@@ -87,17 +87,7 @@ export function evaluar(plan: Plan, trofeo: Entrega | undefined, prisma: Entrega
   }
   if (prismaFalla && enPlan("4.vector") && !base.includes("4.vector")) base.push("4.vector");
 
-  // Todo lo que lee (directa o indirectamente) lo que se rehace, se rehace también.
-  const rehacer = new Set<TareaId>(base);
-  for (const t of plan.tareas) {
-    if (rehacer.has(t)) continue;
-    const c = contratoPorId(t);
-    if (!c) continue;
-    const lee = c.usa === "todo" ? [] : lecturas(t, plan.tareas);
-    if (lee.some((u) => rehacer.has(u))) rehacer.add(t);
-  }
-  // El Jurado siempre vuelve a calificar, y lo que viene después (fase 7) se rehace con la nota nueva.
-  for (const t of plan.tareas) if (Number(t.split(".")[0]) >= 6) rehacer.add(t);
+  const rehacer = dependientes(base, plan.tareas);
 
   const partes = [
     `Jurado, ronda ${ronda}: ${nota.final} (mínimo ${NOTA_MINIMA}).`,
@@ -105,5 +95,5 @@ export function evaluar(plan: Plan, trofeo: Entrega | undefined, prisma: Entrega
     nota.arreglos.length ? `Arreglos: ${nota.arreglos.join("; ")}` : "",
     prismaFalla ?? "",
   ].filter(Boolean);
-  return { aprobado: false, nota, criterio, rehacer: plan.tareas.filter((t) => rehacer.has(t)), cambio: partes.join(" ") };
+  return { aprobado: false, nota, criterio, rehacer, cambio: partes.join(" ") };
 }

@@ -120,6 +120,16 @@ export interface Puerta {
 
 export type EstadoProyecto = "en-curso" | "esperando" | "listo" | "parado";
 
+/** Algo que dijo el cliente. Todos los agentes lo leen desde que entra. */
+export interface NotaCliente {
+  fecha: string;
+  texto: string;
+  /** Quién la anotó. */
+  quien: "jay" | "luna";
+  /** A quién se lo mandó Atlas. */
+  tareas: TareaId[];
+}
+
 /** estado.json: la foto del proyecto que lee la sala. */
 export interface Proyecto {
   pedido: Pedido;
@@ -130,6 +140,8 @@ export interface Proyecto {
   puertas: Puerta[];
   /** Notas de "cambiar" pendientes por fase: los agentes las leen al rehacer. */
   cambios: Record<number, string>;
+  /** Lo que ha dicho el cliente, en orden. */
+  notasCliente?: NotaCliente[];
   /** Rondas automáticas de rehacer por nota del Jurado. */
   rondasJurado?: number;
   /** Se detuvo porque el Jurado no llegó al mínimo después de las rondas automáticas. */

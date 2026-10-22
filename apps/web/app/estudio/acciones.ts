@@ -1,0 +1,66 @@
+"use server";
+// Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { aprobar, avanzar, cambiar, cambiarPausas, elegirMotor, parar, reanudar } from "@anonymo/pipeline";
+import { exigirEstudio } from "@/lib/estudio";
+
+type Quien = "jay" | "luna";
+
+function leer(f: FormData) {
+  const id = String(f.get("id") ?? "");
+  const quien = (f.get("quien") === "luna" ? "luna" : "jay") as Quien;
+  const motor = elegirMotor({ simulado: f.get("motor") === "simulado", manual: f.get("motor") === "manual" });
+  return { id, quien, motor, nota: String(f.get("nota") ?? "").trim() || undefined };
+}
+
+async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string) {
+  exigirEstudio();
+  let destino = `/estudio/${id}?ok=${encodeURIComponent(ok)}`;
+  try {
+    await fn();
+  } catch (e) {
+    destino = `/estudio/${id}?error=${encodeURIComponent((e as Error).message)}`;
+  }
+  revalidatePath(`/estudio/${id}`);
+  redirect(destino);
+}
+
+const silencio = () => {};
+
+export async function accionAprobar(f: FormData) {
+  const { id, quien, motor, nota } = leer(f);
+  await correr(id, () => aprobar(id, quien, nota, motor, silencio), "Aprobado. El equipo siguió hasta la próxima pausa.");
+}
+
+export async function accionCambiar(f: FormData) {
+  const { id, quien, motor, nota } = leer(f);
+  const agente = String(f.get("agente") ?? "") || undefined;
+  await correr(id, () => {
+    if (!nota) throw new Error("Escribe qué hay que cambiar.");
+    return cambiar(id, quien, nota, agente, motor, silencio);
+  }, "Cambio pedido. Se rehizo y quedó esperando tu revisión.");
+}
+
+export async function accionParar(f: FormData) {
+  const { id, quien, nota } = leer(f);
+  await correr(id, () => parar(id, quien, nota), "Proyecto parado.");
+}
+
+export async function accionReanudar(f: FormData) {
+  const { id } = leer(f);
+  await correr(id, () => reanudar(id), "Proyecto reanudado: espera tu decisión.");
+}
+
+export async function accionPausas(f: FormData) {
+  const { id, motor } = leer(f);
+  await correr(id, async () => {
+    cambiarPausas(id, String(f.get("pausas") ?? "clave"));
+    await avanzar(id, motor, silencio);
+  }, "Pausas actualizadas.");
+}
+
+export async function accionSeguir(f: FormData) {
+  const { id, motor } = leer(f);
+  await correr(id, () => avanzar(id, motor, silencio), "El equipo siguió trabajando.");
+}

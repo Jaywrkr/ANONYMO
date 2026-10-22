@@ -121,6 +121,30 @@ La sala lee `proyectos/*/estado.json` al compilar: aparece un selector de proyec
 
 Los proyectos de clientes están en `.gitignore`: el repo es público y no se suben sin permiso del cliente.
 
+## La voz del cliente (5.7)
+
+Lo que dice el cliente entra al proyecto con un comando:
+
+```bash
+npm run pipeline -- cliente gabriela-y-sebastian "La de estética tiene que ser mucho más elegante"
+npm run pipeline -- cliente <id> "..." --ver               # solo muestra a quién va, no cambia nada
+npm run pipeline -- cliente <id> "..." --agentes mira,orla # tú decides a quién va
+```
+
+1. **Atlas lo reparte** por palabras clave (elegante → Mira, Orla, Rhea, Kine; precio → Ledger; plazo → Tempo; fotos → Orla y Lente...). Sin pistas claras, va a Orla.
+2. **Se rehace** lo que atienden esos agentes, todo lo que depende de ellos y el Jurado.
+3. **Todos lo leen desde ahora:** cada agente recibe la lista de lo que dijo el cliente, y eso manda sobre las suposiciones del equipo.
+4. Si una fase afectada tiene pausa, se vuelve a detener para que la revises.
+5. Queda en `cliente.md`, en la bitácora y en la sala ("Lo que dijo el cliente").
+
+Con `--manual`, el agente usa `<fase>-<agente>.v2.md` si existe; si no, deja su entrega igual con una nota de que la revisó.
+
+## Estudio: el panel (sistema/01)
+
+`/estudio` es el panel interno: lista de proyectos (primero los que esperan tu decisión), detalle con el plan, botones para aprobar, pedir cambios (a la fase o a un agente), parar, reanudar y cambiar pausas, más la bitácora y las preguntas de Atlas. Cada entrega se lee en `/estudio/<id>/<fase>-<agente>`.
+
+Solo existe en local (`npm run dev`) o con `ESTUDIO=1 npm run start`. En la web pública devuelve 404.
+
 ## Lo que sigue
 
 | Sub-fase | Qué |
@@ -128,6 +152,7 @@ Los proyectos de clientes están en `.gitignore`: el repo es público y no se su
 | 5.2 + 5.3 | Atlas y ejecución con pausas por proyecto. **Hecho** |
 | 5.4 Herramientas | Búsqueda web, dominios, redes, auditoría. **Hecho** (búsqueda web se activa con la clave) |
 | 5.5 Calidad | Nota del Jurado y vuelta atrás si no llega a 7. **Hecho** |
+| 5.7 Voz del cliente | Comentarios del cliente que Atlas reparte y todos leen. **Hecho** |
 | 5.6 Caso dentistas | Pedido real de punta a punta y la sala mostrando el proyecto. **Hecho** (contenido escrito en sesión; fuera del repo) |
 
 La clave de Anthropic la pone Jay en `ANTHROPIC_API_KEY`. Sin clave, todo corre en modo simulado. Con clave, `--simulado` fuerza el modo simulado. El modelo se cambia con `ANTHROPIC_MODEL`.
