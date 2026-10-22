@@ -26,3 +26,9 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/18-pruebas-automaticas | 20 pruebas del pipeline (contrato, Atlas, pausas, roles, portal, archivos, versiones, cuestionario, búsqueda) en carpetas temporales, y CI en GitHub Actions | `npm run probar`; corre solo en cada PR |
 | sistema/19-revisar-sistema | `doctor`: revisa Node, dependencias, contrato, carpeta, candado, clave (con `--en-vivo` la prueba), navegador, avisos, nube y tarifa, y dice cómo arreglar lo que falta. Un solo `.env.local` en la raíz para web y terminal | `npm run pipeline -- doctor` |
 | sistema/20-entregas-en-ingles | Proyectos en inglés: los agentes escriben en inglés y el portal y el PDF salen en inglés | `pipeline nuevo ... --idioma en`; `pipeline idioma <id> en` |
+
+## Web
+
+| Rama | Qué hace | Cómo se usa |
+|---|---|---|
+| web/01-rendimiento-movil | three.js en su propio paquete, lienzo creado cuando el navegador está libre, calidad según el equipo (resolución, antialias, caras), óvalos planos de respaldo y nada de 3D con ahorro de datos. Lighthouse celular aquí (sin GPU): 45 → 57 en inicio, 63 en equipo | Automático |

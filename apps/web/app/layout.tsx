@@ -3,7 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "@fontsource-variable/big-shoulders-display";
 import "./globals.css";
-import { Lienzo } from "@/components/escena/Lienzo";
+import { LienzoDiferido } from "@/components/escena/LienzoDiferido";
 import { Encabezado, Pie } from "@/components/ui/Encabezado";
 import { Suave } from "@/components/ui/Suave";
 
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Encabezado />
         {children}
         <Pie />
-        <Lienzo />
+        <LienzoDiferido />
         <Suave />
       </body>
     </html>
