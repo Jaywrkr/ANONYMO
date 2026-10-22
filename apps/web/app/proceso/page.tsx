@@ -27,7 +27,7 @@ export default function Proceso() {
               </div>
               <div className="grid content-start gap-8 md:col-span-7">
                 <dl className="grid grid-cols-[120px_1fr] gap-x-6 gap-y-3">
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-gris">Recibes</dt>
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Recibes</dt>
                   <dd>
                     <ul className="grid gap-1">
                       {s.entrega.map((e) => (
@@ -35,7 +35,7 @@ export default function Proceso() {
                       ))}
                     </ul>
                   </dd>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-gris">Duración típica</dt>
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Duración típica</dt>
                   <dd>{s.dura}</dd>
                 </dl>
                 <ul className="flex flex-wrap gap-2">
@@ -45,7 +45,7 @@ export default function Proceso() {
                       <li key={id} className="w-24">
                         <Link href={`/agentes/${id}`} className="block">
                           <AgenteVista agente={a} className="aspect-square w-full" />
-                          <span className="block text-center font-mono text-[10px] uppercase tracking-[0.12em]">{a.nombre}</span>
+                          <span className="block text-center font-mono text-[12px] uppercase tracking-[0.12em]">{a.nombre}</span>
                         </Link>
                       </li>
                     );
@@ -57,7 +57,7 @@ export default function Proceso() {
         })}
       </ol>
       <div className="border-t border-tinta pt-12">
-        <Link href="/sala" className="font-mono text-[11px] uppercase tracking-[0.14em] underline underline-offset-4">Ver un proyecto en vivo en la sala →</Link>
+        <Link href="/sala" className="font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">Ver un proyecto en vivo en la sala →</Link>
       </div>
     </main>
   );

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { Area } from "@anonymo/agentes";
+import type { Area, Tono } from "@anonymo/agentes";
 
 // Ruido simplex 3D (Ashima Arts, MIT).
 const NOISE = /* glsl */ `
@@ -27,12 +27,17 @@ const vertex = /* glsl */ `
 ${NOISE}
 uniform float uTime;
 uniform float uSeed;
+uniform float uForma; // 0 normal · 1 gota · 2 inclinado · 3 huevo
 varying vec3 vPos;
 varying vec3 vNormal;
 varying vec3 vView;
 void main(){
   float n = snoise(normal * 0.9 + vec3(uSeed, uTime * 0.18, -uTime * 0.12));
   vec3 p = position + normal * n * 0.035;
+  float k = smoothstep(-1.0, 1.0, p.y);
+  if (uForma > 0.5 && uForma < 1.5) p.xz *= mix(1.1, 0.74, k);
+  else if (uForma > 1.5 && uForma < 2.5) p.x += p.y * 0.2;
+  else if (uForma > 2.5) p.xz *= mix(1.08, 0.88, k);
   vPos = p;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vNormal = normalize(normalMatrix * normal);
@@ -74,18 +79,33 @@ void main(){
   gl_FragColor.rgb += (hash(gl_FragCoord.xy + fract(uTime) * 91.0) - 0.5) * 0.07;
 }`;
 
-export function crearMaterialEsfera(area: Area, seed: number) {
+export const FORMA_AREA: Record<string, number> = { mando: 0, estrategia: 0, marca: 1, producto: 0, comunicacion: 2, crecimiento: 3 };
+
+/** Mismo ancho que aplica el shader a la altura y: para poner ojos y objetos sobre la superficie. */
+export function factorForma(forma: number, y: number) {
+  const t = Math.min(1, Math.max(0, (y + 1) / 2));
+  const k = t * t * (3 - 2 * t);
+  if (forma === 1) return 1.1 + (0.74 - 1.1) * k;
+  if (forma === 3) return 1.08 + (0.88 - 1.08) * k;
+  return 1;
+}
+
+export function crearMaterialEsfera(area: Area, seed: number, tono?: Tono) {
+  // Un tono propio por agente dentro de su área.
+  const giro = ((seed * 7.31) % 1) * 0.07 - 0.035;
+  const c = (hex: string) => new THREE.Color(hex).offsetHSL(giro, 0, 0);
   return new THREE.ShaderMaterial({
     vertexShader: vertex,
     fragmentShader: fragment,
     uniforms: {
       uTime: { value: 0 },
       uSeed: { value: seed },
+      uForma: { value: FORMA_AREA[area.id] },
       uDim: { value: 0 },
-      uLuz: { value: new THREE.Color(area.luz) },
-      uMedio: { value: new THREE.Color(area.medio) },
-      uSombra: { value: new THREE.Color(area.sombra) },
-      uAcento: { value: new THREE.Color(area.acento) },
+      uLuz: { value: c((tono ?? area).luz) },
+      uMedio: { value: c((tono ?? area).medio) },
+      uSombra: { value: c((tono ?? area).sombra) },
+      uAcento: { value: c((tono ?? area).acento) },
       uFondo: { value: new THREE.Color("#efede8") },
     },
   });

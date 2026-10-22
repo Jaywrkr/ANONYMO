@@ -15,7 +15,7 @@ export function Indice() {
             key={a.nombre}
             onClick={() => setArea(a.id as AreaId | null)}
             aria-pressed={area === a.id}
-            className={`rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${area === a.id ? "border-tinta bg-tinta text-hueso" : "border-linea text-gris hover:border-tinta hover:text-tinta"}`}
+            className={`rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.12em] transition-colors ${area === a.id ? "border-tinta bg-tinta text-hueso" : "border-linea text-gris hover:border-tinta hover:text-tinta"}`}
           >
             {a.nombre} <span className="opacity-60">{a.n}</span>
           </button>

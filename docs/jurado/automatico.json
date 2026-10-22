@@ -1,0 +1,90 @@
+[
+  {
+    "ruta": "/",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/agentes",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/agentes/kine",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/proceso",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/sala",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/casos",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/contacto",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  },
+  {
+    "ruta": "/sistema",
+    "lighthouse": {
+      "rendimiento": 0,
+      "accesibilidad": 100,
+      "practicas": 100,
+      "seo": 100
+    },
+    "axe": [],
+    "fallasLighthouse": []
+  }
+]

@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { agentePorId } from "@anonymo/agentes";
 import { Agente3D } from "./Agente3D";
 import { Vista } from "./Vista";
 
 // El grupo del inicio: Atlas al centro, cuatro agentes alrededor. Cada uno reacciona al cursor y al clic.
 const LUGARES: [string, [number, number, number], number][] = [
-  ["atlas", [0.2, -0.1, 0], 1.25],
-  ["verba", [-1.9, 1.25, -1.2], 0.72],
-  ["lumen", [2.35, 1.05, -0.8], 0.82],
-  ["chispa", [-1.55, -1.55, -0.4], 0.66],
-  ["trofeo", [2.0, -1.6, -1.6], 0.6],
+  ["atlas", [0.4, -0.1, 0], 1.25],
+  ["verba", [-1.7, 1.3, -1.2], 0.72],
+  ["lumen", [2.4, 1.05, -0.8], 0.82],
+  ["chispa", [-1.35, -1.55, -0.4], 0.66],
+  ["trofeo", [2.1, -1.6, -1.6], 0.6],
 ];
 
 function Miembro({ id, pos, s }: { id: string; pos: [number, number, number]; s: number }) {
@@ -30,8 +30,10 @@ function Miembro({ id, pos, s }: { id: string; pos: [number, number, number]; s:
 }
 
 export function Cumulo({ className }: { className?: string }) {
+  const [movil, setMovil] = useState(false);
+  useEffect(() => setMovil(window.innerWidth < 768), []);
   return (
-    <Vista className={className} distancia={8.2} fov={36}>
+    <Vista className={className} distancia={movil ? 10.5 : 8.2} fov={36}>
       {LUGARES.map(([id, pos, s]) => (
         <Miembro key={id} id={id} pos={pos} s={s} />
       ))}

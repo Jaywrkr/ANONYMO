@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "jurado": "node scripts/jurado.mjs"
   },
   "dependencies": {
     "@anonymo/agentes": "*",
@@ -23,11 +24,14 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.15.0",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
     "@types/three": "0.186.0",
+    "lighthouse": "12.8.2",
+    "playwright": "1.56.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3"
   }
