@@ -11,6 +11,8 @@
     "start": "npm run start -w @anonymo/web",
     "lint": "npm run lint -w @anonymo/web",
     "pipeline": "node packages/pipeline/src/cli.ts",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "probar": "npm run probar -w @anonymo/pipeline",
+    "revisar": "npm run revisar -w @anonymo/pipeline"
   }
 }
