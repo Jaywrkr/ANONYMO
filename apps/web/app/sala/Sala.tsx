@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AGENTES, AREAS, FASES, agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { ESTADO_TEXTO } from "@/lib/proyecto";
@@ -13,10 +14,15 @@ const etiqueta = "font-mono text-[12px] uppercase tracking-[0.14em] text-gris";
 
 // Los agentes de la fase pasan al escenario; el resto queda como una fila de puntos de color.
 export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
-  const [pid, setPid] = useState(proyectos[0].id);
+  // El estado vive en la URL: /sala?proyecto=…&fase=4&agente=orla se puede compartir.
+  const params = useSearchParams();
+  const router = useRouter();
+  const ruta = usePathname();
+  const [pid, setPid] = useState(() => (proyectos.some((p) => p.id === params.get("proyecto")) ? params.get("proyecto")! : proyectos[0].id));
   const proyecto = proyectos.find((p) => p.id === pid) ?? proyectos[0];
-  const [fase, setFase] = useState(2);
-  const [sel, setSel] = useState("verba");
+  const [fase, setFase] = useState(() => Number(params.get("fase")) || 2);
+  const [sel, setSel] = useState(() => params.get("agente") ?? "verba");
+  const [copiado, setCopiado] = useState(false);
   const faseValida = proyecto.fases.includes(fase) ? fase : proyecto.fases[0];
   const f = FASES.find((x) => x.n === faseValida)!;
   // En un cliente, solo pasan al frente los agentes que tienen tarea en su plan.
@@ -25,6 +31,27 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
   const agente = agentePorId(elegido)!;
   const msg = proyecto.mensajes[f.n]?.[elegido];
   const resto = useMemo(() => AGENTES.filter((a) => !activos.includes(a.id)), [activos]);
+
+  useEffect(() => {
+    const q = new URLSearchParams();
+    if (pid !== proyectos[0].id) q.set("proyecto", pid);
+    q.set("fase", String(f.n));
+    q.set("agente", elegido);
+    router.replace(`${ruta}?${q}`, { scroll: false });
+    setCopiado(false);
+  }, [pid, f.n, elegido, ruta, router, proyectos]);
+
+  const compartir = async () => {
+    const url = window.location.href;
+    const texto = `${agente.nombre} en la sala de Anonymo`;
+    try {
+      if (navigator.share && matchMedia("(pointer: coarse)").matches) await navigator.share({ title: texto, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        setCopiado(true);
+      }
+    } catch {}
+  };
 
   const irA = (id: string) => {
     const destino = FASES.find((x) => proyecto.fases.includes(x.n) && x.agentes.includes(id) && (pid === "agencia" || proyecto.mensajes[x.n]?.[id]));
@@ -161,6 +188,9 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
                 {SERVICIO[f.n].entrega.map((e) => <li key={e}>{e}</li>)}
               </ul>
             </div>
+            <button onClick={compartir} className="mr-6 mt-6 inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">
+              {copiado ? "Enlace copiado ✓" : `Compartir lo que dijo ${agente.nombre}`}
+            </button>
             <Link href={`/agentes/${agente.id}`} className="mt-6 inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">
               Ficha de {agente.nombre} →
             </Link>
