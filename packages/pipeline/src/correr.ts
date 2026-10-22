@@ -4,6 +4,7 @@ import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProy
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { avisar } from "./avisos.ts";
+import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Motor } from "./motor.ts";
@@ -46,7 +47,8 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const cambio = rehace ? p.cambios[fase] : undefined;
       const herramientas = await prepararHerramientas({ pedido: p.pedido, tarea: t, lecturas: leidas, motorReal: motor.nombre !== "simulado" });
       for (const h of herramientas) bitacora(id, `${h.herramienta}: ${h.ok ? "ok" : "pendiente"}.`);
-      const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto) });
+      const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
+        archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })) });
       guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...r });
       p.tareas[t] = "lista";
       guardarProyecto(p);

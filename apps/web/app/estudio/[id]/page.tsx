@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, enrutar, existe, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, enrutar, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId } from "@anonymo/pipeline";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionSeguir, accionVerReparto } from "../acciones";
+import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
@@ -192,6 +192,32 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             </label>
             <button className={boton}>Cambiar pausas</button>
           </form>
+
+          <div className="rounded-3xl border border-linea p-6">
+            <p className={etiqueta}>Archivos del cliente</p>
+            {listarArchivos(id).length > 0 && (
+              <ul className="mt-3 grid grid-cols-3 gap-2">
+                {listarArchivos(id).map((a) => (
+                  <li key={a.nombre}>
+                    <a href={`/estudio/${id}/archivos/${encodeURIComponent(a.nombre)}`} target="_blank" rel="noreferrer" className="block" title={a.nota ?? a.nombre}>
+                      {esImagen(a.nombre) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/estudio/${id}/archivos/${encodeURIComponent(a.nombre)}`} alt={a.nota ?? a.nombre} className="aspect-square w-full rounded-xl object-cover" />
+                      ) : (
+                        <span className="flex aspect-square w-full items-center justify-center rounded-xl bg-papel p-2 text-center font-mono text-[11px] break-all">{a.nombre}</span>
+                      )}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form action={accionSubir} className="mt-3 grid gap-2">
+              {comunes}
+              <input type="file" name="archivos" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.txt,.md,.svg" className="text-[14px]" aria-label="Archivos" />
+              <input name="nota" placeholder="Nota (ej.: fotos del consultorio)" className={campo} />
+              <button className={boton}>Subir</button>
+            </form>
+          </div>
 
           <div className="rounded-3xl border border-linea p-6">
             <p className={etiqueta}>Portal del cliente</p>
