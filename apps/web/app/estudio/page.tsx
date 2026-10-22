@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { PEDIDOS } from "@anonymo/agentes";
-import { leerEntrega, leerNota, listar } from "@anonymo/pipeline";
-import { ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
+import { agentePorId } from "@anonymo/agentes";
+import { buscar, leerEntrega, leerNota, listar } from "@anonymo/pipeline";
+import { campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
 
 // Todos los proyectos: primero los que esperan una decisión.
-export default function Estudio() {
+export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   exigirEstudio();
+  const { q } = await searchParams;
+  const hallazgos = q ? buscar(q) : [];
   const orden = { esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
   const proyectos = listar().sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
   return (
@@ -17,6 +20,25 @@ export default function Estudio() {
         <h1 className="display text-[clamp(64px,10vw,160px)]">Estudio</h1>
         <p className="max-w-sm text-[17px] text-gris">El panel de Jay y Luna. Aquí se aprueba, se pide cambios y se para. Solo existe en local.</p>
       </div>
+      <form role="search" className="mb-8 flex max-w-2xl gap-2">
+        <input name="q" defaultValue={q} placeholder="Buscar en todas las entregas: paleta, WhatsApp, Cormorant…" className={campo} aria-label="Buscar en todas las entregas" />
+        <button className="rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Buscar</button>
+      </form>
+      {q && (
+        <section aria-label="Resultados" className="mb-10">
+          <p className={etiqueta}>{hallazgos.length} resultado(s) para “{q}”</p>
+          <ul className="mt-3 grid gap-2">
+            {hallazgos.map((h) => (
+              <li key={h.proyecto + h.tarea}>
+                <Link href={`/estudio/${h.proyecto}/${h.tarea.replace(".", "-")}`} className="block rounded-2xl px-4 py-3 hover:bg-papel">
+                  <span className={etiqueta}>{h.cliente} · {agentePorId(h.agente)?.nombre} · {h.titulo}</span>
+                  <span className="mt-1 block text-[15px]">{h.fragmento}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {proyectos.length === 0 && <p className="text-xl font-light">No hay proyectos. Crea uno con <code>npm run pipeline -- nuevo</code>.</p>}
       <ul className="grid gap-3 md:grid-cols-2">
         {proyectos.map((p) => {

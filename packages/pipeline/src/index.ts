@@ -17,3 +17,4 @@ export * from "./costo.ts";
 export * from "./ia.ts";
 export * from "./plantillas.ts";
 export * from "./presupuesto.ts";
+export * from "./buscar.ts";

@@ -14,6 +14,7 @@ import { calendario } from "./calendario.ts";
 import { sumar, PRECIOS } from "./costo.ts";
 import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
 import { presupuestoVivo } from "./presupuesto.ts";
+import { buscar } from "./buscar.ts";
 import { writeFileSync } from "node:fs";
 import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
@@ -43,6 +44,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  buscar    "texto"              busca en todas las entregas de todos los proyectos
   plantillas                     puntos de partida por rubro
   presupuesto <id>               horas base de Ledger + lo que suman los cambios (precio si hay TARIFA_HORA)
   costo     <id>                 cuánto va gastado en IA (real) y cuánto costaría con el motor real (estimado)
@@ -234,6 +236,12 @@ async function main() {
       const b = presupuestoVivo(leerProyecto(necesitaId()));
       console.log(`Base: ${b.base ?? "sin definir"} h · Cambios: +${b.extra} h · Total: ${b.total ?? "—"} h${b.precio ? ` · $${b.precio}` : ""}`);
       for (const a of b.ajustes) console.log(`  +${a.horas} h  ${nombreTarea(a.tarea as `${number}.${string}`)}  ${a.motivo}${a.incluido ? " (ya en el total de Ledger)" : ""}`);
+      return;
+    }
+    case "buscar": {
+      const r = buscar(pos.slice(1).join(" "));
+      if (!r.length) return console.log("Sin resultados.");
+      for (const h of r) console.log(`  ${h.cliente} · ${nombreTarea(h.tarea)} · ${h.titulo}\n    ${h.fragmento}`);
       return;
     }
     case "plantillas":
