@@ -41,3 +41,4 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | web/08-imagenes-para-compartir | Imagen propia al compartir en WhatsApp y redes: inicio, sala y cada agente (en español e inglés), con los óvalos de degradado; tarjeta grande en X | Automático; poner `ANONYMO_URL` al publicar |
 | web/09-transiciones-sala | En la sala, el fondo de la tarjeta elegida se desliza de un agente a otro, las tarjetas entran en cascada al cambiar de fase y el panel cambia con un deslizamiento corto, con el agente elegido en 3D junto a su nombre (todo se apaga con movimiento reducido) | `/sala` |
 | web/10-cursor-agentes | En celular los agentes miran a tu dedo (al tocar o arrastrar) y, al hacer scroll, hacia donde va la página | Celular |
+| web/11-buscador-equipo | Buscador en "Equipo": "¿quién hace logos?", "video", "precio", "who does photos"… por rol, superpoder y sinónimos, en los dos idiomas, combinable con el filtro por área | `/agentes` |

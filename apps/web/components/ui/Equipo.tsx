@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AGENTES, localizar, type AreaId } from "@anonymo/agentes";
+import { AGENTES, localizar, type Agente, type AreaId } from "@anonymo/agentes";
 import { area as nombreArea, enlace, idiomaDeRuta } from "@/lib/idioma";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 
-export function Equipo({ area }: { area?: AreaId | null }) {
+export function Equipo({ area, lista: dada }: { area?: AreaId | null; lista?: Agente[] }) {
   const idioma = idiomaDeRuta(usePathname());
-  const lista = (area ? AGENTES.filter((a) => a.area === area) : AGENTES).map((a) => localizar(a, idioma));
+  const lista = (dada ?? (area ? AGENTES.filter((a) => a.area === area) : AGENTES)).map((a) => localizar(a, idioma));
   return (
     <ul className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {lista.map((a) => (
