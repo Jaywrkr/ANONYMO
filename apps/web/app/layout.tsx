@@ -8,6 +8,7 @@ import { Encabezado, Pie } from "@/components/ui/Encabezado";
 import { Suave } from "@/components/ui/Suave";
 import { Saltar } from "@/components/ui/Saltar";
 import { Movimiento } from "@/components/ui/Movimiento";
+import { Despertar } from "@/components/ui/Despertar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.ANONYMO_URL ?? "http://localhost:3000"),
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Movimiento>
           <Saltar />
+          <Despertar />
           <Encabezado />
           <div id="contenido" tabIndex={-1} className="outline-none">{children}</div>
           <Pie />
