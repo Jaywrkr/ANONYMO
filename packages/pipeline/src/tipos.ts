@@ -18,8 +18,19 @@ export interface Pedido {
     plazo?: string;
     tieneMarca?: boolean;
   };
+  /** Dónde se detiene para que Jay o Luna revisen. Si no viene, lo propone Atlas. */
+  pausas?: Pausas;
   creado: string; // ISO
 }
+
+/**
+ * Pausas de un proyecto:
+ * "nunca"      corre de una y se revisa al final
+ * "cada-fase"  se detiene al cerrar cada fase
+ * "clave"      las que propone Atlas según el tipo de pedido
+ * [1, 4]       solo al cerrar esas fases
+ */
+export type Pausas = "nunca" | "cada-fase" | "clave" | number[];
 
 /** Id de una tarea: fase y agente. "1.sonda", "4.orla". */
 export type TareaId = `${number}.${string}`;
@@ -51,6 +62,10 @@ export interface Plan {
   /** Por qué entra o se salta cada fase, en una línea. */
   razones: Record<number, string>;
   tareas: TareaId[]; // en orden de ejecución
+  /** Tareas que Atlas sacó porque no aplican, con la razón. */
+  quitadas: { id: TareaId; razon: string }[];
+  /** Fases al final de las cuales se detiene. Se puede cambiar en cualquier momento. */
+  pausas: number[];
   preguntas: string[]; // lo que Atlas necesita saber del cliente
 }
 
@@ -95,6 +110,8 @@ export interface Proyecto {
   estado: EstadoProyecto;
   tareas: Record<TareaId, EstadoTarea>;
   puertas: Puerta[];
+  /** Notas de "cambiar" pendientes por fase: los agentes las leen al rehacer. */
+  cambios: Record<number, string>;
   actualizado: string;
 }
 

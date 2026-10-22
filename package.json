@@ -1,11 +1,15 @@
 {
   "name": "anonymo",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev -w @anonymo/web",
     "build": "npm run build -w @anonymo/web",
     "start": "npm run start -w @anonymo/web",
-    "lint": "npm run lint -w @anonymo/web"
+    "lint": "npm run lint -w @anonymo/web",
+    "pipeline": "node packages/pipeline/src/cli.ts"
   }
 }
