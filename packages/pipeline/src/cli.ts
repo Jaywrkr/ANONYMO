@@ -4,7 +4,9 @@ import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CARPETA, leerEntrega, leerProyecto, listar } from "./almacen.ts";
 import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
-import { aprobar, avanzar, cambiar, cambiarPausas, nuevo, parar, reanudar } from "./correr.ts";
+import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar } from "./correr.ts";
+import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
+import { chequear, resumenChequeo } from "./herramientas/dominios.ts";
 import { elegirMotor } from "./motor.ts";
 import type { Pedido, Proyecto, Puerta } from "./tipos.ts";
 
@@ -13,7 +15,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
 
   nuevo     --cliente "Clínica Sonrisa" --tipo web --descripcion "..."
             [--rubro --ciudad --publico --plazo --presupuesto --referencias "a,b"]
-            [--sin-marca | --con-marca] [--pausas clave|nunca|cada-fase|1,4] [--id slug]
+            [--sin-marca | --con-marca] [--url https://...] [--pausas clave|nunca|cada-fase|1,4] [--id slug]
   estado    <id>                 dónde va y qué dijo cada agente
   lista                          todos los proyectos
   aprobar   <id> [--nota "..."]  sigue a la próxima fase
@@ -22,6 +24,11 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   reanudar  <id>                 vuelve a esperar tu decisión
   pausas    <id> <clave|nunca|cada-fase|1,4>    cambia dónde se detiene
   seguir    <id>                 continúa si quedó a medias
+  url       <id> <url>           la web que audita Prisma
+
+Herramientas sueltas:
+  dominios  "Nombre 1" "Nombre 2"   dominios libres y enlaces de redes
+  auditar   <url>                   Lighthouse (celular y escritorio) + accesibilidad
 
   --quien jay|luna  quién decide (por defecto jay)
   --simulado        no usa la clave aunque exista
@@ -106,6 +113,7 @@ async function main() {
           publico: texto(op.publico),
           plazo: texto(op.plazo),
           presupuesto: texto(op.presupuesto),
+          url: texto(op.url),
           referencias: texto(op.referencias)?.split(",").map((s) => s.trim()).filter(Boolean),
           tieneMarca: op["sin-marca"] ? false : op["con-marca"] ? true : undefined,
         },
@@ -143,6 +151,19 @@ async function main() {
       if (!pos[2]) throw new Error("Falta el valor: clave, nunca, cada-fase o 1,4");
       cambiarPausas(necesitaId(), pos[2]);
       return resumen(await avanzar(necesitaId(), motor));
+    }
+    case "url":
+      if (!pos[2]) throw new Error("Falta la URL.");
+      return resumen(cambiarUrl(necesitaId(), pos[2]));
+    case "dominios": {
+      const nombres = pos.slice(1);
+      if (!nombres.length) throw new Error('Pasa uno o más nombres: pipeline dominios "Corsivo" "Lucciola"');
+      return console.log(resumenChequeo(await chequear(nombres)));
+    }
+    case "auditar": {
+      if (!id) throw new Error("Pasa la URL: pipeline auditar https://...");
+      console.log(`Auditando ${id} (toma un minuto)...`);
+      return console.log(resumenAuditoria(await auditar(id)));
     }
     case "seguir":
       return resumen(await avanzar(necesitaId(), motor));

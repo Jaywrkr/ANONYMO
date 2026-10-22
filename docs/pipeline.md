@@ -42,6 +42,26 @@ npm run pipeline -- lista
 
 Atlas ajusta el plan: si el cliente no tiene marca (`--sin-marca`), suma Identidad; si no hay web, saca a Prisma. Las preguntas que falten al cliente salen al final del resumen.
 
+## Herramientas (5.4)
+
+Corren antes de que el agente escriba, en simulado y en real. Lo que traen queda en la entrega, en "Datos de herramientas", y en `datos` para el siguiente agente.
+
+| Herramienta | Quién | Cómo |
+|---|---|---|
+| Búsqueda web | Sonda (investigación) | Con clave: búsqueda web de Anthropic, con fuentes. Sin clave: pendiente |
+| Dominios y redes | Sonda (naming), Chispa | RDAP público para .com, .co y .studio. El .ec y las redes se revisan a mano con los enlaces que deja |
+| Auditoría | Prisma | Lighthouse en celular y escritorio + axe, sobre la URL del proyecto (`--url` o `pipeline url <id> <url>`) |
+| Imágenes | Mira | Pendiente: por ahora describe y arma referencias |
+
+Verba deja sus finalistas en `datos.finalistas` y Sonda revisa esos nombres. Sin finalistas, revisa el nombre del cliente.
+
+También se usan sueltas:
+
+```bash
+npm run pipeline -- dominios "Corsivo" "Lucciola"
+npm run pipeline -- auditar https://ejemplo.com
+```
+
 ## Qué hay en la 5.1 y la 5.2
 
 `packages/pipeline/`
@@ -56,6 +76,7 @@ Atlas ajusta el plan: si el cliente no tiene marca (`--sin-marca`), suma Identid
 | `src/correr.ts` | Ejecuta hasta la próxima pausa; aprobar, cambiar, parar, reanudar, cambiar pausas |
 | `src/almacen.ts` | Lee y escribe la carpeta de cada proyecto |
 | `src/cli.ts` | Los comandos de la terminal |
+| `src/herramientas/` | Dominios y redes, auditoría Lighthouse + axe, y quién usa qué |
 
 `SERVICIO` y `PEDIDOS` pasaron a `@anonymo/agentes` para que la web y el pipeline usen los mismos datos.
 
@@ -81,7 +102,7 @@ Cada entrega es markdown con frontmatter: agente, título, lo que "dice" en la s
 | Sub-fase | Qué |
 |---|---|
 | 5.2 + 5.3 | Atlas y ejecución con pausas por proyecto. **Hecho** |
-| 5.4 Herramientas | Búsqueda web, dominios, redes, Lighthouse. En simulado quedan como pendientes |
+| 5.4 Herramientas | Búsqueda web, dominios, redes, auditoría. **Hecho** (búsqueda web se activa con la clave) |
 | 5.5 Calidad | Nota del Jurado y vuelta atrás si no llega a 7 |
 | 5.6 Caso dentistas | Pedido real de punta a punta y la sala mostrando el proyecto |
 

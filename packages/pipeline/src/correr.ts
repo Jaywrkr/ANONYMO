@@ -3,6 +3,7 @@ import { agentePorId, FASES } from "@anonymo/agentes";
 import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
 import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, lecturas } from "./contratos.ts";
+import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Motor } from "./motor.ts";
 import { NOTA_MINIMA, type Entrega, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
 
@@ -41,7 +42,9 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const version = (previa?.version ?? 0) + 1;
       const leidas = lecturas(t, tareas).map((u) => leerEntrega(id, u)).filter((e): e is Entrega => !!e);
       const cambio = rehace ? p.cambios[fase] : undefined;
-      const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas });
+      const herramientas = await prepararHerramientas({ pedido: p.pedido, tarea: t, lecturas: leidas, motorReal: motor.nombre === "real" });
+      for (const h of herramientas) bitacora(id, `${h.herramienta}: ${h.ok ? "ok" : "pendiente"}.`);
+      const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas });
       guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...r });
       p.tareas[t] = "lista";
       guardarProyecto(p);
@@ -138,5 +141,15 @@ export function cambiarPausas(id: string, valor: string) {
   if (p.estado === "esperando" && !p.plan.pausas.includes(p.faseActual)) p.estado = "en-curso";
   guardarProyecto(p);
   bitacora(id, `Pausas cambiadas a ${p.plan.pausas.join(", ") || "ninguna"}.`);
+  return p;
+}
+
+/** Agrega o cambia la URL que audita Prisma. */
+export function cambiarUrl(id: string, url: string) {
+  if (!/^https?:\/\//.test(url)) throw new Error("La URL debe empezar con http:// o https://");
+  const p = leerProyecto(id);
+  p.pedido.contexto = { ...p.pedido.contexto, url };
+  guardarProyecto(p);
+  bitacora(id, `URL para auditar: ${url}`);
   return p;
 }
