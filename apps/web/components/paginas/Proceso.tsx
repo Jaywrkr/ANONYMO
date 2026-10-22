@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FASES, agentePorId } from "@anonymo/agentes";
 import { AgenteVista } from "@/components/escena/AgenteVista";
 import { enlace, fase, servicio, type Idioma } from "@/lib/idioma";
+import { precioFase } from "@/lib/precios";
 
 const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
 
@@ -40,6 +41,8 @@ export function Proceso({ idioma }: { idioma: Idioma }) {
                   </dd>
                   <dt className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">{en ? "Typical length" : "Duración típica"}</dt>
                   <dd>{s.dura}</dd>
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">{en ? "Price" : "Precio"}</dt>
+                  <dd>{precioFase(x.n, idioma).texto}</dd>
                 </dl>
                 <ul className="flex flex-wrap gap-2">
                   {f.agentes.map((id) => {
@@ -59,7 +62,12 @@ export function Proceso({ idioma }: { idioma: Idioma }) {
           );
         })}
       </ol>
-      <div className="border-t border-tinta pt-12">
+      <p className="max-w-xl border-t border-tinta pt-6 text-[15px] text-gris">
+        {en
+          ? "Each phase is priced on its own and you only pay for the ones you need. The exact number comes in phase 01, once Atlas and Ledger understand the project."
+          : "Cada fase se cobra por separado y solo pagas las que necesitas. El número exacto sale en la fase 01, cuando Atlas y Ledger entienden el proyecto."}
+      </p>
+      <div className="mt-8 border-t border-tinta pt-12">
         <Link href={enlace("/sala", idioma)} className="font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">{en ? "See a live project in the room →" : "Ver un proyecto en vivo en la sala →"}</Link>
       </div>
     </main>
