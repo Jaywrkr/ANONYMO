@@ -79,7 +79,17 @@ function recursos() {
 }
 
 // Mirada compartida: si el cursor no se mueve en 3 s, los agentes miran a su alrededor solos.
-const mirada = { x: 0, y: 0, ultimo: 0 };
+const mirada = { x: 0, y: 0, ultimo: 0, tactil: -1e9 };
+
+/**
+ * En celular no hay cursor: el dedo y el scroll mandan (web/10).
+ * x, y en -1..1 (centro de la pantalla = 0).
+ */
+export function mirarA(x: number, y: number) {
+  mirada.x = Math.max(-1, Math.min(1, x));
+  mirada.y = Math.max(-1, Math.min(1, y));
+  mirada.tactil = performance.now();
+}
 
 interface Props {
   agente: Agente;
@@ -127,7 +137,10 @@ export function Agente3D({ agente, apagado = false, conProp = true, escala = 1, 
     const quieto = estaQuieto();
 
     // Mirada: cursor real o paseo automático.
-    if (state.pointer.x !== e.px || state.pointer.y !== e.py) {
+    const porDedo = performance.now() - mirada.tactil < 3000;
+    if (porDedo) {
+      // El dedo manda: no se pisa con el puntero ni con el paseo automático.
+    } else if (state.pointer.x !== e.px || state.pointer.y !== e.py) {
       e.px = state.pointer.x; e.py = state.pointer.y; mirada.ultimo = reloj;
       mirada.x = state.pointer.x; mirada.y = state.pointer.y;
     } else if (!quieto && reloj - mirada.ultimo > 3) {
