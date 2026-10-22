@@ -9,6 +9,9 @@ import { tokenPortal } from "./portal.ts";
 import { avisar, canalesActivos } from "./avisos.ts";
 import { adjuntar, listarArchivos } from "./archivos.ts";
 import { responder } from "./cuestionario.ts";
+import { exportarPdf } from "./pdf.ts";
+import { writeFileSync } from "node:fs";
+import { join as unir } from "node:path";
 import { dependientes } from "./contratos.ts";
 import { aprobar, avanzar, cambiar, cambiarPausas, cambiarUrl, nuevo, parar, reanudar, restaurar } from "./correr.ts";
 import { auditar, resumenAuditoria } from "./herramientas/auditar.ts";
@@ -34,6 +37,7 @@ pipeline · el equipo de 22 agentes trabajando un pedido
   url       <id> <url>           la web que audita Prisma
   adjuntar  <id> <archivo...> [--nota "..."]   fotos, logos o PDFs del cliente para los agentes
   archivos  <id>                 lista los archivos del proyecto
+  pdf       <id> [--internas]    PDF para el cliente con las entregas listas (en proyectos/<id>/)
   responder <id> <n> "respuesta"   responde la pregunta n de Atlas (las ves con: estado <id>)
   avisos    <id>                 manda un aviso de prueba y dice qué canales están activos
   volver    <id> <fase-agente> <versión>   vuelve a una versión anterior (ej.: volver mi-cliente 3-mira 1)
@@ -196,6 +200,12 @@ async function main() {
       if (!rutas.length) throw new Error("Pasa uno o más archivos.");
       for (const r of rutas) console.log(`  + ${adjuntar(necesitaId(), r, texto(op.nota)).nombre}`);
       return;
+    }
+    case "pdf": {
+      const buf = await exportarPdf(necesitaId(), { internas: op.internas === true });
+      const ruta = unir(CARPETA, id, `${id}${op.internas ? "-interno" : ""}.pdf`);
+      writeFileSync(ruta, buf);
+      return console.log(`PDF listo: ${relative(process.cwd(), ruta)} (${(buf.length / 1024).toFixed(0)} KB)`);
     }
     case "responder": {
       const p = leerProyecto(necesitaId());

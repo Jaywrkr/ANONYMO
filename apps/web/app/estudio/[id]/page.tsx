@@ -43,6 +43,10 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {nota && <p className="display text-7xl">{String(nota.final).replace(".", ",")}</p>}
       </div>
       <p className="max-w-3xl text-lg font-light">{p.pedido.descripcion}</p>
+      <p className="mt-3 flex flex-wrap gap-4">
+        <a href={`/estudio/${id}/pdf`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF para el cliente ↓</a>
+        <a href={`/estudio/${id}/pdf?internas=1`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF interno ↓</a>
+      </p>
 
       {(ok || error) && (
         <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>
