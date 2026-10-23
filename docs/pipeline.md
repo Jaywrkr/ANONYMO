@@ -171,6 +171,30 @@ Después: **Redeploy** en Vercel para que tome las variables.
 
 **Límites de hoy:** cada acción con agentes reales tiene hasta 5 minutos (si una fase grande tarda más, córrela desde la terminal); el PDF necesita Playwright y no funciona en Vercel (sácalo desde tu máquina); la auditoría con Lighthouse tampoco.
 
+## Atlas decide quién trabaja (sistema/23)
+
+**Cómo se usa:** Estudio → **+ Nuevo proyecto** → escribes lo que hablaste con el cliente, como se lo contarías a un socio (con enlaces si los hay) → **Que Atlas arme el plan**.
+
+- **Atlas lee el texto** (con el modelo rápido: centavos) y saca el cliente, el tipo de pedido, los datos (ciudad, plazo, presupuesto, referencias, si tiene marca), el idioma y la plantilla.
+- **Elige tarea por tarea** quién trabaja y por qué, y quién no y por qué. Regla de oro: cada tarea cuesta, nada «por si acaso».
+- **Nadie trabaja todavía:** el proyecto queda en «Plan por aprobar» con el costo aproximado.
+- **Si algo no cuadra**, se corrige con palabras («sin video», «sí necesita nombre») y Atlas rehace el plan.
+- **«Que empiecen»:** el equipo trabaja hasta la primera pausa.
+
+Sin clave de Anthropic, Atlas usa reglas por palabras clave (logo → marca; sonido, 3D, video, fotos, evento o redes encienden a Eco, Lumen, Corte, Lente, Escena o Chispa solo si se mencionan; naming solo si falta el nombre).
+
+**Ahorro de tokens:**
+
+| Qué | Cómo |
+|---|---|
+| Solo los agentes necesarios | Atlas elige tarea por tarea |
+| Modelo según el peso | Tareas livianas (frases, chequeos, calendario, cuentas, métricas, sonido) con `ANTHROPIC_MODEL_RAPIDO` |
+| Tope de escritura | 2.500 tokens por entrega (más solo para plan, nombres, sistema visual, diseño, construcción y jurado) y la orden de no rellenar |
+| Lo que leen de otros | Entregas largas recortadas (principio y final); el jurado lee versiones más cortas |
+| Búsquedas | Máximo 4 por tarea y solo para Sonda y Vector |
+
+**Enlaces:** Sonda, Nova, Orla, Vector y Prisma abren los enlaces que aparecen en el pedido (máximo 3 por tarea). Para lo visual (cómo se ve una web o un Instagram), sube también una captura como imagen: Mira, Orla, Lumen, Lente, Corte y Trofeo ven las imágenes.
+
 ## Lo que sigue
 
 | Sub-fase | Qué |

@@ -1,7 +1,7 @@
 // Corre un proyecto hasta la siguiente pausa y maneja las decisiones de Jay y Luna.
 import { agentePorId, FASES, NOMBRE_SOCIO, RESPONSABLE_FASE } from "@anonymo/agentes";
-import { bitacora, crear, guardarEntrega, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
-import { leerPausas, planificar, resolverPausas } from "./atlas.ts";
+import { bitacora, crear, guardarEntrega, guardarPedido, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
+import { entenderPedido, leerPausas, planificar, resolverPausas } from "./atlas.ts";
 import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { avisar } from "./avisos.ts";
 import { estimar, textoEntrada } from "./costo.ts";
@@ -25,11 +25,51 @@ export async function nuevo(pedido: Pedido, motor: Motor = elegirMotor(), aviso:
   return avanzar(p.pedido.id, motor, aviso);
 }
 
+/** Jay o Luna dicen «que empiecen»: el plan queda aprobado y el equipo trabaja hasta la primera pausa. */
+export async function empezar(id: string, quien: "jay" | "luna", motor: Motor = elegirMotor(), aviso: Aviso = console.log) {
+  const p = leerProyecto(id);
+  if (p.estado !== "plan") throw new Error("Este proyecto ya empezó.");
+  p.estado = "en-curso";
+  guardarProyecto(p);
+  bitacora(id, `${quien === "luna" ? "Luna" : "Jay"} aprobó el plan: trabajan ${p.plan.tareas.length} tareas.`);
+  return avanzar(id, motor, aviso);
+}
+
+/**
+ * Antes de empezar, Jay o Luna corrigen el plan con palabras («sin video», «sí necesita naming»).
+ * Atlas vuelve a leer todo con el ajuste y rehace el plan. Después de empezar, los cambios van por «Pedir cambios».
+ */
+export async function replanear(id: string, ajuste: string, quien: "jay" | "luna") {
+  const p = leerProyecto(id);
+  if (p.estado !== "plan") throw new Error("El plan solo se ajusta antes de empezar. Ahora usa «Pedir cambios».");
+  const texto = ajuste.trim();
+  if (!texto) throw new Error("Escribe qué cambiar del plan.");
+  const quienN = quien === "luna" ? "Luna" : "Jay";
+  const descripcion = `${p.pedido.descripcion}\n\nAjuste de ${quienN}: ${texto}`;
+  const l = await entenderPedido(descripcion, { cliente: p.pedido.cliente });
+  const pedido = {
+    ...p.pedido,
+    descripcion,
+    tipo: l.tipo,
+    contexto: { ...p.pedido.contexto, ...Object.fromEntries(Object.entries(l.contexto).filter(([, v]) => v !== undefined)) },
+    idioma: l.idioma ?? p.pedido.idioma,
+    plantilla: l.plantilla ?? p.pedido.plantilla,
+  };
+  p.pedido = pedido;
+  p.plan = planificar(pedido, l.eleccion);
+  p.faseActual = p.plan.fases[0];
+  p.tareas = Object.fromEntries(p.plan.tareas.map((t) => [t, "por-empezar"])) as typeof p.tareas;
+  guardarPedido(pedido);
+  guardarProyecto(p);
+  bitacora(id, `${quienN} ajustó el plan («${texto.slice(0, 120)}»). Ahora trabajan ${p.plan.tareas.length} tareas.`);
+  return p;
+}
+
 /** Ejecuta tareas pendientes en orden. Se detiene al cerrar una fase con pausa. */
 export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: Aviso = console.log): Promise<Proyecto> {
   const p = leerProyecto(id);
   if (p.estado === "parado") throw new Error("El proyecto está parado.");
-  if (p.estado === "esperando") return p;
+  if (p.estado === "esperando" || p.estado === "plan") return p;
   p.estado = "en-curso";
 
   const { tareas } = p.plan;

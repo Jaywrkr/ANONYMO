@@ -63,6 +63,10 @@ export interface Contrato {
   criterios: string[];
   /** Solo para el equipo: no se muestra en el portal del cliente (precios internos, nota del jurado, ventas). */
   interna?: boolean;
+  /** Tarea liviana (sistema/23): la hace el modelo rápido (Haiku), más barato. */
+  ligera?: boolean;
+  /** Tope de tokens de salida. Por defecto 2500: entregas concretas, sin relleno. */
+  salida?: number;
   /** Herramientas que necesita de verdad (fase 5.4). En simulado se marcan como pendientes. */
   herramientas?: ("web" | "dominios" | "redes" | "lighthouse" | "imagen")[];
 }
@@ -79,6 +83,10 @@ export interface Plan {
   /** Fases al final de las cuales se detiene. Se puede cambiar en cualquier momento. */
   pausas: number[];
   preguntas: string[]; // lo que Atlas necesita saber del cliente
+  /** Lo que Atlas entendió del pedido, en una o dos frases (sistema/23). */
+  resumen?: string;
+  /** El plan lo armó Atlas con IA leyendo el pedido (si no, con reglas fijas). */
+  porIA?: boolean;
 }
 
 export type HerramientaId = NonNullable<Contrato["herramientas"]>[number];
@@ -128,7 +136,8 @@ export interface Puerta {
   fecha: string;
 }
 
-export type EstadoProyecto = "en-curso" | "esperando" | "listo" | "parado";
+/** "plan": Atlas armó el plan y espera que Jay o Luna digan «que empiecen» (sistema/23). */
+export type EstadoProyecto = "plan" | "en-curso" | "esperando" | "listo" | "parado";
 
 /** Algo que dijo el cliente. Todos los agentes lo leen desde que entra. */
 export interface NotaCliente {

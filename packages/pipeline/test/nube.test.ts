@@ -38,7 +38,7 @@ function nubeFalsa() {
       return Response.json({});
     }
     const d = datos.get(m[2]);
-    return d ? new Response(d) : new Response("no", { status: 404 });
+    return d ? new Response(d as unknown as BodyInit) : new Response("no", { status: 404 });
   }) as typeof fetch;
   return { datos, f };
 }
