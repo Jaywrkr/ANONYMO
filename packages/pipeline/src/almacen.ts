@@ -35,7 +35,8 @@ export function listar(): Proyecto[] {
   return readdirSync(CARPETA).filter(existe).map(leerProyecto);
 }
 
-export function crear(pedido: Pedido, plan: Plan): Proyecto {
+/** Crea el proyecto. Con estado "plan", espera que Jay o Luna digan «que empiecen» (sistema/23). */
+export function crear(pedido: Pedido, plan: Plan, estado: Proyecto["estado"] = "en-curso"): Proyecto {
   if (existe(pedido.id)) throw new Error(`Ya existe un proyecto "${pedido.id}".`);
   guardar(join(dir(pedido.id), ARCHIVOS.pedido), pedido);
   guardar(join(dir(pedido.id), ARCHIVOS.plan), plan);
@@ -43,7 +44,7 @@ export function crear(pedido: Pedido, plan: Plan): Proyecto {
     pedido,
     plan,
     faseActual: plan.fases[0],
-    estado: "en-curso",
+    estado,
     tareas: Object.fromEntries(plan.tareas.map((t) => [t, "por-empezar"])) as Proyecto["tareas"],
     puertas: [],
     cambios: {},
@@ -56,6 +57,11 @@ export function crear(pedido: Pedido, plan: Plan): Proyecto {
 export function leerProyecto(id: string): Proyecto {
   if (!existe(id)) throw new Error(`No hay proyecto "${id}". Mira la lista con: pipeline lista`);
   return json(join(dir(id), ARCHIVOS.estado));
+}
+
+/** Reescribe el pedido (cuando Atlas lo vuelve a leer con un ajuste). */
+export function guardarPedido(pedido: Pedido) {
+  guardar(join(dir(pedido.id), ARCHIVOS.pedido), pedido);
 }
 
 export function guardarProyecto(p: Proyecto) {

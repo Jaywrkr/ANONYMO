@@ -109,6 +109,16 @@ export const simulado: Motor = {
   },
 };
 
+/** Agentes que pueden abrir los enlaces del pedido: investigan, definen la marca, diseñan, construyen o auditan. */
+const LECTORES = ["sonda", "nova", "orla", "vector", "prisma"];
+
+/** Lo que un agente lee de otro: completo si es corto; si es largo, el principio y el final (ahorra tokens). */
+export function recortar(texto: string, max: number): string {
+  if (texto.length <= max) return texto;
+  const cabeza = Math.floor(max * 0.75);
+  return `${texto.slice(0, cabeza)}\n\n[… recortado para ahorrar: ${texto.length - max} caracteres; está completo en el estudio …]\n\n${texto.slice(-(max - cabeza))}`;
+}
+
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
@@ -118,6 +128,10 @@ export const real: Motor = {
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const buscaEnWeb = c.herramientas?.includes("web");
+    // Enlaces que dieron Jay, Luna o el cliente: los agentes que investigan o diseñan pueden abrirlos (sistema/23).
+    const enlaces = [...new Set([pedido.descripcion, JSON.stringify(pedido.contexto ?? {}), ...cliente].join(" ").match(/https?:\/\/[^\s"'<>)\]]+/g) ?? [])];
+    const abreEnlaces = enlaces.length > 0 && LECTORES.includes(c.agente);
+    const rapido = !!c.ligera;
     const sistema = [
       `Eres ${a.nombre}, ${a.rol} en una agencia creativa de Cuenca, Ecuador, dirigida por Jay y Luna.`,
       `Carácter: ${a.caracter} Tu ADN: ${a.adn}. Tu superpoder: ${a.superpoder} Tu frase: "${a.frase}"`,
@@ -125,7 +139,9 @@ export const real: Motor = {
         ? "Write in English for the client: plain and direct, short sentences, common words, no jargon, no filler. Keep the markers DICE/NECESITA/NOTA/FINALISTAS/HORAS exactly as written, but write their content in English."
         : "Escribes en español, directo y simple: frases cortas, palabras comunes, cero jerga y cero relleno.",
       "No inventes datos, enlaces ni precios de terceros: si algo hay que verificarlo, márcalo como [verificar].",
-      buscaEnWeb ? "Puedes buscar en la web. Usa fuentes reales y pon el enlace de cada una." : "",
+      "Sé concreto: la entrega es para trabajar, no para impresionar. Sin introducciones, sin repetir el pedido, sin relleno. Listas y tablas cuando ayuden.",
+      buscaEnWeb ? "Puedes buscar en la web. Usa fuentes reales y pon el enlace de cada una. Busca solo lo que tu tarea necesita." : "",
+      abreEnlaces ? "Puedes abrir los enlaces que aparecen en el pedido (herramienta web_fetch). Abre solo los que sirvan para tu tarea y di qué sacaste de cada uno." : "",
       "Responde en markdown. Al final agrega exactamente dos líneas:",
       "DICE: lo que dirías en la sala del proyecto, en una o dos frases.",
       "NECESITA: lo que necesitas del cliente o del equipo para seguir.",
@@ -149,7 +165,7 @@ export const real: Motor = {
       cambio ? `# Cambio pedido\n${cambio}` : "",
       preguntas.length && c.fase === 1 ? "# Preguntas abiertas al cliente\n" + preguntas.map((p) => `- ${p}`).join("\n") : "",
       herramientas.length ? "# Datos de herramientas (reales, úsalos tal cual)\n" + herramientas.map((h) => `## ${h.herramienta}\n${h.resumen}`).join("\n\n") : "",
-      ...lecturas.map((e) => `# Entrega de ${agentePorId(e.agente)?.nombre}: ${e.titulo}\n${e.contenido}`),
+      ...lecturas.map((e) => `# Entrega de ${agentePorId(e.agente)?.nombre}: ${e.titulo}\n${recortar(e.contenido, c.usa === "todo" ? 5000 : 12000)}`),
     ].filter(Boolean).join("\n\n");
 
     type Bloque = { type: string; text?: string; source?: unknown };
@@ -172,11 +188,19 @@ export const real: Motor = {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
-          model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
-          max_tokens: 6000,
+          // Tareas livianas con el modelo rápido; el resto con el principal.
+          model: rapido ? process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5" : process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
+          max_tokens: c.salida ?? 2500,
           system: sistema,
           messages: mensajes,
-          ...(buscaEnWeb ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }] } : {}),
+          ...(buscaEnWeb || abreEnlaces
+            ? {
+                tools: [
+                  ...(buscaEnWeb ? [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }] : []),
+                  ...(abreEnlaces ? [{ type: "web_fetch_20250910", name: "web_fetch", max_uses: 3, max_content_tokens: 5000 }] : []),
+                ],
+              }
+            : {}),
         }),
       });
       if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
@@ -216,7 +240,7 @@ export const real: Motor = {
       nota: nota ? Number.parseFloat(nota) : undefined,
       datos: Object.keys(datos).length ? datos : undefined,
       modo: "real",
-      uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas), estimado: false },
+      uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false },
     };
   },
 };

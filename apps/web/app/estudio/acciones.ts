@@ -2,9 +2,8 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { bitacora, crear, leerPausas, nubeActiva, planificar, plantillaPorId, proyectosEnNube, slug, type Pedido } from "@anonymo/pipeline";
-import { PEDIDOS, type TipoPedido } from "@anonymo/agentes";
-import { anotar, aprobar, archivarSolicitud, listarSolicitudes, nuevo, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
+import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube } from "@/lib/nube";
@@ -151,18 +150,23 @@ export async function accionConvertirSolicitud(f: FormData) {
   await exigirEstudio();
   const sid = String(f.get("solicitud") ?? "");
   const plantilla = String(f.get("plantilla") ?? "") || undefined;
-  const motor = elegirMotor({ simulado: f.get("motor") === "simulado" });
   let destino = "/estudio";
   try {
     const pedido = await conNube(["_solicitudes"], async () => {
       const s = listarSolicitudes().find((x) => x.id === sid);
       if (!s) throw new Error("La solicitud ya no existe.");
-      const pedido = { ...pedidoDeSolicitud(s), plantilla };
-      await conNube([pedido.id], () => nuevo(pedido, motor, silencio));
+      // Atlas lee el mensaje del cliente y arma el plan; nadie trabaja hasta «que empiecen».
+      const l = await entenderPedido(s.mensaje, { cliente: s.nombre });
+      const pedido: Pedido = { ...pedidoDeSolicitud(s), tipo: l.tipo, contexto: l.contexto, idioma: l.idioma, plantilla: plantilla ?? l.plantilla };
+      await conNube([pedido.id], () => {
+        const plan = planificar(pedido, l.eleccion);
+        crear(pedido, plan, "plan");
+        bitacora(pedido.id, `Solicitud de la web de ${s.nombre}. Atlas armó el plan: ${plan.tareas.length} tareas.`);
+      });
       archivarSolicitud(sid);
       return pedido;
     });
-    destino = `/estudio/${pedido.id}?ok=${encodeURIComponent("Proyecto creado: Atlas armó el plan y el equipo empezó.")}`;
+    destino = `/estudio/${pedido.id}`;
   } catch (e) {
     destino = `/estudio?error=${encodeURIComponent((e as Error).message)}`;
   }
@@ -180,63 +184,50 @@ export async function accionDescartarSolicitud(f: FormData) {
 }
 
 /**
- * Nuevo proyecto desde el estudio: Jay o Luna cargan el pedido después de hablar con el cliente.
- * Atlas arma el plan con ese contexto; con "empezar", el equipo trabaja hasta la primera pausa.
+ * Nuevo proyecto: Jay o Luna cuentan lo que hablaron con el cliente, en sus palabras.
+ * Atlas lo lee, saca los datos y decide qué agentes trabajan. Nadie trabaja hasta «que empiecen».
  */
 export async function accionNuevoProyecto(f: FormData) {
   const yo = await exigirEstudio();
-  const t = (k: string) => String(f.get(k) ?? "").trim() || undefined;
-  const cliente = t("cliente");
-  const tipo = t("tipo") as TipoPedido | undefined;
-  const descripcion = t("descripcion");
-  const empezar = f.get("empezar") === "1";
-  const motor = elegirMotor({ simulado: f.get("motor") === "simulado" });
+  const quienN = yo === "luna" ? "Luna" : "Jay";
+  const texto = String(f.get("texto") ?? "").trim();
+  const nombre = String(f.get("cliente") ?? "").trim().slice(0, 80) || undefined;
   const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0).slice(0, 15);
   let destino = "/estudio/nuevo";
   try {
-    if (!cliente) throw new Error("Escribe el nombre del cliente.");
-    if (!tipo || !(tipo in PEDIDOS)) throw new Error("Elige qué quiere el cliente.");
-    if (!descripcion || descripcion.length < 20) throw new Error("Cuenta el contexto: al menos un par de frases de lo que hablaron.");
-    const plantilla = t("plantilla");
-    if (plantilla && !plantillaPorId(plantilla)) throw new Error("Esa plantilla no existe.");
+    if (texto.length < 20) throw new Error("Cuéntale a Atlas un poco más: al menos un par de frases de lo que hablaron.");
+    const l = await entenderPedido(texto, { cliente: nombre, archivos: archivos.map((a) => a.name) });
+    const cliente = l.cliente;
+    if (!cliente) throw new Error("Atlas no encontró el nombre del cliente. Escríbelo en «Cliente».");
     // Nombre único: mira lo que hay en local y, en línea, también en la nube.
     const usados = new Set(nubeActiva() ? await proyectosEnNube() : []);
     const base = slug(cliente);
     let id = base;
     for (let i = 2; usados.has(id) || existe(id); i++) id = `${base}-${i}`;
-    const pedido: Pedido = {
-      id,
-      cliente,
-      correo: t("correo"),
-      tipo,
-      descripcion,
-      contexto: {
-        rubro: t("rubro"),
-        ciudad: t("ciudad"),
-        publico: t("publico"),
-        plazo: t("plazo"),
-        presupuesto: t("presupuesto"),
-        url: t("url"),
-        referencias: t("referencias")?.split(/\n|,/).map((x) => x.trim()).filter(Boolean),
-        tieneMarca: f.get("marca") === "si" ? true : f.get("marca") === "no" ? false : undefined,
-      },
-      pausas: t("pausas") ? leerPausas(t("pausas")!) : undefined,
-      idioma: f.get("idioma") === "en" ? "en" : undefined,
-      plantilla,
-      creado: new Date().toISOString(),
-    };
+    const pedido: Pedido = { id, cliente, tipo: l.tipo, descripcion: texto, contexto: l.contexto, idioma: l.idioma, plantilla: l.plantilla, creado: new Date().toISOString() };
     await conNube([id], async () => {
-      const plan = planificar(pedido);
-      crear(pedido, plan);
-      bitacora(id, `${yo === "luna" ? "Luna" : "Jay"} cargó el pedido de ${cliente} (${tipo}). Atlas planificó fases ${plan.fases.join(", ")}; pausas en ${plan.pausas.join(", ") || "ninguna"}.`);
+      const plan = planificar(pedido, l.eleccion);
+      crear(pedido, plan, "plan");
+      bitacora(id, `${quienN} contó el pedido de ${cliente}. Atlas ${plan.porIA ? "lo leyó con IA" : "usó sus reglas"}: trabajan ${plan.tareas.length} tareas en las fases ${plan.fases.join(", ")}.`);
       // Los archivos entran antes de que trabajen: así los agentes los ven desde la primera entrega.
-      for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), `Subido por ${yo === "luna" ? "Luna" : "Jay"} al crear el proyecto`);
-      if (empezar) await avanzar(id, motor, silencio);
+      for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), `Subido por ${quienN} al crear el proyecto`);
     });
-    destino = `/estudio/${id}?ok=${encodeURIComponent(empezar ? "Proyecto creado: Atlas armó el plan y el equipo trabajó hasta la primera pausa." : "Proyecto creado con el plan de Atlas. Revisa y dale a «Seguir» cuando quieras que empiecen.")}`;
+    destino = `/estudio/${id}`;
   } catch (e) {
     destino = `/estudio/nuevo?error=${encodeURIComponent((e as Error).message)}`;
   }
   revalidatePath("/estudio");
   redirect(destino);
+}
+
+/** «Que empiecen»: el plan queda aprobado y el equipo trabaja hasta la primera pausa. */
+export async function accionEmpezar(f: FormData) {
+  const { id, quien, motor } = await leer(f);
+  await correr(id, () => empezar(id, quien, motor, silencio), "El equipo trabajó hasta la primera pausa.");
+}
+
+/** Corregir el plan con palabras antes de empezar: Atlas lo vuelve a leer. */
+export async function accionReplanear(f: FormData) {
+  const { id, quien } = await leer(f);
+  await correr(id, () => replanear(id, String(f.get("ajuste") ?? ""), quien), "Atlas rehízo el plan con tu ajuste.");
 }

@@ -20,7 +20,7 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
   const { q, error } = await searchParams;
   const solicitudes = listarSolicitudes();
   const hallazgos = q ? buscar(q) : [];
-  const orden = { esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
+  const orden = { plan: 0, esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
   const proyectos = listar().sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
   return (
     <main className={`${lateral} pb-16`}>

@@ -39,6 +39,7 @@ export const botonLleno =
 export const campo = "w-full rounded-2xl border border-linea bg-papel p-3 text-[15px] outline-none focus:border-tinta";
 
 export const ESTADO_PROYECTO: Record<string, string> = {
+  plan: "Plan por aprobar",
   "en-curso": "En curso",
   esperando: "Espera tu decisión",
   listo: "Listo",

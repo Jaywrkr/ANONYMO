@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
 import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
+import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { sesionConfigurada } from "@/lib/sesion";
 import { traer } from "@/lib/nube";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
@@ -56,9 +57,14 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         <a href={`/estudio/${id}/pdf?internas=1`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF interno ↓</a>
       </p>
 
+      {(ok || error) && p.estado === "plan" && (
+        <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>
+      )}
+      {p.estado === "plan" && <PlanAtlas p={p} conIA={!!process.env.ANTHROPIC_API_KEY} />}
+
       <section aria-label="Calendario" className="mt-8 max-w-4xl"><p className={`${etiqueta} mb-3`}>Calendario</p><Calendario tramos={calendario(p)} /></section>
 
-      {(ok || error) && (
+      {(ok || error) && p.estado !== "plan" && (
         <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>
       )}
 
