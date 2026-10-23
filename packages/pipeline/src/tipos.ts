@@ -87,6 +87,8 @@ export interface Plan {
   resumen?: string;
   /** El plan lo armó Atlas con IA leyendo el pedido (si no, con reglas fijas). */
   porIA?: boolean;
+  /** Si no usó IA, por qué (para que Jay y Luna lo vean y lo arreglen). */
+  sinIA?: string;
 }
 
 export type HerramientaId = NonNullable<Contrato["herramientas"]>[number];
