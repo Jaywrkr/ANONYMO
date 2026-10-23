@@ -27,6 +27,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/19-revisar-sistema | `doctor`: revisa Node, dependencias, contrato, carpeta, candado, clave (con `--en-vivo` la prueba), navegador, avisos, nube y tarifa, y dice cómo arreglar lo que falta. Un solo `.env.local` en la raíz para web y terminal | `npm run pipeline -- doctor` |
 | sistema/20-entregas-en-ingles | Proyectos en inglés: los agentes escriben en inglés y el portal y el PDF salen en inglés | `pipeline nuevo ... --idioma en`; `pipeline idioma <id> en` |
 | sistema/21-estudio-en-linea | Estudio en línea: entrada con clave para Jay y Luna (sesión firmada, acciones a nombre de quien entró) y proyectos, solicitudes y analítica guardados en el almacén privado de Supabase para funcionar en Vercel | `/entrar` → `/estudio` (ver `docs/pipeline.md`) |
+| sistema/22-nuevo-proyecto-estudio | «Nuevo proyecto» en el estudio: Jay o Luna cargan el pedido después de hablar con el cliente (contexto completo, datos sueltos, archivos, plantilla, idioma, pausas) y eligen si el equipo empieza ya o solo arma el plan | Estudio → «+ Nuevo proyecto» (`/estudio/nuevo`) |
 
 ## Web
 

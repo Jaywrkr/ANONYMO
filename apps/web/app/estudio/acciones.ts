@@ -2,7 +2,9 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anotar, aprobar, archivarSolicitud, listarSolicitudes, nuevo, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { bitacora, crear, leerPausas, nubeActiva, planificar, plantillaPorId, proyectosEnNube, slug, type Pedido } from "@anonymo/pipeline";
+import { PEDIDOS, type TipoPedido } from "@anonymo/agentes";
+import { anotar, aprobar, archivarSolicitud, listarSolicitudes, nuevo, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube } from "@/lib/nube";
@@ -175,4 +177,66 @@ export async function accionDescartarSolicitud(f: FormData) {
   } catch {}
   revalidatePath("/estudio");
   redirect("/estudio");
+}
+
+/**
+ * Nuevo proyecto desde el estudio: Jay o Luna cargan el pedido después de hablar con el cliente.
+ * Atlas arma el plan con ese contexto; con "empezar", el equipo trabaja hasta la primera pausa.
+ */
+export async function accionNuevoProyecto(f: FormData) {
+  const yo = await exigirEstudio();
+  const t = (k: string) => String(f.get(k) ?? "").trim() || undefined;
+  const cliente = t("cliente");
+  const tipo = t("tipo") as TipoPedido | undefined;
+  const descripcion = t("descripcion");
+  const empezar = f.get("empezar") === "1";
+  const motor = elegirMotor({ simulado: f.get("motor") === "simulado" });
+  const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0).slice(0, 15);
+  let destino = "/estudio/nuevo";
+  try {
+    if (!cliente) throw new Error("Escribe el nombre del cliente.");
+    if (!tipo || !(tipo in PEDIDOS)) throw new Error("Elige qué quiere el cliente.");
+    if (!descripcion || descripcion.length < 20) throw new Error("Cuenta el contexto: al menos un par de frases de lo que hablaron.");
+    const plantilla = t("plantilla");
+    if (plantilla && !plantillaPorId(plantilla)) throw new Error("Esa plantilla no existe.");
+    // Nombre único: mira lo que hay en local y, en línea, también en la nube.
+    const usados = new Set(nubeActiva() ? await proyectosEnNube() : []);
+    const base = slug(cliente);
+    let id = base;
+    for (let i = 2; usados.has(id) || existe(id); i++) id = `${base}-${i}`;
+    const pedido: Pedido = {
+      id,
+      cliente,
+      correo: t("correo"),
+      tipo,
+      descripcion,
+      contexto: {
+        rubro: t("rubro"),
+        ciudad: t("ciudad"),
+        publico: t("publico"),
+        plazo: t("plazo"),
+        presupuesto: t("presupuesto"),
+        url: t("url"),
+        referencias: t("referencias")?.split(/\n|,/).map((x) => x.trim()).filter(Boolean),
+        tieneMarca: f.get("marca") === "si" ? true : f.get("marca") === "no" ? false : undefined,
+      },
+      pausas: t("pausas") ? leerPausas(t("pausas")!) : undefined,
+      idioma: f.get("idioma") === "en" ? "en" : undefined,
+      plantilla,
+      creado: new Date().toISOString(),
+    };
+    await conNube([id], async () => {
+      const plan = planificar(pedido);
+      crear(pedido, plan);
+      bitacora(id, `${yo === "luna" ? "Luna" : "Jay"} cargó el pedido de ${cliente} (${tipo}). Atlas planificó fases ${plan.fases.join(", ")}; pausas en ${plan.pausas.join(", ") || "ninguna"}.`);
+      // Los archivos entran antes de que trabajen: así los agentes los ven desde la primera entrega.
+      for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), `Subido por ${yo === "luna" ? "Luna" : "Jay"} al crear el proyecto`);
+      if (empezar) await avanzar(id, motor, silencio);
+    });
+    destino = `/estudio/${id}?ok=${encodeURIComponent(empezar ? "Proyecto creado: Atlas armó el plan y el equipo trabajó hasta la primera pausa." : "Proyecto creado con el plan de Atlas. Revisa y dale a «Seguir» cuando quieras que empiecen.")}`;
+  } catch (e) {
+    destino = `/estudio/nuevo?error=${encodeURIComponent((e as Error).message)}`;
+  }
+  revalidatePath("/estudio");
+  redirect(destino);
 }
