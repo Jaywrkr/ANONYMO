@@ -10,7 +10,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   await traer(id);
   if (!(await quienEsta()) || !existe(id)) return new Response(null, { status: 404 });
   const internas = new URL(req.url).searchParams.get("internas") === "1";
-  const pdf = await exportarPdf(id, { internas });
+  let pdf: Buffer;
+  try {
+    pdf = await exportarPdf(id, { internas });
+  } catch {
+    // En Vercel no hay navegador para armar el PDF: se saca desde tu máquina (npm run pipeline -- pdf <id>).
+    return new Response("El PDF todavía no se puede armar en línea: se saca desde tu máquina con «npm run pipeline -- pdf " + id + "». Vuelve atrás para seguir.", {
+      status: 501,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
   return new Response(new Uint8Array(pdf), {
     headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${id}${internas ? "-interno" : ""}.pdf"` },
   });

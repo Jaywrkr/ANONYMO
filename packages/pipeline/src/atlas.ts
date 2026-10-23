@@ -15,6 +15,7 @@ export interface Eleccion {
   preguntas?: string[];
   resumen?: string;
   porIA?: boolean;
+  sinIA?: string;
 }
 
 /** Pausas que Atlas propone por tipo: después de lo que el resto del trabajo usa como base. */
@@ -110,6 +111,7 @@ function planElegido(pedido: Pedido, e: Eleccion): Plan {
     preguntas: (e.preguntas?.length ? e.preguntas : preguntasPor(pedido)).slice(0, 5),
     resumen: e.resumen,
     porIA: e.porIA,
+    sinIA: e.sinIA,
   };
 }
 
@@ -180,7 +182,14 @@ const catalogo = () =>
  * Con clave usa el modelo rápido (centavos por pedido); sin clave o si falla, reglas por palabras clave.
  */
 export async function entenderPedido(texto: string, op: { cliente?: string; archivos?: string[] } = {}): Promise<Lectura> {
-  const sinIA = () => leerSinIA(texto, op.cliente);
+  // Sin IA: reglas, y queda anotado por qué (se ve en el plan y en los registros del servidor).
+  const sinIA = (motivo: string) => {
+    console.error(`[atlas] sin IA: ${motivo}`);
+    const l = leerSinIA(texto, op.cliente);
+    l.eleccion.sinIA = motivo;
+    return l;
+  };
+  if (!process.env.ANTHROPIC_API_KEY) return sinIA("no hay ANTHROPIC_API_KEY en este servidor");
   let crudo: string | undefined;
   try {
     crudo = await preguntarClaude(
@@ -216,17 +225,17 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
       ].join("\n"),
       1800,
     );
-  } catch {
-    return sinIA();
+  } catch (e) {
+    return sinIA((e as Error).message);
   }
   type Crudo = {
     cliente?: string; tipo?: string; resumen?: string; tareas?: string[]; razones?: Record<string, string>; fuera?: Record<string, string>;
     preguntas?: string[]; contexto?: Record<string, unknown>; idioma?: string; plantilla?: string | null;
   };
   const r = json<Crudo>(crudo);
-  if (!r?.tareas?.length) return sinIA();
+  if (!r?.tareas?.length) return sinIA(`la respuesta no trajo un plan válido: ${String(crudo).slice(0, 120)}`);
   const tareas = r.tareas.filter((t): t is TareaId => VALIDAS.has(t));
-  if (!tareas.length) return sinIA();
+  if (!tareas.length) return sinIA("eligió tareas que no existen");
   const c = r.contexto ?? {};
   const txt = (v: unknown) => (typeof v === "string" && v.trim() && v.trim() !== "null" ? v.trim().slice(0, 200) : undefined);
   const tipo = (r.tipo && r.tipo in PEDIDOS ? r.tipo : "web") as TipoPedido;

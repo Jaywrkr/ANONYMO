@@ -11,7 +11,12 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
   const costo = costoPlan(p.pedido, p.plan);
   return (
     <section aria-label="Plan de Atlas" className="mt-8 max-w-5xl rounded-3xl border border-tinta p-6 md:p-8">
-      <p className={etiqueta}>Plan de Atlas{p.plan.porIA ? "" : " · con reglas (sin IA)"} · nadie trabaja todavía</p>
+      <p className={etiqueta}>Plan de Atlas{p.plan.porIA ? " · con IA" : " · con reglas (sin IA)"} · nadie trabaja todavía</p>
+      {!p.plan.porIA && p.plan.sinIA && (
+        <p role="alert" className="mt-3 rounded-2xl bg-[#fff5d6] p-3 text-[14px]">
+          Atlas no pudo usar la IA: <span className="font-mono text-[13px]">{p.plan.sinIA}</span>. Arréglalo y escribe cualquier ajuste abajo para que vuelva a leer el pedido.
+        </p>
+      )}
       {p.plan.resumen && <p className="display mt-2 text-[clamp(32px,4vw,52px)] leading-none">{p.plan.resumen}</p>}
 
       <div className="mt-6 grid gap-8 md:grid-cols-2">
@@ -40,7 +45,7 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
           <p className={etiqueta}>No trabajan</p>
           <ul className="mt-3 grid gap-2 text-[14px]">
             {p.plan.quitadas.map((q) => (
-              <li key={q.id}><span className="font-medium">{agentePorId(contratoPorId(q.id)?.agente ?? "")?.nombre}</span> <span className="text-gris">· {q.razon}</span></li>
+              <li key={q.id}><span className="font-medium">{agentePorId(contratoPorId(q.id)?.agente ?? "")?.nombre}</span> <span className="text-gris">({contratoPorId(q.id)?.entrega.toLowerCase()}) · {q.razon}</span></li>
             ))}
             {fuera.length > 0 && <li className="text-gris">Fases que no entran: {fuera.map((f) => f.nombre).join(", ")}.</li>}
           </ul>

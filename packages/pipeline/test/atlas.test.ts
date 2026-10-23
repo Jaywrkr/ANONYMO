@@ -95,3 +95,11 @@ test("sin IA: naming entra solo si falta el nombre", () => {
   assert.ok(leerSinIA("Marca nueva, necesita un nombre y logo").eleccion.tareas.includes("2.verba"));
   assert.ok(!leerSinIA("Logo para su marca, ya tiene nombre").eleccion.tareas.includes("2.verba"));
 });
+
+test("sin clave, Atlas usa reglas y dice por qué", async () => {
+  delete process.env.ANTHROPIC_API_KEY;
+  const l = await entenderPedido("Una web para mi clínica");
+  assert.equal(l.eleccion.porIA, false);
+  assert.match(l.eleccion.sinIA ?? "", /ANTHROPIC_API_KEY/);
+  assert.match(planificar({ id: "z", cliente: "Z", tipo: "web", descripcion: "x", creado: "" }, l.eleccion).sinIA ?? "", /ANTHROPIC_API_KEY/);
+});
