@@ -146,3 +146,27 @@ test("Atlas manda el pensamiento apagado al modelo rápido", async () => {
     delete process.env.ANTHROPIC_MODEL_RAPIDO;
   }
 });
+
+test("Atlas pide el plan como herramienta y usa el objeto que devuelve la API", async () => {
+  const antes = globalThis.fetch;
+  process.env.ANTHROPIC_API_KEY = "sk-ant-prueba";
+  let cuerpo: Record<string, unknown> = {};
+  globalThis.fetch = (async (_u: unknown, init: RequestInit) => {
+    cuerpo = JSON.parse(String(init.body));
+    return Response.json({
+      stop_reason: "tool_use",
+      content: [{ type: "tool_use", name: "plan", input: { cliente: "Gabriela y Sebastián", tipo: "web", resumen: "Dos webs", tareas: ["1.ledger", "4.orla", "4.vector"], contexto: { tieneMarca: true } } }],
+    });
+  }) as typeof fetch;
+  try {
+    const l = await entenderPedido("Dos webs para Gabriela y Sebastián, odontólogos");
+    assert.deepEqual((cuerpo.tool_choice as { name: string }).name, "plan");
+    assert.ok(JSON.stringify(cuerpo.tools).includes("4.vector"));
+    assert.equal(l.eleccion.porIA, true);
+    assert.deepEqual(l.eleccion.tareas, ["1.ledger", "4.orla", "4.vector"]);
+    assert.equal(l.contexto.tieneMarca, true);
+  } finally {
+    globalThis.fetch = antes;
+    delete process.env.ANTHROPIC_API_KEY;
+  }
+});

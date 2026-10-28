@@ -5,7 +5,7 @@ import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CONTRATOS, contratosDeFase, ordenar } from "./contratos.ts";
 import type { Pausas, Pedido, Plan, TareaId } from "./tipos.ts";
 import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
-import { json, ocultarClaves, preguntarClaude } from "./ia.ts";
+import { ocultarClaves, pedirEstructura } from "./ia.ts";
 
 /** Lo que Atlas eligió: qué tareas entran y por qué; lo demás queda fuera con su razón. */
 export interface Eleccion {
@@ -173,6 +173,34 @@ export function leerSinIA(texto: string, cliente?: string): Lectura {
   };
 }
 
+/** Lo que Atlas devuelve, como esquema: la API garantiza que llega completo y bien formado. */
+const ESQUEMA_PLAN = () => {
+  const texto = { type: "string" };
+  return {
+    type: "object",
+    properties: {
+      cliente: { type: "string", description: "Nombre del cliente o de su negocio" },
+      tipo: { type: "string", enum: Object.keys(PEDIDOS), description: "Lo más cercano a lo que pidió" },
+      resumen: { type: "string", description: "Lo que entendiste del pedido, 1 o 2 frases" },
+      tareas: { type: "array", items: { type: "string", enum: CONTRATOS.map((c) => c.id) }, description: "Ids de las tareas que entran" },
+      razones: { type: "object", additionalProperties: texto, description: "Por número de fase que entra: por qué entra, una línea" },
+      fuera: { type: "object", additionalProperties: texto, description: "Por id de tarea de las fases que entran y que no trabaja: por qué no" },
+      preguntas: { type: "array", items: texto, maxItems: 4, description: "Solo lo que de verdad falta saber del cliente" },
+      contexto: {
+        type: "object",
+        properties: {
+          rubro: texto, ciudad: texto, publico: texto, plazo: texto, presupuesto: texto, url: texto,
+          referencias: { type: "array", items: texto, description: "Enlaces o marcas que le gustan" },
+          tieneMarca: { type: ["boolean", "null"] },
+        },
+      },
+      idioma: { type: "string", enum: ["es", "en"], description: "Idioma de las entregas para el cliente" },
+      plantilla: { type: ["string", "null"], enum: [...PLANTILLAS.map((p) => p.id), null] },
+    },
+    required: ["tipo", "resumen", "tareas"],
+  };
+};
+
 /** El catálogo que Atlas tiene delante para elegir: una línea por tarea. */
 const catalogo = () =>
   CONTRATOS.map((c) => `${c.id} · ${agentePorId(c.agente)?.nombre} — ${c.entrega}: ${c.objetivo}${c.interna ? " (interna de la agencia)" : ""}`).join("\n");
@@ -191,16 +219,20 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
     return l;
   };
   if (!process.env.ANTHROPIC_API_KEY) return sinIA("no hay ANTHROPIC_API_KEY en este servidor");
-  let crudo: string | undefined;
+  type Crudo = {
+    cliente?: string; tipo?: string; resumen?: string; tareas?: string[]; razones?: Record<string, string>; fuera?: Record<string, string>;
+    preguntas?: string[]; contexto?: Record<string, unknown>; idioma?: string; plantilla?: string | null;
+  };
+  let r: Crudo | undefined;
   try {
-    crudo = await preguntarClaude(
+    r = await pedirEstructura<Crudo>(
       [
         "Eres Atlas, el director de operaciones de una agencia creativa en Cuenca, Ecuador, dirigida por Jay y Luna.",
         "Lees lo que Jay o Luna cuentan después de hablar con un cliente y decides qué agentes trabajan.",
         "Regla de oro: cada tarea cuesta dinero. Solo entran las tareas cuya entrega el cliente necesita de verdad para lo que pidió. Nada «por si acaso».",
         "Ejemplos: si solo pide un logo, no trabajan web, video, evento ni sonido. Si pide una web y ya tiene marca, no se rehace la identidad. Si no pidió sonido, Eco no trabaja. Si no hay web, Prisma no audita.",
         "1.atlas (plan) y 1.ledger (presupuesto) entran casi siempre. 6.trofeo (jurado) entra si hay diseño o web que evaluar. La fase 7 es interna de la agencia: no la uses para un cliente.",
-        "Responde SOLO con un objeto JSON, sin texto antes ni después.",
+        "Responde llenando la herramienta «plan». Razones de 12 palabras como máximo; no repitas el pedido.",
       ].join("\n"),
       [
         "# Tareas posibles (id · agente — entrega: objetivo)",
@@ -209,32 +241,14 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
         `# Lo que contaron${op.cliente ? ` sobre ${op.cliente}` : ""}`,
         texto,
         op.archivos?.length ? `\n# Archivos que adjuntaron\n${op.archivos.map((a) => `- ${a}`).join("\n")}` : "",
-        "",
-        "# Formato de respuesta",
-        JSON.stringify({
-          cliente: "nombre del cliente o su negocio",
-          tipo: "web | marca | lanzamiento | todo (lo más cercano)",
-          resumen: "lo que entendiste del pedido, 1 o 2 frases",
-          tareas: ["ids de las tareas que entran"],
-          razones: { "4": "por qué entra cada fase, una línea" },
-          fuera: { "4.eco": "por qué no trabaja, solo para tareas de las fases que entran" },
-          preguntas: ["máximo 4: solo lo que de verdad falta para trabajar bien"],
-          contexto: { rubro: "", ciudad: "", publico: "", plazo: "", presupuesto: "", url: "", referencias: ["enlaces o marcas"], tieneMarca: "true | false | null" },
-          idioma: "es | en (idioma de las entregas para el cliente)",
-          plantilla: `${PLANTILLAS.map((p) => p.id).join(" | ")} | null`,
-        }),
       ].join("\n"),
-      3000,
+      { nombre: "plan", descripcion: "El plan de Atlas para este pedido: quién trabaja, quién no y por qué.", esquema: ESQUEMA_PLAN() },
+      4000,
     );
   } catch (e) {
     return sinIA((e as Error).message);
   }
-  type Crudo = {
-    cliente?: string; tipo?: string; resumen?: string; tareas?: string[]; razones?: Record<string, string>; fuera?: Record<string, string>;
-    preguntas?: string[]; contexto?: Record<string, unknown>; idioma?: string; plantilla?: string | null;
-  };
-  const r = json<Crudo>(crudo);
-  if (!r?.tareas?.length) return sinIA(`la respuesta no trajo un plan válido: ${String(crudo).slice(0, 120)}`);
+  if (!r?.tareas?.length) return sinIA("la respuesta no trajo tareas");
   const tareas = r.tareas.filter((t): t is TareaId => VALIDAS.has(t));
   if (!tareas.length) return sinIA("eligió tareas que no existen");
   const c = r.contexto ?? {};
