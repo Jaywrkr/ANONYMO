@@ -2,11 +2,11 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
+import { borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
-import { conNube, llevar } from "@/lib/nube";
+import { conNube, llevar, traer } from "@/lib/nube";
 
 type Quien = "jay" | "luna";
 
@@ -34,7 +34,10 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
 
 /** Cada tarea terminada sube a la nube al momento: si Vercel corta por tiempo, lo hecho no se pierde y «Seguir» continúa. */
 const subirCadaTarea = (id: string) => async (texto: string) => {
-  if (texto.trimStart().startsWith("✓")) await llevar(id);
+  const t = texto.trimStart();
+  if (t.startsWith("✓")) await llevar(id);
+  // Al empezar una tarea basta con el estado: así la oficina ve quién está trabajando.
+  else if (t.startsWith("…") && nubeActiva()) await subirRuta(`${id}/estado.json`).catch(() => {});
 };
 
 export async function accionAprobar(f: FormData) {
@@ -234,4 +237,24 @@ export async function accionEmpezar(f: FormData) {
 export async function accionReplanear(f: FormData) {
   const { id, quien } = await leer(f);
   await correr(id, () => replanear(id, String(f.get("ajuste") ?? ""), quien), "Atlas rehízo el plan con tu ajuste.");
+}
+
+/** Borrar un proyecto: hay que escribir el nombre del cliente para confirmar. No se puede deshacer. */
+export async function accionBorrar(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  let destino = "/estudio";
+  try {
+    await traer(id);
+    const p = leerProyecto(id);
+    if (String(f.get("confirmar") ?? "").trim().toLowerCase() !== p.pedido.cliente.trim().toLowerCase())
+      throw new Error(`Para borrar escribe el nombre exacto del cliente: «${p.pedido.cliente}».`);
+    if (nubeActiva()) await borrarRemoto(id);
+    borrarProyecto(id);
+    console.error(`[estudio] ${yo} borró el proyecto ${id}`);
+  } catch (e) {
+    destino = `/estudio/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#ajustes`;
+  }
+  revalidatePath("/estudio");
+  redirect(destino);
 }

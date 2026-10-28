@@ -29,6 +29,9 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/21-estudio-en-linea | Estudio en línea: entrada con clave para Jay y Luna (sesión firmada, acciones a nombre de quien entró) y proyectos, solicitudes y analítica guardados en el almacén privado de Supabase para funcionar en Vercel | `/entrar` → `/estudio` (ver `docs/pipeline.md`) |
 | sistema/22-nuevo-proyecto-estudio | «Nuevo proyecto» en el estudio: Jay o Luna cargan el pedido después de hablar con el cliente (contexto completo, datos sueltos, archivos, plantilla, idioma, pausas) y eligen si el equipo empieza ya o solo arma el plan | Estudio → «+ Nuevo proyecto» (`/estudio/nuevo`) |
 | sistema/23-atlas-decide | Atlas lee en texto libre lo que contaron Jay o Luna y decide tarea por tarea quién trabaja (y por qué no los demás); plan por aprobar con costo aproximado, ajuste con palabras y «Que empiecen». Ahorro de tokens: modelo rápido para tareas livianas, topes de escritura, lecturas recortadas; los agentes que investigan y diseñan abren los enlaces del pedido | Estudio → «+ Nuevo proyecto» |
+| sistema/24 a 28 | Atlas dice por qué no usó la IA; claves nunca visibles en errores; pensamiento solo en tareas creativas; plan estructurado (herramienta con esquema); cada tarea se guarda en la nube al terminar | — |
+| sistema/29-produccion-con-ia | Todos los agentes planifican y cotizan con tiempos reales de producción con IA (web ≈ 3 días), Ecuador, calidad nivel Awwwards sin sumar horas | `ANONYMO_COMO_TRABAJAMOS`, `TARIFA_HORA` |
+| sistema/30-oficina | El estudio es una oficina 3D isométrica: un escritorio por agente con su estado (trabajando, revisar, en cola, entregó, libre), en vivo mientras trabajan; «Te toca» con lo que espera decisión; página del proyecto con «qué hacer ahora» arriba y lo técnico en Ajustes; borrar proyecto; menú interno propio | `/estudio` |
 
 ## Web
 

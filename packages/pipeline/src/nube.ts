@@ -131,3 +131,28 @@ export async function espejarProyecto(id: string, f: typeof fetch = fetch): Prom
   }
   return { subidos, borrados: sobran.length };
 }
+
+/** Lee un solo archivo de la nube sin bajar el proyecto entero (la oficina en vivo lee solo estado.json). */
+export async function leerRemoto(id: string, rel: string, f: typeof fetch = fetch): Promise<string | undefined> {
+  idSeguro(id);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/${bucket}/${id}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  if (r.status === 404 || r.status === 400) return undefined;
+  if (!r.ok) throw new Error(`No se pudo leer ${id}/${rel}: ${r.status}`);
+  return r.text();
+}
+
+/** Borra un proyecto entero de la nube (solo cuando Jay o Luna lo piden con confirmación). */
+export async function borrarRemoto(id: string, f: typeof fetch = fetch): Promise<number> {
+  idSeguro(id);
+  const { url, key, bucket } = cfg();
+  const rutas = await listarRemoto(id, f);
+  if (!rutas.length) return 0;
+  const r = await f(`${url}/storage/v1/object/${bucket}`, {
+    method: "DELETE",
+    headers: cabeceras(key, { "content-type": "application/json" }),
+    body: JSON.stringify({ prefixes: rutas }),
+  });
+  if (!r.ok) throw new Error(`No se pudo borrar ${id} en la nube: ${r.status}`);
+  return rutas.length;
+}

@@ -84,6 +84,8 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const rehace = p.tareas[t] === "rehacer";
       p.tareas[t] = "en-curso";
       guardarProyecto(p);
+      // Aviso de inicio: en línea sube el estado para que la oficina muestre quién está trabajando.
+      await aviso(`  … ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega}`);
       const previa = leerEntrega(id, t);
       const version = (previa?.version ?? 0) + 1;
       const leidas = lecturas(t, tareas).map((u) => leerEntrega(id, u)).filter((e): e is Entrega => !!e);

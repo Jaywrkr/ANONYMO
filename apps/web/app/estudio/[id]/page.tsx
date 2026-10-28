@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { PlanAtlas } from "@/components/estudio/PlanAtlas";
+import { Oficina } from "@/components/estudio/Oficina";
+import { Enviar } from "../nuevo/Enviar";
+import type { ProyectoOficina } from "@/lib/oficina";
 import { sesionConfigurada } from "@/lib/sesion";
 import { traer } from "@/lib/nube";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
+import { accionBorrar, accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
@@ -41,73 +44,140 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
     </>
   );
 
+  const nombreYo = yo === "luna" ? "Luna" : "Jay";
+  const leToca = responsable(p, p.faseActual);
+  const enLinea = nubeActiva();
+  const oficina: ProyectoOficina[] = [{ id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas }];
+  const b = presupuestoVivo(p);
+  const costo = sumar(p);
+  const archivos = listarArchivos(id);
+  const linkSuave = "inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4";
+
   return (
     <main className={`${lateral} pb-16`}>
       <Link href="/estudio" className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>← Estudio</Link>
-      <div className="flex flex-wrap items-end justify-between gap-6 pb-6 pt-2">
+      <div className="flex flex-wrap items-end justify-between gap-6 pb-4 pt-2">
         <div>
           <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre}{plantillaPorId(p.pedido.plantilla) ? ` · ${plantillaPorId(p.pedido.plantilla)!.nombre}` : ""} · {ESTADO_PROYECTO[p.estado]}</p>
-          <h1 className="display mt-2 text-[clamp(56px,8vw,128px)]">{p.pedido.cliente}</h1>
+          <h1 className="display mt-2 text-[clamp(48px,7vw,112px)] leading-none">{p.pedido.cliente}</h1>
         </div>
         {nota && <p className="display text-7xl">{String(nota.final).replace(".", ",")}</p>}
       </div>
-      <p className="max-w-3xl text-lg font-light">{p.pedido.descripcion}</p>
-      <p className="mt-3 flex flex-wrap gap-4">
-        <a href={`/estudio/${id}/pdf`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF para el cliente ↓</a>
-        <a href={`/estudio/${id}/pdf?internas=1`} className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>PDF interno ↓</a>
-      </p>
+      <details className="max-w-3xl">
+        <summary className={`${etiqueta} cursor-pointer`}>Lo que contaron del cliente</summary>
+        <p className="mt-2 whitespace-pre-line text-[16px] font-light">{p.pedido.descripcion}</p>
+      </details>
 
-      {(ok || error) && p.estado === "plan" && (
-        <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>
+      {(ok || error) && (
+        <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-[#e3f5e1]"}`}>{error ?? ok}</p>
       )}
+
+      {/* AHORA: lo único que hay que decidir en este momento. */}
       {p.estado === "plan" && <PlanAtlas p={p} conIA={!!process.env.ANTHROPIC_API_KEY} />}
-
-      <section aria-label="Calendario" className="mt-8 max-w-4xl"><p className={`${etiqueta} mb-3`}>Calendario</p><Calendario tramos={calendario(p)} /></section>
-
-      {(ok || error) && p.estado !== "plan" && (
-        <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-papel"}`}>{error ?? ok}</p>
+      {p.estado === "esperando" && (
+        <section aria-label="Te toca" className="mt-8 rounded-3xl border border-tinta p-6 md:p-8">
+          <p className={etiqueta}>{p.esperaJurado ? "El jurado no llegó a 7 después de dos rondas" : `Terminó ${FASES.find((x) => x.n === p.faseActual)?.nombre}`} · {leToca === yo ? "te toca a ti" : `le toca a ${leToca === "luna" ? "Luna" : "Jay"}`}</p>
+          <p className="display mt-1 text-[clamp(32px,4vw,52px)] leading-none">Revisa lo que entregaron y decide</p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {actuales.map((t) => {
+              const a = agentePorId(t.split(".")[1])!;
+              return (
+                <li key={t}>
+                  <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-papel px-4 text-[15px] hover:bg-linea">
+                    <i aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: AREAS[a.area].medio }} />
+                    {a.nombre} · {contratoPorId(t)?.entrega} →
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
+            <form action={accionAprobar} className="grid content-start gap-2">
+              {comunes}
+              {conClaves ? <input type="hidden" name="quien" value={yo} /> : (
+                <select name="quien" className={campo} defaultValue={leToca} aria-label="Quién decide"><option value="jay">Jay</option><option value="luna">Luna</option></select>
+              )}
+              {leToca !== yo && conClaves && <input type="hidden" name="forzar" value="1" />}
+              <input name="nota" placeholder="Nota para el equipo (opcional)" className={campo} />
+              <Enviar className={botonLleno} texto={p.esperaJurado ? "Aceptar y cerrar" : "Aprobar y seguir"} trabajando="El equipo está trabajando… no cierres la página" />
+              {leToca !== yo && <p className="text-[13px] text-gris">Esta fase la aprueba {leToca === "luna" ? "Luna" : "Jay"}; si apruebas tú, queda a tu nombre.</p>}
+            </form>
+            <form action={accionCambiar} className="grid content-start gap-2">
+              {comunes}
+              <input type="hidden" name="quien" value={yo} />
+              <textarea name="nota" rows={3} required placeholder="Qué hay que cambiar (ej.: más elegante, menos texto)" className={campo} aria-label="Pedir cambios" />
+              <select name="agente" className={campo} defaultValue="" aria-label="A quién">
+                <option value="">A toda la fase</option>
+                {actuales.map((t) => <option key={t} value={t.split(".")[1]}>Solo a {agentePorId(t.split(".")[1])?.nombre}</option>)}
+              </select>
+              <Enviar className={boton} texto="Pedir cambios" trabajando="Rehaciendo…" />
+            </form>
+          </div>
+        </section>
+      )}
+      {p.estado === "en-curso" && (
+        <form action={accionSeguir} className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-tinta p-6">
+          {comunes}
+          <div>
+            <p className="display text-[clamp(28px,3.5vw,44px)] leading-none">El equipo quedó a medias</p>
+            <p className="mt-1 text-[15px] text-gris">Pasa si se cortó por tiempo. Lo que ya terminaron está guardado: sigue desde ahí.</p>
+          </div>
+          <Enviar className={botonLleno} texto="Seguir" trabajando="El equipo está trabajando…" />
+        </form>
+      )}
+      {p.estado === "parado" && (
+        <form action={accionReanudar} className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-tinta p-6">
+          {comunes}
+          <p className="display text-[clamp(28px,3.5vw,44px)] leading-none">Proyecto parado</p>
+          <button className={botonLleno}>Reanudar</button>
+        </form>
+      )}
+      {p.estado === "listo" && (
+        <div className="mt-8 rounded-3xl bg-[#e3f5e1] p-6">
+          <p className="display text-[clamp(28px,3.5vw,44px)] leading-none">Proyecto listo</p>
+          <p className="mt-1 text-[15px]">Todas las fases aprobadas{nota ? ` · nota del jurado ${String(nota.final).replace(".", ",")}` : ""}.</p>
+        </div>
       )}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <section aria-label="Plan">
-          {p.plan.fases.map((f) => {
-            const fase = FASES.find((x) => x.n === f)!;
-            return (
-              <div key={f} className="border-t border-tinta py-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className={etiqueta}>{String(f).padStart(2, "0")} · {fase.nombre}{p.plan.pausas.includes(f) ? " · con pausa" : ""}</p>
-                  <form action={accionResponsable} className="flex items-center gap-2">
-                    {comunes}
-                    <input type="hidden" name="fase" value={f} />
-                    <label className={etiqueta} htmlFor={`socio-${f}`}>Aprueba</label>
-                    <select id={`socio-${f}`} name="socio" defaultValue={responsable(p, f)} className="rounded-full border border-linea bg-papel px-3 py-1 text-[13px]">
-                      <option value="jay">Jay</option><option value="luna">Luna</option>
-                    </select>
-                    <button className="font-mono text-[11px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Guardar</button>
-                  </form>
+      <section aria-label="El equipo en este proyecto" className="mt-8">
+        <p className={`${etiqueta} mb-3`}>El equipo en este proyecto</p>
+        <Oficina proyectos={oficina} vivo={id} alto="h-[260px] sm:h-[360px] lg:h-[420px]" />
+      </section>
+
+      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <section aria-label="Entregas">
+            <p className={etiqueta}>Entregas por fase</p>
+            {p.plan.fases.map((f) => {
+              const fase = FASES.find((x) => x.n === f)!;
+              return (
+                <div key={f} className="border-t border-linea py-4">
+                  <p className="text-[15px] font-medium">{String(f).padStart(2, "0")} · {fase.nombre} <span className="font-normal text-gris">· aprueba {responsable(p, f) === "luna" ? "Luna" : "Jay"}</span></p>
+                  <ul className="mt-2 grid gap-1">
+                    {deFase(f).map((t) => {
+                      const c = contratoPorId(t)!;
+                      const a = agentePorId(c.agente)!;
+                      const e = leerEntrega(id, t);
+                      return (
+                        <li key={t}>
+                          <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-2xl px-3 py-2 hover:bg-papel">
+                            <i aria-hidden className="block h-3 w-3 shrink-0 rounded-full" style={{ background: AREAS[a.area].medio }} />
+                            <span className="w-20 font-medium">{a.nombre}</span>
+                            <span className="flex-1">{c.entrega}{e ? ` · v${e.version}` : ""}</span>
+                            <span className={etiqueta}>{ESTADO_TAREA[p.tareas[t]]}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-                <ul className="mt-3 grid gap-2">
-                  {deFase(f).map((t) => {
-                    const c = contratoPorId(t)!;
-                    const a = agentePorId(c.agente)!;
-                    const e = leerEntrega(id, t);
-                    return (
-                      <li key={t}>
-                        <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-2xl px-3 py-2 hover:bg-papel">
-                          <i aria-hidden className="block h-3 w-3 shrink-0 rounded-full" style={{ background: AREAS[a.area].medio }} />
-                          <span className="w-20 font-medium">{a.nombre}</span>
-                          <span className="flex-1">{c.entrega}{e ? ` · v${e.version}` : ""}</span>
-                          <span className={etiqueta}>{ESTADO_TAREA[p.tareas[t]]}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })}
-          <section id="cliente" aria-label="Lo que dijo el cliente" className="mt-6 border-t border-tinta pt-4">
+              );
+            })}
+          </section>
+
+          <section id="cliente" aria-label="Lo que dijo el cliente" className="mt-8 border-t border-tinta pt-4">
             <p className={etiqueta}>Lo que dijo el cliente</p>
+            <p className="mt-1 text-[14px] text-gris">Lo que te diga por WhatsApp, llamada o en persona: Atlas lo manda a quien corresponde y todos lo leen desde ahora.</p>
             {(p.pendientesCliente ?? []).length > 0 && (
               <ul className="mt-3 grid gap-2">
                 {p.pendientesCliente!.map((c) => (
@@ -116,7 +186,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                     <p className="mt-1 text-lg font-light">“{c.texto}”</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <form action={accionVerReparto}>{comunes}<input type="hidden" name="texto" value={c.texto} /><input type="hidden" name="pendiente" value={c.fecha} /><button className={boton}>Ver a quién va</button></form>
-                      <form action={accionDescartarPendiente}>{comunes}<input type="hidden" name="pendiente" value={c.fecha} /><button className="min-h-11 font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Descartar</button></form>
+                      <form action={accionDescartarPendiente}>{comunes}<input type="hidden" name="pendiente" value={c.fecha} /><button className={linkSuave}>Descartar</button></form>
                     </div>
                   </li>
                 ))}
@@ -149,120 +219,26 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 {decision && <p className="text-[14px]">{decision.como === "ia" ? "Atlas (con IA): " : "Atlas (por palabras clave): "}{decision.razon}</p>}
                 <p className="text-[14px] text-gris">Con este reparto se rehacen {arrastra.length} tareas: {arrastra.map(nombreTarea).join(", ")}.</p>
                 <div className="flex flex-wrap gap-2">
-                  <button className={botonLleno}>Mandar al equipo</button>
-                  <a href={`/estudio/${id}#cliente`} className="inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Cancelar</a>
+                  <Enviar className={botonLleno} texto="Mandar al equipo" trabajando="El equipo está rehaciendo…" />
+                  <a href={`/estudio/${id}#cliente`} className={linkSuave}>Cancelar</a>
                 </div>
               </form>
             ) : (
               <form action={accionVerReparto} className="mt-4 grid gap-2">
                 {comunes}
                 <textarea name="texto" rows={3} required placeholder="Ej.: la de estética tiene que ser mucho más elegante" className={campo} aria-label="Lo que dijo el cliente" />
-                <button className={boton}>Ver a quién va</button>
+                <div><button className={boton}>Ver a quién va</button></div>
               </form>
             )}
           </section>
-        </section>
+        </div>
 
-        <aside className="grid content-start gap-6 lg:sticky lg:top-6">
-          {p.estado === "esperando" && (
-            <div className="rounded-3xl bg-papel p-6">
-              <p className={etiqueta}>{p.esperaJurado ? "El Jurado no llegó a 7" : `Terminó ${FASES.find((x) => x.n === p.faseActual)?.nombre}`}</p>
-              <p className="display mt-1 text-5xl">Le toca a {responsable(p, p.faseActual) === "luna" ? "Luna" : "Jay"}</p>
-              <form action={accionAprobar} className="mt-4 grid gap-2">
-                {comunes}
-                <label className="grid gap-1">
-                  <span className={etiqueta}>Quién decide</span>
-                  {conClaves ? <><input type="hidden" name="quien" value={yo} /><span className="text-[15px]">{yo === "luna" ? "Luna" : "Jay"}</span></> : <select name="quien" className={campo} defaultValue={responsable(p, p.faseActual)}><option value="jay">Jay</option><option value="luna">Luna</option></select>}
-                </label>
-                <label className="flex items-center gap-2 text-[14px] text-gris"><input type="checkbox" name="forzar" value="1" /> Aprobar aunque no me toque</label>
-                <input name="nota" placeholder="Nota (opcional)" className={campo} />
-                <button className={botonLleno}>Aprobar y seguir</button>
-              </form>
-              <form action={accionCambiar} className="mt-6 grid gap-2 border-t border-linea pt-4">
-                {comunes}
-                <input type="hidden" name="quien" value={yo} />
-                <label className="grid gap-1">
-                  <span className={etiqueta}>Pedir cambios</span>
-                  <textarea name="nota" rows={3} required placeholder="Qué hay que cambiar" className={campo} />
-                </label>
-                <select name="agente" className={campo} defaultValue="" aria-label="A quién">
-                  <option value="">Toda la fase</option>
-                  {actuales.map((t) => <option key={t} value={t.split(".")[1]}>{agentePorId(t.split(".")[1])?.nombre}</option>)}
-                </select>
-                <button className={boton}>Rehacer</button>
-              </form>
-              <form action={accionParar} className="mt-4">
-                {comunes}
-                <button className="font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Parar el proyecto</button>
-              </form>
-            </div>
-          )}
-          {p.estado === "parado" && (
-            <form action={accionReanudar} className="rounded-3xl bg-papel p-6">
-              {comunes}
-              <p className="display text-5xl">Parado</p>
-              <button className={`${botonLleno} mt-4`}>Reanudar</button>
-            </form>
-          )}
-          {p.estado === "en-curso" && (
-            <form action={accionSeguir} className="rounded-3xl bg-papel p-6">
-              {comunes}
-              <p className="text-[15px]">Quedó a medias (por ejemplo, se cortó una ejecución).</p>
-              <button className={`${botonLleno} mt-4`}>Seguir</button>
-            </form>
-          )}
-
-          <form action={accionPausas} className="grid gap-2 rounded-3xl border border-linea p-6">
-            {comunes}
-            <label className="grid gap-1">
-              <span className={etiqueta}>Pausas · ahora en {p.plan.pausas.join(", ") || "ninguna"}</span>
-              <select name="pausas" className={campo} defaultValue="clave">
-                <option value="clave">Las que propone Atlas</option>
-                <option value="cada-fase">Cada fase</option>
-                <option value="nunca">Nunca</option>
-                {p.plan.fases.map((f) => <option key={f} value={String(f)}>Solo la fase {f}</option>)}
-              </select>
-            </label>
-            <button className={boton}>Cambiar pausas</button>
-          </form>
-
-          {(() => {
-            const b = presupuestoVivo(p);
-            if (b.base === undefined && !b.ajustes.length) return null;
-            return (
-              <div className="rounded-3xl border border-linea p-6">
-                <p className={etiqueta}>Presupuesto vivo</p>
-                <p className="mt-1 flex items-baseline gap-3"><span className="display text-5xl">{b.total ?? "—"} h</span>{b.precio !== undefined && <span className="text-[15px]">${b.precio.toLocaleString("es-EC")}</span>}</p>
-                <p className="text-[14px] text-gris">Base de Ledger: {b.base ?? "sin definir"} h · cambios pendientes de cobrar: +{b.extra} h{b.tarifa ? ` · tarifa $${b.tarifa}/h` : " · define TARIFA_HORA en .env para ver el precio"}</p>
-                {b.ajustes.length > 0 && (
-                  <ul className="mt-3 grid gap-1 text-[14px]">
-                    {b.ajustes.map((a) => <li key={a.fecha + a.tarea}><span className="font-medium">+{a.horas} h</span> {nombreTarea(a.tarea as TareaId)} <span className="text-gris">· {a.motivo}{a.incluido ? " · ya en el total" : ""}</span></li>)}
-                  </ul>
-                )}
-              </div>
-            );
-          })()}
-
-          {(() => {
-            const c = sumar(p);
-            return (
-              <div className="rounded-3xl border border-linea p-6">
-                <p className={etiqueta}>Costo de IA</p>
-                <p className="mt-1 flex items-baseline gap-4"><span className="display text-5xl">${c.real.toFixed(2)}</span><span className="text-[14px] text-gris">real</span></p>
-                {c.estimado > 0 && <p className="text-[14px] text-gris">+ ${c.estimado.toFixed(2)} si lo hecho en simulado o a mano corriera con IA real</p>}
-                <ul className="mt-3 grid gap-1 text-[14px]">
-                  {c.tareas.slice(0, 5).map((t) => <li key={t.tarea} className="flex justify-between"><span>{nombreTarea(t.tarea)}{t.veces > 1 ? ` ×${t.veces}` : ""}</span><span>${t.usd.toFixed(3)}</span></li>)}
-                </ul>
-                <p className="mt-3 text-[12px] text-gris">USD por millón de tokens: entrada {PRECIOS.entrada} · salida {PRECIOS.salida}. Ajusta en .env.</p>
-              </div>
-            );
-          })()}
-
+        <aside className="grid content-start gap-6">
           <div className="rounded-3xl border border-linea p-6">
-            <p className={etiqueta}>Archivos del cliente</p>
-            {listarArchivos(id).length > 0 && (
+            <p className={etiqueta}>Archivos del cliente · {archivos.length}</p>
+            {archivos.length > 0 && (
               <ul className="mt-3 grid grid-cols-3 gap-2">
-                {listarArchivos(id).map((a) => (
+                {archivos.map((a) => (
                   <li key={a.nombre}>
                     <a href={`/estudio/${id}/archivos/${encodeURIComponent(a.nombre)}`} target="_blank" rel="noreferrer" className="block" title={a.nota ?? a.nombre}>
                       {esImagen(a.nombre) ? (
@@ -279,8 +255,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             <form action={accionSubir} className="mt-3 grid gap-2">
               {comunes}
               <input type="file" name="archivos" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.txt,.md,.svg" className="text-[14px]" aria-label="Archivos" />
-              <input name="nota" placeholder="Nota (ej.: fotos del consultorio)" className={campo} />
+              <input name="nota" placeholder="Qué es (ej.: fotos del consultorio)" className={campo} />
               <button className={boton}>Subir</button>
+              {enLinea && <p className="text-[12px] text-gris">En línea: hasta 4 MB por envío.</p>}
             </form>
           </div>
 
@@ -288,20 +265,20 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             <p className={etiqueta}>Portal del cliente</p>
             {p.portal ? (
               <>
-                <a href={`/portal/${id}?t=${p.portal.token}`} target="_blank" rel="noreferrer" className="mt-2 block break-all text-[15px] underline underline-offset-4">/portal/{id}?t={p.portal.token}</a>
-                <p className="mt-2 text-[14px] text-gris">Mándale este enlace. Ve sus entregas (sin precios internos ni la nota del jurado), aprueba fases y comenta.</p>
-                <form action={accionPortal} className="mt-3">{comunes}<input type="hidden" name="nuevo" value="1" /><button className="font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Cambiar enlace</button></form>
+                <a href={`/portal/${id}?t=${p.portal.token}`} target="_blank" rel="noreferrer" className="mt-2 block break-all text-[15px] underline underline-offset-4">Abrir su portal ↗</a>
+                <p className="mt-2 text-[14px] text-gris">Copia ese enlace y mándaselo. Ve sus entregas (sin precios internos ni la nota del jurado), aprueba fases y comenta.</p>
+                <form action={accionPortal} className="mt-2">{comunes}<input type="hidden" name="nuevo" value="1" /><button className={linkSuave}>Cambiar enlace</button></form>
               </>
             ) : (
-              <form action={accionPortal} className="mt-3">{comunes}<button className={boton}>Crear enlace</button></form>
+              <form action={accionPortal} className="mt-3">{comunes}<button className={boton}>Crear enlace para el cliente</button></form>
             )}
           </div>
 
-          {p.plan.preguntas.length > 0 && (
+          {p.plan.preguntas.length > 0 && p.estado !== "plan" && (
             <form action={accionResponder} className="grid gap-3 rounded-3xl border border-linea p-6">
               {comunes}
               <input type="hidden" name="quien" value={yo} />
-              <p className={etiqueta}>Atlas necesita saber · también lo ve el cliente en su portal</p>
+              <p className={etiqueta}>Lo que falta saber del cliente</p>
               {p.plan.preguntas.map((q, i) => (
                 <label key={q} className="grid gap-1 text-[15px]">
                   {q}
@@ -313,17 +290,101 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           )}
           {(p.pedido.contexto?.respuestas ?? []).length > 0 && (
             <div className="rounded-3xl border border-linea p-6">
-              <p className={etiqueta}>Respuestas</p>
+              <p className={etiqueta}>Respuestas del cliente</p>
               <ul className="mt-2 grid gap-2 text-[15px]">
                 {p.pedido.contexto!.respuestas!.map((r) => <li key={r.pregunta}><span className="text-gris">{r.pregunta}</span><br />{r.respuesta}</li>)}
               </ul>
             </div>
           )}
 
-          <div className="rounded-3xl border border-linea p-6">
-            <p className={etiqueta}>Bitácora</p>
-            <ul className="mt-2 grid gap-1 text-[14px] text-gris">{leerBitacora(id, 12).map((l, i) => <li key={i}>{l}</li>)}</ul>
-          </div>
+          <details className="rounded-3xl border border-linea p-6">
+            <summary className={`${etiqueta} cursor-pointer`}>Números · IA US$ {costo.real.toFixed(2)}{b.total !== undefined ? ` · ${b.total} h` : ""}</summary>
+            <div className="mt-4 grid gap-4 text-[14px]">
+              <div>
+                <p className="font-medium">Presupuesto vivo</p>
+                <p className="text-gris">Base de Ledger: {b.base ?? "sin definir"} h · cambios por cobrar: +{b.extra} h{b.precio !== undefined ? ` · US$ ${b.precio.toLocaleString("es-EC")}` : b.tarifa ? "" : " · pon TARIFA_HORA para ver el precio"}</p>
+                {b.ajustes.length > 0 && (
+                  <ul className="mt-1 grid gap-1">{b.ajustes.map((a) => <li key={a.fecha + a.tarea}>+{a.horas} h {nombreTarea(a.tarea as TareaId)} <span className="text-gris">· {a.motivo}</span></li>)}</ul>
+                )}
+              </div>
+              <div>
+                <p className="font-medium">Gasto en IA: US$ {costo.real.toFixed(2)}</p>
+                <ul className="mt-1 grid gap-1">{costo.tareas.slice(0, 8).map((t) => <li key={t.tarea} className="flex justify-between gap-3"><span>{nombreTarea(t.tarea)}{t.veces > 1 ? ` ×${t.veces}` : ""}</span><span>US$ {t.usd.toFixed(3)}</span></li>)}</ul>
+                <p className="mt-1 text-[12px] text-gris">Precio por millón de tokens: entrada {PRECIOS.entrada} · salida {PRECIOS.salida}.</p>
+              </div>
+            </div>
+          </details>
+
+          <details className="rounded-3xl border border-linea p-6">
+            <summary className={`${etiqueta} cursor-pointer`}>Calendario</summary>
+            <div className="mt-4"><Calendario tramos={calendario(p)} /></div>
+          </details>
+
+          <details className="rounded-3xl border border-linea p-6">
+            <summary className={`${etiqueta} cursor-pointer`}>Bitácora</summary>
+            <ul className="mt-3 grid gap-1 text-[14px] text-gris">{leerBitacora(id, 20).map((l, i) => <li key={i}>{l}</li>)}</ul>
+          </details>
+
+          <details id="ajustes" className="rounded-3xl border border-linea p-6">
+            <summary className={`${etiqueta} cursor-pointer`}>Ajustes</summary>
+            <div className="mt-4 grid gap-6">
+              <form action={accionPausas} className="grid gap-2">
+                {comunes}
+                <label className="grid gap-1">
+                  <span className="text-[14px] font-medium">Dónde se detiene para que revisen</span>
+                  <span className="text-[13px] text-gris">Ahora: {p.plan.pausas.length ? `al terminar ${p.plan.pausas.map((f) => FASES.find((x) => x.n === f)?.nombre).join(", ")}` : "solo al final"}</span>
+                  <select name="pausas" className={campo} defaultValue="clave">
+                    <option value="clave">Donde propone Atlas</option>
+                    <option value="cada-fase">En cada fase</option>
+                    <option value="nunca">Solo al final</option>
+                    {p.plan.fases.map((f) => <option key={f} value={String(f)}>Solo en {FASES.find((x) => x.n === f)?.nombre}</option>)}
+                  </select>
+                </label>
+                <div><button className={boton}>Guardar</button></div>
+              </form>
+
+              <div className="grid gap-2">
+                <p className="text-[14px] font-medium">Quién aprueba cada fase</p>
+                {p.plan.fases.map((f) => (
+                  <form key={f} action={accionResponsable} className="flex items-center justify-between gap-2 text-[14px]">
+                    {comunes}
+                    <input type="hidden" name="fase" value={f} />
+                    <label htmlFor={`socio-${f}`}>{FASES.find((x) => x.n === f)?.nombre}</label>
+                    <span className="flex items-center gap-2">
+                      <select id={`socio-${f}`} name="socio" defaultValue={responsable(p, f)} className="rounded-full border border-linea bg-papel px-3 py-1 text-[13px]">
+                        <option value="jay">Jay</option><option value="luna">Luna</option>
+                      </select>
+                      <button className="font-mono text-[11px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Guardar</button>
+                    </span>
+                  </form>
+                ))}
+              </div>
+
+              <div className="grid gap-1 text-[14px]">
+                <p className="font-medium">PDF</p>
+                {enLinea ? (
+                  <p className="text-gris">Todavía se arma desde tu máquina: <code>npm run pipeline -- pdf {id}</code>.</p>
+                ) : (
+                  <p className="flex flex-wrap gap-4"><a href={`/estudio/${id}/pdf`} className={linkSuave}>Para el cliente ↓</a><a href={`/estudio/${id}/pdf?internas=1`} className={linkSuave}>Interno ↓</a></p>
+                )}
+              </div>
+
+              {p.estado !== "parado" && p.estado !== "listo" && (
+                <form action={accionParar}>
+                  {comunes}
+                  <button className={linkSuave}>Parar el proyecto</button>
+                </form>
+              )}
+
+              <form action={accionBorrar} className="grid gap-2 rounded-2xl bg-[#fde8e4] p-4">
+                <input type="hidden" name="id" value={id} />
+                <p className="text-[14px] font-medium text-[#8a1c0c]">Borrar el proyecto</p>
+                <p className="text-[13px] text-[#8a1c0c]">Se borra todo: entregas, archivos y lo que dijo el cliente. No se puede deshacer. Escribe «{p.pedido.cliente}» para confirmar.</p>
+                <input name="confirmar" required className={campo} aria-label="Nombre del cliente para confirmar" autoComplete="off" />
+                <div><button className="inline-flex min-h-11 items-center rounded-full bg-[#8a1c0c] px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-white">Borrar para siempre</button></div>
+              </form>
+            </div>
+          </details>
         </aside>
       </div>
     </main>
