@@ -17,23 +17,43 @@ export function claveAnthropic(): string | undefined {
   return c;
 }
 
+/**
+ * Pensamiento según la tarea. Sonnet 5.5 y Haiku 5.5 piensan por defecto y ese pensamiento sale del mismo
+ * max_tokens (y se cobra como salida). Para decisiones cortas y tareas livianas se apaga; para las creativas
+ * se deja (con espacio de sobra). En otros modelos no se manda nada.
+ */
+export function pensamiento(modelo: string, profundo: boolean): Record<string, unknown> {
+  if (profundo) return {};
+  if (/haiku-5-5/.test(modelo)) return { thinking: { type: "disabled" } };
+  if (/sonnet-5-5/.test(modelo)) return { thinking: { type: "between_tools" } };
+  return {};
+}
+
+/** Saca el texto de una respuesta; si no hay, explica por qué (por ejemplo, se acabó el espacio pensando). */
+export function textoDe(d: { content?: { type: string; text?: string }[]; stop_reason?: string }): string {
+  const t = (d.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+  if (!t.trim()) throw new Error(`la respuesta llegó sin texto (motivo: ${d.stop_reason ?? "desconocido"}; bloques: ${(d.content ?? []).map((b) => b.type).join(", ") || "ninguno"})`);
+  return t;
+}
+
 export async function preguntarClaude(sistema: string, usuario: string, maxTokens = 600): Promise<string | undefined> {
   const clave = claveAnthropic();
   if (!clave) return undefined;
+  const modelo = process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
   const r = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
+      model: modelo,
       max_tokens: maxTokens,
+      ...pensamiento(modelo, false),
       system: sistema,
       messages: [{ role: "user", content: usuario }],
     }),
     signal: AbortSignal.timeout(60000),
   });
   if (!r.ok) throw new Error(ocultarClaves(`la API respondió ${r.status}: ${(await r.text()).slice(0, 160)}`));
-  const d = (await r.json()) as { content: { type: string; text?: string }[] };
-  return d.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+  return textoDe((await r.json()) as { content: { type: string; text?: string }[]; stop_reason?: string });
 }
 
 /** Saca el primer objeto JSON de un texto. */

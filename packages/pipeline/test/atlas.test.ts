@@ -117,3 +117,32 @@ test("una clave mal pegada no se muestra nunca y se explica cómo arreglarla", a
     delete process.env.ANTHROPIC_API_KEY;
   }
 });
+
+test("pensamiento: apagado en Atlas y tareas livianas, encendido en las creativas", async () => {
+  const { pensamiento, textoDe } = await import("../src/ia.ts");
+  assert.deepEqual(pensamiento("claude-haiku-5-5", false), { thinking: { type: "disabled" } });
+  assert.deepEqual(pensamiento("claude-sonnet-5-5", false), { thinking: { type: "between_tools" } });
+  assert.deepEqual(pensamiento("claude-sonnet-5-5", true), {});
+  assert.deepEqual(pensamiento("otro-modelo", false), {});
+  assert.throws(() => textoDe({ content: [{ type: "thinking" }], stop_reason: "max_tokens" }), /sin texto.*max_tokens/);
+});
+
+test("Atlas manda el pensamiento apagado al modelo rápido", async () => {
+  const antes = globalThis.fetch;
+  process.env.ANTHROPIC_API_KEY = "sk-ant-prueba";
+  process.env.ANTHROPIC_MODEL_RAPIDO = "claude-haiku-5-5";
+  let cuerpo: Record<string, unknown> = {};
+  globalThis.fetch = (async (_u: unknown, init: RequestInit) => {
+    cuerpo = JSON.parse(String(init.body));
+    return Response.json({ content: [{ type: "text", text: JSON.stringify({ tipo: "web", tareas: ["1.ledger"] }) }] });
+  }) as typeof fetch;
+  try {
+    await entenderPedido("Una web para Ana, odontóloga");
+    assert.deepEqual(cuerpo.thinking, { type: "disabled" });
+    assert.equal(cuerpo.model, "claude-haiku-5-5");
+  } finally {
+    globalThis.fetch = antes;
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_MODEL_RAPIDO;
+  }
+});

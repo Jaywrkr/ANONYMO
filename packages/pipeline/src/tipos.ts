@@ -65,6 +65,8 @@ export interface Contrato {
   interna?: boolean;
   /** Tarea liviana (sistema/23): la hace el modelo rápido (Haiku), más barato. */
   ligera?: boolean;
+  /** Tarea creativa o de criterio (sistema/26): el modelo piensa antes de escribir. Las demás van directo, más baratas. */
+  profunda?: boolean;
   /** Tope de tokens de salida. Por defecto 2500: entregas concretas, sin relleno. */
   salida?: number;
   /** Herramientas que necesita de verdad (fase 5.4). En simulado se marcan como pendientes. */
