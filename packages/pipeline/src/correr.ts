@@ -12,7 +12,8 @@ import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Motor } from "./motor.ts";
 import { type Entrega, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
 
-export type Aviso = (texto: string) => void;
+/** Lo que va pasando. Puede ser asíncrono: en línea se usa para subir a la nube cada tarea apenas termina. */
+export type Aviso = (texto: string) => void | Promise<void>;
 const nombreFase = (n: number) => FASES.find((f) => f.n === n)?.nombre ?? `Fase ${n}`;
 const faseDe = (t: TareaId) => Number(t.split(".")[0]);
 const quienNombre = (q: Puerta["quien"]) => ({ jay: "Jay", luna: "Luna", auto: "Atlas", cliente: "El cliente" })[q];
@@ -114,7 +115,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       }
       guardarProyecto(p);
       bitacora(id, `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} v${version} (${r.modo}).`);
-      aviso(`  ✓ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} v${version}`);
+      await aviso(`  ✓ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} v${version}`);
     }
 
     // ¿Se cerró la fase?

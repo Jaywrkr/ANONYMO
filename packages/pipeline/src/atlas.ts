@@ -269,7 +269,7 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
       razones: r.razones,
       fuera: r.fuera,
       preguntas: (r.preguntas ?? []).map(txt).filter((x): x is string => !!x).slice(0, 4),
-      resumen: txt(r.resumen),
+      resumen: typeof r.resumen === "string" ? r.resumen.trim().slice(0, 500) : undefined,
       porIA: true,
     },
   };

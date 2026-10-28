@@ -6,7 +6,7 @@ import { ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, pl
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
-import { conNube } from "@/lib/nube";
+import { conNube, llevar } from "@/lib/nube";
 
 type Quien = "jay" | "luna";
 
@@ -31,11 +31,15 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
   redirect(destino);
 }
 
-const silencio = () => {};
+
+/** Cada tarea terminada sube a la nube al momento: si Vercel corta por tiempo, lo hecho no se pierde y «Seguir» continúa. */
+const subirCadaTarea = (id: string) => async (texto: string) => {
+  if (texto.trimStart().startsWith("✓")) await llevar(id);
+};
 
 export async function accionAprobar(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
-  await correr(id, () => aprobar(id, quien, nota, motor, silencio, f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.");
+  await correr(id, () => aprobar(id, quien, nota, motor, subirCadaTarea(id), f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.");
 }
 
 export async function accionCambiar(f: FormData) {
@@ -43,7 +47,7 @@ export async function accionCambiar(f: FormData) {
   const agente = String(f.get("agente") ?? "") || undefined;
   await correr(id, () => {
     if (!nota) throw new Error("Escribe qué hay que cambiar.");
-    return cambiar(id, quien, nota, agente, motor, silencio);
+    return cambiar(id, quien, nota, agente, motor, subirCadaTarea(id));
   }, "Cambio pedido. Se rehizo y quedó esperando tu revisión.");
 }
 
@@ -61,13 +65,13 @@ export async function accionPausas(f: FormData) {
   const { id, motor } = await leer(f);
   await correr(id, async () => {
     cambiarPausas(id, String(f.get("pausas") ?? "clave"));
-    await avanzar(id, motor, silencio);
+    await avanzar(id, motor, subirCadaTarea(id));
   }, "Pausas actualizadas.");
 }
 
 export async function accionSeguir(f: FormData) {
   const { id, motor } = await leer(f);
-  await correr(id, () => avanzar(id, motor, silencio), "El equipo siguió trabajando.");
+  await correr(id, () => avanzar(id, motor, subirCadaTarea(id)), "El equipo siguió trabajando.");
 }
 
 export async function accionPortal(f: FormData) {
@@ -96,7 +100,7 @@ export async function accionMandarCliente(f: FormData) {
     if (!agentes.length) throw new Error("Elige al menos un agente.");
     anotar(id, texto, origen, agentes);
     if (pendiente) quitarPendiente(id, pendiente);
-    await avanzar(id, motor, silencio);
+    await avanzar(id, motor, subirCadaTarea(id));
   }, "Comentario enviado: el equipo rehízo lo necesario.");
 }
 
@@ -223,7 +227,7 @@ export async function accionNuevoProyecto(f: FormData) {
 /** «Que empiecen»: el plan queda aprobado y el equipo trabaja hasta la primera pausa. */
 export async function accionEmpezar(f: FormData) {
   const { id, quien, motor } = await leer(f);
-  await correr(id, () => empezar(id, quien, motor, silencio), "El equipo trabajó hasta la primera pausa.");
+  await correr(id, () => empezar(id, quien, motor, subirCadaTarea(id)), "El equipo trabajó hasta la primera pausa.");
 }
 
 /** Corregir el plan con palabras antes de empezar: Atlas lo vuelve a leer. */
