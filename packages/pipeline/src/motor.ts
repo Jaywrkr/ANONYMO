@@ -1,5 +1,6 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import { claveAnthropic, ocultarClaves, pensamiento, textoDe } from "./ia.ts";
+import { COMO_TRABAJAMOS, tarifaHora } from "./agencia.ts";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -138,6 +139,8 @@ export const real: Motor = {
     const profunda = !!c.profunda;
     const sistema = [
       `Eres ${a.nombre}, ${a.rol} en una agencia creativa de Cuenca, Ecuador, dirigida por Jay y Luna.`,
+      COMO_TRABAJAMOS,
+      tarea.endsWith(".ledger") && tarifaHora() ? `Tarifa por hora de Jay: USD ${tarifaHora()}. Úsala para el costo.` : "",
       `Carácter: ${a.caracter} Tu ADN: ${a.adn}. Tu superpoder: ${a.superpoder} Tu frase: "${a.frase}"`,
       pedido.idioma === "en"
         ? "Write in English for the client: plain and direct, short sentences, common words, no jargon, no filler. Keep the markers DICE/NECESITA/NOTA/FINALISTAS/HORAS exactly as written, but write their content in English."

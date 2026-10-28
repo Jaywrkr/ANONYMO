@@ -20,8 +20,8 @@ export const CONTRATOS: Contrato[] = [
   },
   {
     id: "1.ledger", interna: true, fase: 1, agente: "ledger", entrega: "Presupuesto", formato: "md", usa: ["1.atlas"],
-    objetivo: "Poner precio por fase con margen y condiciones de pago.",
-    criterios: ["Costo y precio por fase", "Margen visible", "Qué está incluido y qué no"],
+    objetivo: "Poner precio por fase con las horas reales de producción con IA (no las de una agencia tradicional), con margen y condiciones de pago, para un cliente en Ecuador.",
+    criterios: ["Horas reales con IA por fase", "Costo y precio por fase", "Margen visible", "Qué está incluido y qué no", "Lo que no acelera la IA (fotos, esperas del cliente) aparte"],
   },
 
   // 2 · Naming
@@ -91,7 +91,7 @@ export const CONTRATOS: Contrato[] = [
   },
   {
     id: "4.tempo", ligera: true, fase: 4, agente: "tempo", entrega: "Calendario y riesgos", formato: "md", usa: ["1.atlas", "4.orla", "4.lumen", "4.vector"],
-    objetivo: "Poner fechas reales a la construcción y avisar qué puede atrasarla.",
+    objetivo: "Poner fechas reales a la construcción con tiempos de producción con IA (días, no semanas) y avisar qué puede atrasarla.",
     criterios: ["Fecha por entrega", "Tres riesgos con plan B", "Qué necesita del cliente y cuándo"],
   },
 

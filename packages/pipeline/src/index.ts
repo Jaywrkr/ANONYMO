@@ -22,3 +22,4 @@ export * from "./nube.ts";
 export * from "./doctor.ts";
 export * from "./solicitudes.ts";
 export * from "./analitica.ts";
+export * from "./agencia.ts";
