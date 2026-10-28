@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
+import { ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
@@ -25,7 +25,7 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
   try {
     await conNube([id], fn);
   } catch (e) {
-    destino = `/estudio/${id}?error=${encodeURIComponent((e as Error).message)}`;
+    destino = `/estudio/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
   }
   revalidatePath(`/estudio/${id}`);
   redirect(destino);

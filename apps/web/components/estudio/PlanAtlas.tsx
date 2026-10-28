@@ -1,6 +1,6 @@
 // El plan que armó Atlas, antes de que nadie trabaje: quién entra, quién no y por qué, y cuánto costaría.
 import { agentePorId, AREAS, FASES } from "@anonymo/agentes";
-import { contratoPorId, costoPlan, type Proyecto } from "@anonymo/pipeline";
+import { contratoPorId, costoPlan, ocultarClaves, type Proyecto } from "@anonymo/pipeline";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { accionEmpezar, accionReplanear } from "@/app/estudio/acciones";
 import { boton, botonLleno, campo, etiqueta } from "@/lib/estudio";
@@ -14,7 +14,7 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
       <p className={etiqueta}>Plan de Atlas{p.plan.porIA ? " · con IA" : " · con reglas (sin IA)"} · nadie trabaja todavía</p>
       {!p.plan.porIA && p.plan.sinIA && (
         <p role="alert" className="mt-3 rounded-2xl bg-[#fff5d6] p-3 text-[14px]">
-          Atlas no pudo usar la IA: <span className="font-mono text-[13px]">{p.plan.sinIA}</span>. Arréglalo y escribe cualquier ajuste abajo para que vuelva a leer el pedido.
+          Atlas no pudo usar la IA: <span className="font-mono text-[13px]">{ocultarClaves(p.plan.sinIA)}</span>. Arréglalo y escribe cualquier ajuste abajo para que vuelva a leer el pedido.
         </p>
       )}
       {p.plan.resumen && <p className="display mt-2 text-[clamp(32px,4vw,52px)] leading-none">{p.plan.resumen}</p>}

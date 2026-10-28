@@ -40,7 +40,7 @@ test("el plan elegido saca las fases de las tareas y deja fuera lo demás con su
 
 test("con IA: Atlas usa lo que responde el modelo y descarta ids inventados", async () => {
   const antes = globalThis.fetch;
-  process.env.ANTHROPIC_API_KEY = "prueba";
+  process.env.ANTHROPIC_API_KEY = "sk-ant-prueba";
   let pidio = "";
   globalThis.fetch = (async (_u: unknown, init: RequestInit) => {
     pidio = String(init.body);
@@ -102,4 +102,18 @@ test("sin clave, Atlas usa reglas y dice por qué", async () => {
   assert.equal(l.eleccion.porIA, false);
   assert.match(l.eleccion.sinIA ?? "", /ANTHROPIC_API_KEY/);
   assert.match(planificar({ id: "z", cliente: "Z", tipo: "web", descripcion: "x", creado: "" }, l.eleccion).sinIA ?? "", /ANTHROPIC_API_KEY/);
+});
+
+test("una clave mal pegada no se muestra nunca y se explica cómo arreglarla", async () => {
+  const { ocultarClaves } = await import("../src/ia.ts");
+  assert.equal(ocultarClaves('valor "NOMBRE sk-ant-abc_DEF-123" inválido'), 'valor "NOMBRE sk-ant-•••" inválido');
+  process.env.ANTHROPIC_API_KEY = "MI CLAVE sk-ant-falsa-123";
+  try {
+    const l = await entenderPedido("Una web para mi clínica");
+    assert.equal(l.eleccion.porIA, false);
+    assert.match(l.eleccion.sinIA ?? "", /mal pegada/);
+    assert.ok(!(l.eleccion.sinIA ?? "").includes("falsa-123"));
+  } finally {
+    delete process.env.ANTHROPIC_API_KEY;
+  }
 });

@@ -1,4 +1,5 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
+import { claveAnthropic, ocultarClaves } from "./ia.ts";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -123,7 +124,7 @@ export function recortar(texto: string, max: number): string {
 export const real: Motor = {
   nombre: "real",
   async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos }) {
-    const clave = process.env.ANTHROPIC_API_KEY;
+    const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
@@ -203,7 +204,7 @@ export const real: Motor = {
             : {}),
         }),
       });
-      if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
+      if (!r.ok) throw new Error(ocultarClaves(`API ${r.status}: ${(await r.text()).slice(0, 300)}`));
       const res = (await r.json()) as { content: Bloque[]; stop_reason: string; usage?: { input_tokens?: number; output_tokens?: number; server_tool_use?: { web_search_requests?: number } } };
       bloques.push(...res.content);
       uso.entrada += res.usage?.input_tokens ?? 0;

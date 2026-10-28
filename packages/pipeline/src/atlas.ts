@@ -5,7 +5,7 @@ import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CONTRATOS, contratosDeFase, ordenar } from "./contratos.ts";
 import type { Pausas, Pedido, Plan, TareaId } from "./tipos.ts";
 import { PLANTILLAS, plantillaPorId } from "./plantillas.ts";
-import { json, preguntarClaude } from "./ia.ts";
+import { json, ocultarClaves, preguntarClaude } from "./ia.ts";
 
 /** Lo que Atlas eligió: qué tareas entran y por qué; lo demás queda fuera con su razón. */
 export interface Eleccion {
@@ -183,7 +183,8 @@ const catalogo = () =>
  */
 export async function entenderPedido(texto: string, op: { cliente?: string; archivos?: string[] } = {}): Promise<Lectura> {
   // Sin IA: reglas, y queda anotado por qué (se ve en el plan y en los registros del servidor).
-  const sinIA = (motivo: string) => {
+  const sinIA = (crudo: string) => {
+    const motivo = ocultarClaves(crudo);
     console.error(`[atlas] sin IA: ${motivo}`);
     const l = leerSinIA(texto, op.cliente);
     l.eleccion.sinIA = motivo;
