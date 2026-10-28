@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { PEDIDOS } from "@anonymo/agentes";
 import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
-import { buscar, leerEntrega, leerNota, listar, listarSolicitudes, PLANTILLAS } from "@anonymo/pipeline";
+import { buscar, listar, listarSolicitudes, PLANTILLAS, responsable } from "@anonymo/pipeline";
 import { accionConvertirSolicitud, accionDescartarSolicitud } from "./acciones";
 import { traerTodo } from "@/lib/nube";
+import { Oficina } from "@/components/estudio/Oficina";
+import { nombreFase, type ProyectoOficina } from "@/lib/oficina";
 import { sesionConfigurada } from "@/lib/sesion";
 import { salir } from "../entrar/acciones";
 import { campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
@@ -22,24 +23,91 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
   const hallazgos = q ? buscar(q) : [];
   const orden = { plan: 0, esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
   const proyectos = listar().sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
+  const activos = proyectos.filter((p) => p.estado !== "listo");
+  const oficina: ProyectoOficina[] = activos.map((p) => ({ id: p.pedido.id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas }));
+  // Lo que espera una decisión: primero lo que le toca a quien entró.
+  const pendientes = proyectos
+    .filter((p) => p.estado === "plan" || p.estado === "esperando")
+    .map((p) => {
+      const quien = p.estado === "plan" ? yo : responsable(p, p.faseActual);
+      const que = p.estado === "plan" ? "Revisar el plan de Atlas y decir «que empiecen»" : p.esperaJurado ? "El jurado no llegó a 7: decidir qué hacer" : `Revisar ${nombreFase(p.faseActual)} y aprobar o pedir cambios`;
+      return { p, quien, que };
+    })
+    .sort((a, b) => Number(b.quien === yo) - Number(a.quien === yo));
+  const nombreYo = yo === "luna" ? "Luna" : "Jay";
   return (
     <main className={`${lateral} pb-16`}>
-      <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-4">
-        <h1 className="display text-[clamp(64px,10vw,160px)]">Estudio</h1>
-        <p className="max-w-sm text-[17px] text-gris"><a href="/estudio/analitica" className="text-tinta underline underline-offset-4">Métricas de la web →</a><br />El panel de Jay y Luna. Aquí cargan los pedidos, aprueban, piden cambios y paran.</p>
-        {sesionConfigurada() && (
-          <form action={salir} className="flex items-center gap-3">
-            <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Hola, {yo === "luna" ? "Luna" : "Jay"}</span>
-            <button className="min-h-11 rounded-full border border-tinta px-4 font-mono text-[12px] uppercase tracking-[0.12em]">Salir</button>
-          </form>
-        )}
+      <div className="flex flex-wrap items-end justify-between gap-4 pb-6 pt-4">
+        <h1 className="display text-[clamp(52px,7vw,112px)] leading-none">Estudio</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <a href="/estudio/analitica" className="min-h-11 content-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Métricas de la web</a>
+          {sesionConfigurada() && (
+            <form action={salir} className="flex items-center gap-3">
+              <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Hola, {nombreYo}</span>
+              <button className="min-h-11 rounded-full border border-tinta px-4 font-mono text-[12px] uppercase tracking-[0.12em]">Salir</button>
+            </form>
+          )}
+        </div>
       </div>
-      <a href="/estudio/nuevo" className="mb-8 inline-flex min-h-14 items-center rounded-full bg-tinta px-7 font-mono text-[13px] uppercase tracking-[0.12em] text-hueso transition-transform hover:-translate-y-0.5">+ Nuevo proyecto</a>
+      {error && <p role="alert" className="mb-6 rounded-2xl bg-[#fde8e4] p-4 text-[#8a1c0c]">{error}</p>}
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section aria-label="La oficina" className="min-w-0">
+          <Oficina proyectos={oficina} />
+        </section>
+
+        <aside className="grid content-start gap-6">
+          <a href="/estudio/nuevo" className="flex min-h-14 items-center justify-center rounded-full bg-tinta px-7 font-mono text-[13px] uppercase tracking-[0.12em] text-hueso transition-transform hover:-translate-y-0.5">+ Nuevo proyecto</a>
+
+          <section aria-label="Te toca">
+            <p className={etiqueta}>Te toca · {pendientes.filter((x) => x.quien === yo).length}</p>
+            {pendientes.length === 0 ? (
+              <p className="mt-2 text-[15px] text-gris">Nada esperando tu decisión. El equipo está al día.</p>
+            ) : (
+              <ul className="mt-2 grid gap-2">
+                {pendientes.map(({ p, quien, que }) => (
+                  <li key={p.pedido.id}>
+                    <Link href={`/estudio/${p.pedido.id}`} className={`block rounded-2xl p-4 transition-transform hover:-translate-y-0.5 ${quien === yo ? "bg-[#fff1c2]" : "bg-papel"}`}>
+                      <span className="block text-[17px] font-medium leading-tight">{p.pedido.cliente}</span>
+                      <span className="mt-1 block text-[14px]">{que}</span>
+                      <span className="mt-1 block text-[12px] text-gris">{quien === yo ? "Te toca a ti" : `Le toca a ${quien === "luna" ? "Luna" : "Jay"}`}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-label="Proyectos">
+            <p className={etiqueta}>Proyectos · {proyectos.length}</p>
+            {proyectos.length === 0 && <p className="mt-2 text-[15px] text-gris">Todavía no hay. Después de hablar con un cliente, dale a «Nuevo proyecto».</p>}
+            <ul className="mt-2 grid gap-1">
+              {proyectos.map((p) => {
+                const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
+                return (
+                  <li key={p.pedido.id}>
+                    <Link href={`/estudio/${p.pedido.id}`} className="block rounded-2xl px-3 py-2.5 hover:bg-papel">
+                      <span className="flex items-baseline justify-between gap-3">
+                        <span className="truncate text-[15px] font-medium">{p.pedido.cliente}</span>
+                        <span className="shrink-0 text-[12px] text-gris">{ESTADO_PROYECTO[p.estado]}</span>
+                      </span>
+                      <span className="mt-1.5 block h-1 w-full overflow-hidden rounded-full bg-linea">
+                        <span className="block h-full bg-tinta" style={{ width: `${(hechas / Math.max(1, p.plan.tareas.length)) * 100}%` }} />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </aside>
+      </div>
+
+      <div className="mt-12 border-t border-linea pt-8">
       <form role="search" className="mb-8 flex max-w-2xl gap-2">
         <input name="q" defaultValue={q} placeholder="Buscar en todas las entregas: paleta, WhatsApp, Cormorant…" className={campo} aria-label="Buscar en todas las entregas" />
         <button className="rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Buscar</button>
       </form>
-      {error && <p role="alert" className="mb-6 rounded-2xl bg-[#fde8e4] p-4 text-[#8a1c0c]">{error}</p>}
       {solicitudes.length > 0 && (
         <section aria-label="Solicitudes nuevas" className="mb-10">
           <p className={etiqueta}>Solicitudes desde la web · {solicitudes.length}</p>
@@ -82,28 +150,7 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
           </ul>
         </section>
       )}
-      {proyectos.length === 0 && <p className="text-xl font-light">No hay proyectos todavía. Después de hablar con un cliente, dale a «Nuevo proyecto».</p>}
-      <ul className="grid gap-3 md:grid-cols-2">
-        {proyectos.map((p) => {
-          const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
-          const nota = leerNota(leerEntrega(p.pedido.id, "6.trofeo"));
-          return (
-            <li key={p.pedido.id}>
-              <Link href={`/estudio/${p.pedido.id}`} className="block rounded-3xl bg-papel p-6 transition-transform hover:-translate-y-0.5">
-                <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre} · {ESTADO_PROYECTO[p.estado]}</p>
-                <p className="display mt-2 text-6xl">{p.pedido.cliente}</p>
-                <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-linea">
-                  <div className="h-full bg-tinta" style={{ width: `${(hechas / p.plan.tareas.length) * 100}%` }} />
-                </div>
-                <p className="mt-3 flex justify-between text-[15px] text-gris">
-                  <span>{hechas}/{p.plan.tareas.length} tareas · fase {p.faseActual}</span>
-                  {nota && <span>Jurado {String(nota.final).replace(".", ",")}</span>}
-                </p>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      </div>
     </main>
   );
 }

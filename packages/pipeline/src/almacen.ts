@@ -1,5 +1,5 @@
 // Guarda y lee proyectos como archivos en proyectos/<id>/ (prototipo).
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ARCHIVOS, archivoEntrega, type Entrega, type Pedido, type Plan, type Proyecto, type TareaId } from "./tipos.ts";
@@ -130,4 +130,10 @@ export function leerBitacora(id: string, cuantas = 20): string[] {
   const ruta = join(dir(id), ARCHIVOS.bitacora);
   if (!existsSync(ruta)) return [];
   return readFileSync(ruta, "utf8").trim().split("\n").map((l) => l.replace(/^- /, "")).reverse().slice(0, cuantas);
+}
+
+/** Borra el proyecto de esta máquina (o del disco temporal en línea). No se puede deshacer. */
+export function borrarProyecto(id: string) {
+  if (!/^[a-z0-9_][a-z0-9_-]{0,80}$/i.test(id) || id.startsWith("_")) throw new Error("Nombre de proyecto no válido.");
+  rmSync(dir(id), { recursive: true, force: true });
 }
