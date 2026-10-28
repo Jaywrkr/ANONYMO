@@ -52,7 +52,8 @@ export function costoPlan(pedido: Pick<Pedido, "descripcion" | "contexto">, plan
   for (const t of plan.tareas) {
     const c = contratoPorId(t);
     if (!c) continue;
-    const salida = Math.round((c.salida ?? 2500) * 0.66);
+    // Las tareas creativas piensan antes de escribir: ese pensamiento también se cobra como salida.
+    const salida = Math.round((c.salida ?? 2500) * 0.66) + (c.profunda ? 3000 : 0);
     const entrada = base + lecturas(t, plan.tareas).length * 1800;
     const busquedas = c.herramientas?.includes("web") ? 3 : 0;
     total += usd(entrada, salida, busquedas, !!c.ligera);

@@ -26,7 +26,7 @@ export const CONTRATOS: Contrato[] = [
 
   // 2 · Naming
   {
-    id: "2.verba", salida: 3000, fase: 2, agente: "verba", entrega: "Lista de nombres", formato: "md", usa: ["1.nova"],
+    id: "2.verba", profunda: true, salida: 3000, fase: 2, agente: "verba", entrega: "Lista de nombres", formato: "md", usa: ["1.nova"],
     objetivo: "Generar nombres que se digan fácil y elegir cinco finalistas.",
     criterios: ["Treinta opciones", "Cinco finalistas con su razón", "Se pronuncian bien en español e inglés"],
   },
@@ -43,7 +43,7 @@ export const CONTRATOS: Contrato[] = [
 
   // 3 · Identidad
   {
-    id: "3.mira", salida: 3500, fase: 3, agente: "mira", entrega: "Sistema visual", formato: "md", usa: ["1.nova", "2.verba"], herramientas: ["imagen"],
+    id: "3.mira", profunda: true, salida: 3500, fase: 3, agente: "mira", entrega: "Sistema visual", formato: "md", usa: ["1.nova", "2.verba"], herramientas: ["imagen"],
     objetivo: "Proponer logo, color y tipografía que funcionen de 16 px a un edificio.",
     criterios: ["Tres rutas de logo", "Paleta con contraste accesible", "Tipografías con licencia"],
   },
@@ -65,7 +65,7 @@ export const CONTRATOS: Contrato[] = [
 
   // 4 · Web
   {
-    id: "4.orla", salida: 4000, fase: 4, agente: "orla", entrega: "Diseño de la web", formato: "md", usa: ["1.nova", "1.sonda", "3.mira", "3.rhea"],
+    id: "4.orla", profunda: true, salida: 4000, fase: 4, agente: "orla", entrega: "Diseño de la web", formato: "md", usa: ["1.nova", "1.sonda", "3.mira", "3.rhea"],
     objetivo: "Definir páginas, secciones, jerarquía y la idea visual que la hace memorable.",
     criterios: ["Mapa del sitio", "Contenido por sección", "Una idea central que un jurado recuerde"],
   },
@@ -75,7 +75,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Qué se toca y qué responde", "Plan para celulares", "Presupuesto de rendimiento"],
   },
   {
-    id: "4.vector", salida: 6000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"], herramientas: ["web"],
+    id: "4.vector", profunda: true, salida: 6000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"], herramientas: ["web"],
     objetivo: "Construir la web en Next.js a partir del diseño.",
     criterios: ["Compila sin errores", "Responde en celular", "Accesibilidad sin errores graves"],
   },
@@ -129,7 +129,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Puntajes por página", "Errores graves en cero", "Lista de arreglos por prioridad"],
   },
   {
-    id: "6.trofeo", salida: 3000, interna: true, fase: 6, agente: "trofeo", entrega: "Nota del jurado", formato: "json", usa: "todo",
+    id: "6.trofeo", profunda: true, salida: 3000, interna: true, fase: 6, agente: "trofeo", entrega: "Nota del jurado", formato: "json", usa: "todo",
     objetivo: "Calificar como Awwwards: diseño 40, usabilidad 30, creatividad 20, contenido 10.",
     criterios: ["Nota por criterio con razón", "Nota final ponderada", "Tres arreglos que más suben la nota"],
   },

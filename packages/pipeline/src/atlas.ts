@@ -224,7 +224,7 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
           plantilla: `${PLANTILLAS.map((p) => p.id).join(" | ")} | null`,
         }),
       ].join("\n"),
-      1800,
+      3000,
     );
   } catch (e) {
     return sinIA((e as Error).message);

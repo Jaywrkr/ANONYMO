@@ -1,5 +1,5 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
-import { claveAnthropic, ocultarClaves } from "./ia.ts";
+import { claveAnthropic, ocultarClaves, pensamiento, textoDe } from "./ia.ts";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -133,6 +133,9 @@ export const real: Motor = {
     const enlaces = [...new Set([pedido.descripcion, JSON.stringify(pedido.contexto ?? {}), ...cliente].join(" ").match(/https?:\/\/[^\s"'<>)\]]+/g) ?? [])];
     const abreEnlaces = enlaces.length > 0 && LECTORES.includes(c.agente);
     const rapido = !!c.ligera;
+    const modelo = rapido ? process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5" : process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
+    // Las creativas piensan: se les da espacio extra para que el pensamiento no se coma la entrega.
+    const profunda = !!c.profunda;
     const sistema = [
       `Eres ${a.nombre}, ${a.rol} en una agencia creativa de Cuenca, Ecuador, dirigida por Jay y Luna.`,
       `Carácter: ${a.caracter} Tu ADN: ${a.adn}. Tu superpoder: ${a.superpoder} Tu frase: "${a.frase}"`,
@@ -183,6 +186,7 @@ export const real: Motor = {
     ];
     const bloques: Bloque[] = [];
     const uso = { entrada: 0, salida: 0, busquedas: 0 };
+    let fin = "";
     // Con búsqueda web la API puede pausar el turno: se continúa hasta 3 veces.
     for (let vuelta = 0; vuelta < 3; vuelta++) {
       const r = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
@@ -190,8 +194,9 @@ export const real: Motor = {
         headers: { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
           // Tareas livianas con el modelo rápido; el resto con el principal.
-          model: rapido ? process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5" : process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
-          max_tokens: c.salida ?? 2500,
+          model: modelo,
+          max_tokens: (c.salida ?? 2500) + (profunda ? 8000 : 0),
+          ...pensamiento(modelo, profunda),
           system: sistema,
           messages: mensajes,
           ...(buscaEnWeb || abreEnlaces
@@ -210,10 +215,11 @@ export const real: Motor = {
       uso.entrada += res.usage?.input_tokens ?? 0;
       uso.salida += res.usage?.output_tokens ?? 0;
       uso.busquedas += res.usage?.server_tool_use?.web_search_requests ?? 0;
+      fin = res.stop_reason;
       if (res.stop_reason !== "pause_turn") break;
       mensajes.push({ role: "assistant", content: res.content });
     }
-    const texto = bloques.filter((b) => b.type === "text").map((b) => b.text).join("");
+    const texto = textoDe({ content: bloques, stop_reason: fin });
     const linea = (k: string) => texto.match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1].trim();
     const nota = linea("NOTA");
     const finalistas = linea("FINALISTAS")?.split(",").map((x) => x.trim()).filter(Boolean);
