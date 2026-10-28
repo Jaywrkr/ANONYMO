@@ -66,3 +66,43 @@ export function json<T>(texto: string | undefined): T | undefined {
     return undefined;
   }
 }
+
+/**
+ * Respuesta estructurada (sistema/27): el modelo rellena una herramienta con su esquema y la API devuelve
+ * el objeto ya armado. Así nunca llega un JSON cortado o mal escrito. Si el modelo no acepta forzar la
+ * herramienta, se reintenta dejándolo elegir y, como último recurso, se lee el JSON del texto.
+ */
+export async function pedirEstructura<T>(
+  sistema: string,
+  usuario: string,
+  h: { nombre: string; descripcion: string; esquema: Record<string, unknown> },
+  maxTokens = 4000,
+): Promise<T | undefined> {
+  const clave = claveAnthropic();
+  if (!clave) return undefined;
+  const modelo = process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
+  const llamar = (forzar: boolean) =>
+    fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: modelo,
+        max_tokens: maxTokens,
+        ...pensamiento(modelo, false),
+        system: sistema,
+        messages: [{ role: "user", content: usuario }],
+        tools: [{ name: h.nombre, description: h.descripcion, input_schema: h.esquema }],
+        tool_choice: forzar ? { type: "tool", name: h.nombre } : { type: "auto" },
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+  let r = await llamar(true);
+  if (r.status === 400) r = await llamar(false);
+  if (!r.ok) throw new Error(ocultarClaves(`la API respondió ${r.status}: ${(await r.text()).slice(0, 160)}`));
+  const d = (await r.json()) as { content?: { type: string; name?: string; input?: unknown; text?: string }[]; stop_reason?: string };
+  const uso = d.content?.find((b) => b.type === "tool_use" && b.name === h.nombre);
+  if (uso?.input && typeof uso.input === "object") return uso.input as T;
+  const desdeTexto = json<T>(textoDe(d));
+  if (!desdeTexto) throw new Error(`la respuesta no se pudo leer (motivo: ${d.stop_reason ?? "desconocido"})`);
+  return desdeTexto;
+}
