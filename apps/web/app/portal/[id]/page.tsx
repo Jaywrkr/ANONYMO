@@ -77,6 +77,7 @@ export default async function Portal({ params, searchParams }: Props) {
                   <Maqueta d={d} dominio={`${id.split("-")[0]}.com`} />
                   <p className={`${serif} text-[26px] leading-none`}>{d.nombre}</p>
                   <p className="text-[14px] text-medio">{d.idea}</p>
+                  {d.justificacion && <p className="text-[14px] text-medio">{d.justificacion}</p>}
                   <label className="sr-only" htmlFor={`nota-${n}`}>{tx.dirNota}</label>
                   <input id={`nota-${n}`} name="nota" maxLength={600} placeholder={tx.dirNota} className={campo} />
                   <div><button className={botonLleno}>{tx.dirBoton}</button></div>

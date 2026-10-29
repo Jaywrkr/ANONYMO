@@ -16,11 +16,13 @@ export const TIPOS_SITIO: Record<string, string> = {
 /** Lo que se le pide al constructor para que la web se pueda ver y publicar tal cual. */
 export const PEDIDO_SITIO = [
   "# Entrega la web como archivos (se ve funcionando en el estudio y se publica tal cual)",
-  "Construye un sitio estático: HTML, CSS y JavaScript sin compilar, sin frameworks ni npm. Debe abrir directo en el navegador.",
+  "Construye un sitio estático: HTML, CSS y JavaScript sin compilar, sin build ni npm; permite librerías gratuitas por CDN con versión exacta (jsDelivr/cdnjs), solo cuando el concepto las necesite. Debe abrir directo en el navegador.",
+  "Estándar visual: composición y tipografía propias, ritmo e imágenes del cliente. Evita hero centrado con botón, tres tarjetas iguales, iconos genéricos y degradados por defecto. Justifica las decisiones con el pedido, las respuestas y referencias del cliente; no inventes testimonios ni premios. Dialoga con esas referencias sin copiarlas.",
+  "Movimiento progresivo con GSAP/ScrollTrigger, Lenis, SplitType, Three.js/OGL o Swiper solo si aporta. Usa versiones exactas y licencias gratuitas, nunca latest. Contenido y navegación útiles sin JS o si falla el CDN. Respeta prefers-reduced-motion, foco y teclado. CSS moderno con clamp y container queries cuando convenga. Presupuesto: JS comprimido inicial <= 200 KB, imágenes iniciales <= 500 KB, carga diferida del 3D y fotos fuera de portada; objetivo Lighthouse móvil >= 85, no afirmes haberlo medido sin ejecutarlo.",
   "Cada archivo va en su propio bloque de código y en la línea de apertura pones el lenguaje y su ruta así: ```html archivo:index.html",
   "Archivos mínimos: index.html y estilos.css. Agrega más páginas (servicios.html, contacto.html…) y script.js si el diseño lo pide. Rutas relativas entre ellos (href=\"servicios.html\").",
   "Usa las fuentes de Google Fonts con <link>. Celular primero: tiene que verse perfecto a 390 px y a 1440 px.",
-  "Imágenes: las del cliente están en img/<nombre-del-archivo> (usa los nombres exactos de la lista de archivos). Si falta una foto, usa un bloque con degradado de la marca y un texto corto que diga qué foto va ahí.",
+  "Imágenes: las del cliente están en img/<nombre-del-archivo> (usa los nombres exactos de la lista de archivos). Si falta una foto, usa un espacio neutro integrado en la composición y un texto corto que diga qué foto va ahí.",
   "Textos reales del cliente en su idioma, nada de lorem ipsum. Accesible: alt en imágenes, contraste suficiente, botones con texto.",
   "Antes de los archivos, en pocas líneas: qué páginas hay y qué falta para publicar. Después de los archivos, las líneas finales de siempre.",
 ].join("\n");

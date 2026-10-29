@@ -211,7 +211,7 @@ export const real: Motor = {
       c.estructura && direccion !== "proponer" ? `Formato fijo: usa exactamente estas secciones, en este orden, como títulos «##»: ${c.estructura.map((x) => `«${x}»`).join(", ")}. No agregues otras.` : "",
       sinAdjuntos
         ? "Esta vez las imágenes del cliente no van adjuntas: usa lo que ya describieron las entregas del equipo y no digas que no las ves."
-        : "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Nunca digas que no puedes verlos.",
+        : "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Las referencias muestran lo que le gusta al cliente: tu diseño tiene que dialogar con ellas y explicar qué decisiones nacen de cada una. No inventes haber consultado enlaces. Nunca digas que no puedes verlos.",
       "Termina siempre lo que empiezas: si el espacio no alcanza, resume, pero cierra cada sección y cada tabla.",
       "Lo que sea solo para el equipo (dudas, riesgos internos, márgenes, notas a otros agentes) va al final, bajo el título «## Para el equipo»: el cliente nunca lo ve.",
       "Responde en markdown. Al final agrega exactamente dos líneas:",

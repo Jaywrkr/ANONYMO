@@ -6,6 +6,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 
 | Rama | Qué hace | Cómo se usa |
 |---|---|---|
+| sistema/46-diseno-pro | Direcciones con portada propia, explicación del pedido y contexto completo; web con movimiento y librerías gratuitas opcionales | Estudio, portal y PDF → direcciones; nuevas entregas de Orla y Vector |
 | sistema/01-panel-web | Panel del estudio: proyectos, aprobar, cambiar, parar, pausas, bitácora | `npm run dev` → `/estudio` (o `ESTUDIO=1 npm run start`) |
 | sistema/02-portal-cliente | Enlace privado del cliente: ve sus entregas (sin las internas), aprueba fases y comenta | Estudio → "Crear enlace", o `npm run pipeline -- portal <id>`; necesita `PORTAL=1` o `ESTUDIO=1` |
 | sistema/03-comentarios-desde-panel | Escribir lo que dijo el cliente (o traer lo que comentó en su portal), ver a quién lo manda Atlas, ajustar agentes y mandarlo | Estudio → proyecto → "Lo que dijo el cliente" |
@@ -72,3 +73,14 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | web/18-seo-tecnico | Mapa del sitio con los dos idiomas, robots que no indexa estudio ni portales, datos estructurados de la agencia (schema.org) y título y descripción propios en cada página y cada agente | `/sitemap.xml`, `/robots.txt` |
 | web/19-analitica | Medición propia sin cookies ni IP (respeta "No rastrear"): visitas, páginas, origen, celular/escritorio, inglés, tiempo en la sala, agentes más vistos y pedidos; tablero de Pulso en el estudio; Plausible opcional | Estudio → "Métricas de la web" (`/estudio/analitica`) |
 | web/20-placeholders-fotos | Espacios diseñados para los retratos de Jay y Luna, la foto de eventos y la del estudio: se reemplazan solos al soltar los archivos en `public/fotos/` con el nombre indicado (instrucciones de tamaño y luz en `LEEME.md`) | `apps/web/public/fotos/` |
+
+### Probar las portadas propias (0.46)
+
+Con el estudio de prueba levantado por `bash scripts/pruebas/nube.sh` y el build actualizado:
+
+```bash
+ANONYMO_NUBE=1 SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_KEY=x SUPABASE_BUCKET=proyectos ANONYMO_PROYECTOS=/tmp/anonymo-pruebas/diseno node --experimental-strip-types scripts/pruebas/diseno.ts
+CHROMIUM=/usr/bin/chromium node scripts/pruebas/e2e-diseno.mjs
+```
+
+Usa solo datos ficticios y la nube falsa. Comprueba la portada libre y su explicación en estudio, portal y página para PDF, interacción, bloqueo del acceso al estudio y ancho de celular. Las direcciones antiguas mantienen su maqueta; las nuevas entregas reales solicitan HTML propio. El objetivo Lighthouse móvil ≥ 85 es una instrucción de diseño, no una medición automática ni el panel de la Prioridad 2.
