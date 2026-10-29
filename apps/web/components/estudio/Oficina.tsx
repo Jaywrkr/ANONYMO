@@ -12,13 +12,13 @@ const OficinaEscena = dynamic(() => import("./OficinaEscena"), { ssr: false });
 
 const COLOR_ESTADO: Record<EstadoAgente, string> = {
   trabajando: "#2bb673",
-  revisar: "#ffb800",
+  revisar: "#ff5a1f",
   cola: "#9a948b",
   listo: "#5fb4ff",
   libre: "#d9d3c8",
 };
 
-const etiqueta = "font-mono text-[11px] uppercase tracking-[0.14em] text-gris";
+const etiqueta = "text-[12px] text-suave";
 
 /** Lista simple del equipo: para lectores de pantalla, celulares sin 3D y como respaldo. */
 function Lista({ p, onElegir }: { p: ReturnType<typeof calcular>; onElegir: (id: string) => void }) {
@@ -26,10 +26,10 @@ function Lista({ p, onElegir }: { p: ReturnType<typeof calcular>; onElegir: (id:
     <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
       {AGENTES.map((a) => (
         <li key={a.id}>
-          <button onClick={() => onElegir(a.id)} className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[14px] hover:bg-papel">
+          <button onClick={() => onElegir(a.id)} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[14px] hover:bg-white">
             <i className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLOR_ESTADO[p[a.id].estado] }} aria-hidden />
             <span className="flex-1">{a.nombre}</span>
-            <span className="text-[12px] text-gris">{p[a.id].estado === "libre" ? "" : TEXTO_ESTADO[p[a.id].estado]}</span>
+            <span className="text-[12px] text-suave">{p[a.id].estado === "libre" ? "" : TEXTO_ESTADO[p[a.id].estado]}</span>
           </button>
         </li>
       ))}
@@ -85,14 +85,14 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
         {(["trabajando", "revisar", "cola", "listo"] as EstadoAgente[]).map((e) => (
           <span key={e} className="flex items-center gap-2 text-[13px]">
             <i className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR_ESTADO[e] }} aria-hidden />
-            {TEXTO_ESTADO[e]} <span className="text-gris">{conteo[e] ?? 0}</span>
+            {TEXTO_ESTADO[e]} <span className="text-suave">{conteo[e] ?? 0}</span>
           </span>
         ))}
         {(trabajando || enCurso) && vivo && <span className={`${etiqueta} ml-auto animate-pulse`}>En vivo</span>}
       </div>
 
       {con3D ? (
-        <div className={`relative w-full overflow-hidden rounded-3xl bg-[#e9e3d8] ${alto}`}>
+        <div className={`relative w-full overflow-hidden rounded-[20px] bg-[#ece6dc] shadow-[inset_0_0_0_1px_rgba(26,24,22,.05)] ${alto}`}>
           <OficinaEscena puestos={p} elegido={elegido} onElegir={setElegido} className="absolute inset-0" capa={capa as React.RefObject<HTMLElement>} />
           <div ref={capa} className="pointer-events-none absolute inset-0 overflow-hidden" />
         </div>
@@ -105,14 +105,14 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
       </details>
 
       {a && puesto && (
-        <aside aria-label={`Panel de ${a.nombre}`} className="absolute right-3 top-14 z-30 w-[min(320px,calc(100%-24px))] rounded-3xl border border-linea bg-hueso/95 p-5 shadow-xl backdrop-blur">
+        <aside aria-label={`Panel de ${a.nombre}`} className="absolute right-3 top-14 z-30 w-[min(320px,calc(100%-24px))] rounded-[18px] bg-white/95 p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06),0_18px_44px_-18px_rgba(40,30,20,.35)] backdrop-blur">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className={etiqueta} style={{ color: AREAS[a.area].sombra }}>{AREAS[a.area].nombre}</p>
-              <p className="display mt-1 text-4xl leading-none">{a.nombre}</p>
-              <p className="mt-1 text-[14px] text-gris">{a.rol}</p>
+              <p className="text-[12px]" style={{ color: AREAS[a.area].texto ?? AREAS[a.area].sombra }}>{AREAS[a.area].nombre}</p>
+              <p className="mt-1 font-serif text-[34px] leading-none">{a.nombre}</p>
+              <p className="mt-1 text-[14px] text-medio">{a.rol}</p>
             </div>
-            <button onClick={() => setElegido("")} aria-label="Cerrar" className="h-9 w-9 rounded-full border border-linea text-lg leading-none">×</button>
+            <button onClick={() => setElegido("")} aria-label="Cerrar" className="h-11 w-11 rounded-full bg-[#f1ede6] text-lg leading-none">×</button>
           </div>
           <p className="mt-3 flex items-center gap-2 text-[14px]">
             <i className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR_ESTADO[puesto.estado] }} aria-hidden />
@@ -122,15 +122,15 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
             <ul className="mt-3 grid gap-1">
               {puesto.trabajos.slice(0, 6).map((t) => (
                 <li key={t.proyecto + t.tarea}>
-                  <Link href={`/estudio/${t.proyecto}/${t.tarea.replace(".", "-")}`} className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-[14px] hover:bg-papel">
+                  <Link href={`/estudio/${t.proyecto}/${t.tarea.replace(".", "-")}`} className="flex min-h-11 items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-[14px] hover:bg-[#f6f3ee]">
                     <span className="truncate">{t.nombre}</span>
-                    <span className="shrink-0 text-[12px] text-gris">{TEXTO_ESTADO[t.estado]}</span>
+                    <span className="shrink-0 text-[12px] text-suave">{TEXTO_ESTADO[t.estado]}</span>
                   </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-[14px] text-gris">“{a.frase}”</p>
+            <p className="mt-3 font-serif text-[20px] leading-snug text-medio">“{a.frase}”</p>
           )}
         </aside>
       )}

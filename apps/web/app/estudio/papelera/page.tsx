@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { borrarProyecto, borrarRemoto, listarPapelera, nubeActiva } from "@anonymo/pipeline";
 import { PEDIDOS } from "@anonymo/agentes";
 import { traerTodo } from "@/lib/nube";
-import { etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
+import { espacio } from "@/lib/espacio";
+import { botonLleno, exigirEstudio, serif } from "@/lib/estudio";
 import { Confirmar } from "@/components/estudio/Confirmar";
 import { hace } from "@/components/estudio/piezas";
 import { accionBorrar, accionSacarDePapelera } from "../acciones";
@@ -24,44 +24,47 @@ export default async function Papelera() {
   }
   const lista = listarPapelera();
   return (
-    <main className={`${lateral} pb-20`}>
-      <p className="pt-4"><Link href="/estudio" className={etiqueta}>← Estudio</Link></p>
-      <h1 className="display mt-2 text-[clamp(52px,7vw,112px)] leading-none">Papelera</h1>
-      <p className="mt-2 max-w-xl text-[17px] text-gris">Los proyectos que mandaste aquí no aparecen ni trabajan. Puedes restaurarlos tal como estaban. A los 30 días se borran solos.</p>
+    <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
+      <p className="text-[13px] text-suave">Papelera · {lista.length}</p>
+      <h1 className={`${serif} mt-1 text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Lo que sacaste del estudio.</h1>
+      <p className="mt-3 max-w-xl text-[15px] text-medio">Aquí no aparecen ni trabajan. Se restauran tal como estaban, con sus entregas y archivos. A los 30 días se borran solos.</p>
       {lista.length === 0 ? (
-        <p className="mt-10 text-xl font-light">La papelera está vacía.</p>
+        <p className={`${serif} mt-12 text-[30px] text-suave`}>La papelera está vacía.</p>
       ) : (
-        <ul className="mt-10 grid gap-3 md:grid-cols-2">
+        <div className="mamposteria mt-8">
           {lista.map(({ p, quedan }) => (
-            <li key={p.pedido.id} className="rounded-3xl border border-linea p-6">
-              <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre} · la mandó {p.papelera!.quien === "luna" ? "Luna" : "Jay"} {hace(p.papelera!.fecha)}</p>
-              <p className="display mt-1 text-4xl leading-none">{p.pedido.cliente}</p>
-              <p className={`mt-2 text-[14px] ${quedan <= 5 ? "text-[#8a1c0c]" : "text-gris"}`}>Se borra solo en {quedan} día{quedan === 1 ? "" : "s"}.</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Confirmar
-                  accion={accionSacarDePapelera}
-                  campos={{ id: p.pedido.id }}
-                  disparador="Restaurar"
-                  claseDisparador="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso"
-                  titulo="¿Restaurar el proyecto?"
-                  texto={`«${p.pedido.cliente}» vuelve al estudio tal como estaba, con sus entregas y archivos.`}
-                  confirmar="Restaurar"
-                />
-                <Confirmar
-                  accion={accionBorrar}
-                  campos={{ id: p.pedido.id }}
-                  disparador="Borrar para siempre"
-                  titulo="¿Borrar para siempre?"
-                  texto="Se borra todo: entregas, archivos y lo que dijo el cliente. No se puede deshacer."
-                  confirmar="Borrar para siempre"
-                  palabra={p.pedido.cliente}
-                  peligro
-                />
+            <article key={p.pedido.id} className="tarjeta">
+              <span className="block h-1.5 opacity-50" style={{ background: espacio(p.pedido.id).punto }} />
+              <div className="p-5">
+                <p className="text-[12px] text-suave">{PEDIDOS[p.pedido.tipo].nombre} · la mandó {p.papelera!.quien === "luna" ? "Luna" : "Jay"} {hace(p.papelera!.fecha)}</p>
+                <p className={`${serif} mt-1 text-[28px] leading-[1.02]`}>{p.pedido.cliente}</p>
+                <p className={`mt-2 text-[13px] ${quedan <= 5 ? "text-[#a3260f]" : "text-medio"}`}>Se borra solo en {quedan} día{quedan === 1 ? "" : "s"}.</p>
+                <div className="mt-4 flex flex-wrap items-center gap-1">
+                  <Confirmar
+                    accion={accionSacarDePapelera}
+                    campos={{ id: p.pedido.id }}
+                    disparador="Restaurar"
+                    claseDisparador={botonLleno}
+                    titulo="¿Restaurar el proyecto?"
+                    texto={`«${p.pedido.cliente}» vuelve al estudio tal como estaba, con sus entregas y archivos.`}
+                    confirmar="Restaurar"
+                  />
+                  <Confirmar
+                    accion={accionBorrar}
+                    campos={{ id: p.pedido.id }}
+                    disparador="Borrar para siempre"
+                    titulo="¿Borrar para siempre?"
+                    texto="Se borra todo: entregas, archivos y lo que dijo el cliente. No se puede deshacer."
+                    confirmar="Borrar para siempre"
+                    palabra={p.pedido.cliente}
+                    peligro
+                  />
+                </div>
               </div>
-            </li>
+            </article>
           ))}
-        </ul>
+        </div>
       )}
-    </main>
+    </div>
   );
 }

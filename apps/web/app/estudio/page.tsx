@@ -1,195 +1,330 @@
 import Link from "next/link";
 import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
-import { buscar, leerBitacora, listar, listarPapelera, listarSolicitudes, PLANTILLAS, responsable } from "@anonymo/pipeline";
-import { Anillo, Cifra, LineaFases, estadosDeFases, hace } from "@/components/estudio/piezas";
+import { buscar, contratoPorId, esImagen, leerEntrega, listar, listarArchivos, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
+import { Avance, Cara, Caras, Fases, estadosDeFases, fechaLarga, hace, saludo } from "@/components/estudio/piezas";
+import { CajaAtlas } from "@/components/estudio/CajaAtlas";
+import { Confirmar } from "@/components/estudio/Confirmar";
+import { Enviar } from "./nuevo/Enviar";
 import { accionConvertirSolicitud, accionDescartarSolicitud } from "./acciones";
 import { traerTodo } from "@/lib/nube";
-import { Oficina } from "@/components/estudio/Oficina";
-import { nombreFase, type ProyectoOficina } from "@/lib/oficina";
-import { sesionConfigurada } from "@/lib/sesion";
-import { salir } from "../entrar/acciones";
-import { campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
+import { nombreFase, puestos } from "@/lib/oficina";
+import { espacio } from "@/lib/espacio";
+import { botonLleno, ESTADO_PROYECTO, exigirEstudio, serif } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
 export const maxDuration = 300;
 export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
 
-// Todos los proyectos: primero los que esperan una decisión.
-export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+type Ver = "" | "te-toca" | "proyectos" | "entregas" | "cliente" | "archivos";
+const FILTROS: { id: Ver; nombre: string }[] = [
+  { id: "", nombre: "Todo" },
+  { id: "te-toca", nombre: "Te toca" },
+  { id: "proyectos", nombre: "Proyectos" },
+  { id: "entregas", nombre: "Entregas" },
+  { id: "cliente", nombre: "Del cliente" },
+  { id: "archivos", nombre: "Archivos" },
+];
+
+const urlArchivo = (id: string, nombre: string) => `/estudio/${id}/archivos/${encodeURIComponent(nombre)}`;
+const urlEntrega = (id: string, t: string) => `/estudio/${id}/${t.replace(".", "-")}`;
+
+// La mente del estudio: todo lo que pasa, como tarjetas. Primero lo que espera una decisión.
+export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string; ver?: string; buscar?: string }> }) {
   const yo = await exigirEstudio();
-  await traerTodo();
-  const { q } = await searchParams;
-  const solicitudes = listarSolicitudes();
-  const hallazgos = q ? buscar(q) : [];
-  const orden = { plan: 0, esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
+  let errorNube = "";
+  try {
+    await traerTodo();
+  } catch (e) {
+    errorNube = (e as Error).message;
+  }
+  const { q: qCruda, ver: verCrudo, buscar: enfocar } = await searchParams;
+  const q = qCruda?.trim() ?? "";
+  const ver = (FILTROS.some((f) => f.id === verCrudo) ? verCrudo : "") as Ver;
+  const nombreYo = yo === "luna" ? "Luna" : "Jay";
+
+  const orden: Record<string, number> = { plan: 0, esperando: 0, "en-curso": 1, parado: 2, listo: 3 };
   const proyectos = listar().sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
   const activos = proyectos.filter((p) => p.estado !== "listo");
-  const oficina: ProyectoOficina[] = activos.map((p) => ({ id: p.pedido.id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas }));
+  const solicitudes = listarSolicitudes();
+  const hallazgos = q ? buscar(q) : [];
+
   // Lo que espera una decisión: primero lo que le toca a quien entró.
   const pendientes = proyectos
     .filter((p) => p.estado === "plan" || p.estado === "esperando")
     .map((p) => {
       const quien = p.estado === "plan" ? yo : responsable(p, p.faseActual);
-      const que = p.estado === "plan" ? "Revisar el plan de Atlas y decir «que empiecen»" : p.esperaJurado ? "El jurado no llegó a 7: decidir qué hacer" : `Revisar ${nombreFase(p.faseActual)} y aprobar o pedir cambios`;
-      return { p, quien, que };
+      const titulo = p.estado === "plan"
+        ? "Atlas armó el plan. ¿Empiezan?"
+        : p.esperaJurado ? "El jurado no llegó a 7. Decide qué hacer." : `${nombreFase(p.faseActual)} está listo para revisar.`;
+      const caras = p.estado === "plan" ? ["atlas"] : Object.keys(p.tareas).filter((t) => t.startsWith(`${p.faseActual}.`)).map((t) => t.split(".")[1]);
+      return { p, quien, titulo, caras };
     })
     .sort((a, b) => Number(b.quien === yo) - Number(a.quien === yo));
-  const nombreYo = yo === "luna" ? "Luna" : "Jay";
+  const mios = pendientes.filter((x) => x.quien === yo).length;
+
+  // Quién trabaja ahora mismo.
+  const trabajando = activos.flatMap((p) =>
+    Object.entries(p.tareas).filter(([, e]) => e === "en-curso").map(([t]) => ({ p, t: t as TareaId })),
+  );
+  const aMedias = activos.filter((p) => p.estado === "en-curso" && !trabajando.some((x) => x.p === p));
+  const oficina = puestos(activos.map((p) => ({ id: p.pedido.id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas })));
+  const enMovimiento = Object.values(oficina).filter((x) => x.estado !== "libre").length;
+
+  // Entregas recientes, lo dicho por el cliente y los archivos.
+  const entregas = proyectos
+    .flatMap((p) => Object.entries(p.tareas).filter(([, e]) => e === "lista").map(([t]) => ({ p, e: leerEntrega(p.pedido.id, t as TareaId) })))
+    .filter((x): x is { p: Proyecto; e: NonNullable<ReturnType<typeof leerEntrega>> } => !!x.e)
+    .sort((a, b) => b.e.creado.localeCompare(a.e.creado))
+    .slice(0, ver === "entregas" ? 40 : 9);
+  const delCliente = proyectos
+    .flatMap((p) => [
+      ...(p.notasCliente ?? []).map((n) => ({ p, fecha: n.fecha, texto: n.texto, quien: n.quien, pendiente: false })),
+      ...(p.pendientesCliente ?? []).map((n) => ({ p, fecha: n.fecha, texto: n.texto, quien: "cliente" as const, pendiente: true })),
+    ])
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .slice(0, ver === "cliente" ? 40 : 6);
+  const archivos = proyectos
+    .flatMap((p) => listarArchivos(p.pedido.id).map((a) => ({ p, a })))
+    .sort((x, y) => y.a.fecha.localeCompare(x.a.fecha))
+    .slice(0, ver === "archivos" ? 60 : 6);
+
   const mes = new Date().toISOString().slice(0, 7);
   const gastoMes = proyectos.reduce((s, p) => s + Object.values(p.costos ?? {}).flat().filter((u) => !u.estimado && u.fecha.startsWith(mes)).reduce((a, u) => a + u.usd, 0), 0);
   const semana = Date.now() - 7 * 86400_000;
-  const entregasSemana = proyectos.reduce((s, p) => s + Object.entries(p.costos ?? {}).filter(([, l]) => l.some((u) => Date.parse(u.fecha) >= semana)).length, 0);
-  const actividad = activos
-    .flatMap((p) => leerBitacora(p.pedido.id, 6).map((l) => {
-      const [fecha, ...resto] = l.split(" · ");
-      return { fecha, texto: resto.join(" · "), id: p.pedido.id, cliente: p.pedido.cliente };
-    }))
-    .filter((a) => a.texto)
-    .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    .slice(0, 8);
-  const enPapelera = listarPapelera().length;
+  const entregasSemana = proyectos.reduce((s, p) => s + Object.values(p.costos ?? {}).filter((l) => l.some((u) => Date.parse(u.fecha) >= semana)).length, 0);
+
+  const muestra = (f: Ver) => ver === "" || ver === f;
+  const cuenta: Partial<Record<Ver, number>> = { "te-toca": pendientes.length + solicitudes.length, proyectos: proyectos.length };
+  const vacio = proyectos.length === 0 && solicitudes.length === 0;
+
   return (
-    <main className={`${lateral} pb-16`}>
-      <div className="flex flex-wrap items-end justify-between gap-4 pb-6 pt-4">
-        <h1 className="display text-[clamp(52px,7vw,112px)] leading-none">Estudio</h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <a href="/estudio/analitica" className="min-h-11 content-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Métricas de la web</a>
-          {sesionConfigurada() && (
-            <form action={salir} className="flex items-center gap-3">
-              <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Hola, {nombreYo}</span>
-              <button className="min-h-11 rounded-full border border-tinta px-4 font-mono text-[12px] uppercase tracking-[0.12em]">Salir</button>
-            </form>
-          )}
-        </div>
-      </div>
+    <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
+      <p className="text-[13px] text-suave">{fechaLarga()}</p>
+      <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1.02]`}>
+        {saludo(nombreYo)}{" "}
+        <span className="text-[#b3ab9f]">
+          {mios > 0 ? `Tienes ${mios === 1 ? "una cosa" : `${mios} cosas`} por decidir.` : trabajando.length ? `El equipo está en ${trabajando.length === 1 ? "una tarea" : `${trabajando.length} tareas`}.` : "El estudio está al día."}
+        </span>
+      </h1>
 
-      <section aria-label="El estudio en cifras" className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Cifra nombre="Te toca" valor={pendientes.filter((x) => x.quien === yo).length} detalle={pendientes.length ? "decisiones esperando" : "nada pendiente"} tono={pendientes.some((x) => x.quien === yo) ? "alerta" : undefined} />
-        <Cifra nombre="Proyectos activos" valor={activos.length} detalle={`${proyectos.filter((p) => p.estado === "listo").length} terminados`} />
-        <Cifra nombre="Entregas · 7 días" valor={entregasSemana} detalle="hechas por el equipo" />
-        <Cifra nombre="IA este mes" valor={`$${gastoMes.toFixed(2)}`} detalle="gasto real en Anthropic" />
-      </section>
+      <div className="mt-7"><CajaAtlas q={q} enfocar={!!enfocar} /></div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section aria-label="La oficina" className="min-w-0">
-          <Oficina proyectos={oficina} />
+      <nav aria-label="Filtrar" className="mt-4 flex flex-wrap gap-1.5">
+        {FILTROS.map((f) => (
+          <Link
+            key={f.id}
+            href={f.id ? `/estudio?ver=${f.id}` : "/estudio"}
+            aria-current={ver === f.id && !q ? "page" : undefined}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] transition ${ver === f.id && !q ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}
+          >
+            {f.nombre}
+            {cuenta[f.id] ? <span className={ver === f.id && !q ? "text-white/60" : "text-suave"}>{cuenta[f.id]}</span> : null}
+          </Link>
+        ))}
+      </nav>
+
+      {errorNube && (
+        <p role="alert" className="mt-6 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">No se pudo leer la nube: {errorNube}. Lo que ves puede no estar al día; recarga en un momento.</p>
+      )}
+
+      {/* Búsqueda: reemplaza el tablero mientras haya una consulta. */}
+      {q ? (
+        <section aria-label="Resultados" className="mt-8">
+          <p className="text-[13px] text-suave">{hallazgos.length ? `${hallazgos.length} resultado${hallazgos.length === 1 ? "" : "s"} para «${q}»` : `Nada para «${q}» en las entregas.`}</p>
+          <div className="mamposteria mt-4">
+            {hallazgos.map((h) => (
+              <Link key={h.proyecto + h.tarea} href={urlEntrega(h.proyecto, h.tarea)} className="tarjeta block p-5">
+                <span className="flex items-center gap-2 text-[12px] text-suave"><Cara id={h.agente} tam={20} /> {agentePorId(h.agente)?.nombre} · {h.cliente}</span>
+                <span className={`${serif} mt-2 block text-[24px] leading-[1.08]`}>{h.titulo}</span>
+                <span className="mt-2 block text-[14px] leading-snug text-medio">{h.fragmento}</span>
+              </Link>
+            ))}
+            <Link href={`/estudio/nuevo?q=${encodeURIComponent(q)}`} className="tarjeta block bg-tinta p-5 text-white">
+              <span className="text-[12px] text-white/60">¿No era una búsqueda?</span>
+              <span className={`${serif} mt-2 block text-[24px] leading-[1.08]`}>Contarle a Atlas «{q.length > 60 ? `${q.slice(0, 60)}…` : q}» como un pedido nuevo →</span>
+            </Link>
+          </div>
         </section>
-
-        <aside className="grid content-start gap-6">
-          <a href="/estudio/nuevo" className="flex min-h-14 items-center justify-center rounded-full bg-tinta px-7 font-mono text-[13px] uppercase tracking-[0.12em] text-hueso transition-transform hover:-translate-y-0.5">+ Nuevo proyecto</a>
-
-          <section aria-label="Te toca">
-            <p className={etiqueta}>Te toca · {pendientes.filter((x) => x.quien === yo).length}</p>
-            {pendientes.length === 0 ? (
-              <p className="mt-2 text-[15px] text-gris">Nada esperando tu decisión. El equipo está al día.</p>
-            ) : (
-              <ul className="mt-2 grid gap-2">
-                {pendientes.map(({ p, quien, que }) => (
-                  <li key={p.pedido.id}>
-                    <Link href={`/estudio/${p.pedido.id}`} className={`block rounded-2xl p-4 transition-transform hover:-translate-y-0.5 ${quien === yo ? "bg-[#fff1c2]" : "bg-papel"}`}>
-                      <span className="block text-[17px] font-medium leading-tight">{p.pedido.cliente}</span>
-                      <span className="mt-1 block text-[14px]">{que}</span>
-                      <span className="mt-1 block text-[12px] text-gris">{quien === yo ? "Te toca a ti" : `Le toca a ${quien === "luna" ? "Luna" : "Jay"}`}</span>
-                    </Link>
-                  </li>
+      ) : vacio ? (
+        <section className="mt-10 grid place-items-center rounded-[20px] border border-dashed border-borde px-6 py-16 text-center">
+          <Cara id="atlas" tam={88} flota />
+          <p className={`${serif} mt-5 text-[34px] leading-tight`}>El estudio está listo para el primer proyecto.</p>
+          <p className="mt-2 max-w-md text-[15px] text-medio">Después de hablar con un cliente, cuéntale a Atlas lo que hablaron. Él decide quién trabaja y nadie empieza hasta que digas.</p>
+          <Link href="/estudio/nuevo" className={`${botonLleno} mt-6`}>Nuevo proyecto</Link>
+        </section>
+      ) : (
+        <>
+          {/* Te toca: lo único en negro. */}
+          {muestra("te-toca") && (pendientes.length > 0 || solicitudes.length > 0) && (
+            <section aria-label="Te toca" className="mt-8">
+              <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {pendientes.map(({ p, quien, titulo, caras }) => (
+                  <Link key={p.pedido.id} href={`/estudio/${p.pedido.id}`} className={`tarjeta tarjeta-viva !mb-0 flex flex-col p-5 ${quien === yo ? "bg-tinta text-white" : "bg-white"}`}>
+                    <span className={`flex items-center gap-2 text-[12px] ${quien === yo ? "text-[#ffb08f]" : "text-suave"}`}>
+                      <i className={`h-1.5 w-1.5 rounded-full ${quien === yo ? "late bg-urgente" : "bg-suave"}`} />
+                      {quien === yo ? "Te toca" : `Le toca a ${quien === "luna" ? "Luna" : "Jay"}`} · {hace(p.actualizado)}
+                    </span>
+                    <span className="mt-3 flex items-center gap-2 text-[13px] opacity-70"><i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(p.pedido.id).punto }} />{p.pedido.cliente}</span>
+                    <span className={`${serif} mt-1 block text-[26px] leading-[1.05]`}>{titulo}</span>
+                    <span className="mt-auto flex items-center pt-5">
+                      <Caras ids={caras} tam={24} />
+                      <span className={`ml-auto inline-flex min-h-9 items-center rounded-full px-4 text-[12px] font-medium ${quien === yo ? "bg-white text-tinta" : "bg-tinta text-white"}`}>{p.estado === "plan" ? "Ver el plan" : "Revisar"}</span>
+                    </span>
+                  </Link>
                 ))}
-              </ul>
-            )}
-          </section>
-
-          <section aria-label="Proyectos">
-            <p className={etiqueta}>Proyectos · {proyectos.length}</p>
-            {proyectos.length === 0 && <p className="mt-2 text-[15px] text-gris">Todavía no hay. Después de hablar con un cliente, dale a «Nuevo proyecto».</p>}
-            <ul className="mt-2 grid gap-1">
-              {proyectos.map((p) => {
-                const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
-                return (
-                  <li key={p.pedido.id}>
-                    <Link href={`/estudio/${p.pedido.id}`} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 hover:bg-papel">
-                      <Anillo valor={hechas / Math.max(1, p.plan.tareas.length)} tam={38} grosor={3.5} />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline justify-between gap-3">
-                          <span className="truncate text-[15px] font-medium">{p.pedido.cliente}</span>
-                          <span className="shrink-0 text-[12px] text-gris">{ESTADO_PROYECTO[p.estado]}</span>
-                        </span>
-                        <span className="mt-1.5 block"><LineaFases fases={estadosDeFases(p)} estado={p.estado} compacta /></span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-            {enPapelera > 0 && <Link href="/estudio/papelera" className="mt-2 inline-flex min-h-11 items-center px-3 text-[13px] text-gris underline underline-offset-4">Papelera · {enPapelera}</Link>}
-          </section>
-
-          {actividad.length > 0 && (
-            <section aria-label="Actividad reciente">
-              <p className={etiqueta}>Actividad reciente</p>
-              <ol className="mt-2 grid gap-3 border-l border-linea pl-4">
-                {actividad.map((a, i) => (
-                  <li key={i} className="relative">
-                    <i aria-hidden className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-hueso bg-tinta" />
-                    <Link href={`/estudio/${a.id}`} className="block text-[14px] leading-snug hover:underline">
-                      <span className="font-medium">{a.cliente}</span> · {a.texto}
-                    </Link>
-                    <span className="text-[12px] text-gris">{hace(a.fecha)}</span>
-                  </li>
+                {solicitudes.map((s) => (
+                  <article key={s.id} className="tarjeta !mb-0 flex flex-col p-5">
+                    <span className="flex items-center gap-2 text-[12px] text-suave"><i className="h-1.5 w-1.5 rounded-full bg-urgente" /> Pedido desde la web · {TIPOS[s.tipo].nombre} · {hace(s.fecha)}</span>
+                    <span className={`${serif} mt-2 block text-[26px] leading-[1.05]`}>{s.nombre}</span>
+                    <a href={`mailto:${s.correo}`} className="text-[13px] text-medio underline underline-offset-4">{s.correo}</a>
+                    <p className="mt-3 line-clamp-5 whitespace-pre-line text-[14px] leading-snug text-medio">{s.mensaje}</p>
+                    <form action={accionConvertirSolicitud} className="mt-4 flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="solicitud" value={s.id} />
+                      <select name="plantilla" aria-label="Plantilla" defaultValue="" className="min-h-11 rounded-full bg-[#f1ede6] px-3 text-[13px] outline-none">
+                        <option value="">Sin plantilla</option>
+                        {PLANTILLAS.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                      </select>
+                      <Enviar className={botonLleno} texto="Que Atlas arme el plan" trabajando="Atlas está leyendo…" />
+                    </form>
+                    <div className="mt-1">
+                      <Confirmar accion={accionDescartarSolicitud} campos={{ solicitud: s.id }} disparador="Descartar" titulo="¿Descartar este pedido?" texto={`El pedido de ${s.nombre} sale de la lista. No se crea ningún proyecto.`} confirmar="Descartar" />
+                    </div>
+                  </article>
                 ))}
-              </ol>
+              </div>
             </section>
           )}
-        </aside>
-      </div>
+          {ver === "te-toca" && pendientes.length === 0 && solicitudes.length === 0 && (
+            <p className={`${serif} mt-10 text-[30px] text-suave`}>Nada espera tu decisión. El equipo está al día.</p>
+          )}
 
-      <div className="mt-12 border-t border-linea pt-8">
-      <form role="search" className="mb-8 flex max-w-2xl gap-2">
-        <input name="q" defaultValue={q} placeholder="Buscar en todas las entregas: paleta, WhatsApp, Cormorant…" className={campo} aria-label="Buscar en todas las entregas" />
-        <button className="rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Buscar</button>
-      </form>
-      {solicitudes.length > 0 && (
-        <section aria-label="Solicitudes nuevas" className="mb-10">
-          <p className={etiqueta}>Solicitudes desde la web · {solicitudes.length}</p>
-          <ul className="mt-3 grid gap-3 md:grid-cols-2">
-            {solicitudes.map((s) => (
-              <li key={s.id} className="rounded-3xl border border-tinta p-5">
-                <p className={etiqueta}>{TIPOS[s.tipo].nombre} · {s.fecha.slice(0, 10)}</p>
-                <p className="display mt-1 text-4xl">{s.nombre}</p>
-                <a href={`mailto:${s.correo}`} className="text-[15px] underline underline-offset-4">{s.correo}</a>
-                <p className="mt-3 whitespace-pre-line text-[15px]">{s.mensaje}</p>
-                <form action={accionConvertirSolicitud} className="mt-4 flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="solicitud" value={s.id} />
-                  <select name="plantilla" aria-label="Plantilla" className="min-h-11 rounded-full border border-linea bg-papel px-3 text-[14px]" defaultValue="">
-                    <option value="">Sin plantilla</option>
-                    {PLANTILLAS.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                  </select>
-                  <button className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Crear proyecto</button>
-                </form>
-                <form action={accionDescartarSolicitud} className="mt-2">
-                  <input type="hidden" name="solicitud" value={s.id} />
-                  <button className="min-h-11 font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4">Descartar</button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {q && (
-        <section aria-label="Resultados" className="mb-10">
-          <p className={etiqueta}>{hallazgos.length} resultado(s) para “{q}”</p>
-          <ul className="mt-3 grid gap-2">
-            {hallazgos.map((h) => (
-              <li key={h.proyecto + h.tarea}>
-                <Link href={`/estudio/${h.proyecto}/${h.tarea.replace(".", "-")}`} className="block rounded-2xl px-4 py-3 hover:bg-papel">
-                  <span className={etiqueta}>{h.cliente} · {agentePorId(h.agente)?.nombre} · {h.titulo}</span>
-                  <span className="mt-1 block text-[15px]">{h.fragmento}</span>
+          {ver !== "te-toca" && (
+            <div className="mamposteria mt-8">
+              {/* El equipo trabajando ahora. */}
+              {ver === "" && trabajando.map(({ p, t }) => {
+                const a = agentePorId(t.split(".")[1])!;
+                const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
+                return (
+                  <Link key={p.pedido.id + t} href={`/estudio/${p.pedido.id}`} className="tarjeta block p-5 text-center" style={{ background: `radial-gradient(90% 70% at 50% 30%, ${(a.tono ?? { luz: "#f4f1ec" }).luz}, #fff 75%)` }}>
+                    <Cara id={a.id} tam={92} flota className="mx-auto" />
+                    <span className="mt-3 block text-[14px]"><strong className="font-medium">{a.nombre}</strong> está haciendo {contratoPorId(t)?.entrega.toLowerCase()}</span>
+                    <span className="mt-3 block"><Avance valor={hechas / Math.max(1, p.plan.tareas.length)} color={espacio(p.pedido.id).punto} vivo /></span>
+                    <span className="mt-2 block text-[12px] text-suave">{p.pedido.cliente} · {hechas} de {p.plan.tareas.length} entregas</span>
+                  </Link>
+                );
+              })}
+              {ver === "" && aMedias.map((p) => (
+                <Link key={p.pedido.id} href={`/estudio/${p.pedido.id}`} className="tarjeta block p-5">
+                  <span className="text-[12px] text-suave">{p.pedido.cliente}</span>
+                  <span className={`${serif} mt-1 block text-[24px] leading-[1.08]`}>El equipo quedó a medias.</span>
+                  <span className="mt-2 block text-[14px] text-medio">Se cortó por tiempo. Lo terminado está guardado: entra y dale a «Seguir».</span>
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+              ))}
+
+              {/* La oficina, en pequeño. */}
+              {ver === "" && (
+                <Link href="/estudio/oficina" className="tarjeta block bg-[#f6f3ee] p-5">
+                  <span className="flex items-center gap-2 text-[12px] text-suave"><i className={`h-1.5 w-1.5 rounded-full ${trabajando.length ? "late bg-vivo" : "bg-suave"}`} /> El estudio ahora</span>
+                  <span className="mt-4 flex flex-wrap gap-1">
+                    {Object.entries(oficina).map(([id, x]) => <Cara key={id} id={id} tam={30} apagado={x.estado === "libre"} className={x.estado === "trabajando" ? "flota scale-110" : ""} />)}
+                  </span>
+                  <span className="mt-3 block text-[13px] text-medio">
+                    {trabajando.length} trabajando · {Object.values(oficina).filter((x) => x.estado === "revisar").length} esperan tu revisión · {22 - enMovimiento} libres
+                  </span>
+                </Link>
+              )}
+
+              {/* Proyectos. */}
+              {muestra("proyectos") && proyectos.map((p) => {
+                const e = espacio(p.pedido.id);
+                const hechas = Object.values(p.tareas).filter((x) => x === "lista").length;
+                const enAlgo = Object.entries(p.tareas).filter(([, x]) => x === "en-curso").map(([t]) => t.split(".")[1]);
+                return (
+                  <Link key={p.pedido.id} href={`/estudio/${p.pedido.id}`} className="tarjeta block">
+                    <span className="block h-1.5" style={{ background: e.punto }} />
+                    <span className="block p-5">
+                      <span className="flex items-center justify-between gap-2 text-[12px] text-suave"><span>{TIPOS[p.pedido.tipo].nombre}</span><span>{ESTADO_PROYECTO[p.estado]}</span></span>
+                      <span className={`${serif} mt-1 block text-[28px] leading-[1.02]`}>{p.pedido.cliente}</span>
+                      <span className="mt-3 block"><Fases fases={estadosDeFases(p)} estado={p.estado} compacta /></span>
+                      <span className="mt-4 flex items-center gap-3">
+                        <span className="flex-1"><Avance valor={hechas / Math.max(1, p.plan.tareas.length)} color={e.punto} /></span>
+                        <span className="text-[12px] text-suave">{hechas}/{p.plan.tareas.length}</span>
+                        {enAlgo.length > 0 && <Caras ids={enAlgo} tam={20} max={3} />}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
+
+              {/* Entregas recientes, firmadas por quien las hizo. */}
+              {muestra("entregas") && entregas.map(({ p, e }) => {
+                const a = agentePorId(e.agente);
+                return (
+                  <Link key={p.pedido.id + e.tarea} href={urlEntrega(p.pedido.id, e.tarea)} className="tarjeta block">
+                    <span className="block p-5">
+                      <span className="text-[12px] text-suave">{e.titulo}{e.version > 1 ? ` · v${e.version}` : ""}</span>
+                      {e.dice && <span className={`${serif} mt-2 block text-[22px] leading-[1.12]`}>“{e.dice}”</span>}
+                      {e.necesita && e.necesita !== "—" && <span className="mt-2 block text-[13px] text-medio">Necesita: {e.necesita}</span>}
+                    </span>
+                    <span className="flex items-center gap-2 border-t border-[#f2eee8] px-4 py-2.5 text-[12px] text-suave">
+                      <Cara id={e.agente} tam={20} /> {a?.nombre} · {p.pedido.cliente}
+                      <span className="ml-auto font-mono text-[10px]">{hace(e.creado)}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+
+              {/* Lo que dijo el cliente. */}
+              {muestra("cliente") && delCliente.map((n) => (
+                <Link key={n.p.pedido.id + n.fecha} href={`/estudio/${n.p.pedido.id}?ver=cliente`} className={`tarjeta block p-5 ${n.pendiente ? "bg-[#fff4e8]" : "bg-[#fffaf1]"}`}>
+                  <span className={`${serif} block text-[24px] leading-[1.12]`}>“{n.texto}”</span>
+                  <span className="mt-3 block text-[12px] text-suave">
+                    {n.quien === "cliente" ? n.p.pedido.cliente : `${n.p.pedido.cliente} · lo anotó ${n.quien === "luna" ? "Luna" : "Jay"}`} · {hace(n.fecha)}
+                    {n.pendiente && <span className="ml-1 text-urgente">· sin mandar al equipo</span>}
+                  </span>
+                </Link>
+              ))}
+
+              {/* Archivos del cliente. */}
+              {muestra("archivos") && archivos.map(({ p, a }) => (
+                <a key={p.pedido.id + a.nombre} href={urlArchivo(p.pedido.id, a.nombre)} target="_blank" rel="noreferrer" className="tarjeta block">
+                  {esImagen(a.nombre) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={urlArchivo(p.pedido.id, a.nombre)} alt={a.nota ?? a.nombre} loading="lazy" className="block w-full bg-[#f4f1eb] object-cover" />
+                  ) : (
+                    <span className="flex aspect-[4/3] items-center justify-center bg-[#f4f1eb] p-4 text-center font-mono text-[12px] text-medio break-all">{a.nombre}</span>
+                  )}
+                  <span className="flex items-center gap-2 px-4 py-2.5 text-[12px] text-suave">
+                    <i className="h-2 w-2 rounded-[2px]" style={{ background: espacio(p.pedido.id).punto }} />
+                    <span className="truncate">{a.nota ?? a.nombre}</span>
+                    <span className="ml-auto shrink-0">{p.pedido.cliente}</span>
+                  </span>
+                </a>
+              ))}
+
+              {/* Los números del mes. */}
+              {ver === "" && (
+                <div className="tarjeta p-5">
+                  <span className="text-[12px] text-suave">Este mes</span>
+                  <span className={`${serif} mt-1 block text-[52px] leading-none`}>${gastoMes.toFixed(2)}</span>
+                  <span className="mt-1 block text-[13px] text-medio">gastado en IA</span>
+                  <span className="mt-4 grid grid-cols-2 gap-3 border-t border-[#f2eee8] pt-3 text-[13px]">
+                    <span><strong className="block text-[20px] font-normal">{entregasSemana}</strong><span className="text-suave">entregas en 7 días</span></span>
+                    <span><strong className="block text-[20px] font-normal">{activos.length}</strong><span className="text-suave">proyectos activos</span></span>
+                  </span>
+                </div>
+              )}
+
+              {ver !== "" && ver !== "proyectos" && ((ver === "entregas" && !entregas.length) || (ver === "cliente" && !delCliente.length) || (ver === "archivos" && !archivos.length)) && (
+                <p className={`${serif} text-[28px] text-suave`}>
+                  {ver === "entregas" ? "Todavía no hay entregas." : ver === "cliente" ? "Todavía no hay nada anotado del cliente." : "Todavía no hay archivos."}
+                </p>
+              )}
+            </div>
+          )}
+        </>
       )}
-      </div>
-    </main>
+    </div>
   );
 }

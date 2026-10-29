@@ -30,13 +30,17 @@ export async function exigirEstudio(): Promise<Socio> {
   return q;
 }
 
-export const etiqueta = "font-mono text-[12px] uppercase tracking-[0.14em] text-gris";
-export const lateral = "px-[max(20px,env(safe-area-inset-left))] md:px-10";
+// Piezas de estilo del estudio (sistema/32): frases en minúscula, botones redondos, una serifa para lo importante.
+export const etiqueta = "text-[12px] text-suave";
+export const lateral = "px-5 md:px-10";
 export const boton =
-  "inline-flex min-h-11 items-center rounded-full border border-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] transition-colors hover:bg-tinta hover:text-hueso disabled:opacity-40";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-[13px] font-medium text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] transition hover:shadow-[inset_0_0_0_1px_#cbc3b6] disabled:opacity-40";
 export const botonLleno =
-  "inline-flex min-h-11 items-center rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso transition-transform hover:-translate-y-0.5";
-export const campo = "w-full rounded-2xl border border-linea bg-papel p-3 text-[15px] outline-none focus:border-tinta";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-tinta px-5 text-[13px] font-medium text-white transition hover:bg-black disabled:opacity-50";
+export const botonSuave = "inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-[13px] text-medio underline-offset-4 transition hover:text-tinta hover:underline";
+export const campo =
+  "w-full rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none transition placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]";
+export const serif = "font-serif font-normal tracking-[-0.01em]";
 
 export const ESTADO_PROYECTO: Record<string, string> = {
   plan: "Plan por aprobar",

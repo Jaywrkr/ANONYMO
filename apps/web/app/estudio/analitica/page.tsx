@@ -1,46 +1,70 @@
+import Link from "next/link";
 import { agentePorId } from "@anonymo/agentes";
 import { resumenAnalitica } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
-import { etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
+import { exigirEstudio, serif } from "@/lib/estudio";
+import { Cara } from "@/components/estudio/piezas";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Métricas — Estudio", robots: { index: false } };
 
-// El tablero de Pulso: lo que pasa en la web, sin cookies (web/19).
+// El tablero de Pulso: lo que pasa en la web pública, sin cookies (web/19).
 export default async function Analitica({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
   await exigirEstudio();
   await traer("_analitica");
-  const dias = Number((await searchParams).dias) || 30;
+  const pedido = Number((await searchParams).dias);
+  const dias = [7, 30, 90].includes(pedido) ? pedido : 30;
   const r = resumenAnalitica(dias);
   const cifra = (n: string | number, t: string) => (
-    <div className="rounded-3xl bg-papel p-6"><p className={etiqueta}>{t}</p><p className="display mt-2 text-6xl">{n}</p></div>
-  );
-  const lista = (t: string, l: [string, number][], nombre = (k: string) => k) => (
-    <div className="rounded-3xl border border-linea p-6">
-      <p className={etiqueta}>{t}</p>
-      <ul className="mt-3 grid gap-1 text-[15px]">{l.length ? l.map(([k, n]) => <li key={k} className="flex justify-between gap-4"><span className="truncate">{nombre(k)}</span><span>{n}</span></li>) : <li className="text-gris">Sin datos todavía.</li>}</ul>
+    <div className="rounded-2xl bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
+      <p className="text-[12px] text-suave">{t}</p>
+      <p className={`${serif} mt-1 text-[48px] leading-none`}>{n}</p>
     </div>
   );
+  const lista = (t: string, l: [string, number][], fila?: (k: string) => React.ReactNode) => {
+    const max = Math.max(1, ...l.map(([, n]) => n));
+    return (
+      <div className="tarjeta p-5">
+        <p className="text-[12px] text-suave">{t}</p>
+        <ul className="mt-3 grid gap-2.5 text-[14px]">
+          {l.length ? l.map(([k, n]) => (
+            <li key={k}>
+              <span className="flex items-center justify-between gap-4"><span className="flex min-w-0 items-center gap-2 truncate">{fila ? fila(k) : k}</span><span className="text-medio">{n}</span></span>
+              <span className="mt-1 block h-[3px] rounded-full bg-borde"><i className="block h-full rounded-full bg-tinta" style={{ width: `${(n / max) * 100}%` }} /></span>
+            </li>
+          )) : <li className="text-suave">Sin datos todavía.</li>}
+        </ul>
+      </div>
+    );
+  };
   return (
-    <main className={`${lateral} pb-16`}>
-      <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-4">
-        <h1 className="display text-[clamp(64px,10vw,160px)]">Métricas</h1>
-        <nav className="flex gap-3 font-mono text-[12px] uppercase tracking-[0.12em]">
-          {[7, 30, 90].map((d) => <a key={d} href={`?dias=${d}`} aria-current={d === dias ? "page" : undefined} className={d === dias ? "underline underline-offset-4" : "text-gris"}>{d} días</a>)}
+    <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Cara id="pulso" tam={52} flota />
+          <div>
+            <p className="text-[13px] text-suave">Métricas de la web · las cuida Pulso</p>
+            <h1 className={`${serif} text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Lo que pasa en la web.</h1>
+          </div>
+        </div>
+        <nav aria-label="Período" className="flex gap-1.5">
+          {[7, 30, 90].map((d) => (
+            <Link key={d} href={`?dias=${d}`} aria-current={d === dias ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3.5 text-[13px] transition ${d === dias ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>{d} días</Link>
+          ))}
         </nav>
       </div>
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cifra(r.vistas, "Visitas")}
         {cifra(`${r.salaSegundos} s`, "Tiempo promedio en la sala")}
         {cifra(r.formularios, "Pedidos desde el formulario")}
-        {cifra(`${r.celular}% · ${r.ingles}%`, "Celular · en inglés")}
+        {cifra(`${r.celular}% · ${r.ingles}%`, "Desde celular · en inglés")}
       </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-3">
+      <div className="mamposteria mt-4">
         {lista("Páginas más vistas", r.paginas)}
         {lista("De dónde vienen", r.origenes)}
-        {lista("Agentes más vistos en la sala", r.agentes, (k) => agentePorId(k)?.nombre ?? k)}
+        {lista("Agentes más vistos en la sala", r.agentes, (k) => <><Cara id={k} tam={20} titulo={false} />{agentePorId(k)?.nombre ?? k}</>)}
       </div>
-      <p className="mt-6 max-w-xl text-[14px] text-gris">Sin cookies ni IP: solo página, evento, idioma, tipo de equipo y el dominio de origen. Respeta “No rastrear”. Los datos quedan en proyectos/_analitica (fuera del repo).</p>
-    </main>
+      <p className="mt-2 max-w-xl text-[13px] text-suave">Sin cookies ni IP: solo página, evento, idioma, tipo de equipo y el dominio de origen. Respeta «No rastrear».</p>
+    </div>
   );
 }

@@ -11,6 +11,14 @@
   --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
   --font-display: "Big Shoulders Display Variable", "Arial Narrow", sans-serif;
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  /* Estudio (sistema/32): papel cálido, líneas suaves, un solo color de urgencia. */
+  --color-carta: #fbf9f6;
+  --color-borde: #ece7df;
+  --color-suave: #8a8378;
+  --color-medio: #5f5a52;
+  --color-urgente: #ff5a1f;
+  --color-vivo: #2bb673;
 }
 
 :root { color-scheme: light; }
@@ -70,3 +78,33 @@ html[data-noche="1"] .hero :focus-visible, .bg-noche :focus-visible, .bg-tinta:f
 @keyframes buscar { 0%, 100% { transform: translateX(-6%) rotate(-3deg); } 50% { transform: translateX(6%) rotate(3deg); } }
 .buscando { animation: buscar 3.2s ease-in-out infinite; }
 html[data-quieto] .buscando { animation: none; }
+
+/* ——— Estudio (sistema/32): una mente del estudio, con marco de color como Arc ———
+   En la capa «components»: así las utilidades de Tailwind (bg-*, text-*) siempre pueden ganarle. */
+@layer components {
+.estudio-marco { min-height: 100dvh; transition: background .5s ease; }
+.tarjeta { break-inside: avoid; margin-bottom: 16px; border-radius: 16px; background: #fff; overflow: hidden; box-shadow: 0 0 0 1px rgba(26,24,22,.05), 0 6px 18px -10px rgba(40,30,20,.18); transition: transform .25s ease, box-shadow .25s ease; }
+a.tarjeta:hover, .tarjeta-viva:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(26,24,22,.06), 0 18px 40px -16px rgba(40,30,20,.28); }
+.mamposteria { columns: 1; column-gap: 16px; }
+@media (min-width: 720px) { .mamposteria { columns: 2; } }
+@media (min-width: 1280px) { .mamposteria { columns: 3; } }
+@media (min-width: 1720px) { .mamposteria { columns: 4; } }
+@keyframes flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.flota { animation: flotar 3.4s ease-in-out infinite; }
+@keyframes latir { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.late { animation: latir 1.6s ease-in-out infinite; }
+@keyframes avanzar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.avanza { animation: avanzar 1.8s ease-in-out infinite; }
+html[data-quieto] .flota, html[data-quieto] .late, html[data-quieto] .avanza { animation: none; }
+dialog.dialogo[open] { animation: aparecer .18s ease-out; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+}
+/* Ajustes del estudio sobre estilos globales (fuera de capa, para ganarles). */
+html:has(.estudio-marco) body::after { opacity: .04; }
+.estudio-marco .entrega h2 { font-family: var(--font-serif); text-transform: none; font-size: 38px; line-height: 1.02; letter-spacing: -.01em; }
+.estudio-marco .entrega h3 { font-size: 18px; }
+.estudio-marco .entrega th { font-family: var(--font-sans); text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--color-suave); }
+.estudio-marco .entrega code, .estudio-marco .entrega pre { background: #f4f1eb; }
+.estudio-marco :focus-visible { outline-color: var(--color-urgente); }
+.sin-anillo:focus-visible { outline: none; }
+.estudio-marco :is(input:not([type]), input[type="text"], input[type="password"], input[type="search"], textarea, select):focus-visible { outline: none; }

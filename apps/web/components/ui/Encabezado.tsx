@@ -119,22 +119,10 @@ function PiePublico() {
 const esInterna = (ruta: string) => /^\/(estudio|entrar)(\/|$)/.test(ruta);
 const esPortal = (ruta: string) => /^\/portal(\/|$)/.test(ruta);
 
-function EncabezadoEstudio() {
-  return (
-    <header className="relative z-[3] flex flex-wrap items-center justify-between gap-3 px-[max(20px,env(safe-area-inset-left))] py-5 md:px-10">
-      <Link href="/estudio" className="font-mono text-[13px] uppercase tracking-[0.18em]">Anonymo<sup>*</sup> · Estudio</Link>
-      <nav aria-label="Estudio" className="flex flex-wrap items-center gap-5 font-mono text-[12px] uppercase tracking-[0.14em]">
-        <Link href="/estudio" className="hover:opacity-60">Oficina</Link>
-        <Link href="/estudio/nuevo" className="hover:opacity-60">+ Nuevo proyecto</Link>
-        <Link href="/" className="text-gris hover:opacity-60">Ver la web ↗</Link>
-      </nav>
-    </header>
-  );
-}
-
 export function Encabezado() {
   const ruta = usePathname() ?? "";
-  if (esInterna(ruta)) return <EncabezadoEstudio />;
+  // El estudio, su entrada y el portal tienen su propio marco (sistema/32).
+  if (esInterna(ruta) || esPortal(ruta)) return null;
   return <EncabezadoPublico />;
 }
 
