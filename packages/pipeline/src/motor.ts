@@ -2,6 +2,7 @@
 import { claveAnthropic, ocultarClaves, pensamiento, sinPensar, textoDe } from "./ia.ts";
 import { pedirEnVivo } from "./envivo.ts";
 import { direccionesSimuladas, leerDirecciones, PEDIDO_DIRECCIONES, textoDireccion } from "./direcciones.ts";
+import { leerArchivosSitio, PEDIDO_SITIO, sinArchivos, sitioSimulado } from "./sitio.ts";
 import { COMO_TRABAJAMOS, tarifaHora } from "./agencia.ts";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
@@ -65,6 +66,8 @@ export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota"
   uso?: Uso;
   /** Se acabó el tiempo de la vuelta: lo escrito hasta ahora, para seguir en la próxima (sistema/36). */
   pendiente?: string;
+  /** Los archivos de la web, si la entrega es un sitio (sistema/42). */
+  sitio?: Record<string, string>;
 };
 
 const seccionHerramientas = (h: ResultadoHerramienta[]) =>
@@ -155,8 +158,9 @@ export const simulado: Motor = {
       necesita,
       contenido: lineas.join("\n"),
       nota,
-      datos: herramientas.length ? datosHerramientas(herramientas) : undefined,
+      datos: c.sitio ? { ...datosHerramientas(herramientas), sitio: Object.keys(sitioSimulado(pedido, typeof direccion === "object" ? direccion : undefined, marca)) } : herramientas.length ? datosHerramientas(herramientas) : undefined,
       modo: "simulado",
+      ...(c.sitio ? { sitio: sitioSimulado(pedido, typeof direccion === "object" ? direccion : undefined, marca) } : {}),
     };
   },
 };
@@ -227,6 +231,7 @@ export const real: Motor = {
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
       direccion === "proponer" ? PEDIDO_DIRECCIONES : textoDireccion(typeof direccion === "object" ? direccion : undefined),
+      c.sitio ? PEDIDO_SITIO : "",
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
       consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
       archivos?.length ? "# Archivos del cliente (las imágenes y los PDF van adjuntos arriba)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
@@ -360,6 +365,8 @@ export const real: Motor = {
       }
     }
     const direcciones = direccion === "proponer" ? leerDirecciones(texto) : [];
+    const sitio = c.sitio ? leerArchivosSitio(texto) : {};
+    if (c.sitio && Object.keys(sitio).length) texto = sinArchivos(texto);
     const horas = Number.parseFloat(linea("HORAS") ?? "");
     const horasExtra = Number.parseFloat(linea("HORAS_EXTRA") ?? "");
     const datos = {
@@ -370,6 +377,7 @@ export const real: Motor = {
       ...(Number.isFinite(horasExtra) && horasExtra > 0 ? { horasExtra } : {}),
       ...(cortada ? { cortada: true } : {}),
       ...(direcciones.length ? { direcciones } : {}),
+      ...(Object.keys(sitio).length ? { sitio: Object.keys(sitio) } : {}),
     };
     return {
       dice: linea("DICE") ?? "",
@@ -378,6 +386,7 @@ export const real: Motor = {
       nota: nota ? Number.parseFloat(nota) : undefined,
       datos: Object.keys(datos).length ? datos : undefined,
       modo: "real",
+      ...(Object.keys(sitio).length ? { sitio } : {}),
       uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false },
     };
   },

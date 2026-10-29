@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { EquipoVivo } from "@/components/estudio/EquipoVivo";
@@ -20,6 +20,10 @@ import { MarcaEditor } from "@/components/estudio/MarcaEditor";
 import { RevisarAgente } from "@/components/estudio/RevisarAgente";
 import { OpcionesModo } from "@/components/estudio/OpcionesModo";
 import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
+import { MiniWeb } from "@/components/estudio/MiniWeb";
+import { urlSitio } from "@/lib/sitio";
+import { leerVivo, vivoActivo } from "@/lib/trabajo";
+import { AhoraEnVivo } from "@/components/estudio/AhoraEnVivo";
 import { dinero } from "@/lib/propuesta";
 import { boton, botonLleno, botonSuave, campo, ESTADO_PROYECTO, exigirEstudio, serif } from "@/lib/estudio";
 import { accionAPapelera, accionCambiar, accionPresupuesto, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionModo, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
@@ -47,7 +51,11 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
   const p = leerProyecto(id);
   const e = espacio(id, p.marca);
   const leToca = responsable(p, p.faseActual);
-  const m = momento(p, yo, leToca);
+  // La señal de la vuelta que está trabajando (si hay): manda sobre lo que diga el estado (sistema/42).
+  const senal = leerVivo(id);
+  const ocupado = p.estado === "en-curso" && vivoActivo(senal) ? senal : undefined;
+  const m = momento(p, yo, leToca, Date.now(), ocupado);
+  const quienTrabaja = ocupado?.tarea ? agentePorId(ocupado.tarea.split(".")[1])?.nombre ?? "El equipo" : "El equipo";
   const nota = leerNota(leerEntrega(id, "6.trofeo"));
   const deFase = (f: number) => p.plan.tareas.filter((t) => t.startsWith(`${f}.`)) as TareaId[];
   const conversacion = [
@@ -80,6 +88,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
     return [...vistos].map(([hex, de]) => ({ hex, de }));
   })() : [];
   const tareaDirecciones = p.plan.tareas.find((t) => contratoPorId(t)?.direcciones);
+  const versionWeb = versionesSitio(id)[0];
   const cortadas = p.plan.tareas.filter((t) => p.tareas[t] === "lista" && leerEntrega(id, t)?.datos?.cortada) as TareaId[];
   const comunes = <><input type="hidden" name="id" value={id} /><input type="hidden" name="motor" value="" /></>;
 
@@ -126,6 +135,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               </p>
               <p className={`${serif} mt-2 text-[clamp(26px,2.8vw,36px)] leading-[1.08]`}>{m.ahora}</p>
               <p className={`mt-2 text-[14px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/70" : "text-medio"}`}><span className="font-medium">Después:</span> {m.despues}</p>
+              {p.estado === "en-curso" && m.tono === "vivo" && <AhoraEnVivo id={id} />}
               {/* Modo paso: la entrega que acaba de llegar, con sus tres decisiones. */}
               {m.revision && <div className="mt-6"><RevisarAgente p={p} t={m.revision as TareaId} mio={m.teToca} oscuro={m.tono === "toca"} /></div>}
               {m.direcciones && p.direcciones && p.direcciones.opciones.length > 0 && (
@@ -180,7 +190,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               <input type="hidden" name="nota" value="Tu entrega anterior quedó cortada antes de terminar. Entrégala completa, con todas sus secciones, más concisa si hace falta, y cierra con el bloque final." />
               <Cara id={t.split(".")[1]} tam={26} titulo={false} />
               <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="text-[14px] underline underline-offset-4">{agentePorId(t.split(".")[1])?.nombre} · {contratoPorId(t)?.entrega}</Link>
-              <Enviar className="ml-auto inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${agentePorId(t.split(".")[1])?.nombre} la completa…`} proyecto={id} />
+              {ocupado || p.estado === "en-curso"
+                ? <span className="ml-auto text-[13px] text-[#8a3a0c]">{ocupado ? `${quienTrabaja} está trabajando: pídeselo cuando termine.` : "Disponible cuando el equipo se detenga para revisar."}</span>
+                : <Enviar className="ml-auto inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${agentePorId(t.split(".")[1])?.nombre} la completa…`} proyecto={id} />}
             </form>
           ))}
         </section>
@@ -220,6 +232,12 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                   <span className="text-suave transition group-hover:translate-x-0.5">→</span>
                 </Link>
               )}
+              {versionWeb ? (
+                <Link href={`/estudio/${id}/web`} className={`${tarjeta} group grid gap-3 transition hover:-translate-y-0.5`}>
+                  <MiniWeb src={urlSitio(id, versionWeb)} />
+                  <span className="flex items-center gap-3"><span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">La web · versión {versionWeb}</span><span className="block text-[13px] text-medio">Funcionando: escritorio, tablet y celular.</span></span><span className="text-suave transition group-hover:translate-x-0.5">→</span></span>
+                </Link>
+              ) : null}
               <Link href={`/estudio/${id}?ver=marca`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
                 <span className="flex shrink-0 -space-x-2">{(p.marca?.colores.length ? p.marca.colores.slice(0, 4).map((c) => c.hex) : ["#1a1816", "#e7e3da", "#f4f1eb"]).map((h, i) => <i key={i} className="h-9 w-9 rounded-full shadow-[0_0_0_2px_#fff]" style={{ background: h }} />)}</span>
                 <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">Marca del cliente</span><span className="block text-[13px] text-medio">{p.marca?.colores.length ? `${p.marca.colores.length} colores · ${p.marca.fuentes.length} fuentes` : "Sin definir: se usan los colores de Anonymo."}</span></span>
@@ -258,6 +276,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           <div className="grid gap-9">
             <div className="flex flex-wrap items-center gap-2">
               <a href={`/imprimir/${id}/dossier`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white transition hover:bg-black">Dossier para el cliente (PDF) ↗</a>
+              {versionWeb ? <Link href={`/estudio/${id}/web`} className={boton}>Ver la web</Link> : null}
               {tareaDirecciones && <Link href={`/estudio/${id}/direcciones`} className={boton}>{p.direcciones?.opciones.length ? "Direcciones de diseño" : "Pedir 3 direcciones de diseño"}</Link>}
               <span className="text-[12px] text-suave">El dossier junta todo lo que puede ver el cliente, sin lo interno.</span>
             </div>
@@ -330,7 +349,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                     </fieldset>
                     <p className="text-[13px] text-medio">{arrastra.length ? `Se rehacen ${arrastra.length} entrega${arrastra.length === 1 ? "" : "s"}: ${arrastra.map(nombreTarea).join(", ")}.` : "Nadie elegido: no se rehace nada."}</p>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Enviar className={botonLleno} texto="Pasárselo al equipo" trabajando="El equipo está rehaciendo…" proyecto={id} />
+                      {ocupado
+                        ? <span className="text-[13px] text-medio">{quienTrabaja} está trabajando. Cuando termine podrás pasárselo al equipo.</span>
+                        : <Enviar className={botonLleno} texto="Pasárselo al equipo" trabajando="Pasándolo…" proyecto={id} />}
                       <Link href={`/estudio/${id}?ver=cliente`} className={botonSuave}>Cancelar</Link>
                     </div>
                   </form>

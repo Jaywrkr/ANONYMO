@@ -75,6 +75,8 @@ export interface Contrato {
   estructura?: string[];
   /** Antes de su entrega completa propone 3 direcciones visuales y el proyecto espera que elijan una (sistema/37). */
   direcciones?: boolean;
+  /** Entrega la web como archivos de verdad que se ven funcionando en el estudio (sistema/42). */
+  sitio?: boolean;
 }
 
 /** Una dirección de diseño (sistema/37): lo justo para dibujar una maqueta y decidir. */

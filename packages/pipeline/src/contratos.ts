@@ -77,9 +77,9 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Qué se toca y qué responde", "Plan para celulares", "Presupuesto de rendimiento"],
   },
   {
-    id: "4.vector", profunda: true, interna: true, salida: 6000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"], herramientas: ["web"],
-    objetivo: "Construir la web en Next.js a partir del diseño.",
-    criterios: ["Compila sin errores", "Responde en celular", "Accesibilidad sin errores graves"],
+    id: "4.vector", profunda: true, interna: true, sitio: true, salida: 14000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"],
+    objetivo: "Construir la web como sitio estático (HTML, CSS y JS) a partir del diseño y la dirección elegida: que se vea funcionando y se pueda publicar tal cual.",
+    criterios: ["Abre directo en el navegador, sin errores", "Se ve perfecta en celular y escritorio", "Respeta la dirección y la marca", "Accesibilidad sin errores graves"],
   },
   {
     id: "4.kine", fase: 4, agente: "kine", entrega: "Sistema de movimiento", formato: "md", usa: ["4.orla"],

@@ -33,6 +33,11 @@ export function RevisarAgente({ p, t, mio, oscuro = false, verEntrega = true }: 
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        {e?.datos?.sitio ? (
+          <Link href={`/estudio/${id}/web?v=${e.version}`} className={`inline-flex min-h-12 items-center rounded-full px-6 text-[14px] font-medium transition ${oscuro ? "bg-vivo text-white hover:brightness-95" : "bg-vivo text-white"}`}>
+            Ver la web funcionando →
+          </Link>
+        ) : null}
         {verEntrega && (
           <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className={`inline-flex min-h-12 items-center rounded-full px-6 text-[14px] font-medium transition ${oscuro ? "bg-white/10 text-white hover:bg-white/15" : "bg-[#f1ede6] hover:bg-[#e9e3d9]"}`}>
             Leer la entrega →

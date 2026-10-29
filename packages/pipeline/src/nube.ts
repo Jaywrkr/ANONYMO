@@ -267,3 +267,13 @@ export async function espejarCambios(id: string, desde: number, f: typeof fetch 
   }
   return { subidos, borrados: sobran.length };
 }
+
+/** Lee un archivo de la nube como bytes, sin bajar el proyecto (sistema/42: la vista previa de la web). */
+export async function leerRemotoBytes(id: string, rel: string, f: typeof fetch = fetch): Promise<Uint8Array | undefined> {
+  idSeguro(id);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/${bucket}/${id}/${rel.split("/").map(encodeURIComponent).join("/")}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  if (r.status === 404 || r.status === 400) return undefined;
+  if (!r.ok) throw new Error(`No se pudo leer ${id}/${rel}: ${r.status}`);
+  return new Uint8Array(await r.arrayBuffer());
+}

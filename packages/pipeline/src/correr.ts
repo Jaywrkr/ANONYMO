@@ -6,6 +6,7 @@ import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { avisar } from "./avisos.ts";
 import { estimar, textoEntrada } from "./costo.ts";
 import { consejosPara } from "./plantillas.ts";
+import { guardarSitio } from "./sitio.ts";
 import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
@@ -131,7 +132,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
         marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
-      const { uso, pendiente, ...resto } = r;
+      const { uso, pendiente, sitio, ...resto } = r;
       // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
       Object.assign(p, fusionar(p, leerProyecto(id)));
       // Se acabó el tiempo de la vuelta: lo escrito queda guardado y la próxima vuelta sigue desde ahí.
@@ -157,6 +158,8 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
         return p;
       }
       guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto });
+      // La web como archivos de verdad, por versión (sistema/42).
+      if (sitio && Object.keys(sitio).length) guardarSitio(id, version, sitio);
       // Costo: real si vino de la API; si no, lo que costaría con el motor real.
       const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
       p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };
@@ -437,7 +440,7 @@ export function fusionar(vuelta: Proyecto, nube: Proyecto): Proyecto {
     juradoAceptado: vuelta.juradoAceptado,
     error: vuelta.error,
     direcciones: vuelta.direcciones,
-    plan: { ...nube.plan, pausas: vuelta.plan.pausas },
+    plan: nube.plan,
     presupuesto: vuelta.presupuesto || nube.presupuesto ? { ...nube.presupuesto, horas: vuelta.presupuesto?.horas, ajustes: vuelta.presupuesto?.ajustes ?? nube.presupuesto?.ajustes ?? [] } : undefined,
     estado: detenido ? nube.estado : vuelta.estado,
     actualizado: new Date().toISOString(),

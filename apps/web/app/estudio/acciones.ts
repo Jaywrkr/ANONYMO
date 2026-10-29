@@ -1,6 +1,7 @@
 "use server";
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
+import { agentePorId } from "@anonymo/agentes";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
@@ -9,7 +10,7 @@ import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
 import { archivosDe } from "@/lib/subidas";
-import { lanzar } from "@/lib/trabajo";
+import { lanzar, trabajandoAhora } from "@/lib/trabajo";
 
 type Quien = "jay" | "luna";
 
@@ -35,7 +36,8 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
   let destino = `${base}?${extra}ok=${encodeURIComponent(ok)}${fiesta ? "&fiesta=1" : ""}`;
   try {
     await conNube([id], fn);
-    if (trabaja) await lanzar(id);
+    // Si ya hay un agente trabajando, no se arranca otro: el que está sigue solo con lo nuevo (sistema/42).
+    if (trabaja && !(await trabajandoAhora(id))) await lanzar(id);
   } catch (e) {
     const msj = ocultarClaves((e as Error).message);
     // Aprobar dos veces o reintentar mientras trabajan no es un error: el equipo ya está en eso.
@@ -82,6 +84,12 @@ export async function accionPausas(f: FormData) {
 
 export async function accionSeguir(f: FormData) {
   const { id, motor } = await leer(f);
+  // Si ya está trabajando, Continuar no hace nada (ni reinicia lo que va a medias): solo lo dice.
+  const ya = await trabajandoAhora(id);
+  if (ya) {
+    const quien = ya.tarea ? agentePorId(ya.tarea.split(".")[1])?.nombre : "El equipo";
+    redirect(`/estudio/${id}?ok=${encodeURIComponent(`${quien} ya está trabajando: no hace falta continuar. Te avisamos cuando termine.`)}`);
+  }
   await correr(id, () => {
     // Retoma lo que quedó a medias: limpia el error y lo que quedó «en curso» de una vuelta muerta
     // (si tenía entrega, se rehace; si no, se empieza; lo escrito a medias se conserva y sigue desde ahí).
@@ -121,6 +129,9 @@ export async function accionMandarCliente(f: FormData) {
   const agentes = f.getAll("agentes").map(String).filter(Boolean);
   const pendiente = String(f.get("pendiente") ?? "");
   const origen = f.get("origen") === "cliente" ? "cliente" : quien;
+  // Mientras un agente trabaja no se mezclan pedidos nuevos: se pasa cuando termine (sistema/42).
+  const ya = await trabajandoAhora(id);
+  if (ya) redirect(`/estudio/${id}?ver=cliente&error=${encodeURIComponent(`${ya.tarea ? agentePorId(ya.tarea.split(".")[1])?.nombre : "El equipo"} está trabajando. Pásaselo al equipo cuando termine (queda anotado aquí).`)}`);
   await correr(id, async () => {
     if (!texto) throw new Error("El comentario está vacío.");
     if (!agentes.length) throw new Error("Elige al menos un agente.");
