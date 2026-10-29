@@ -142,7 +142,7 @@ test("la API en vivo arma los bloques, cuenta palabras y avisa qué hace", async
 test("si se acaba el tiempo de la vuelta, guarda lo escrito y la siguiente sigue desde ahí", async () => {
   // API falsa: la primera respuesta escribe lento (no termina antes del plazo); la segunda termina.
   let pedidos = 0;
-  const cuerpos: { messages: { role: string; content: unknown }[] }[] = [];
+  const cuerpos: { thinking?: { type: string }; messages: { role: string; content: unknown }[] }[] = [];
   const srv = http.createServer((req, res) => {
     let b = ""; req.on("data", (d) => (b += d)); req.on("end", async () => {
       cuerpos.push(JSON.parse(b)); pedidos++;
@@ -163,6 +163,8 @@ test("si se acaba el tiempo de la vuelta, guarda lo escrito y la siguiente sigue
   });
   await new Promise<void>((ok) => srv.listen(0, ok));
   process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${(srv.address() as { port: number }).port}`;
+  const modeloAnterior = process.env.ANTHROPIC_MODEL;
+  process.env.ANTHROPIC_MODEL = "claude-sonnet-5-5";
   process.env.ANTHROPIC_API_KEY = "sk-ant-prueba-falsa";
   try {
     conPlan("plazo", "auto");
@@ -181,9 +183,12 @@ test("si se acaba el tiempo de la vuelta, guarda lo escrito y la siguiente sigue
     assert.equal(e.dice, "Listo.");
     // La segunda vuelta le mostró lo ya escrito y le pidió seguir, sin herramientas.
     const ultimo = cuerpos.at(-1)!;
+    assert.deepEqual(ultimo.thinking, { type: "between_tools" });
     assert.equal(ultimo.messages[1].role, "assistant");
     assert.equal(ultimo.messages.length, 3);
   } finally {
+    if (modeloAnterior === undefined) delete process.env.ANTHROPIC_MODEL;
+    else process.env.ANTHROPIC_MODEL = modeloAnterior;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_BASE_URL;
     srv.close();
@@ -207,12 +212,19 @@ test("las direcciones se leen del json aunque vengan con ruido", () => {
   assert.equal(d[0].estilo, "editorial");
 });
 
-test("si una vuelta se va entera pensando, la siguiente va directo a escribir", async () => {
+for (const agente of ["orla", "vector"] as const) test(`${agente}: si una vuelta se va entera pensando, la siguiente va directo a escribir`, async () => {
   let pedidos = 0;
   const cuerpos: Record<string, unknown>[] = [];
   const srv = http.createServer((req, res) => {
     let b = ""; req.on("data", (d) => (b += d)); req.on("end", async () => {
-      cuerpos.push(JSON.parse(b)); pedidos++;
+      const cuerpo = JSON.parse(b);
+      cuerpos.push(cuerpo); pedidos++;
+      // Reproduce el rechazo real: Sonnet no acepta disabled en una continuación.
+      if (cuerpo.thinking?.type === "disabled") {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'To turn thinking off on this model, send "thinking": {"type": "between_tools"}.' } }));
+        return;
+      }
       res.writeHead(200, { "content-type": "text/event-stream" });
       const env = (e: object) => res.write(`event: x\ndata: ${JSON.stringify(e)}\n\n`);
       env({ type: "message_start", message: { usage: { input_tokens: 10, output_tokens: 0 } } });
@@ -230,22 +242,30 @@ test("si una vuelta se va entera pensando, la siguiente va directo a escribir", 
   });
   await new Promise<void>((ok) => srv.listen(0, ok));
   process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${(srv.address() as { port: number }).port}`;
+  const modeloAnterior = process.env.ANTHROPIC_MODEL;
+  process.env.ANTHROPIC_MODEL = "claude-sonnet-5-5";
   process.env.ANTHROPIC_API_KEY = "sk-ant-prueba-falsa";
   try {
-    const ped = pedido("directo");
-    crear(ped, planificar(ped, { tareas: ["4.vector"], preguntas: [] }), "plan");
-    await empezar("directo", "jay", real, silencio, { max: 0 });
-    let p = await avanzar("directo", real, silencio, { max: 1, plazo: Date.now() + 1000 });
-    assert.equal(p.tareas["4.vector"], "en-curso");
-    assert.equal(p.reintentos?.["4.vector"], 1);
+    const id = `directo-${agente}`;
+    const tarea = `4.${agente}` as const;
+    const ped = pedido(id);
+    crear(ped, planificar(ped, { tareas: [tarea], preguntas: [] }), "plan");
+    await empezar(id, "jay", real, silencio, { max: 0 });
+    let p = await avanzar(id, real, silencio, { max: 1, plazo: Date.now() + 1000 });
+    assert.equal(p.tareas[tarea], "en-curso");
+    assert.equal(p.reintentos?.[tarea], 1);
     assert.equal(p.error, undefined);
-    p = await avanzar("directo", real, silencio, { max: 1 });
-    assert.equal(p.tareas["4.vector"], "lista");
-    assert.equal(p.reintentos?.["4.vector"], undefined);
+    p = await avanzar(id, real, silencio, { max: 1 });
+    assert.equal(p.tareas[tarea], "lista");
+    assert.equal(p.reintentos?.[tarea], undefined);
     // La segunda vuelta no busca en la web y no pide pensar a fondo.
+    assert.deepEqual(cuerpos[1].thinking, { type: "between_tools" });
+    assert.equal(p.error, undefined);
     assert.equal(cuerpos[1].tools, undefined);
     assert.match(JSON.stringify(cuerpos[1].messages), /Escribe la entrega ya/);
   } finally {
+    if (modeloAnterior === undefined) delete process.env.ANTHROPIC_MODEL;
+    else process.env.ANTHROPIC_MODEL = modeloAnterior;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_BASE_URL;
     srv.close();
