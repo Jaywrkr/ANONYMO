@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, agentePorId, FASES } from "@anonymo/agentes";
-import { contarCambios, diferencias, existe, leerEntrega, leerProyecto, versiones, type TareaId } from "@anonymo/pipeline";
+import { contarCambios, diferencias, existe, leerEntrega, leerProyecto, responsable, versiones, type TareaId } from "@anonymo/pipeline";
+import { RevisarAgente } from "@/components/estudio/RevisarAgente";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
 import { boton, botonLleno, etiqueta, exigirEstudio, serif } from "@/lib/estudio";
@@ -19,7 +20,7 @@ type Props = { params: Promise<{ id: string; tarea: string }>; searchParams: Pro
 
 // Una entrega, como se lee una página: el agente a un lado, su trabajo al centro, las versiones arriba.
 export default async function EntregaEstudio({ params, searchParams }: Props) {
-  await exigirEstudio();
+  const yo = await exigirEstudio();
   const { id, tarea } = await params;
   if (!/^[a-z0-9_-]+$/.test(id)) notFound();
   await traer(id);
@@ -35,8 +36,10 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
   const contra = comparar ? leerEntrega(id, t, Number(comparar)) : undefined;
   const diff = contra && actual ? diferencias(contra.contenido, actual.contenido) : undefined;
   const base = `/estudio/${id}/${tarea}`;
+  const enRevision = p.estado === "esperando" && p.revision?.tarea === t && !v && !comparar;
   const fase = FASES.find((f) => f.n === Number(t.split(".")[0]))!;
   const area = AREAS[a.area];
+  const mia = responsable(p, fase.n) === yo;
   const pastilla = (activa: boolean) => `inline-flex min-h-9 items-center rounded-full px-3 text-[13px] transition ${activa ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`;
 
   return (
@@ -64,6 +67,13 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
               <a href={`/imprimir/${id}/${tarea}${v ? `?v=${v}` : ""}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#f1ede6] px-4 text-[13px] text-medio transition hover:bg-[#e9e3d9] hover:text-tinta">Exportar · PDF o texto ↗</a>
             </div>
           )}
+          {/* Modo paso: esta entrega espera tu revisión. Arriba el aviso; abajo, al terminar de leer, la decisión. */}
+          {enRevision && (
+            <a href="#decidir" className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-tinta px-5 py-3.5 text-[14px] text-white">
+              <i className="late h-2 w-2 rounded-full bg-urgente" /> {mia ? "Te toca revisarla: léela y decide al final." : `Le toca revisarla a ${responsable(p, fase.n) === "luna" ? "Luna" : "Jay"}.`}
+              <span className="ml-auto font-medium">Ir a decidir ↓</span>
+            </a>
+          )}
           {e?.datos?.cortada && !v ? (
             <form action={accionCambiar} className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-[#fff4e8] p-4 shadow-[inset_0_0_0_1px_rgba(255,90,31,.2)]">
               <input type="hidden" name="id" value={id} />
@@ -71,7 +81,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
               <input type="hidden" name="agente" value={a.id} />
               <input type="hidden" name="nota" value="Tu entrega anterior quedó cortada antes de terminar. Entrégala completa, con todas sus secciones, más concisa si hace falta, y cierra con el bloque final." />
               <span className="min-w-0 flex-1 text-[14px] text-[#8a3a0c]">Esta entrega quedó cortada: a {a.nombre} se le acabó el espacio antes de terminar.</span>
-              <Enviar className="inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${a.nombre} la completa…`} proyecto={id} largo />
+              <Enviar className="inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${a.nombre} la completa…`} proyecto={id} />
             </form>
           ) : null}
           {!e && <p className="mt-3 text-[16px] text-medio">{a.nombre} todavía no trabajó en esto. Aparece aquí cuando el equipo llegue a la fase {fase.nombre}.</p>}
@@ -114,6 +124,12 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
             </div>
           ) : (
             e && <div className="entrega mt-8" dangerouslySetInnerHTML={{ __html: html(e.datos?.cortada ? e.contenido.replace(/\n+> ⚠️[\s\S]*$/, "") : e.contenido) }} />
+          )}
+          {enRevision && (
+            <section id="decidir" aria-label="Revisar esta entrega" className="mt-12 scroll-mt-6 rounded-[20px] bg-tinta p-5 text-white md:p-7">
+              <p className="mb-4 text-[12px] text-white/60">{mia ? "Tu decisión" : "Decisión"} · {a.nombre}</p>
+              <RevisarAgente p={p} t={t} mio={mia} oscuro verEntrega={false} />
+            </section>
           )}
         </article>
       </div>

@@ -26,6 +26,8 @@ export default async function Revisar({ params, searchParams }: Props) {
   await traer(id);
   if (!existe(id)) notFound();
   const p = leerProyecto(id);
+  // Modo paso a paso (sistema/36): se revisa una entrega a la vez, en su propia página.
+  if (p.estado === "esperando" && p.revision && !p.esperaJurado) redirect(`/estudio/${id}/${p.revision.tarea.replace(".", "-")}#decidir`);
   if (p.estado !== "esperando") redirect(`/estudio/${id}`);
   const tareas = p.plan.tareas.filter((t) => t.startsWith(`${p.faseActual}.`)) as TareaId[];
   const total = tareas.length;
@@ -104,7 +106,7 @@ export default async function Revisar({ params, searchParams }: Props) {
                   <label className="text-[13px] font-medium" htmlFor="cambio-uno">¿Qué tiene que cambiar {a.nombre}?</label>
                   <textarea id="cambio-uno" name="nota" rows={3} required className={campo} placeholder="Ej.: más cálido, menos texto, otra paleta…" />
                   <p className="text-[12px] text-suave">Lo rehace solo {a.nombre} (y lo que dependa de su entrega). Después vuelves a revisar.</p>
-                  <Enviar className={botonLleno} texto={`Pedir el cambio`} trabajando={`${a.nombre} está rehaciendo…`} proyecto={id} largo />
+                  <Enviar className={botonLleno} texto={`Pedir el cambio`} trabajando={`${a.nombre} está rehaciendo…`} proyecto={id} />
                 </form>
               </details>
               <Link href={`${base}?n=${n + 1}`} className={botonLleno}>{n + 1 < total ? "Siguiente →" : "Ir a decidir →"}</Link>
@@ -143,7 +145,7 @@ export default async function Revisar({ params, searchParams }: Props) {
               <p className="text-[13px] text-white/70">{p.esperaJurado ? "Se acepta así y el proyecto se cierra." : m.despues}{leToca !== yo ? ` Esta fase la aprueba ${nombreSocio(leToca)}; si apruebas tú, queda a tu nombre.` : ""}</p>
               <label className="sr-only" htmlFor="nota-ok">Nota para el equipo</label>
               <input id="nota-ok" name="nota" placeholder="Nota para el equipo (opcional)" className="min-h-11 rounded-xl bg-white/10 px-3.5 text-[14px] text-white outline-none placeholder:text-white/40 focus:bg-white/15" />
-              <Enviar className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 text-[14px] font-medium text-tinta" texto={p.esperaJurado ? "Aceptar y cerrar" : "Aprobar y seguir"} trabajando="El equipo está trabajando…" proyecto={id} largo />
+              <Enviar className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 text-[14px] font-medium text-tinta" texto={p.esperaJurado ? "Aceptar y cerrar" : "Aprobar y seguir"} trabajando="El equipo está trabajando…" proyecto={id} />
             </form>
             <form action={accionCambiar} className="grid content-start gap-3 rounded-[20px] bg-white p-6 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
               {comunes}
@@ -156,7 +158,7 @@ export default async function Revisar({ params, searchParams }: Props) {
                 <option value="">A todos los de esta fase</option>
                 {tareas.map((x) => <option key={x} value={x.split(".")[1]}>Solo a {agentePorId(x.split(".")[1])?.nombre}</option>)}
               </select>
-              <Enviar className={boton} texto="Pedir cambios" trabajando="El equipo está rehaciendo…" proyecto={id} largo />
+              <Enviar className={boton} texto="Pedir cambios" trabajando="El equipo está rehaciendo…" proyecto={id} />
             </form>
           </div>
         </div>

@@ -1,10 +1,15 @@
 // El plan que armó Atlas, antes de que nadie trabaje (sistema/32): quién entra, quién no y por qué, y cuánto costaría.
 import { agentePorId, FASES } from "@anonymo/agentes";
-import { contratoPorId, costoPlan, ocultarClaves, type Proyecto } from "@anonymo/pipeline";
+import { contratoPorId, costoPlan, ocultarClaves, type Proyecto, type TareaId } from "@anonymo/pipeline";
+
+/** Lo que costaría una sola entrega con IA (la misma cuenta que el total del plan). */
+const costoTarea = (p: Proyecto, t: TareaId) => costoPlan(p.pedido, { tareas: p.plan.tareas.slice(0, p.plan.tareas.indexOf(t) + 1) }) - costoPlan(p.pedido, { tareas: p.plan.tareas.slice(0, p.plan.tareas.indexOf(t)) });
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { accionEmpezar, accionReplanear } from "@/app/estudio/acciones";
 import { boton, botonLleno, campo, serif } from "@/lib/estudio";
 import { Cara } from "./piezas";
+import { OpcionesModo } from "./OpcionesModo";
+import { segundosEstimados } from "@/lib/duracion";
 
 export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
   const id = p.pedido.id;
@@ -80,16 +85,44 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
         </div>
       </div>
 
-      <div className="grid gap-4 border-t border-borde p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-start md:p-8">
-        <form action={accionEmpezar} className="grid gap-2">
-          <input type="hidden" name="id" value={id} />
-          <Enviar className={`${botonLleno} min-h-12 px-7 text-[14px]`} texto="Que empiecen" trabajando="El equipo está trabajando…" proyecto={id} largo />
+      {/* El orden en que trabajan y cuánto suele tardar cada uno (sistema/36). */}
+      <details className="group border-t border-borde px-6 py-4 md:px-8">
+        <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 text-[14px] font-medium">
+          En qué orden trabajan · unos {Math.max(1, Math.round(p.plan.tareas.reduce((s, t) => s + segundosEstimados(t), 0) / 60))} min de IA en total
+          <span className="ml-auto text-suave transition group-open:rotate-45">+</span>
+        </summary>
+        <ol className="mt-3 grid gap-1.5 sm:grid-cols-2">
+          {p.plan.tareas.map((t, i) => {
+            const c = contratoPorId(t)!;
+            const a = agentePorId(c.agente)!;
+            return (
+              <li key={t} className="flex items-center gap-2.5 rounded-xl bg-[#faf8f4] px-2.5 py-1.5 text-[13px]">
+                <span className="w-5 text-right font-mono text-[11px] text-suave">{i + 1}</span>
+                <Cara id={a.id} tam={22} titulo={false} />
+                <span className="min-w-0 flex-1 truncate"><span className="font-medium">{a.nombre}</span> · {c.entrega}</span>
+                <span className="shrink-0 font-mono text-[11px] text-suave">~{Math.max(1, Math.round(segundosEstimados(t) / 60))} min · ${costoTarea(p, t).toFixed(2)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </details>
+
+      <form action={accionEmpezar} className="grid gap-4 border-t border-borde p-6 md:p-8">
+        <input type="hidden" name="id" value={id} />
+        <div>
+          <p className="mb-2 text-[13px] font-medium">¿Cómo quieres que trabajen?</p>
+          <OpcionesModo actual={p.modo ?? "paso"} />
+        </div>
+        <div className="grid gap-2">
+          <div><Enviar className={`${botonLleno} min-h-12 px-7 text-[14px]`} texto="Que empiecen" trabajando="Arrancando…" proyecto={id} /></div>
           {conIA && (
             <label className="flex min-h-9 items-center gap-2 text-[12px] text-medio">
               <input type="checkbox" name="motor" value="simulado" className="accent-tinta" /> Probar sin gastar IA (solo arma la estructura)
             </label>
           )}
-        </form>
+        </div>
+      </form>
+      <div className="border-t border-borde p-6 md:p-8">
         <form action={accionReplanear} className="grid gap-2">
           <input type="hidden" name="id" value={id} />
           <label className="sr-only" htmlFor="ajuste">Ajuste para Atlas</label>

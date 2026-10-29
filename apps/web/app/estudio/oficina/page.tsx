@@ -13,7 +13,7 @@ export default async function OficinaPagina() {
   await traerTodo();
   const proyectos: ProyectoOficina[] = listar()
     .filter((p) => p.estado !== "listo")
-    .map((p) => ({ id: p.pedido.id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas }));
+    .map((p) => ({ id: p.pedido.id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas, revision: p.revision }));
   return (
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
       <p className="text-[13px] text-suave">El estudio · 22 agentes en 6 áreas</p>

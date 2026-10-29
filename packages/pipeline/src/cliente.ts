@@ -55,6 +55,8 @@ export function anotar(id: string, texto: string, quien: NotaCliente["quien"], f
   p.juradoAceptado = false;
   p.esperaJurado = false;
   if (p.estado !== "parado") p.estado = "en-curso";
+  // Lo que dijo el cliente manda: la revisión pendiente se retoma con lo rehecho (sistema/36).
+  delete p.revision;
   guardarProyecto(p);
 
   const ruta = join(CARPETA, id, "cliente.md");

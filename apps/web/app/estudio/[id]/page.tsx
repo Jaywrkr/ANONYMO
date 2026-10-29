@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva } from "@anonymo/pipeline";
+import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { EquipoVivo } from "@/components/estudio/EquipoVivo";
@@ -17,9 +17,11 @@ import { espacio } from "@/lib/espacio";
 import { momento, nombreFase, nombreSocio } from "@/lib/camino";
 import { segundosEstimados } from "@/lib/duracion";
 import { MarcaEditor } from "@/components/estudio/MarcaEditor";
+import { RevisarAgente } from "@/components/estudio/RevisarAgente";
+import { OpcionesModo } from "@/components/estudio/OpcionesModo";
 import { dinero } from "@/lib/propuesta";
 import { boton, botonLleno, botonSuave, campo, ESTADO_PROYECTO, exigirEstudio, serif } from "@/lib/estudio";
-import { accionAPapelera, accionCambiar, accionPresupuesto, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
+import { accionAPapelera, accionCambiar, accionPresupuesto, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionModo, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
@@ -115,25 +117,32 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
       {!p.papelera && p.estado !== "plan" && (
         <section aria-label="Ahora" className={`mt-6 overflow-hidden rounded-[22px] ${m.tono === "toca" || m.tono === "cortado" ? "bg-tinta text-white" : m.tono === "listo" ? "bg-[#e7f5ec]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]"}`}>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-5 p-6 md:p-8">
-            <div className="min-w-[min(100%,20rem)] flex-1">
+            <div className={`min-w-[min(100%,20rem)] flex-1 ${m.revision ? "basis-full" : ""}`}>
               <p className={`flex items-center gap-2 text-[12px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/60" : "text-suave"}`}>
                 <i className={`h-1.5 w-1.5 rounded-full ${m.tono === "vivo" ? "late bg-vivo" : m.tono === "toca" || m.tono === "otro" || m.tono === "cortado" ? "late bg-urgente" : "bg-suave"}`} />
                 Ahora · fase {m.fase.n} de {m.fase.de}: {m.fase.nombre}
               </p>
               <p className={`${serif} mt-2 text-[clamp(26px,2.8vw,36px)] leading-[1.08]`}>{m.ahora}</p>
               <p className={`mt-2 text-[14px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/70" : "text-medio"}`}><span className="font-medium">Después:</span> {m.despues}</p>
+              {/* Modo paso: la entrega que acaba de llegar, con sus tres decisiones. */}
+              {m.revision && <div className="mt-6"><RevisarAgente p={p} t={m.revision as TareaId} mio={m.teToca} oscuro={m.tono === "toca"} /></div>}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {p.estado === "esperando" && (
+              {p.estado === "esperando" && !m.revision && (
                 <>
                   <Caras ids={deFase(p.faseActual).map((t) => t.split(".")[1])} tam={30} />
                   <Link href={`/estudio/${id}/revisar`} className={`inline-flex min-h-12 items-center rounded-full px-7 text-[14px] font-medium transition ${m.teToca ? "bg-white text-tinta hover:bg-[#f1ede6]" : "bg-tinta text-white hover:bg-black"}`}>{m.teToca ? "Empezar la revisión →" : "Revisar igual →"}</Link>
                 </>
               )}
               {p.estado === "en-curso" && m.tono === "cortado" && (
-                <form action={accionSeguir}>{comunes}<Enviar className="inline-flex min-h-12 items-center rounded-full bg-white px-7 text-[14px] font-medium text-tinta" texto="Continuar el trabajo" trabajando="El equipo sigue…" proyecto={id} largo /></form>
+                <form action={accionSeguir}>{comunes}<Enviar className="inline-flex min-h-12 items-center rounded-full bg-white px-7 text-[14px] font-medium text-tinta" texto="Continuar el trabajo" trabajando="El equipo sigue…" proyecto={id} /></form>
               )}
-              {p.estado === "en-curso" && m.tono === "vivo" && <Caras ids={m.trabajando} tam={36} />}
+              {p.estado === "en-curso" && m.tono === "vivo" && (
+                <>
+                  <Caras ids={m.trabajando} tam={36} />
+                  <Confirmar accion={accionParar} campos={{ id, motor: "" }} disparador="Detener" claseDisparador={boton} titulo="¿Detener al equipo?" texto="Lo que ya entregaron queda guardado. El agente que está trabajando termina su entrega y nadie sigue hasta que reanudes." confirmar="Detener" />
+                </>
+              )}
               {p.estado === "parado" && (
                 <form action={accionReanudar}>{comunes}<button className={botonLleno}>Reanudar</button></form>
               )}
@@ -157,7 +166,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               <input type="hidden" name="nota" value="Tu entrega anterior quedó cortada antes de terminar. Entrégala completa, con todas sus secciones, más concisa si hace falta, y cierra con el bloque final." />
               <Cara id={t.split(".")[1]} tam={26} titulo={false} />
               <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="text-[14px] underline underline-offset-4">{agentePorId(t.split(".")[1])?.nombre} · {contratoPorId(t)?.entrega}</Link>
-              <Enviar className="ml-auto inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${agentePorId(t.split(".")[1])?.nombre} la completa…`} proyecto={id} largo />
+              <Enviar className="ml-auto inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${agentePorId(t.split(".")[1])?.nombre} la completa…`} proyecto={id} />
             </form>
           ))}
         </section>
@@ -302,7 +311,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                     </fieldset>
                     <p className="text-[13px] text-medio">{arrastra.length ? `Se rehacen ${arrastra.length} entrega${arrastra.length === 1 ? "" : "s"}: ${arrastra.map(nombreTarea).join(", ")}.` : "Nadie elegido: no se rehace nada."}</p>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Enviar className={botonLleno} texto="Pasárselo al equipo" trabajando="El equipo está rehaciendo…" proyecto={id} largo />
+                      <Enviar className={botonLleno} texto="Pasárselo al equipo" trabajando="El equipo está rehaciendo…" proyecto={id} />
                       <Link href={`/estudio/${id}?ver=cliente`} className={botonSuave}>Cancelar</Link>
                     </div>
                   </form>
@@ -480,7 +489,14 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* AJUSTES */}
         {ver === "ajustes" && (
           <div className="grid max-w-3xl gap-5">
-            <form action={accionPausas} className={`${tarjeta} grid gap-3`}>
+            <form action={accionModo} className={`${tarjeta} grid gap-3`}>
+              {comunes}
+              <p className={`${serif} text-[22px] leading-tight`}>¿Cómo trabaja el equipo?</p>
+              <p className="-mt-2 text-[13px] text-medio">Lo puedes cambiar en cualquier momento. Si el equipo está trabajando, el cambio vale desde la próxima entrega.</p>
+              <OpcionesModo actual={modoDe(p)} />
+              <div><Enviar className={boton} texto="Guardar" trabajando="Guardando…" proyecto={id} /></div>
+            </form>
+            {modoDe(p) === "fase" && <form action={accionPausas} className={`${tarjeta} grid gap-3`}>
               {comunes}
               <label className="grid gap-1.5">
                 <span className={`${serif} text-[22px] leading-tight`}>¿Cuándo te pide revisar?</span>
@@ -492,8 +508,8 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                   {p.plan.fases.map((f) => <option key={f} value={String(f)}>Solo al terminar {nombreFase(f)}</option>)}
                 </select>
               </label>
-              <div><Enviar className={boton} texto="Guardar" trabajando="Guardando…" proyecto={id} largo /></div>
-            </form>
+              <div><Enviar className={boton} texto="Guardar" trabajando="Guardando…" proyecto={id} /></div>
+            </form>}
 
             <div className={`${tarjeta} grid gap-2`}>
               <p className={`${serif} text-[22px] leading-tight`}>¿Quién aprueba cada fase?</p>
