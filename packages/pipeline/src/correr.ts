@@ -10,7 +10,7 @@ import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
 import { elegirMotor, type Latido, type Motor } from "./motor.ts";
-import { type Entrega, type ModoTrabajo, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
+import { type Direccion, type Entrega, type ModoTrabajo, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
 
 /** Lo que va pasando. Puede ser asíncrono: en línea se usa para subir a la nube cada tarea apenas termina. */
 export type Aviso = (texto: string) => void | Promise<void>;
@@ -120,6 +120,9 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       await aviso(`  … ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega}`);
       const previa = leerEntrega(id, t);
       const version = (previa?.version ?? 0) + 1;
+      // Direcciones de diseño (sistema/37): el diseñador primero propone 3; con una elegida, todos la siguen.
+      const elegida = p.direcciones?.elegida !== undefined ? p.direcciones.opciones[p.direcciones.elegida] : undefined;
+      const proponer = !!c.direcciones && !elegida && (!previa || !!p.direcciones?.pedidas);
       const leidas = lecturas(t, tareas).map((u) => leerEntrega(id, u)).filter((e): e is Entrega => !!e);
       const cambio = rehace ? p.cambios[fase] : undefined;
       const herramientas = await prepararHerramientas({ pedido: p.pedido, tarea: t, lecturas: leidas, motorReal: motor.nombre !== "simulado" });
@@ -127,7 +130,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
-        marca: p.marca, parcial: sigue, plazo: op.plazo, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
+        marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
       const { uso, pendiente, ...resto } = r;
       // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
       Object.assign(p, fusionar(p, leerProyecto(id)));
@@ -173,7 +176,22 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       bitacora(id, `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} v${version} (${r.modo}).`);
       await aviso(`  ✓ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} v${version}`);
       // Lo pausaron mientras trabajaba: entrega guardada y nadie sigue.
-      if ((p.estado as string) === "parado" || p.papelera) return p;
+      if ((p.estado as string) === "parado" || p.papelera) {
+        if (proponer) p.direcciones = { tarea: t, opciones: (r.datos?.direcciones as Direccion[] | undefined) ?? [], esperando: true };
+        guardarProyecto(p);
+        return p;
+      }
+      // Propuso direcciones: el proyecto espera que elijan una, en cualquier modo (incluso automático).
+      if (proponer) {
+        const opciones = (r.datos?.direcciones as Direccion[] | undefined) ?? [];
+        p.direcciones = { tarea: t, opciones, esperando: true };
+        p.estado = "esperando";
+        delete p.revision;
+        guardarProyecto(p);
+        bitacora(id, `${agentePorId(c.agente)?.nombre} propuso ${opciones.length} direcciones de diseño: ${opciones.map((d) => d.nombre).join(", ") || "sin formato"}. Esperan que elijan una.`);
+        await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `${agentePorId(c.agente)?.nombre} propone ${opciones.length || 3} direcciones de diseño`, texto: "Elige una (o pide otras) para que el equipo diseñe y construya la web con esa dirección." });
+        return p;
+      }
       // Modo paso: cada entrega espera tu revisión antes de que trabaje el siguiente.
       if (modoDe(p) === "paso") {
         p.estado = "esperando";
@@ -265,6 +283,7 @@ function esperando(id: string) {
 
 export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, forzar = false, op: OpcionesAvanzar = {}) {
   const p = esperando(id);
+  if (p.direcciones?.esperando) throw new Error("Primero elige una de las direcciones de diseño (o pide otras).");
   const toca = responsable(p, p.revision ? faseDe(p.revision.tarea) : p.faseActual);
   if ((quien === "jay" || quien === "luna") && quien !== toca && !forzar && !p.esperaJurado)
     throw new Error(`Esta fase la aprueba ${NOMBRE_SOCIO[toca]}. Si igual quieres aprobarla, usa forzar (terminal: --forzar).`);
@@ -324,9 +343,56 @@ export function reanudar(id: string) {
   const p = leerProyecto(id);
   if (p.estado !== "parado") return p;
   // En modo paso o automático sigue solo si no hay nada que revisar; por fases vuelve a esperar tu decisión.
-  p.estado = modoDe(p) !== "fase" && !p.revision && !p.esperaJurado && hayPendientes(p) ? "en-curso" : "esperando";
+  p.estado = modoDe(p) !== "fase" && !p.revision && !p.esperaJurado && !p.direcciones?.esperando && hayPendientes(p) ? "en-curso" : "esperando";
   guardarProyecto(p);
   bitacora(id, "Proyecto reanudado.");
+  return p;
+}
+
+/** Eligen una de las direcciones de diseño: el diseñador la desarrolla completa y todo lo que dependía se rehace con ella (sistema/37). */
+export async function elegirDireccion(id: string, n: number, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, op: OpcionesAvanzar = {}) {
+  const p = leerProyecto(id);
+  const d = p.direcciones;
+  if (!d?.opciones[n]) throw new Error("Esa dirección no existe.");
+  if (p.estado === "en-curso") throw new Error(`"${id}" no está esperando una decisión (estado: en-curso).`);
+  const t = d.tarea;
+  const fase = faseDe(t);
+  p.direcciones = { ...d, elegida: n, esperando: false, pedidas: false, quien, fecha: new Date().toISOString() };
+  for (const x of dependientes([t], p.plan.tareas)) if (x === t || p.tareas[x] === "lista") p.tareas[x] = "rehacer";
+  p.cambios[fase] = `Eligieron la dirección «${d.opciones[n].nombre}».${nota ? ` ${quienNombre(quien)} agrega: ${nota}` : ""} Desarróllala completa y respétala en todo.`;
+  delete p.revision;
+  p.estado = "en-curso";
+  guardarProyecto(p);
+  bitacora(id, `${quienNombre(quien)} eligió la dirección «${d.opciones[n].nombre}»${nota ? `: ${nota}` : ""}.`);
+  return avanzar(id, motor, aviso, op);
+}
+
+/** Pide (otra vez) direcciones de diseño, con una nota opcional. Lo que dependía del diseño se rehará al elegir. */
+export async function pedirDirecciones(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, op: OpcionesAvanzar = {}) {
+  const p = leerProyecto(id);
+  const t = p.plan.tareas.find((x) => contratoPorId(x)?.direcciones);
+  if (!t) throw new Error("Este plan no tiene diseño de web: no hay direcciones que pedir.");
+  if (p.estado === "en-curso") throw new Error(`"${id}" no está esperando una decisión (estado: en-curso).`);
+  if (p.estado === "plan") throw new Error("Primero di «que empiecen».");
+  const fase = faseDe(t);
+  p.direcciones = { tarea: t, opciones: p.direcciones?.opciones ?? [], pedidas: true, nota };
+  p.tareas[t] = leerEntrega(id, t) ? "rehacer" : "por-empezar";
+  p.cambios[fase] = nota ? `Propón 3 direcciones nuevas. ${quienNombre(quien)} dice: ${nota}` : "Propón 3 direcciones nuevas, distintas de las anteriores.";
+  delete p.revision;
+  p.esperaJurado = false;
+  p.estado = "en-curso";
+  guardarProyecto(p);
+  bitacora(id, `${quienNombre(quien)} pidió ${p.direcciones.opciones.length ? "otras " : ""}3 direcciones de diseño${nota ? `: ${nota}` : ""}.`);
+  return avanzar(id, motor, aviso, op);
+}
+
+/** El cliente marca en su portal la dirección que le gusta. Jay o Luna confirman (sistema/37). */
+export function direccionDelCliente(id: string, n: number, nota?: string) {
+  const p = leerProyecto(id);
+  if (!p.direcciones?.esperando || !p.direcciones.opciones[n]) throw new Error("Ya no hay direcciones por elegir.");
+  p.direcciones.cliente = { n, nota: nota?.slice(0, 600), fecha: new Date().toISOString() };
+  guardarProyecto(p);
+  bitacora(id, `El cliente prefiere la dirección «${p.direcciones.opciones[n].nombre}»${nota ? `: ${nota}` : ""}.`);
   return p;
 }
 
@@ -334,7 +400,7 @@ export function reanudar(id: string) {
 export function cambiarModo(id: string, modo: ModoTrabajo) {
   const p = leerProyecto(id);
   p.modo = modo;
-  if (p.estado === "esperando" && !p.revision && !p.esperaJurado && modo !== "fase" && hayPendientes(p)) p.estado = "en-curso";
+  if (p.estado === "esperando" && !p.revision && !p.esperaJurado && !p.direcciones?.esperando && modo !== "fase" && hayPendientes(p)) p.estado = "en-curso";
   guardarProyecto(p);
   bitacora(id, `Modo de trabajo: ${({ paso: "un agente a la vez, con revisión", fase: "por fases", auto: "automático" })[modo]}.`);
   return p;
@@ -362,6 +428,7 @@ export function fusionar(vuelta: Proyecto, nube: Proyecto): Proyecto {
     esperaJurado: vuelta.esperaJurado,
     juradoAceptado: vuelta.juradoAceptado,
     error: vuelta.error,
+    direcciones: vuelta.direcciones,
     plan: { ...nube.plan, pausas: vuelta.plan.pausas },
     presupuesto: vuelta.presupuesto || nube.presupuesto ? { ...nube.presupuesto, horas: vuelta.presupuesto?.horas, ajustes: vuelta.presupuesto?.ajustes ?? nube.presupuesto?.ajustes ?? [] } : undefined,
     estado: detenido ? nube.estado : vuelta.estado,

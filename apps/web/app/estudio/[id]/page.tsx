@@ -19,6 +19,7 @@ import { segundosEstimados } from "@/lib/duracion";
 import { MarcaEditor } from "@/components/estudio/MarcaEditor";
 import { RevisarAgente } from "@/components/estudio/RevisarAgente";
 import { OpcionesModo } from "@/components/estudio/OpcionesModo";
+import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
 import { dinero } from "@/lib/propuesta";
 import { boton, botonLleno, botonSuave, campo, ESTADO_PROYECTO, exigirEstudio, serif } from "@/lib/estudio";
 import { accionAPapelera, accionCambiar, accionPresupuesto, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionModo, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
@@ -78,6 +79,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
     }
     return [...vistos].map(([hex, de]) => ({ hex, de }));
   })() : [];
+  const tareaDirecciones = p.plan.tareas.find((t) => contratoPorId(t)?.direcciones);
   const cortadas = p.plan.tareas.filter((t) => p.tareas[t] === "lista" && leerEntrega(id, t)?.datos?.cortada) as TareaId[];
   const comunes = <><input type="hidden" name="id" value={id} /><input type="hidden" name="motor" value="" /></>;
 
@@ -126,9 +128,21 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               <p className={`mt-2 text-[14px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/70" : "text-medio"}`}><span className="font-medium">Después:</span> {m.despues}</p>
               {/* Modo paso: la entrega que acaba de llegar, con sus tres decisiones. */}
               {m.revision && <div className="mt-6"><RevisarAgente p={p} t={m.revision as TareaId} mio={m.teToca} oscuro={m.tono === "toca"} /></div>}
+              {m.direcciones && p.direcciones && p.direcciones.opciones.length > 0 && (
+                <Link href={`/estudio/${id}/direcciones`} className="group mt-6 grid gap-3 sm:grid-cols-3">
+                  <FuentesDirecciones ds={p.direcciones.opciones} />
+                  {p.direcciones.opciones.map((d, n) => (
+                    <span key={n} className="block transition group-hover:opacity-90">
+                      <Maqueta d={d} />
+                      <span className="mt-2 block text-[14px] font-medium">{n + 1}. {d.nombre}{p.direcciones?.cliente?.n === n ? " · le gusta al cliente" : ""}</span>
+                    </span>
+                  ))}
+                </Link>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {p.estado === "esperando" && !m.revision && (
+              {m.direcciones && <Link href={`/estudio/${id}/direcciones`} className={`inline-flex min-h-12 items-center rounded-full px-7 text-[14px] font-medium transition ${m.teToca ? "bg-white text-tinta hover:bg-[#f1ede6]" : "bg-tinta text-white hover:bg-black"}`}>Ver y elegir →</Link>}
+              {p.estado === "esperando" && !m.revision && !m.direcciones && (
                 <>
                   <Caras ids={deFase(p.faseActual).map((t) => t.split(".")[1])} tam={30} />
                   <Link href={`/estudio/${id}/revisar`} className={`inline-flex min-h-12 items-center rounded-full px-7 text-[14px] font-medium transition ${m.teToca ? "bg-white text-tinta hover:bg-[#f1ede6]" : "bg-tinta text-white hover:bg-black"}`}>{m.teToca ? "Empezar la revisión →" : "Revisar igual →"}</Link>
@@ -242,6 +256,11 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* ENTREGAS por fase */}
         {ver === "entregas" && (
           <div className="grid gap-9">
+            <div className="flex flex-wrap items-center gap-2">
+              <a href={`/imprimir/${id}/dossier`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white transition hover:bg-black">Dossier para el cliente (PDF) ↗</a>
+              {tareaDirecciones && <Link href={`/estudio/${id}/direcciones`} className={boton}>{p.direcciones?.opciones.length ? "Direcciones de diseño" : "Pedir 3 direcciones de diseño"}</Link>}
+              <span className="text-[12px] text-suave">El dossier junta todo lo que puede ver el cliente, sin lo interno.</span>
+            </div>
             {p.plan.fases.map((f) => {
               const tareas = deFase(f);
               const listas = tareas.filter((t) => p.tareas[t] === "lista").length;

@@ -3,7 +3,7 @@
 import { FASES, HORAS_FASE, SERVICIO } from "@anonymo/agentes";
 import { calendario, leerEntrega, presupuestoVivo, type Propuesta, type Proyecto } from "@anonymo/pipeline";
 
-const QUIENES = `Anonymo* es un estudio creativo de Quito. Somos Jay y Luna, con un equipo de agentes que hace en días lo que antes tomaba meses: estrategia, nombre, identidad, web y lanzamiento, bajo una sola dirección de arte.
+const QUIENES = `Anonymo* es un estudio creativo de Cuenca. Somos Jay y Luna, con un equipo de agentes que hace en días lo que antes tomaba meses: estrategia, nombre, identidad, web y lanzamiento, bajo una sola dirección de arte.
 
 Trabajamos por fases cortas y con revisiones claras: en cada pausa ves lo hecho, opinas, y recién ahí seguimos. Todo queda en tu portal privado.`;
 

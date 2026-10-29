@@ -10,7 +10,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Cada fase tiene una razón", "Cada entrega tiene un responsable y una fecha", "Lista corta de preguntas para el cliente"],
   },
   {
-    id: "1.sonda", fase: 1, agente: "sonda", entrega: "Investigación", formato: "md", usa: [], herramientas: ["web"],
+    id: "1.sonda", interna: true, fase: 1, agente: "sonda", entrega: "Investigación", formato: "md", usa: [], herramientas: ["web"],
     objetivo: "Mapear competencia y público del cliente y encontrar el espacio libre.",
     criterios: ["Cinco referencias reales con enlace", "Quién es el público y qué le importa", "Una oportunidad concreta"],
   },
@@ -67,7 +67,7 @@ export const CONTRATOS: Contrato[] = [
 
   // 4 · Web
   {
-    id: "4.orla", profunda: true, salida: 4000, fase: 4, agente: "orla", entrega: "Diseño de la web", formato: "md", usa: ["1.nova", "1.sonda", "3.mira", "3.rhea"],
+    id: "4.orla", profunda: true, direcciones: true, salida: 4000, fase: 4, agente: "orla", entrega: "Diseño de la web", formato: "md", usa: ["1.nova", "1.sonda", "3.mira", "3.rhea"],
     objetivo: "Definir páginas, secciones, jerarquía y la idea visual que la hace memorable.",
     criterios: ["Mapa del sitio", "Contenido por sección", "Una idea central que un jurado recuerde"],
   },
@@ -77,7 +77,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Qué se toca y qué responde", "Plan para celulares", "Presupuesto de rendimiento"],
   },
   {
-    id: "4.vector", profunda: true, salida: 6000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"], herramientas: ["web"],
+    id: "4.vector", profunda: true, interna: true, salida: 6000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"], herramientas: ["web"],
     objetivo: "Construir la web en Next.js a partir del diseño.",
     criterios: ["Compila sin errores", "Responde en celular", "Accesibilidad sin errores graves"],
   },
@@ -92,7 +92,7 @@ export const CONTRATOS: Contrato[] = [
     criterios: ["Lista de eventos con sonido", "Apagado por defecto", "Peso total pequeño"],
   },
   {
-    id: "4.tempo", ligera: true, fase: 4, agente: "tempo", entrega: "Calendario y riesgos", formato: "md", usa: ["1.atlas", "4.orla", "4.lumen", "4.vector"],
+    id: "4.tempo", ligera: true, interna: true, fase: 4, agente: "tempo", entrega: "Calendario y riesgos", formato: "md", usa: ["1.atlas", "4.orla", "4.lumen", "4.vector"],
     objetivo: "Poner fechas reales a la construcción con tiempos de producción con IA (días, no semanas) y avisar qué puede atrasarla.",
     criterios: ["Fecha por entrega", "Tres riesgos con plan B", "Qué necesita del cliente y cuándo"],
   },
@@ -126,7 +126,7 @@ export const CONTRATOS: Contrato[] = [
 
   // 6 · Jurado
   {
-    id: "6.prisma", fase: 6, agente: "prisma", entrega: "Informe de calidad", formato: "md", usa: ["4.vector"], herramientas: ["lighthouse"],
+    id: "6.prisma", interna: true, fase: 6, agente: "prisma", entrega: "Informe de calidad", formato: "md", usa: ["4.vector"], herramientas: ["lighthouse"],
     objetivo: "Medir rendimiento, accesibilidad y SEO y listar lo que hay que arreglar.",
     criterios: ["Puntajes por página", "Errores graves en cero", "Lista de arreglos por prioridad"],
   },

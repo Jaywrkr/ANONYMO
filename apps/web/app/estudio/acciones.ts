@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
-import { cambiarModo, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
+import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
@@ -92,7 +92,7 @@ export async function accionSeguir(f: FormData) {
       p.tareas[t as TareaId] = leerEntrega(id, t as TareaId) ? "rehacer" : "por-empezar";
       if (p.vueltas) delete p.vueltas[t];
     }
-    if (p.estado === "esperando" && !p.revision && !p.esperaJurado) p.estado = "en-curso";
+    if (p.estado === "esperando" && !p.revision && !p.esperaJurado && !p.direcciones?.esperando) p.estado = "en-curso";
     guardarProyecto(p);
     return avanzar(id, motor, undefined, { max: 0 });
   }, "El equipo sigue desde donde quedó.", false, "", true);
@@ -380,4 +380,19 @@ export async function accionModo(f: FormData) {
   const { id } = await leer(f);
   const modo = (["paso", "fase", "auto"].includes(String(f.get("modo"))) ? f.get("modo") : "paso") as ModoTrabajo;
   await correr(id, () => cambiarModo(id, modo), "Modo de trabajo cambiado.", false, "?ver=ajustes", true);
+}
+
+// ---- sistema/37: direcciones de diseño ----
+
+/** Eligen una dirección: el diseñador la desarrolla completa y el equipo sigue con ella. */
+export async function accionElegirDireccion(f: FormData) {
+  const { id, quien, motor, nota } = await leer(f);
+  const n = Number(f.get("n"));
+  await correr(id, () => elegirDireccion(id, n, quien, nota, motor, undefined, { max: 0 }), "Dirección elegida. El equipo diseña la web con ella: te avisamos cuando haya algo para revisar.", true, "", true);
+}
+
+/** Pide (otras) 3 direcciones de diseño. */
+export async function accionPedirDirecciones(f: FormData) {
+  const { id, quien, motor, nota } = await leer(f);
+  await correr(id, () => pedirDirecciones(id, quien, nota, motor, undefined, { max: 0 }), "Pedidas. Te avisamos cuando lleguen las 3 direcciones.", false, "", true);
 }

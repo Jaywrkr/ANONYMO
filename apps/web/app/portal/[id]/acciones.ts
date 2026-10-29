@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { aprobar, avisar, comentarioPortal, elegirMotor, guardarArchivo, leerProyecto, responder, tokenValido } from "@anonymo/pipeline";
+import { aprobar, avisar, comentarioPortal, direccionDelCliente, elegirMotor, guardarArchivo, leerProyecto, responder, tokenValido } from "@anonymo/pipeline";
 import { notFound } from "next/navigation";
 import { portalActivo } from "@/lib/estudio";
 import { llevar, traer } from "@/lib/nube";
@@ -67,6 +67,24 @@ export async function portalResponder(f: FormData) {
   try {
     const n = responder(id, r, "cliente");
     await avisar({ proyecto: id, cliente: leerProyecto(id).pedido.cliente, tipo: "comentario", titulo: `Respondió ${n.length} pregunta(s)`, texto: n.map((x) => `${x.pregunta} → ${x.respuesta}`).join("\n") });
+  } catch (e) {
+    msj = (e as Error).message;
+  }
+  await llevar(id);
+  redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
+}
+
+/** El cliente marca la dirección de diseño que le gusta (sistema/37). Jay o Luna la confirman en el estudio. */
+export async function portalElegirDireccion(f: FormData) {
+  const { id, t } = await validar(f);
+  const n = Number(f.get("n"));
+  const nota = String(f.get("nota") ?? "").trim() || undefined;
+  let msj = "";
+  try {
+    const p = direccionDelCliente(id, n, nota);
+    const d = p.direcciones!.opciones[n];
+    msj = (p.pedido.idioma === "en" ? `Thanks: you picked “${d.nombre}”. Jay and Luna will confirm soon.` : `Gracias: elegiste «${d.nombre}». Jay y Luna te confirman pronto.`);
+    await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "comentario", titulo: `Eligió la dirección «${d.nombre}»`, texto: nota ?? "Sin comentarios." });
   } catch (e) {
     msj = (e as Error).message;
   }

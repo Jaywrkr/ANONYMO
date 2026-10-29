@@ -1,4 +1,5 @@
 // Un PDF limpio para el cliente: portada, índice y las entregas listas, con la tipografía de la agencia.
+import { versionCliente } from "./privado.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { marked } from "marked";
@@ -25,7 +26,8 @@ export function htmlDelProyecto(id: string, opciones: { internas?: boolean } = {
       const a = agentePorId(e.agente)!;
       const ar = AREAS[a.area];
       const fase = FASES.find((f) => f.n === Number(t.split(".")[0]))!;
-      const cuerpo = marked.parse(e.contenido.replace(/^# .*\n+/, ""), { gfm: true, async: false }) as string;
+      const texto = opciones.internas ? e.contenido : versionCliente(e.contenido);
+      const cuerpo = marked.parse(texto.replace(/^# .*\n+/, ""), { gfm: true, async: false }) as string;
       return `<section class="entrega" id="e${i}">
         <p class="meta">${String(fase.n).padStart(2, "0")} · ${esc(fase.nombre)} · ${esc(a.nombre)}, ${esc(a.rol.toLowerCase())}</p>
         <h2><i style="background:radial-gradient(circle at 35% 28%, ${ar.luz}, ${ar.medio} 48%, ${ar.sombra})"></i>${esc(e.titulo)}</h2>

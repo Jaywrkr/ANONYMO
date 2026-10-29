@@ -2,7 +2,8 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import { FASES, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, type TareaId, calendario } from "@anonymo/pipeline";
+import { contratoPorId, esInterna, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, versionCliente, type TareaId, calendario } from "@anonymo/pipeline";
+import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
 import { botonLleno, campo, portalActivo, serif } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
 import { espacio } from "@/lib/espacio";
@@ -12,7 +13,7 @@ import { ZonaArchivos } from "@/components/estudio/ZonaArchivos";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { traer } from "@/lib/nube";
 import { TEXTOS_PORTAL } from "@/lib/textos-portal";
-import { portalAprobar, portalComentar, portalResponder, portalSubir } from "./acciones";
+import { portalAprobar, portalComentar, portalElegirDireccion, portalResponder, portalSubir } from "./acciones";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
@@ -34,7 +35,9 @@ export default async function Portal({ params, searchParams }: Props) {
   const listas = visibles.filter((x) => p.tareas[x] === "lista").length;
   const abierta = ver ? (ver.replace("-", ".") as TareaId) : undefined;
   const entregaAbierta = abierta && visibles.includes(abierta) ? leerEntrega(id, abierta) : undefined;
-  const esperaCliente = p.estado === "esperando" && !p.esperaJurado;
+  // Lo que el cliente puede aprobar: nunca una entrega interna ni mientras hay direcciones por elegir.
+  const esperaCliente = p.estado === "esperando" && !p.esperaJurado && !p.direcciones?.esperando && !(p.revision && esInterna(p.revision.tarea));
+  const dirs = p.estado === "esperando" && p.direcciones?.esperando ? p.direcciones : undefined;
   const fase = FASES.find((f) => f.n === p.faseActual);
   const tx = TEXTOS_PORTAL[p.pedido.idioma ?? "es"];
   const ocultos = <><input type="hidden" name="id" value={id} /><input type="hidden" name="t" value={t} /></>;
@@ -60,6 +63,28 @@ export default async function Portal({ params, searchParams }: Props) {
         </div>
 
         {m && <p role="status" className="mt-6 max-w-xl rounded-2xl bg-tinta p-4 text-[15px] text-white">{m}</p>}
+
+        {dirs && dirs.opciones.length > 0 && (
+          <section aria-label={tx.dirTitulo} className="mt-8 rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-8">
+            <FuentesDirecciones ds={dirs.opciones} />
+            <p className={`${serif} text-[clamp(30px,3.4vw,44px)] leading-[1.02]`}>{tx.dirTitulo}</p>
+            <p className="mt-2 max-w-2xl text-[15px] text-medio">{dirs.cliente ? tx.dirElegiste(dirs.opciones[dirs.cliente.n]?.nombre ?? "") : tx.dirAyuda}</p>
+            <div className="mt-6 grid gap-6 lg:grid-cols-3">
+              {dirs.opciones.map((d, n) => (
+                <form key={n} action={portalElegirDireccion} className={`grid content-start gap-3 rounded-[16px] p-3 ${dirs.cliente?.n === n ? "bg-[#e7f5ec] shadow-[0_0_0_2px_#2bb673]" : "bg-[#faf8f4]"}`}>
+                  {ocultos}
+                  <input type="hidden" name="n" value={n} />
+                  <Maqueta d={d} dominio={`${id.split("-")[0]}.com`} />
+                  <p className={`${serif} text-[26px] leading-none`}>{d.nombre}</p>
+                  <p className="text-[14px] text-medio">{d.idea}</p>
+                  <label className="sr-only" htmlFor={`nota-${n}`}>{tx.dirNota}</label>
+                  <input id={`nota-${n}`} name="nota" maxLength={600} placeholder={tx.dirNota} className={campo} />
+                  <div><button className={botonLleno}>{tx.dirBoton}</button></div>
+                </form>
+              ))}
+            </div>
+          </section>
+        )}
 
         {esperaCliente && (
           <form action={portalAprobar} className="mt-8 max-w-2xl rounded-[20px] bg-tinta p-6 text-white md:p-8">
@@ -153,7 +178,7 @@ export default async function Portal({ params, searchParams }: Props) {
                   </div>
                 </div>
                 {entregaAbierta.dice && <p className={`${serif} mt-5 text-[22px] leading-[1.2] text-medio`}>“{entregaAbierta.dice}”</p>}
-                <div className="entrega mt-6" dangerouslySetInnerHTML={{ __html: html(entregaAbierta.contenido) }} />
+                <div className="entrega mt-6" dangerouslySetInnerHTML={{ __html: html(versionCliente(entregaAbierta.contenido)) }} />
               </div>
             ) : (
               <div className="grid min-h-[280px] place-items-center rounded-[20px] border border-dashed border-borde p-8 text-center">
