@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
-import { buscar, listar, listarSolicitudes, PLANTILLAS, responsable } from "@anonymo/pipeline";
+import { buscar, leerBitacora, listar, listarPapelera, listarSolicitudes, PLANTILLAS, responsable } from "@anonymo/pipeline";
+import { Anillo, Cifra, LineaFases, estadosDeFases, hace } from "@/components/estudio/piezas";
 import { accionConvertirSolicitud, accionDescartarSolicitud } from "./acciones";
 import { traerTodo } from "@/lib/nube";
 import { Oficina } from "@/components/estudio/Oficina";
@@ -15,10 +16,10 @@ export const maxDuration = 300;
 export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
 
 // Todos los proyectos: primero los que esperan una decisión.
-export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string; error?: string }> }) {
+export default async function Estudio({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const yo = await exigirEstudio();
   await traerTodo();
-  const { q, error } = await searchParams;
+  const { q } = await searchParams;
   const solicitudes = listarSolicitudes();
   const hallazgos = q ? buscar(q) : [];
   const orden = { plan: 0, esperando: 0, "en-curso": 1, parado: 2, listo: 3 } as Record<string, number>;
@@ -35,6 +36,19 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
     })
     .sort((a, b) => Number(b.quien === yo) - Number(a.quien === yo));
   const nombreYo = yo === "luna" ? "Luna" : "Jay";
+  const mes = new Date().toISOString().slice(0, 7);
+  const gastoMes = proyectos.reduce((s, p) => s + Object.values(p.costos ?? {}).flat().filter((u) => !u.estimado && u.fecha.startsWith(mes)).reduce((a, u) => a + u.usd, 0), 0);
+  const semana = Date.now() - 7 * 86400_000;
+  const entregasSemana = proyectos.reduce((s, p) => s + Object.entries(p.costos ?? {}).filter(([, l]) => l.some((u) => Date.parse(u.fecha) >= semana)).length, 0);
+  const actividad = activos
+    .flatMap((p) => leerBitacora(p.pedido.id, 6).map((l) => {
+      const [fecha, ...resto] = l.split(" · ");
+      return { fecha, texto: resto.join(" · "), id: p.pedido.id, cliente: p.pedido.cliente };
+    }))
+    .filter((a) => a.texto)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .slice(0, 8);
+  const enPapelera = listarPapelera().length;
   return (
     <main className={`${lateral} pb-16`}>
       <div className="flex flex-wrap items-end justify-between gap-4 pb-6 pt-4">
@@ -49,7 +63,13 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
           )}
         </div>
       </div>
-      {error && <p role="alert" className="mb-6 rounded-2xl bg-[#fde8e4] p-4 text-[#8a1c0c]">{error}</p>}
+
+      <section aria-label="El estudio en cifras" className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Cifra nombre="Te toca" valor={pendientes.filter((x) => x.quien === yo).length} detalle={pendientes.length ? "decisiones esperando" : "nada pendiente"} tono={pendientes.some((x) => x.quien === yo) ? "alerta" : undefined} />
+        <Cifra nombre="Proyectos activos" valor={activos.length} detalle={`${proyectos.filter((p) => p.estado === "listo").length} terminados`} />
+        <Cifra nombre="Entregas · 7 días" valor={entregasSemana} detalle="hechas por el equipo" />
+        <Cifra nombre="IA este mes" valor={`$${gastoMes.toFixed(2)}`} detalle="gasto real en Anthropic" />
+      </section>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section aria-label="La oficina" className="min-w-0">
@@ -86,20 +106,39 @@ export default async function Estudio({ searchParams }: { searchParams: Promise<
                 const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
                 return (
                   <li key={p.pedido.id}>
-                    <Link href={`/estudio/${p.pedido.id}`} className="block rounded-2xl px-3 py-2.5 hover:bg-papel">
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="truncate text-[15px] font-medium">{p.pedido.cliente}</span>
-                        <span className="shrink-0 text-[12px] text-gris">{ESTADO_PROYECTO[p.estado]}</span>
-                      </span>
-                      <span className="mt-1.5 block h-1 w-full overflow-hidden rounded-full bg-linea">
-                        <span className="block h-full bg-tinta" style={{ width: `${(hechas / Math.max(1, p.plan.tareas.length)) * 100}%` }} />
+                    <Link href={`/estudio/${p.pedido.id}`} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 hover:bg-papel">
+                      <Anillo valor={hechas / Math.max(1, p.plan.tareas.length)} tam={38} grosor={3.5} />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className="truncate text-[15px] font-medium">{p.pedido.cliente}</span>
+                          <span className="shrink-0 text-[12px] text-gris">{ESTADO_PROYECTO[p.estado]}</span>
+                        </span>
+                        <span className="mt-1.5 block"><LineaFases fases={estadosDeFases(p)} estado={p.estado} compacta /></span>
                       </span>
                     </Link>
                   </li>
                 );
               })}
             </ul>
+            {enPapelera > 0 && <Link href="/estudio/papelera" className="mt-2 inline-flex min-h-11 items-center px-3 text-[13px] text-gris underline underline-offset-4">Papelera · {enPapelera}</Link>}
           </section>
+
+          {actividad.length > 0 && (
+            <section aria-label="Actividad reciente">
+              <p className={etiqueta}>Actividad reciente</p>
+              <ol className="mt-2 grid gap-3 border-l border-linea pl-4">
+                {actividad.map((a, i) => (
+                  <li key={i} className="relative">
+                    <i aria-hidden className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-hueso bg-tinta" />
+                    <Link href={`/estudio/${a.id}`} className="block text-[14px] leading-snug hover:underline">
+                      <span className="font-medium">{a.cliente}</span> · {a.texto}
+                    </Link>
+                    <span className="text-[12px] text-gris">{hace(a.fecha)}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </aside>
       </div>
 

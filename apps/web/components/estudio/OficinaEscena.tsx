@@ -115,7 +115,7 @@ function Aviso({ estado }: { estado: EstadoAgente }) {
   return null;
 }
 
-function Puesto3D({ id, x, z, puesto, elegido, onElegir }: { id: string; x: number; z: number; puesto: Puesto; elegido: boolean; onElegir: (id: string) => void }) {
+function Puesto3D({ id, x, z, puesto, elegido, onElegir, capa }: { id: string; x: number; z: number; puesto: Puesto; elegido: boolean; onElegir: (id: string) => void; capa: Capa }) {
   const a = AGENTES.find((g) => g.id === id)!;
   const area = AREAS[a.area];
   const [encima, setEncima] = useState(false);
@@ -134,7 +134,7 @@ function Puesto3D({ id, x, z, puesto, elegido, onElegir }: { id: string; x: numb
     >
       <Escritorio x={x} z={z} color={area.medio} estado={puesto.estado} />
       <Agente3D agente={a} posicion={[x - 0.1, 0.98, z - 0.12]} escala={0.44} apagado={puesto.estado === "libre"} encima={encima || elegido} toque={toque} conProp sombra={false} />
-      <Html position={[x - 0.1, 1.78, z - 0.12]} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
+      <Html portal={capa} position={[x - 0.1, 1.78, z - 0.12]} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
         <div className="flex flex-col items-center gap-1 whitespace-nowrap">
           <Aviso estado={puesto.estado} />
           {(encima || elegido) && <span className="rounded-full bg-hueso/95 px-2 py-0.5 text-[12px] font-medium shadow">{a.nombre}</span>}
@@ -144,7 +144,7 @@ function Puesto3D({ id, x, z, puesto, elegido, onElegir }: { id: string; x: numb
   );
 }
 
-function SalaMesh({ s, borde }: { s: Sala; borde: { fondo: boolean; izq: boolean } }) {
+function SalaMesh({ s, borde, capa }: { s: Sala; borde: { fondo: boolean; izq: boolean }; capa: Capa }) {
   const area = AREAS[s.area];
   // Paredes altas solo hacia afuera de la planta; por dentro, divisores bajos para no tapar a nadie.
   const alto = { fondo: borde.fondo ? 1.0 : 0.22, izq: borde.izq ? 1.0 : 0.22 };
@@ -170,14 +170,17 @@ function SalaMesh({ s, borde }: { s: Sala; borde: { fondo: boolean; izq: boolean
         <boxGeometry args={[s.ancho, 0.1, 0.02]} />
         <meshStandardMaterial color={area.medio} />
       </mesh>
-      <Html position={[s.x + 0.25, 0.02, s.z + s.fondo - 0.15]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+      <Html portal={capa} position={[s.x + 0.25, 0.02, s.z + s.fondo - 0.15]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
         <span className="hidden whitespace-nowrap rounded-full bg-hueso/80 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] sm:inline" style={{ color: area.sombra }}>{area.nombre}</span>
       </Html>
     </group>
   );
 }
 
-export default function OficinaEscena({ puestos, elegido, onElegir, className }: { puestos: Record<string, Puesto>; elegido?: string; onElegir: (id: string) => void; className?: string }) {
+/** Capa propia para los letreros: así viven y mueren con su oficina, no en el lienzo compartido de la web. */
+type Capa = React.RefObject<HTMLElement>;
+
+export default function OficinaEscena({ puestos, elegido, onElegir, className, capa }: { puestos: Record<string, Puesto>; elegido?: string; onElegir: (id: string) => void; className?: string; capa: Capa }) {
   const { salas, ancho, fondo } = useMemo(plano, []);
   const minZ = Math.min(...salas.map((s) => s.z));
   const minX = Math.min(...salas.map((s) => s.x));
@@ -195,9 +198,9 @@ export default function OficinaEscena({ puestos, elegido, onElegir, className }:
       </mesh>
       {salas.map((s) => (
         <group key={s.area}>
-          <SalaMesh s={s} borde={{ fondo: s.z <= minZ + 0.01, izq: s.x <= minX + 0.01 }} />
+          <SalaMesh capa={capa} s={s} borde={{ fondo: s.z <= minZ + 0.01, izq: s.x <= minX + 0.01 }} />
           {s.agentes.map((g) => (
-            <Puesto3D key={g.id} id={g.id} x={g.x} z={g.z} puesto={puestos[g.id] ?? { estado: "libre", trabajos: [] }} elegido={elegido === g.id} onElegir={onElegir} />
+            <Puesto3D capa={capa} key={g.id} id={g.id} x={g.x} z={g.z} puesto={puestos[g.id] ?? { estado: "libre", trabajos: [] }} elegido={elegido === g.id} onElegir={onElegir} />
           ))}
         </group>
       ))}

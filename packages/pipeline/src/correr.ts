@@ -69,6 +69,7 @@ export async function replanear(id: string, ajuste: string, quien: "jay" | "luna
 /** Ejecuta tareas pendientes en orden. Se detiene al cerrar una fase con pausa. */
 export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: Aviso = console.log): Promise<Proyecto> {
   const p = leerProyecto(id);
+  if (p.papelera) throw new Error("El proyecto está en la papelera: sácalo primero.");
   if (p.estado === "parado") throw new Error("El proyecto está parado.");
   if (p.estado === "esperando" || p.estado === "plan") return p;
   p.estado = "en-curso";

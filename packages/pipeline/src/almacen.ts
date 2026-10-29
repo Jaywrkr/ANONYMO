@@ -30,9 +30,43 @@ const guardar = (ruta: string, dato: unknown) => {
 
 export const existe = (id: string) => existsSync(join(dir(id), ARCHIVOS.estado));
 
+/** Proyectos activos (sin los de la papelera). */
 export function listar(): Proyecto[] {
+  return todos().filter((p) => !p.papelera);
+}
+
+function todos(): Proyecto[] {
   if (!existsSync(CARPETA)) return [];
   return readdirSync(CARPETA).filter(existe).map(leerProyecto);
+}
+
+/** Días que un proyecto queda en la papelera antes de borrarse solo. */
+export const DIAS_PAPELERA = 30;
+
+/** Lo que hay en la papelera, lo más reciente primero, con los días que le quedan. */
+export function listarPapelera(ahora = Date.now()) {
+  return todos()
+    .filter((p) => p.papelera)
+    .map((p) => ({ p, quedan: Math.max(0, DIAS_PAPELERA - Math.floor((ahora - Date.parse(p.papelera!.fecha)) / 86400_000)) }))
+    .sort((a, b) => b.p.papelera!.fecha.localeCompare(a.p.papelera!.fecha));
+}
+
+export function mandarAPapelera(id: string, quien: "jay" | "luna") {
+  const p = leerProyecto(id);
+  if (p.papelera) return p;
+  p.papelera = { fecha: new Date().toISOString(), quien };
+  guardarProyecto(p);
+  bitacora(id, `${quien === "luna" ? "Luna" : "Jay"} lo mandó a la papelera.`);
+  return p;
+}
+
+export function sacarDePapelera(id: string, quien: "jay" | "luna") {
+  const p = leerProyecto(id);
+  if (!p.papelera) return p;
+  delete p.papelera;
+  guardarProyecto(p);
+  bitacora(id, `${quien === "luna" ? "Luna" : "Jay"} lo sacó de la papelera.`);
+  return p;
 }
 
 /** Crea el proyecto. Con estado "plan", espera que Jay o Luna digan «que empiecen» (sistema/23). */

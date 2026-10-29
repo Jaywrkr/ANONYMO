@@ -33,6 +33,7 @@ interface EstadoArchivo {
   tareas: Record<string, string>;
   estado: string;
   notasCliente?: { fecha: string; texto: string; quien: string; tareas: string[] }[];
+  papelera?: { fecha: string };
 }
 
 export interface EntregaArchivo {
@@ -66,6 +67,8 @@ function leerCliente(id: string): VistaProyecto | undefined {
   const ruta = join(RAIZ, id, "estado.json");
   if (!existsSync(ruta)) return undefined;
   const p = JSON.parse(readFileSync(ruta, "utf8")) as EstadoArchivo;
+  // Lo que está en la papelera no sale en ningún lado.
+  if (p.papelera) return undefined;
   const mensajes: VistaProyecto["mensajes"] = {};
   for (const t of p.plan.tareas) {
     // En la web pública no salen precios internos, la nota del jurado ni ventas.

@@ -175,6 +175,8 @@ export interface Proyecto {
   pendientesCliente?: { fecha: string; texto: string }[];
   /** Lo que ha dicho el cliente, en orden. */
   notasCliente?: NotaCliente[];
+  /** En la papelera (sistema/31): no aparece ni trabaja; se restaura o se borra para siempre. Se vacía sola a los 30 días. */
+  papelera?: { fecha: string; quien: "jay" | "luna" };
   /** Rondas automáticas de rehacer por nota del Jurado. */
   rondasJurado?: number;
   /** Se detuvo porque el Jurado no llegó al mínimo después de las rondas automáticas. */

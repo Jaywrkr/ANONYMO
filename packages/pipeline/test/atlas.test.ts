@@ -170,3 +170,16 @@ test("Atlas pide el plan como herramienta y usa el objeto que devuelve la API", 
     delete process.env.ANTHROPIC_API_KEY;
   }
 });
+
+test("papelera: el proyecto no se lista ni trabaja, se restaura y caduca a los 30 días", async () => {
+  const { mandarAPapelera, sacarDePapelera, listar, listarPapelera } = await import("../src/almacen.ts");
+  const pedido = pedidoBase("web", "en-papelera");
+  crear(pedido, planificar(pedido, { tareas: ["1.ledger"] }));
+  mandarAPapelera("en-papelera", "jay");
+  assert.ok(!listar().some((p) => p.pedido.id === "en-papelera"));
+  assert.equal(listarPapelera().find((x) => x.p.pedido.id === "en-papelera")?.quedan, 30);
+  assert.equal(listarPapelera(Date.now() + 31 * 86400_000).find((x) => x.p.pedido.id === "en-papelera")?.quedan, 0);
+  await assert.rejects(avanzar("en-papelera", simulado, () => {}), /papelera/);
+  sacarDePapelera("en-papelera", "luna");
+  assert.ok(listar().some((p) => p.pedido.id === "en-papelera"));
+});
