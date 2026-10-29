@@ -221,7 +221,8 @@ export async function accionNuevoProyecto(f: FormData) {
     });
     destino = `/estudio/${id}`;
   } catch (e) {
-    destino = `/estudio/nuevo?error=${encodeURIComponent((e as Error).message)}`;
+    // Lo que escribió vuelve a la caja: no se pierde por un error.
+    destino = `/estudio/nuevo?error=${encodeURIComponent(ocultarClaves((e as Error).message))}&q=${encodeURIComponent(texto.slice(0, 1800))}`;
   }
   revalidatePath("/estudio");
   redirect(destino);

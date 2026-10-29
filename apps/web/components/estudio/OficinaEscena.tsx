@@ -109,9 +109,9 @@ function Escritorio({ x, z, color, estado }: { x: number; z: number; color: stri
 
 function Aviso({ estado }: { estado: EstadoAgente }) {
   if (estado === "trabajando")
-    return <span className="flex items-center gap-1 rounded-full bg-tinta px-1.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-hueso shadow sm:px-2 sm:py-0.5"><i className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#8fe07e]" /><span className="hidden sm:inline">trabajando</span></span>;
+    return <span className="flex items-center gap-1 rounded-full bg-tinta px-1.5 py-1 text-[11px] text-white shadow sm:px-2 sm:py-0.5"><i className="late h-1.5 w-1.5 rounded-full bg-vivo" /><span className="hidden sm:inline">trabajando</span></span>;
   if (estado === "revisar")
-    return <span className="rounded-full bg-[#ffd43d] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-tinta shadow sm:px-2">!<span className="hidden sm:inline"> revisar</span></span>;
+    return <span className="rounded-full bg-urgente px-1.5 py-0.5 text-[11px] text-white shadow sm:px-2">!<span className="hidden sm:inline"> te toca</span></span>;
   return null;
 }
 
@@ -137,7 +137,7 @@ function Puesto3D({ id, x, z, puesto, elegido, onElegir, capa }: { id: string; x
       <Html portal={capa} position={[x - 0.1, 1.78, z - 0.12]} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
         <div className="flex flex-col items-center gap-1 whitespace-nowrap">
           <Aviso estado={puesto.estado} />
-          {(encima || elegido) && <span className="rounded-full bg-hueso/95 px-2 py-0.5 text-[12px] font-medium shadow">{a.nombre}</span>}
+          {(encima || elegido) && <span className="rounded-full bg-white/95 px-2 py-0.5 text-[12px] font-medium shadow">{a.nombre}</span>}
         </div>
       </Html>
     </group>
@@ -171,7 +171,7 @@ function SalaMesh({ s, borde, capa }: { s: Sala; borde: { fondo: boolean; izq: b
         <meshStandardMaterial color={area.medio} />
       </mesh>
       <Html portal={capa} position={[s.x + 0.25, 0.02, s.z + s.fondo - 0.15]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
-        <span className="hidden whitespace-nowrap rounded-full bg-hueso/80 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] sm:inline" style={{ color: area.sombra }}>{area.nombre}</span>
+        <span className="hidden whitespace-nowrap rounded-full bg-white/80 px-2 py-0.5 text-[11px] sm:inline" style={{ color: area.texto ?? area.sombra }}>{area.nombre}</span>
       </Html>
     </group>
   );

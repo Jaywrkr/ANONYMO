@@ -9,7 +9,7 @@ function Boton({ texto, peligro, deshabilitado }: { texto: string; peligro?: boo
   return (
     <button
       disabled={pending || deshabilitado}
-      className={`inline-flex min-h-11 items-center rounded-full px-5 font-mono text-[12px] uppercase tracking-[0.12em] disabled:opacity-40 ${peligro ? "bg-[#8a1c0c] text-white" : "bg-tinta text-hueso"}`}
+      className={`inline-flex min-h-11 items-center rounded-full px-5 text-[13px] font-medium text-white transition disabled:opacity-40 ${peligro ? "bg-[#b3260f] hover:bg-[#93200c]" : "bg-tinta hover:bg-black"}`}
     >
       {pending ? "Un momento…" : texto}
     </button>
@@ -47,28 +47,28 @@ export function Confirmar({
       <button
         type="button"
         onClick={() => { setEscrito(""); dialogo.current?.showModal(); }}
-        className={claseDisparador ?? "inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4"}
+        className={claseDisparador ?? "inline-flex min-h-11 items-center rounded-full px-3 text-[13px] text-medio underline-offset-4 transition hover:text-tinta hover:underline"}
       >
         {disparador}
       </button>
       <dialog
         ref={dialogo}
         aria-labelledby={idTitulo}
-        className="m-auto w-[min(460px,calc(100%-32px))] rounded-3xl border border-linea bg-hueso p-0 text-tinta shadow-2xl backdrop:bg-tinta/40 backdrop:backdrop-blur-sm"
+        className="dialogo m-auto w-[min(460px,calc(100%-32px))] rounded-[22px] bg-carta p-0 text-tinta shadow-[0_0_0_1px_rgba(26,24,22,.06),0_30px_80px_-20px_rgba(20,15,10,.45)] backdrop:bg-tinta/35 backdrop:backdrop-blur-sm"
         onClick={(e) => { if (e.target === dialogo.current) dialogo.current?.close(); }}
       >
         <form action={accion} className="grid gap-4 p-6">
           {Object.entries(campos).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
-          <p id={idTitulo} className="display text-[34px] leading-none">{titulo}</p>
-          <p className="text-[15px] text-gris">{texto}</p>
+          <p id={idTitulo} className="font-serif text-[32px] leading-[1.02]">{titulo}</p>
+          <p className="text-[15px] leading-relaxed text-medio">{texto}</p>
           {palabra && (
             <label className="grid gap-1 text-[14px]">
               Escribe <strong>«{palabra}»</strong> para confirmar
-              <input name="confirmar" value={escrito} onChange={(e) => setEscrito(e.target.value)} autoComplete="off" className="w-full rounded-2xl border border-linea bg-papel p-3 text-[15px] outline-none focus:border-tinta" />
+              <input name="confirmar" value={escrito} onChange={(e) => setEscrito(e.target.value)} autoComplete="off" autoFocus className="w-full rounded-xl bg-white px-3.5 py-3 text-[15px] shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]" />
             </label>
           )}
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <button type="button" onClick={() => dialogo.current?.close()} className="inline-flex min-h-11 items-center rounded-full border border-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em]">Cancelar</button>
+            <button type="button" onClick={() => dialogo.current?.close()} className="inline-flex min-h-11 items-center rounded-full bg-white px-5 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)] transition hover:shadow-[inset_0_0_0_1px_#cbc3b6]">Cancelar</button>
             <Boton texto={confirmar} peligro={peligro} deshabilitado={!coincide} />
           </div>
         </form>

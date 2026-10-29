@@ -20,8 +20,8 @@ const PISTAS: { nombre: string; patron: RegExp }[] = [
   { nombre: "Presupuesto", patron: /(\$|usd|dólares|presupuesto|\b\d{3,5}\b)/i },
 ];
 
-export function Contar() {
-  const [texto, setTexto] = useState("");
+export function Contar({ inicial = "" }: { inicial?: string }) {
+  const [texto, setTexto] = useState(inicial);
   const caja = useRef<HTMLTextAreaElement>(null);
   const enlaces = useMemo(() => [...new Set(texto.match(/https?:\/\/[^\s)>\]]+/g) ?? [])], [texto]);
   const palabras = texto.trim() ? texto.trim().split(/\s+/).length : 0;
@@ -35,7 +35,7 @@ export function Contar() {
   return (
     <div className="grid gap-4">
       <label className="grid gap-2">
-        <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-gris">Lo que hablaron</span>
+        <span className="sr-only">Lo que hablaron con el cliente</span>
         <textarea
           ref={caja}
           name="texto"
@@ -45,7 +45,7 @@ export function Contar() {
           autoFocus
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          className="w-full rounded-2xl border border-linea bg-papel p-4 text-[17px] leading-relaxed outline-none focus:border-tinta"
+          className="w-full resize-y rounded-[18px] bg-white p-5 font-serif text-[22px] leading-[1.35] text-tinta shadow-[0_0_0_1px_rgba(26,24,22,.06),0_12px_32px_-18px_rgba(40,30,20,.25)] outline-none transition placeholder:text-[#b3ab9f] focus:shadow-[0_0_0_1.5px_var(--color-tinta),0_12px_32px_-18px_rgba(40,30,20,.25)]"
           placeholder="Ej.: Gabriela es odontóloga estética en Cuenca. Quiere una web para su consultorio, mucho más elegante que la de su competencia. Ya tiene logo. Pacientes de 30 a 50. Le gusta https://… Lo necesita antes de diciembre, unos 2.000 de presupuesto."
         />
       </label>
@@ -54,18 +54,18 @@ export function Contar() {
         {PISTAS.map((p) => {
           const hay = p.patron.test(texto);
           return (
-            <span key={p.nombre} className={hay ? "text-tinta" : "text-gris"}>
-              <span aria-hidden>{hay ? "● " : "○ "}</span>{p.nombre}
+            <span key={p.nombre} className={`inline-flex items-center gap-1.5 ${hay ? "text-tinta" : "text-suave"}`}>
+              <i aria-hidden className={`h-2 w-2 rounded-full ${hay ? "bg-vivo" : "shadow-[inset_0_0_0_1.5px_#cfc8bc]"}`} />{p.nombre}<span className="sr-only">{hay ? " (ya está)" : " (falta)"}</span>
             </span>
           );
         })}
-        <span className="ml-auto text-gris">{palabras} palabras</span>
+        <span className="ml-auto text-suave">{palabras} palabras</span>
       </div>
 
       <div className="grid gap-3">
         {ATAJOS.map((g) => (
           <div key={g.grupo}>
-            <p className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-gris">{g.grupo} · toca para agregar</p>
+            <p className="mb-1.5 text-[12px] text-suave">{g.grupo} · toca para agregar</p>
             <div className="flex flex-wrap gap-2">
               {g.frases.map((f) => {
                 const puesta = texto.includes(f);
@@ -75,7 +75,7 @@ export function Contar() {
                     type="button"
                     disabled={puesta}
                     onClick={() => agregar(f)}
-                    className={`min-h-9 rounded-full border px-3 text-[14px] transition-colors ${puesta ? "border-tinta bg-tinta text-hueso" : "border-linea hover:border-tinta"}`}
+                    className={`min-h-9 rounded-full px-3.5 text-[13px] transition ${puesta ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9] hover:text-tinta"}`}
                   >
                     {puesta ? "✓ " : "+ "}{f.replace(/\.$/, "")}
                   </button>
@@ -88,7 +88,7 @@ export function Contar() {
 
       {enlaces.length > 0 && (
         <div>
-          <p className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-gris">Enlaces que van a abrir los agentes · {enlaces.length}</p>
+          <p className="mb-1.5 text-[12px] text-suave">Enlaces que van a abrir los agentes · {enlaces.length}</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {enlaces.map((u) => {
               let dominio = u;
@@ -96,9 +96,9 @@ export function Contar() {
               try { const x = new URL(u); dominio = x.hostname.replace(/^www\./, ""); ruta = x.pathname === "/" ? "" : x.pathname; } catch {}
               return (
                 <li key={u}>
-                  <a href={u} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-2xl border border-linea p-3 hover:border-tinta">
-                    <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-tinta font-mono text-[13px] uppercase text-hueso">{dominio[0]}</span>
-                    <span className="min-w-0"><span className="block truncate text-[14px] font-medium">{dominio}</span><span className="block truncate text-[12px] text-gris">{ruta || "página principal"}</span></span>
+                  <a href={u} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-[0_0_0_1px_var(--color-borde)] transition hover:shadow-[0_0_0_1px_#cbc3b6]">
+                    <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-tinta text-[13px] uppercase text-white">{dominio[0]}</span>
+                    <span className="min-w-0"><span className="block truncate text-[14px] font-medium">{dominio}</span><span className="block truncate text-[12px] text-suave">{ruta || "página principal"}</span></span>
                   </a>
                 </li>
               );

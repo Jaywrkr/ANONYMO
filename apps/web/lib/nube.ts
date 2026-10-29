@@ -1,6 +1,6 @@
 // El estudio en línea trabaja contra la nube privada (Supabase): antes de leer, baja el proyecto al disco temporal;
 // después de cambiarlo, lo vuelve a subir. En tu máquina (sin nube activa) no hace nada: todo queda en proyectos/.
-import { bajarProyecto, espejarProyecto, nubeActiva, proyectosEnNube } from "@anonymo/pipeline";
+import { bajarProyecto, espejarProyecto, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
 
 /** Baja estos proyectos (copia idéntica a la nube). */
 export async function traer(...ids: string[]) {
@@ -28,4 +28,22 @@ export async function conNube<T>(ids: string[], fn: () => Promise<T> | T): Promi
   } finally {
     await llevar(...ids);
   }
+}
+
+/**
+ * Solo el estado de cada proyecto, sin tocar el disco (sistema/32): lo usa la barra lateral en cada página.
+ * En línea lo lee directo de la nube; en tu máquina, de proyectos/. Incluye los de la papelera.
+ */
+export async function resumenProyectos(): Promise<Proyecto[]> {
+  if (!nubeActiva()) return [...listar(), ...listarPapelera().map((x) => x.p)];
+  const ids = (await proyectosEnNube()).filter((id) => !id.startsWith("_"));
+  const todos = await Promise.all(ids.map(async (id) => {
+    try {
+      const t = await leerRemoto(id, "estado.json");
+      return t ? (JSON.parse(t) as Proyecto) : undefined;
+    } catch {
+      return undefined;
+    }
+  }));
+  return todos.filter((p): p is Proyecto => !!p);
 }

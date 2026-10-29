@@ -1,10 +1,15 @@
+import "@fontsource/instrument-serif/latin-400.css";
+import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import { FASES, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, existe, leerEntrega, leerProyecto, tokenValido, type TareaId, calendario } from "@anonymo/pipeline";
-import { AgenteVista } from "@/components/escena/AgenteVista";
-import { botonLleno, campo, etiqueta, lateral, portalActivo } from "@/lib/estudio";
+import { contratoPorId, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, type TareaId, calendario } from "@anonymo/pipeline";
+import { botonLleno, campo, portalActivo, serif } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
+import { espacio } from "@/lib/espacio";
 import { Calendario } from "@/components/estudio/Calendario";
+import { Avance, Cara } from "@/components/estudio/piezas";
+import { ZonaArchivos } from "@/components/estudio/ZonaArchivos";
+import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { traer } from "@/lib/nube";
 import { TEXTOS_PORTAL } from "@/lib/textos-portal";
 import { portalAprobar, portalComentar, portalResponder, portalSubir } from "./acciones";
@@ -16,7 +21,7 @@ export const metadata = { title: "Tu proyecto — Anonymo", robots: { index: fal
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string; m?: string; ver?: string }> };
 
-// Lo que ve el cliente: su proyecto, lo que dice cada agente y dónde aprobar o comentar. Nada interno.
+// Lo que ve el cliente (sistema/32, mismo marco que el estudio): su proyecto, lo que dice cada agente y dónde aprobar o comentar. Nada interno.
 export default async function Portal({ params, searchParams }: Props) {
   const { id } = await params;
   const { t, m, ver } = await searchParams;
@@ -24,6 +29,7 @@ export default async function Portal({ params, searchParams }: Props) {
   if (portalActivo()) await traer(id);
   if (!portalActivo() || !existe(id) || !tokenValido(id, t)) notFound();
   const p = leerProyecto(id);
+  const e = espacio(id);
   const visibles = p.plan.tareas.filter((x) => !contratoPorId(x)?.interna) as TareaId[];
   const listas = visibles.filter((x) => p.tareas[x] === "lista").length;
   const abierta = ver ? (ver.replace("-", ".") as TareaId) : undefined;
@@ -32,110 +38,134 @@ export default async function Portal({ params, searchParams }: Props) {
   const fase = FASES.find((f) => f.n === p.faseActual);
   const tx = TEXTOS_PORTAL[p.pedido.idioma ?? "es"];
   const ocultos = <><input type="hidden" name="id" value={id} /><input type="hidden" name="t" value={t} /></>;
+  const tramos = calendario(p);
 
   return (
-    <main lang={p.pedido.idioma ?? "es"} className={`${lateral} pb-16`}>
-      <p className={`${etiqueta} pt-4`}>{tx.tuProyecto}</p>
-      <h1 className="display mt-2 text-[clamp(56px,9vw,144px)]">{p.pedido.cliente}</h1>
-      <p className="mt-2 max-w-2xl text-xl font-light">{p.pedido.descripcion}</p>
-      <div className="mt-6 h-1 w-full max-w-xl overflow-hidden rounded-full bg-linea">
-        <div className="h-full bg-tinta" style={{ width: `${(listas / Math.max(1, visibles.length)) * 100}%` }} />
-      </div>
-      <p className={`${etiqueta} mt-2`}>{tx.listas(listas, visibles.length, fase?.nombre)}</p>
+    <div className="estudio-marco p-2" style={{ background: e.marco }} lang={p.pedido.idioma ?? "es"}>
+      <main className="min-h-[calc(100dvh-16px)] rounded-[18px] bg-carta px-5 pb-16 pt-7 shadow-[0_0_0_1px_rgba(26,24,22,.05),0_24px_60px_-24px_rgba(60,40,20,.25)] md:px-10 md:pt-9">
+        <div className="flex items-center justify-between gap-4">
+          <span className="font-display text-[22px] uppercase leading-none">Anonymo*</span>
+          <span className="text-[13px] text-suave">{tx.tuProyecto}</span>
+        </div>
 
-      <section aria-label="Calendario" className="mt-8 max-w-3xl"><p className={`${etiqueta} mb-3`}>{tx.fechas}</p><Calendario tramos={calendario(p)} /></section>
+        <div className="mt-8 flex flex-wrap items-end gap-x-10 gap-y-4">
+          <div className="min-w-0 flex-1">
+            <h1 className={`${serif} text-[clamp(42px,6vw,84px)] leading-[0.95]`}>{p.pedido.cliente}</h1>
+            <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-medio">{p.pedido.descripcion}</p>
+          </div>
+          <div className="w-full max-w-[260px]">
+            <p className="text-[13px] text-medio">{tx.listas(listas, visibles.length, fase?.nombre)}</p>
+            <div className="mt-2"><Avance valor={listas / Math.max(1, visibles.length)} color={e.punto} vivo={p.estado === "en-curso"} /></div>
+          </div>
+        </div>
 
-      {m && <p role="status" className="mt-6 max-w-xl rounded-2xl bg-papel p-4">{m}</p>}
+        {m && <p role="status" className="mt-6 max-w-xl rounded-2xl bg-tinta p-4 text-[15px] text-white">{m}</p>}
 
-      {esperaCliente && (
-        <form action={portalAprobar} className="mt-8 max-w-xl rounded-3xl bg-papel p-6">
-          {ocultos}
-          <p className="display text-5xl">{tx.terminamos(fase?.nombre)}</p>
-          <p className="mt-2 text-[17px]">{tx.revisa}</p>
-          <button className={`${botonLleno} mt-4`}>{tx.aprobar(fase?.nombre)}</button>
-        </form>
-      )}
+        {esperaCliente && (
+          <form action={portalAprobar} className="mt-8 max-w-2xl rounded-[20px] bg-tinta p-6 text-white md:p-8">
+            {ocultos}
+            <p className={`${serif} text-[clamp(30px,3.4vw,44px)] leading-[1.02]`}>{tx.terminamos(fase?.nombre)}</p>
+            <p className="mt-2 text-[15px] text-white/75">{tx.revisa}</p>
+            <div className="mt-5"><Enviar className="inline-flex min-h-12 items-center rounded-full bg-white px-7 text-[14px] font-medium text-tinta transition hover:bg-[#f1ede6] disabled:opacity-60" texto={tx.aprobar(fase?.nombre)} trabajando="…" /></div>
+          </form>
+        )}
 
-      {p.plan.preguntas.length > 0 && (
-        <form action={portalResponder} className="mt-8 grid max-w-2xl gap-4 rounded-3xl border border-tinta p-6">
-          {ocultos}
-          <p className="display text-5xl">{tx.antes}</p>
-          <p className="text-[15px] text-gris">{tx.antesDetalle}</p>
-          {p.plan.preguntas.map((q, i) => (
-            <label key={q} className="grid gap-1">
-              <span className="text-[17px]">{q}</span>
-              <textarea name={`r${i}`} rows={2} maxLength={2000} className={campo} />
-            </label>
-          ))}
-          <button className={botonLleno}>{tx.enviarResp}</button>
-        </form>
-      )}
+        {p.plan.preguntas.length > 0 && (
+          <form action={portalResponder} className="mt-8 grid max-w-2xl gap-4 rounded-[20px] bg-white p-6 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-8">
+            {ocultos}
+            <p className={`${serif} text-[clamp(28px,3vw,38px)] leading-[1.02]`}>{tx.antes}</p>
+            <p className="text-[14px] text-medio">{tx.antesDetalle}</p>
+            {p.plan.preguntas.map((q, i) => (
+              <label key={q} className="grid gap-1.5">
+                <span className="text-[15px]">{q}</span>
+                <textarea name={`r${i}`} rows={2} maxLength={2000} className={campo} />
+              </label>
+            ))}
+            <div><button className={botonLleno}>{tx.enviarResp}</button></div>
+          </form>
+        )}
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-        <section aria-label="Entregas">
-          {p.plan.fases.map((f) => {
-            const tareas = visibles.filter((x) => x.startsWith(`${f}.`));
-            if (!tareas.length) return null;
-            return (
-              <div key={f} className="border-t border-tinta py-4">
-                <p className={etiqueta}>{String(f).padStart(2, "0")} · {FASES.find((x) => x.n === f)?.nombre}</p>
-                <ul className="mt-2 grid gap-1">
-                  {tareas.map((x) => {
-                    const e = leerEntrega(id, x);
-                    const a = agentePorId(x.split(".")[1])!;
-                    const lista = p.tareas[x] === "lista";
-                    return (
-                      <li key={x}>
-                        {lista ? (
-                          <a href={`/portal/${id}?t=${t}&ver=${x.replace(".", "-")}`} aria-current={abierta === x ? "page" : undefined} className={`block rounded-2xl px-3 py-2 ${abierta === x ? "bg-papel" : "hover:bg-papel"}`}>
-                            <span className="font-medium">{a.nombre}</span> · {e?.titulo}
-                          </a>
-                        ) : (
-                          <span className="block px-3 py-2 text-gris">{a.nombre} · {contratoPorId(x)?.entrega} ({tx.enCamino})</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
+          <section aria-label="Entregas" className="grid content-start gap-6">
+            {p.plan.fases.map((f) => {
+              const tareas = visibles.filter((x) => x.startsWith(`${f}.`));
+              if (!tareas.length) return null;
+              return (
+                <div key={f}>
+                  <p className="text-[12px] text-suave">{FASES.find((x) => x.n === f)?.nombre}</p>
+                  <ul className="mt-2 grid gap-1">
+                    {tareas.map((x) => {
+                      const en = leerEntrega(id, x);
+                      const a = agentePorId(x.split(".")[1])!;
+                      const lista = p.tareas[x] === "lista";
+                      return (
+                        <li key={x}>
+                          {lista ? (
+                            <a href={`/portal/${id}?t=${t}&ver=${x.replace(".", "-")}`} aria-current={abierta === x ? "page" : undefined} className={`flex min-h-12 items-center gap-3 rounded-xl px-2 py-1.5 transition ${abierta === x ? "bg-white shadow-[0_0_0_1px_var(--color-borde)]" : "hover:bg-white/70"}`}>
+                              <Cara id={a.id} tam={28} titulo={false} />
+                              <span className="min-w-0 leading-tight"><span className="block text-[14px] font-medium">{en?.titulo}</span><span className="block text-[12px] text-suave">{a.nombre}</span></span>
+                            </a>
+                          ) : (
+                            <span className="flex min-h-12 items-center gap-3 px-2 py-1.5 text-suave">
+                              <Cara id={a.id} tam={28} apagado titulo={false} />
+                              <span className="text-[14px]">{contratoPorId(x)?.entrega} · {tx.enCamino}</span>
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+
+            {tramos.length > 0 && (
+              <div className="rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
+                <p className="mb-3 text-[12px] text-suave">{tx.fechas}</p>
+                <Calendario tramos={tramos} />
               </div>
-            );
-          })}
-          <form action={portalComentar} className="mt-6 grid gap-2 border-t border-tinta pt-4">
-            {ocultos}
-            <label className="grid gap-1">
-              <span className={etiqueta}>{tx.comentario}</span>
-              <textarea name="texto" rows={4} required maxLength={2000} placeholder={tx.comentarioEj} className={campo} />
-            </label>
-            <button className={botonLleno}>{tx.enviarCom}</button>
-          </form>
-          <form action={portalSubir} className="mt-6 grid gap-2 border-t border-linea pt-4">
-            {ocultos}
-            <label className="grid gap-1">
-              <span className={etiqueta}>{tx.archivos}</span>
-              <input type="file" name="archivos" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" className="text-[14px]" />
-            </label>
-            <button className={botonLleno}>{tx.enviarArch}</button>
-          </form>
-        </section>
+            )}
 
-        <article aria-live="polite">
-          {entregaAbierta ? (
-            <>
-              <div className="flex items-center gap-4">
-                <AgenteVista agente={agentePorId(entregaAbierta.agente)!} className="aspect-square w-24" distancia={5.6} />
+            <form action={portalComentar} className="grid gap-2 rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
+              {ocultos}
+              <label className="grid gap-2">
+                <span className={`${serif} text-[24px] leading-tight`}>{tx.comentario}</span>
+                <textarea name="texto" rows={4} required maxLength={2000} placeholder={tx.comentarioEj} className={campo} />
+              </label>
+              <div><button className={botonLleno}>{tx.enviarCom}</button></div>
+            </form>
+            <form action={portalSubir} className="grid gap-3 rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
+              {ocultos}
+              <span className={`${serif} text-[24px] leading-tight`}>{tx.archivos}</span>
+              <ZonaArchivos limiteMB={nubeActiva() ? 4 : undefined} texto={tx.archivos} en={p.pedido.idioma === "en"} />
+              <div><button className={botonLleno}>{tx.enviarArch}</button></div>
+            </form>
+          </section>
+
+          <article aria-live="polite" className="min-w-0">
+            {entregaAbierta ? (
+              <div className="rounded-[20px] bg-white p-6 shadow-[0_0_0_1px_rgba(26,24,22,.05)] md:p-9">
+                <div className="flex items-center gap-4">
+                  <Cara id={entregaAbierta.agente} tam={64} flota />
+                  <div>
+                    <p className="text-[13px] text-suave">{agentePorId(entregaAbierta.agente)?.nombre} · {agentePorId(entregaAbierta.agente)?.rol}</p>
+                    <h2 className={`${serif} text-[clamp(30px,3.4vw,46px)] leading-[1]`}>{entregaAbierta.titulo}</h2>
+                  </div>
+                </div>
+                {entregaAbierta.dice && <p className={`${serif} mt-5 text-[22px] leading-[1.2] text-medio`}>“{entregaAbierta.dice}”</p>}
+                <div className="entrega mt-6" dangerouslySetInnerHTML={{ __html: html(entregaAbierta.contenido) }} />
+              </div>
+            ) : (
+              <div className="grid min-h-[280px] place-items-center rounded-[20px] border border-dashed border-borde p-8 text-center">
                 <div>
-                  <p className={etiqueta}>{agentePorId(entregaAbierta.agente)?.nombre} · {agentePorId(entregaAbierta.agente)?.rol}</p>
-                  <h2 className="display text-5xl">{entregaAbierta.titulo}</h2>
+                  <Cara id="atlas" tam={60} flota className="mx-auto" />
+                  <p className={`${serif} mt-4 text-[26px] text-medio`}>{tx.elige}</p>
                 </div>
               </div>
-              <p className="mt-4 text-xl font-light">“{entregaAbierta.dice}”</p>
-              <div className="entrega mt-6" dangerouslySetInnerHTML={{ __html: html(entregaAbierta.contenido) }} />
-            </>
-          ) : (
-            <p className="text-xl font-light text-gris">{tx.elige}</p>
-          )}
-        </article>
-      </div>
-    </main>
+            )}
+          </article>
+        </div>
+      </main>
+    </div>
   );
 }

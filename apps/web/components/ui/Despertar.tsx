@@ -8,12 +8,15 @@ import { estaQuieto } from "@/lib/movimiento";
 // Primera visita de la sesión: una barra fina y un contador mientras el 3D despierta (web/15).
 // No tapa nada: el texto de la página ya se ve. Desaparece cuando el lienzo está listo (o a los 4 s).
 export function Despertar() {
-  const en = idiomaDeRuta(usePathname()) === "en";
+  const ruta = usePathname() ?? "";
+  const en = idiomaDeRuta(ruta) === "en";
+  const interna = /^\/(estudio|entrar|portal)(\/|$)/.test(ruta);
   const [n, setN] = useState(0);
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
 
   useEffect(() => {
+    if (interna) return;
     let visto = false;
     try {
       visto = sessionStorage.getItem("anonymo-desperto") === "1";
@@ -40,9 +43,9 @@ export function Despertar() {
       clearInterval(paso);
       clearTimeout(tope);
     };
-  }, []);
+  }, [interna]);
 
-  if (!visible) return null;
+  if (!visible || interna) return null;
   return (
     <div aria-hidden className={`pointer-events-none fixed inset-x-0 top-0 z-[60] transition-opacity duration-500 ${saliendo ? "opacity-0" : "opacity-100"}`}>
       <div className="h-[2px] bg-tinta transition-[width] duration-150 ease-out" style={{ width: `${(n / 22) * 100}%` }} />
