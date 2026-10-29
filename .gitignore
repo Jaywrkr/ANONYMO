@@ -11,3 +11,4 @@ capturas/tmp
 # Proyectos de clientes: no se suben a un repo público sin permiso del cliente
 proyectos/*/
 !proyectos/README.md
+undefined/

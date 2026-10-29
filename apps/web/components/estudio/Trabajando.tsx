@@ -19,15 +19,27 @@ export function Trabajando() {
   const [ahora, setAhora] = useState(0);
   const [vivo, setVivo] = useState<Vivo | null>(null);
   const [turno, setTurno] = useState(0);
+  // Acciones cortas (aprobar, guardar…): la pantalla se bloquea con un aviso chico hasta que vuelve (sistema/44).
+  const [corto, setCorto] = useState<string | undefined>();
   // Al llegar a otra página (la acción terminó y redirigió), el aviso se cierra.
   const ruta = usePathname();
   const params = useSearchParams();
-  useEffect(() => { setT((x) => (x.activo ? { activo: false } : x)); }, [ruta, params]);
+  useEffect(() => { setT((x) => (x.activo ? { activo: false } : x)); setCorto(undefined); }, [ruta, params]);
+  // Por si la página no cambia (error de red): a los 90 s se libera igual.
+  useEffect(() => {
+    if (!corto) return;
+    const t = setTimeout(() => setCorto(undefined), 90_000);
+    return () => clearTimeout(t);
+  }, [corto]);
 
   useEffect(() => {
     const f = (e: Event) => {
       const x = leerTrabajo(e);
-      if (!x.largo) return;
+      if (!x.largo) {
+        // Se queda bloqueado aunque el botón vuelva a su estado: se libera al llegar la página nueva.
+        if (x.activo) setCorto(x.texto ?? "Un momento…");
+        return;
+      }
       setT(x);
       if (x.activo) { setDesde(Date.now()); setAhora(Date.now()); setVivo(null); }
     };
@@ -62,7 +74,18 @@ export function Trabajando() {
     };
   }, [t.activo, t.proyecto]);
 
-  if (!t.activo) return null;
+  if (!t.activo) {
+    if (!corto) return null;
+    return (
+      <div data-aviso-trabajo role="alertdialog" aria-modal="true" aria-live="polite" aria-label={corto} className="fixed inset-0 z-[90] grid cursor-wait place-items-center bg-[#efe9df]/35 p-4 backdrop-blur-[2px]">
+        <div className="aparece flex items-center gap-3 rounded-full bg-tinta px-6 py-3.5 text-[15px] font-medium text-white shadow-[0_20px_50px_-20px_rgba(20,15,10,.6)]">
+          <i className="late h-2.5 w-2.5 rounded-full bg-vivo" />
+          {corto}
+          <span className="text-white/55">No toques nada, ya vuelve.</span>
+        </div>
+      </div>
+    );
+  }
   const seg = Math.max(0, Math.round((ahora - desde) / 1000));
   const tareas = Object.entries(vivo?.tareas ?? {});
   const enCurso = tareas.filter(([, e]) => e === "en-curso").map(([x]) => x);
