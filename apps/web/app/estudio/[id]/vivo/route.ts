@@ -3,7 +3,7 @@ import { existe, leerProyecto, leerRemoto, nubeActiva, type Proyecto } from "@an
 import { quienEsta } from "@/lib/estudio";
 import type { ProyectoOficina } from "@/lib/oficina";
 import { segundosEstimados } from "@/lib/duracion";
-import { leerVivo, type Vivo } from "@/lib/trabajo";
+import { leerVivo, rescatar, type Vivo } from "@/lib/trabajo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ const ligero = (p: Proyecto, vivo?: Vivo) => ({
   vivo,
 }) satisfies ProyectoOficina & Record<string, unknown>;
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await quienEsta())) return new Response(null, { status: 404 });
   const { id } = await params;
   if (!/^[a-z0-9_-]+$/.test(id)) return new Response(null, { status: 404 });
@@ -34,6 +34,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       vivo = leerVivo(id);
     }
     if (!p) return new Response(null, { status: 404 });
+    // Si el trabajo quedó sin arrancar, arranca solo (sistema/44).
+    if (nubeActiva() || process.env.ANONYMO_RESCATE) await rescatar(p, vivo, new URL(req.url).origin).catch(() => false);
     return Response.json(ligero(p, vivo), { headers: { "cache-control": "no-store" } });
   } catch {
     return new Response(null, { status: 503 });

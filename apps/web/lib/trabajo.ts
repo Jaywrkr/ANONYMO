@@ -81,7 +81,16 @@ export async function origenActual() {
 export async function lanzar(id: string, origen?: string) {
   try {
     const base = origen ?? (await origenActual());
-    await fetch(`${base}/trabajo/${id}`, { method: "POST", headers: { "x-anonymo-trabajo": firmaTrabajo(id) }, signal: AbortSignal.timeout(15_000), cache: "no-store" });
+    // Si el servidor no lo recibe, se intenta otra vez; y queda escrito en el registro (sistema/44).
+    for (let intento = 1; intento <= 2; intento++) {
+      try {
+        const r = await fetch(`${base}/trabajo/${id}`, { method: "POST", headers: { "x-anonymo-trabajo": firmaTrabajo(id) }, signal: AbortSignal.timeout(15_000), cache: "no-store" });
+        if (r.ok) return;
+        console.error(`[trabajo] lanzar ${id}: respuesta ${r.status} (intento ${intento})`);
+      } catch (e) {
+        console.error(`[trabajo] lanzar ${id}: ${(e as Error).message} (intento ${intento})`);
+      }
+    }
   } catch (e) {
     console.error("[trabajo] no se pudo lanzar", id, (e as Error).message);
   }
@@ -102,10 +111,11 @@ async function vuelta(id: string, origen: string) {
   await traer(id);
   // Desde aquí, lo que cambie en disco es de esta vuelta: es lo único que se sube al final (por contenido, sistema/43).
   const antes = huellaProyecto(id);
-  if (!existe(id)) return;
+  const nada = (por: string) => console.log(`[vuelta ${id}] no trabaja: ${por}`);
+  if (!existe(id)) return nada("el proyecto no está en la nube");
   const p = leerProyecto(id);
-  if (p.estado !== "en-curso" || p.papelera) return;
-  if (vivoActivo(leerVivo(id))) return;
+  if (p.estado !== "en-curso" || p.papelera) return nada(`estado ${p.estado}${p.papelera ? " (papelera)" : ""}`);
+  if (vivoActivo(leerVivo(id))) return nada("ya hay otra vuelta trabajando");
 
   const ahora = () => new Date().toISOString();
   const vivo: Vivo = { vuelta: randomUUID(), fase: "preparando", palabras: 0, latido: ahora(), desde: ahora() };
@@ -200,4 +210,27 @@ async function vuelta(id: string, origen: string) {
 
   const q = leerProyecto(id);
   if (!fallo && q.estado === "en-curso" && !q.papelera && hayPendientes(q)) await lanzar(id, origen);
+}
+
+/** Últimos arranques automáticos por proyecto (en este servidor): nunca más de uno por minuto. */
+const rescates = new Map<string, number>();
+
+/**
+ * Red de seguridad (sistema/44): si el proyecto tiene trabajo pendiente que no espera a nadie y nadie trabaja
+ * hace un rato, se pide la vuelta solo. Así un arranque que se perdió no deja el proyecto parado.
+ * Lo llama la página del proyecto cada pocos segundos. El candado de las vueltas evita dos a la vez.
+ */
+export async function rescatar(p: Proyecto, vivo: Vivo | undefined, origen: string): Promise<boolean> {
+  const id = p.pedido.id;
+  if (p.estado !== "en-curso" || p.papelera || p.error || p.revision || p.esperaJurado || p.direcciones?.esperando) return false;
+  if (!hayPendientes(p) || vivoActivo(vivo)) return false;
+  // Una tarea que quedó «en curso» sin texto a medias es una vuelta que murió: eso lo decide Jay con «Continuar».
+  if (Object.entries(p.tareas).some(([t, e]) => e === "en-curso" && !p.parciales?.[t])) return false;
+  const quieto = Date.now() - Math.max(Date.parse(vivo?.fin ?? vivo?.latido ?? "") || 0, Date.parse(p.actualizado ?? "") || 0);
+  if (quieto < 20_000) return false;
+  if (Date.now() - (rescates.get(id) ?? 0) < 60_000) return false;
+  rescates.set(id, Date.now());
+  console.log(`[trabajo] ${id}: nadie trabajaba hace ${Math.round(quieto / 1000)}s con trabajo pendiente; se arranca solo`);
+  await lanzar(id, origen);
+  return true;
 }

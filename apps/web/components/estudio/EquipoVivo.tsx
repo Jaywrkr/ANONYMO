@@ -19,7 +19,7 @@ const HACE: Record<string, string> = { preparando: "preparando", esperando: "esp
 type Vivo = { vuelta: string; tarea?: string; fase?: string; palabras?: number; latido: string; desde: string; fin?: string; ia?: string };
 type ConTiempos = ProyectoOficina & {
   inicios?: Record<string, string>; vueltas?: Record<string, string>; estimados?: Record<string, number>;
-  revision?: { tarea: string }; error?: { mensaje: string; tarea?: string }; actualizado?: string; vivo?: Vivo;
+  revision?: { tarea: string }; error?: { mensaje: string; tarea?: string }; actualizado?: string; vivo?: Vivo; corriendo?: string;
 };
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 /** Sin señal por más de esto, la vuelta se da por muerta (igual que el servidor). */
@@ -32,7 +32,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
   // 0 hasta montar: el reloj solo se pinta en el navegador (si no, el servidor y el navegador no coinciden).
   const [ahora, setAhora] = useState(0);
   const [trabajando, setTrabajando] = useState(false);
-  const firma = useRef(`${inicial.estado}:${inicial.revision?.tarea ?? ""}:${Object.values(inicial.tareas).filter((e) => e === "lista").length}`);
+  const firma = useRef(`${inicial.estado}:${inicial.revision?.tarea ?? ""}:${Object.values(inicial.tareas).filter((e) => e === "lista").length}:${inicial.corriendo ?? "no"}`);
   useEffect(() => setP(inicial), [inicial]);
   useEffect(() => {
     const f = (e: Event) => setTrabajando(leerTrabajo(e).activo);
@@ -46,7 +46,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
     return () => clearInterval(reloj);
   }, []);
   useEffect(() => {
-    if (!(trabajando || enCurso)) return;
+    // Siempre consulta (sistema/44): si la página quedó vieja tras una acción, se pone al día sola.
     let sigue = true;
     const consultar = async () => {
       try {
@@ -55,12 +55,14 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
         const q = (await r.json()) as ConTiempos;
         setP(q);
         // Algo cambió de verdad (entregó, terminó, se detuvo): se refresca la página para que «Ahora» lo muestre.
-        const nueva = `${q.estado}:${q.revision?.tarea ?? ""}:${Object.values(q.tareas).filter((e) => e === "lista").length}`;
+        // También cuando una vuelta empieza o termina: así «Ahora» nunca dice «se detuvo» mientras alguien trabaja.
+        const corriendo = !!q.vivo && !q.vivo.fin && Date.now() - Date.parse(q.vivo.latido) < 75_000;
+        const nueva = `${q.estado}:${q.revision?.tarea ?? ""}:${Object.values(q.tareas).filter((e) => e === "lista").length}:${corriendo ? q.vivo?.tarea ?? "si" : "no"}`;
         if (nueva !== firma.current) { firma.current = nueva; router.refresh(); }
       } catch {}
     };
     consultar();
-    const t = setInterval(consultar, 3000);
+    const t = setInterval(consultar, trabajando || enCurso ? 3000 : 8000);
     return () => { sigue = false; clearInterval(t); };
   }, [p.id, trabajando, enCurso, router]);
 

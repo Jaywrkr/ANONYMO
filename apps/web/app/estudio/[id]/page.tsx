@@ -54,7 +54,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
   // La señal de la vuelta que está trabajando (si hay): manda sobre lo que diga el estado (sistema/42).
   const senal = leerVivo(id);
   const ocupado = p.estado === "en-curso" && vivoActivo(senal) ? senal : undefined;
-  const m = momento(p, yo, leToca, Date.now(), ocupado);
+  const m = momento(p, yo, leToca, Date.now(), ocupado, senal?.fin ?? senal?.latido ?? null);
   const quienTrabaja = ocupado?.tarea ? agentePorId(ocupado.tarea.split(".")[1])?.nombre ?? "El equipo" : "El equipo";
   const nota = leerNota(leerEntrega(id, "6.trofeo"));
   const deFase = (f: number) => p.plan.tareas.filter((t) => t.startsWith(`${f}.`)) as TareaId[];
@@ -115,7 +115,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         </div>
         {nota && <div className="text-right"><p className="text-[12px] text-suave">Nota de calidad</p><p className={`${serif} text-[44px] leading-none`}>{String(nota.final).replace(".", ",")}</p></div>}
       </div>
-      <div className="mt-6 max-w-3xl"><Camino m={m} /></div>
+      <div className="mt-6 max-w-3xl"><Camino m={m} p={p} /></div>
 
       {p.papelera && (
         <div role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#fde8e4] p-5">
@@ -218,7 +218,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* RESUMEN */}
         {ver === "" && (
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <EquipoVivo inicial={{ id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas, inicios: p.inicios ?? {}, estimados: Object.fromEntries(p.plan.tareas.map((t) => [t, segundosEstimados(t)])) }} entregas={Object.fromEntries(p.plan.tareas.map((t) => [t, contratoPorId(t)?.entrega ?? ""]))} />
+            <EquipoVivo inicial={{ id, nombre: p.pedido.cliente, estado: p.estado, revision: p.revision, corriendo: ocupado ? ocupado.tarea ?? "si" : "no", faseActual: p.faseActual, tareas: p.tareas, inicios: p.inicios ?? {}, estimados: Object.fromEntries(p.plan.tareas.map((t) => [t, segundosEstimados(t)])) }} entregas={Object.fromEntries(p.plan.tareas.map((t) => [t, contratoPorId(t)?.entrega ?? ""]))} />
             <div className="grid content-start gap-5">
               <Link href={`/estudio/${id}?ver=cliente#anotar`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
                 <Cara id="atlas" tam={40} titulo={false} />

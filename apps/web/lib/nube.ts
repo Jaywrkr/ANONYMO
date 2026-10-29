@@ -6,7 +6,9 @@ import { join } from "node:path";
 import { bajarProyecto, CARPETA_BASE, carpeta, enCarpeta, espejarProyecto, huellaProyecto, subirDistintos, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
 
 /** Bajadas en curso por carpeta y proyecto: dos páginas que piden lo mismo a la vez esperan la misma bajada. */
-const enCurso = new Map<string, Promise<unknown>>();
+const enCurso = new Map<string, { p: Promise<unknown>; gen: number }>();
+/** Sube cada vez que este servidor guarda algo en la nube: una bajada vieja ya no sirve (sistema/44). */
+let generacion = 0;
 
 /** Baja estos proyectos (copia idéntica a la nube). */
 export async function traer(...ids: string[]) {
@@ -14,9 +16,10 @@ export async function traer(...ids: string[]) {
   await Promise.all([...new Set(ids.filter(Boolean))].map((id) => {
     const clave = `${carpeta()}::${id}`;
     const ya = enCurso.get(clave);
-    if (ya) return ya;
-    const p = bajarProyecto(id, fetch, true).finally(() => enCurso.delete(clave));
-    enCurso.set(clave, p);
+    if (ya && ya.gen === generacion) return ya.p;
+    const gen = generacion;
+    const p = bajarProyecto(id, fetch, true).finally(() => { if (enCurso.get(clave)?.p === p) enCurso.delete(clave); });
+    enCurso.set(clave, { p, gen });
     return p;
   }));
 }
@@ -45,6 +48,7 @@ export async function traerTodo() {
 export async function llevar(...ids: string[]) {
   if (!nubeActiva()) return;
   for (const id of new Set(ids.filter(Boolean))) await espejarProyecto(id);
+  generacion++;
 }
 
 /** Baja, hace el cambio y sube, aunque el cambio falle a la mitad (lo que alcanzó a guardar no se pierde). */
@@ -58,7 +62,10 @@ export async function conNube<T>(ids: string[], fn: () => Promise<T> | T): Promi
     try {
       return await fn();
     } finally {
-      if (nubeActiva()) for (const id of unicos) await subirDistintos(id, antes.get(id)!);
+      if (nubeActiva()) {
+        for (const id of unicos) await subirDistintos(id, antes.get(id)!);
+        generacion++;
+      }
     }
   });
 }

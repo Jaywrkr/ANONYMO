@@ -77,7 +77,11 @@ export interface Momento {
 export interface SenalVivo { tarea?: string; fase?: string; palabras?: number }
 const VERBO: Record<string, string> = { preparando: "se está preparando", esperando: "espera la respuesta de la IA", pensando: "está pensando", buscando: "está buscando en la web", escribiendo: "está escribiendo" };
 
-export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now(), vivo?: SenalVivo): Momento {
+/**
+ * `ultima`: cuándo dio la última señal una vuelta de este proyecto (la página del proyecto lo sabe).
+ * Sin ese dato (listas, campana), no se da por detenido hasta que pasa el tiempo de una vuelta entera (sistema/44).
+ */
+export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now(), vivo?: SenalVivo, ultima?: string | null): Momento {
   const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
   const total = Math.max(1, p.plan.tareas.length);
   const pos = Math.max(0, p.plan.fases.indexOf(p.faseActual));
@@ -131,7 +135,7 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
     const despues = modo === "paso" ? "Cuando entregue, te toca revisar." : modo === "auto" ? "Sigue solo hasta el final. Te avisamos si algo necesita tu decisión." : `Cuando terminen ${fase.nombre}, te toca revisar.`;
     // Hay una vuelta viva (da señal): nunca se muestra como detenido, aunque la IA tarde (sistema/42).
     if (vivo) {
-      const t = vivo.tarea ?? enCurso[0];
+      const t = vivo.tarea ?? enCurso[0] ?? siguienteTarea(p);
       return { ...base, trabajando: t ? [t.split(".")[1]] : trabajando, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
         ahora: t ? `${agenteDe(t)} ${VERBO[vivo.fase ?? ""] ?? "está trabajando"}: ${entregaDe(t).toLowerCase()}.` : "El equipo está trabajando.",
         despues };
@@ -148,7 +152,8 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
         despues };
     }
     // Entre una vuelta y la siguiente pasan segundos: recién después de un rato sin nadie se da por detenido.
-    const reciente = p.actualizado && ahoraMs - Date.parse(p.actualizado) < SIN_VUELTA_MS && !enCurso.length;
+    const marca = Math.max(Date.parse(p.actualizado ?? "") || 0, Date.parse(ultima ?? "") || 0);
+    const reciente = ahoraMs - marca < (ultima === undefined ? VUELTA_MUERTA_MS : SIN_VUELTA_MS) && !enCurso.length;
     if (reciente) {
       const sig = siguienteTarea(p);
       return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
