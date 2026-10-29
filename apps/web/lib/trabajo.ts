@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { headers } from "next/headers";
 import {
   avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
-  leerRemoto, nubeActiva, ocultarClaves, subirCambiados, subirRuta, type Proyecto, type TareaId,
+  huellaProyecto, leerRemoto, nubeActiva, ocultarClaves, subirDistintos, subirRuta, type Proyecto, type TareaId,
 } from "@anonymo/pipeline";
 import { aislado, traer } from "./nube";
 
@@ -100,8 +100,8 @@ async function vuelta(id: string, origen: string) {
   const inicioVuelta = Date.now();
   const plazo = inicioVuelta + PLAZO_MS;
   await traer(id);
-  // Desde aquí, lo que cambie en disco es de esta vuelta: es lo único que se sube al final.
-  const inicio = Date.now();
+  // Desde aquí, lo que cambie en disco es de esta vuelta: es lo único que se sube al final (por contenido, sistema/43).
+  const antes = huellaProyecto(id);
   if (!existe(id)) return;
   const p = leerProyecto(id);
   if (p.estado !== "en-curso" || p.papelera) return;
@@ -123,6 +123,12 @@ async function vuelta(id: string, origen: string) {
       }
     } catch {}
   }
+  const juntarConNube = async () => {
+    try {
+      const remoto = await leerRemoto(id, "estado.json");
+      if (remoto) guardarProyecto(fusionar(leerProyecto(id), JSON.parse(remoto) as Proyecto));
+    } catch {}
+  };
   let ultimaSubida = 0;
   // Registro en Vercel (sistema/39): qué hizo cada vuelta, para poder revisar si algo falla.
   const log = (texto: string) => console.log(`[vuelta ${id} ${vivo.vuelta.slice(0, 6)}] ${Math.round((Date.now() - inicioVuelta) / 1000)}s ${texto}`);
@@ -139,6 +145,8 @@ async function vuelta(id: string, origen: string) {
       const enCurso = Object.entries(q.tareas).find(([, e]) => e === "en-curso")?.[0];
       if (enCurso) Object.assign(vivo, { tarea: enCurso, fase: "preparando", latido: ahora() });
       escribirVivo(id, vivo);
+      // Antes de subir el estado, se junta con el de la nube: si Jay pausó hace un segundo, la pausa no se pisa (sistema/43).
+      await juntarConNube();
       await Promise.all([subirRuta(`${id}/estado.json`).catch(() => {}), subirVivo(id)]);
     }
   };
@@ -173,9 +181,9 @@ async function vuelta(id: string, origen: string) {
   // Lo que cambiaron Jay o Luna mientras tanto (marca, notas, pausa, modo) se respeta; se sube solo lo nuevo.
   if (nubeActiva()) {
     try {
-      const remoto = await leerRemoto(id, "estado.json");
-      if (remoto) guardarProyecto(fusionar(leerProyecto(id), JSON.parse(remoto) as Proyecto));
-      await subirCambiados(id, inicio);
+      await juntarConNube();
+      // Sin borrar nada en la nube: la vuelta solo agrega o cambia lo suyo.
+      await subirDistintos(id, antes, false);
     } catch (e) {
       console.error("[trabajo] no se pudo subir", id, (e as Error).message);
     }
