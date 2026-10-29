@@ -23,3 +23,5 @@ export * from "./doctor.ts";
 export * from "./solicitudes.ts";
 export * from "./analitica.ts";
 export * from "./agencia.ts";
+export * from "./privado.ts";
+export * from "./direcciones.ts";

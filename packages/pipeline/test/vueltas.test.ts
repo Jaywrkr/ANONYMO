@@ -5,7 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 const { crear, guardarProyecto, leerProyecto, leerEntrega } = await import("../src/almacen.ts");
-const { avanzar, aprobar, cambiar, empezar, cambiarModo, fusionar, reanudar, parar, hayPendientes } = await import("../src/correr.ts");
+const { avanzar, aprobar, cambiar, empezar, cambiarModo, fusionar, reanudar, parar, hayPendientes, elegirDireccion, pedirDirecciones, direccionDelCliente } = await import("../src/correr.ts");
+const { versionCliente, leerDirecciones } = await import("../src/privado.ts").then(async (m) => ({ ...m, ...(await import("../src/direcciones.ts")) }));
 const { planificar } = await import("../src/atlas.ts");
 const { simulado, real } = await import("../src/motor.ts");
 const { leerStream } = await import("../src/envivo.ts");
@@ -31,7 +32,13 @@ test("modo paso: trabaja un agente y espera tu revisión; aprobar sigue con el s
   p = await cambiar("paso", "jay", "más corto", undefined, simulado, silencio);
   assert.equal(p.revision?.tarea, "1.ledger");
   assert.equal(leerEntrega("paso", "1.ledger")?.version, 2);
-  for (let i = 0; i < 2; i++) p = await aprobar("paso", "jay", undefined, simulado, silencio);
+  p = await aprobar("paso", "jay", undefined, simulado, silencio);
+  // Orla propone direcciones: no es una revisión, es elegir.
+  assert.equal(p.direcciones?.esperando, true);
+  assert.equal(p.revision, undefined);
+  p = await elegirDireccion("paso", 0, "jay", undefined, simulado, silencio);
+  assert.equal(p.revision?.tarea, "4.orla");
+  p = await aprobar("paso", "jay", undefined, simulado, silencio);
   assert.equal(p.revision?.tarea, "4.vector");
   p = await aprobar("paso", "jay", undefined, simulado, silencio);
   assert.ok(["listo", "esperando"].includes(p.estado));
@@ -48,6 +55,11 @@ test("una tarea por vuelta: max 1 deja el resto en curso; max 0 solo prepara", a
   assert.equal(Object.values(p.tareas).filter((e) => e === "lista").length, 1);
   assert.ok(hayPendientes(p));
   for (let i = 0; i < 6 && p.estado === "en-curso"; i++) p = await avanzar("vuelta", simulado, silencio, { max: 1 });
+  // Aun en automático, las direcciones esperan a que alguien elija.
+  assert.equal(p.estado, "esperando");
+  assert.equal(p.direcciones?.esperando, true);
+  p = await elegirDireccion("vuelta", 2, "jay", undefined, simulado, silencio, { max: 0 });
+  for (let i = 0; i < 6 && p.estado === "en-curso"; i++) p = await avanzar("vuelta", simulado, silencio, { max: 1 });
   assert.equal(p.estado, "listo");
 });
 
@@ -60,6 +72,14 @@ test("modo fase sigue como antes y se puede cambiar el modo en medio", async () 
   p = cambiarModo("fases", "auto");
   assert.equal(p.estado, "en-curso");
   p = await avanzar("fases", simulado, silencio);
+  assert.equal(p.direcciones?.esperando, true);
+  // El cliente marca su preferencia en el portal; Jay confirma.
+  direccionDelCliente("fases", 1, "me gusta la sobria");
+  assert.equal(leerProyecto("fases").direcciones?.cliente?.n, 1);
+  p = await pedirDirecciones("fases", "jay", "más color", simulado, silencio).catch((e) => { throw e; }).then(() => leerProyecto("fases"));
+  assert.equal(p.direcciones?.esperando, true);
+  assert.equal(leerEntrega("fases", "4.orla")?.version, 2);
+  p = await elegirDireccion("fases", 1, "jay", undefined, simulado, silencio);
   assert.equal(p.estado, "listo");
 });
 
@@ -168,4 +188,21 @@ test("si se acaba el tiempo de la vuelta, guarda lo escrito y la siguiente sigue
     delete process.env.ANTHROPIC_BASE_URL;
     srv.close();
   }
+});
+
+test("la versión para el cliente quita lo interno", () => {
+  const md = "# Plan\n\n## Resumen en tres líneas\nTodo bien.\n\n## Riesgos y cómo los cubrimos\nQue se atrase.\n\n### Detalle\nmás\n\n## Fechas clave\n- 1 dic\n\n> ⚠️ Esta entrega quedó cortada.\n\n## Para el equipo\nMargen 40 %.";
+  const c = versionCliente(md);
+  assert.match(c, /Resumen en tres líneas/);
+  assert.match(c, /Fechas clave/);
+  assert.doesNotMatch(c, /Riesgos|Que se atrase|Detalle|Margen|cortada/);
+});
+
+test("las direcciones se leen del json aunque vengan con ruido", () => {
+  const d = leerDirecciones('texto\n```json\n[{"nombre":"Serena","idea":"x","estilo":"raro","colores":[{"nombre":"a","hex":"#112233"},{"nombre":"b","hex":"#ABCDEF"},{"nombre":"c","hex":"rojo"}],"tipografias":{"titulos":"Fraunces<script>","texto":"Inter"},"portada":{"titular":"Hola","bajada":"b","boton":"c"},"seccion":{"titulo":"s","items":[{"titulo":"1","texto":"t"}]},"imagen":"foto"},{"nombre":"Mala"}]\n```');
+  assert.equal(d.length, 1);
+  assert.equal(d[0].colores.length, 2);
+  assert.equal(d[0].colores[1].hex, "#abcdef");
+  assert.equal(d[0].tipografias.titulos, "Frauncesscript");
+  assert.equal(d[0].estilo, "editorial");
 });

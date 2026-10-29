@@ -73,6 +73,42 @@ export interface Contrato {
   herramientas?: ("web" | "dominios" | "redes" | "lighthouse" | "imagen")[];
   /** Formato fijo (sistema/35): las secciones que siempre lleva la entrega, en este orden. */
   estructura?: string[];
+  /** Antes de su entrega completa propone 3 direcciones visuales y el proyecto espera que elijan una (sistema/37). */
+  direcciones?: boolean;
+}
+
+/** Una dirección de diseño (sistema/37): lo justo para dibujar una maqueta y decidir. */
+export interface Direccion {
+  nombre: string;
+  /** La idea en una o dos frases. */
+  idea: string;
+  /** Cómo se arma la página: define la maqueta. */
+  estilo: "editorial" | "minimal" | "audaz" | "calido";
+  /** 3 a 5 colores; el primero es el principal. */
+  colores: { nombre: string; hex: string }[];
+  /** Nombres exactos de Google Fonts. */
+  tipografias: { titulos: string; texto: string };
+  tono: string;
+  portada: { titular: string; bajada: string; boton: string };
+  seccion: { titulo: string; items: { titulo: string; texto: string }[] };
+  /** Qué foto o imagen iría en la portada. */
+  imagen: string;
+}
+
+/** Las direcciones propuestas y la elegida (sistema/37). */
+export interface Direcciones {
+  tarea: TareaId;
+  opciones: Direccion[];
+  /** Esperando que Jay, Luna o el cliente elijan. */
+  esperando?: boolean;
+  /** Se pidieron (de nuevo) a mano: el agente vuelve a proponer. */
+  pedidas?: boolean;
+  nota?: string;
+  elegida?: number;
+  quien?: string;
+  fecha?: string;
+  /** Lo que eligió el cliente en su portal (Jay o Luna confirman). */
+  cliente?: { n: number; nota?: string; fecha: string };
 }
 
 /** La marca del cliente (sistema/35): colores, fuentes y logo que el equipo usa tal cual. */
@@ -216,6 +252,8 @@ export interface Proyecto {
   error?: { mensaje: string; tarea?: string; fecha: string };
   /** Se arrancó con «probar sin gastar IA»: todas las vueltas usan el motor simulado. */
   prueba?: boolean;
+  /** Direcciones de diseño antes de construir (sistema/37). */
+  direcciones?: Direcciones;
   /** Colores, fuentes y logo del cliente (sistema/35). */
   marca?: Marca;
   /** Propuesta editable para el cliente (sistema/35). */

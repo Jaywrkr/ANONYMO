@@ -32,6 +32,7 @@ export interface ProyectoCamino {
   inicios?: Record<string, string>;
   error?: { mensaje: string; tarea?: string; fecha: string };
   actualizado?: string;
+  direcciones?: { esperando?: boolean; opciones: { nombre: string }[]; tarea: string; cliente?: { n: number } };
 }
 
 const entregaDe = (t: string) => contratoPorId(t as TareaId)?.entrega ?? t;
@@ -68,6 +69,8 @@ export interface Momento {
   revision?: string;
   /** La vuelta se cortó o falló: hay que continuar. */
   trabado?: boolean;
+  /** Hay direcciones de diseño esperando que elijan una. */
+  direcciones?: boolean;
 }
 
 export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now()): Momento {
@@ -90,6 +93,15 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
     return { ...base, paso: "plan", indice: 1, teToca: true, tono: "toca", accion: "Ver el plan",
       ahora: `Atlas armó el plan: ${p.plan.tareas.length} entregas en ${p.plan.fases.length} fase${p.plan.fases.length === 1 ? "" : "s"}. Revísalo y di «que empiecen».`,
       despues: `El equipo trabaja ${nombreFase(p.plan.fases[0])} y te avisa cuando toque revisar.` };
+  }
+  if (p.estado === "esperando" && p.direcciones?.esperando) {
+    const mio = responsableActual === yo;
+    const n = p.direcciones.opciones.length;
+    const cli = p.direcciones.cliente ? ` El cliente prefiere «${p.direcciones.opciones[p.direcciones.cliente.n]?.nombre}».` : "";
+    return { ...base, paso: "revision", indice: 3, teToca: mio, tono: mio ? "toca" : "otro", direcciones: true,
+      accion: "Elegir una dirección",
+      ahora: n ? `${agenteDe(p.direcciones.tarea)} propone ${n} direcciones de diseño. Elige una.${cli}` : `${agenteDe(p.direcciones.tarea)} no entregó las maquetas en el formato. Pídele otras.`,
+      despues: `Con la elegida, ${agenteDe(p.direcciones.tarea)} diseña la web completa y el equipo la construye.` };
   }
   if (p.estado === "esperando" && p.revision && !p.esperaJurado) {
     const mio = responsableActual === yo;

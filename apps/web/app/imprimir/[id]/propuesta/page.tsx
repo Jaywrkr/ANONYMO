@@ -51,7 +51,7 @@ export default async function PropuestaImprimir({ params }: { params: Promise<{ 
             {x.intro && <p className="mt-8 max-w-[46ch] text-[17px] leading-relaxed opacity-85">{x.intro}</p>}
           </div>
           <div className="flex items-end justify-between text-[12px] opacity-70">
-            <p>Jay y Luna · Quito</p>
+            <p>Jay y Luna · Cuenca</p>
             <p>Inversión total <span className={`${serif} ml-2 text-[28px] opacity-100`}>{dinero(total)}</span></p>
           </div>
         </header>

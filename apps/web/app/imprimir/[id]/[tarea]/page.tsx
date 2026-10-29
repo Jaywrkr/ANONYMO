@@ -2,7 +2,7 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import { agentePorId, FASES } from "@anonymo/agentes";
-import { existe, leerEntrega, leerProyecto, type TareaId } from "@anonymo/pipeline";
+import { esInterna, existe, leerEntrega, leerProyecto, versionCliente, type TareaId } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
 import { exigirEstudio } from "@/lib/estudio";
@@ -15,10 +15,12 @@ export const metadata = { title: "Entrega", robots: { index: false } };
 const serif = "font-['Instrument_Serif',serif] font-normal";
 
 // Una entrega en papel (sistema/35): para mandarla al cliente o guardarla, con la marca de Anonymo y el color del cliente.
-export default async function EntregaImprimir({ params, searchParams }: { params: Promise<{ id: string; tarea: string }>; searchParams: Promise<{ v?: string }> }) {
+export default async function EntregaImprimir({ params, searchParams }: { params: Promise<{ id: string; tarea: string }>; searchParams: Promise<{ v?: string; para?: string }> }) {
   await exigirEstudio();
   const { id, tarea } = await params;
-  const { v } = await searchParams;
+  const { v, para } = await searchParams;
+  // Dos versiones (sistema/37): para el cliente (sin lo interno) o interna (completa). Por defecto, para el cliente.
+  const interno = para === "interno";
   if (!/^[a-z0-9_-]+$/.test(id) || !/^\d-[a-z]+$/.test(tarea)) notFound();
   await traer(id);
   if (!existe(id)) notFound();
@@ -30,12 +32,17 @@ export default async function EntregaImprimir({ params, searchParams }: { params
   const fase = FASES.find((f) => f.n === Number(t.split(".")[0]));
   const acento = espacio(id, p.marca).punto;
   // Sin la línea de cierre que el agente usa para hablar con el equipo.
-  const contenido = e.contenido.replace(/\n+> ⚠️[\s\S]*$/, "");
+  const completo = e.contenido.replace(/\n+> ⚠️[\s\S]*$/, "");
+  const soloEquipo = esInterna(t);
+  const contenido = interno ? completo : versionCliente(completo);
   const fecha = new Date(e.creado).toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="hoja-fondo" style={{ ["--acento" as string]: acento }}>
-      <BotonImprimir volver={`/estudio/${id}/${tarea}`} md={`# ${e.titulo}\n\n${contenido}`} nombre={`${p.pedido.cliente} — ${e.titulo}`} />
+      <BotonImprimir volver={`/estudio/${id}/${tarea}`} md={`# ${e.titulo}\n\n${contenido}`} nombre={`${p.pedido.cliente} — ${e.titulo}${interno ? " (interno)" : ""}`} />
+      {!interno && soloEquipo && (
+        <p className="no-imprimir mx-auto mb-4 max-w-[820px] rounded-xl bg-[#fff4e8] p-4 text-[13px] text-[#8a3a0c]">Esta entrega es interna del equipo (horas, investigación, jurado o código): no conviene mandarla al cliente. <a className="underline" href={`?para=interno${v ? `&v=${v}` : ""}`}>Ver la versión interna</a>.</p>
+      )}
       <article className="hoja px-12 py-12 md:px-16 md:py-14">
         <header className="border-b-[1.5px] border-[#1a1816] pb-6">
           <div className="flex items-start justify-between gap-6 text-[12px] text-[#5f5a52]">
@@ -46,13 +53,14 @@ export default async function EntregaImprimir({ params, searchParams }: { params
             Fase {fase?.n} · {fase?.nombre}{e.version > 1 ? ` · versión ${e.version}` : ""}
           </p>
           <h1 className={`${serif} mt-2 text-[clamp(40px,6vw,64px)] leading-[0.95]`}>{e.titulo}</h1>
-          {e.dice && <p className={`${serif} mt-4 max-w-[48ch] text-[21px] leading-snug text-[#5f5a52]`}>“{e.dice}”</p>}
+          {e.dice && interno && <p className={`${serif} mt-4 max-w-[48ch] text-[21px] leading-snug text-[#5f5a52]`}>“{e.dice}”</p>}
+          {interno && <p className="mt-3 inline-block rounded-full bg-[#1a1816] px-3 py-1 text-[11px] uppercase tracking-[0.08em] text-white">Interno · solo para el equipo</p>}
           <p className="mt-4 text-[12px] text-[#8a8378]">Preparado por {a?.nombre}, {a?.rol?.toLowerCase()}, con la dirección de Jay y Luna.</p>
         </header>
         <div className="md mt-8" dangerouslySetInnerHTML={{ __html: html(contenido) }} />
         {e.datos?.cortada ? <p className="no-imprimir mt-8 rounded-xl bg-[#fff4e8] p-4 text-[13px] text-[#8a3a0c]">Esta entrega quedó cortada. Pide que la complete desde el proyecto antes de mandarla.</p> : null}
         <footer className="mt-12 flex items-end justify-between border-t border-[#e6e0d6] pt-4 text-[11px] text-[#8a8378]">
-          <span>anonymo · estudio creativo · Quito</span>
+          <span>anonymo · estudio creativo · Cuenca</span>
           <span>{p.pedido.cliente} · {e.titulo}</span>
         </footer>
       </article>

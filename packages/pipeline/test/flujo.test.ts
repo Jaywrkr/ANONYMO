@@ -1,7 +1,7 @@
 import "./preparar.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-const { nuevo, aprobar, cambiar, parar, reanudar, cambiarPausas, restaurar } = await import("../src/correr.ts");
+const { nuevo, aprobar, cambiar, parar, reanudar, cambiarPausas, restaurar, elegirDireccion } = await import("../src/correr.ts");
 const { leerProyecto, leerEntrega, versiones } = await import("../src/almacen.ts");
 const { simulado } = await import("../src/motor.ts");
 const { anotar } = await import("../src/cliente.ts");
@@ -22,6 +22,13 @@ test("flujo completo: pausa, cambio, aprobar, terminar", async () => {
   assert.deepEqual(versiones("flujo", "1.nova"), [1]);
   p = await aprobar("flujo", "jay", undefined, simulado, silencio);
   assert.equal(p.faseActual, 4);
+  // Antes de diseñar la web, Orla propone 3 direcciones y se espera que elijan una (sistema/37).
+  assert.equal(p.direcciones?.esperando, true);
+  assert.equal(p.direcciones?.opciones.length, 3);
+  await assert.rejects(() => aprobar("flujo", "jay", undefined, simulado, silencio), /direcciones/);
+  p = await elegirDireccion("flujo", 1, "jay", "más cálida", simulado, silencio);
+  assert.equal(p.direcciones?.elegida, 1);
+  assert.equal(leerEntrega("flujo", "4.orla")?.version, 2);
   p = await aprobar("flujo", "jay", undefined, simulado, silencio);
   assert.ok(["listo", "esperando"].includes(p.estado));
 });

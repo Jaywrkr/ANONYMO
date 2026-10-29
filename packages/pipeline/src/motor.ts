@@ -1,6 +1,7 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import { claveAnthropic, ocultarClaves, pensamiento, textoDe } from "./ia.ts";
 import { pedirEnVivo } from "./envivo.ts";
+import { direccionesSimuladas, leerDirecciones, PEDIDO_DIRECCIONES, textoDireccion } from "./direcciones.ts";
 import { COMO_TRABAJAMOS, tarifaHora } from "./agencia.ts";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
@@ -8,7 +9,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { CARPETA } from "./almacen.ts";
 import { usd, type Uso } from "./costo.ts";
-import { archivoEntrega, type Entrega, type Marca, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
+import { archivoEntrega, type Direccion, type Entrega, type Marca, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
 
 export interface Contexto {
   pedido: Pedido;
@@ -35,6 +36,8 @@ export interface Contexto {
   plazo?: number;
   /** Señal de vida mientras trabaja: qué hace y cuántas palabras lleva. */
   latido?: (x: Latido) => void;
+  /** «proponer»: esta vez propone 3 direcciones de diseño; o la dirección ya elegida, que todos respetan (sistema/37). */
+  direccion?: "proponer" | Direccion;
 }
 
 /** Qué está haciendo un agente en este momento (sistema/36). */
@@ -82,8 +85,20 @@ const TXT = {
 
 export const simulado: Motor = {
   nombre: "simulado",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, latido }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, latido, direccion, marca }) {
     latido?.({ fase: "escribiendo", palabras: 0 });
+    // Direcciones de diseño (sistema/37): tres caminos de ejemplo, con la marca del cliente si existe.
+    if (direccion === "proponer") {
+      const ops = direccionesSimuladas(pedido, marca);
+      const a = agentePorId(contratoPorId(tarea)!.agente)!;
+      return {
+        dice: `Propongo 3 direcciones para ${pedido.cliente}: ${ops.map((d) => d.nombre).join(", ")}. Elijan una y la desarrollo completa.`,
+        necesita: "Que elijan una dirección.",
+        contenido: [`# Tres direcciones · ${pedido.cliente}`, "", TXT[pedido.idioma ?? "es"].modo(a.nombre), "", ...ops.flatMap((d, i) => [`## Dirección ${i + 1}: ${d.nombre}`, "", d.idea, "", `- Estilo: ${d.estilo}`, `- Tono: ${d.tono}`, `- Colores: ${d.colores.map((c) => c.hex).join(", ")}`, `- Tipografías: ${d.tipografias.titulos} / ${d.tipografias.texto}`, ""])].join("\n"),
+        datos: { direcciones: ops },
+        modo: "simulado",
+      };
+    }
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const fase = FASES.find((f) => f.n === c.fase)!;
@@ -157,7 +172,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido, direccion }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -182,9 +197,10 @@ export const real: Motor = {
       "Sé concreto: la entrega es para trabajar, no para impresionar. Sin introducciones, sin repetir el pedido, sin relleno. Listas y tablas cuando ayuden.",
       buscaEnWeb ? "Puedes buscar en la web. Usa fuentes reales y pon el enlace de cada una. Busca solo lo que tu tarea necesita." : "",
       abreEnlaces ? "Puedes abrir los enlaces que aparecen en el pedido (herramienta web_fetch). Abre solo los que sirvan para tu tarea y di qué sacaste de cada uno." : "",
-      c.estructura ? `Formato fijo: usa exactamente estas secciones, en este orden, como títulos «##»: ${c.estructura.map((x) => `«${x}»`).join(", ")}. No agregues otras.` : "",
+      c.estructura && direccion !== "proponer" ? `Formato fijo: usa exactamente estas secciones, en este orden, como títulos «##»: ${c.estructura.map((x) => `«${x}»`).join(", ")}. No agregues otras.` : "",
       "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Nunca digas que no puedes verlos.",
       "Termina siempre lo que empiezas: si el espacio no alcanza, resume, pero cierra cada sección y cada tabla.",
+      "Lo que sea solo para el equipo (dudas, riesgos internos, márgenes, notas a otros agentes) va al final, bajo el título «## Para el equipo»: el cliente nunca lo ve.",
       "Responde en markdown. Al final agrega exactamente dos líneas:",
       "DICE: lo que dirías en la sala del proyecto, en una o dos frases.",
       "NECESITA: lo que necesitas del cliente o del equipo para seguir.",
@@ -201,6 +217,7 @@ export const real: Motor = {
       pedido.contexto ? "```json\n" + JSON.stringify(pedido.contexto, null, 2) + "\n```" : "",
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
+      direccion === "proponer" ? PEDIDO_DIRECCIONES : textoDireccion(typeof direccion === "object" ? direccion : undefined),
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
       consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
       archivos?.length ? "# Archivos del cliente (las imágenes y los PDF van adjuntos arriba)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
@@ -325,6 +342,7 @@ export const real: Motor = {
         jurado = undefined;
       }
     }
+    const direcciones = direccion === "proponer" ? leerDirecciones(texto) : [];
     const horas = Number.parseFloat(linea("HORAS") ?? "");
     const horasExtra = Number.parseFloat(linea("HORAS_EXTRA") ?? "");
     const datos = {
@@ -334,11 +352,12 @@ export const real: Motor = {
       ...(Number.isFinite(horas) ? { horas } : {}),
       ...(Number.isFinite(horasExtra) && horasExtra > 0 ? { horasExtra } : {}),
       ...(cortada ? { cortada: true } : {}),
+      ...(direcciones.length ? { direcciones } : {}),
     };
     return {
       dice: linea("DICE") ?? "",
       necesita: linea("NECESITA") ?? "",
-      contenido: [texto.replace(/^(DICE|NECESITA|NOTA|FINALISTAS|HORAS|HORAS_EXTRA):.*$/gm, "").trim(), "", ...seccionHerramientas(herramientas)].join("\n").trim(),
+      contenido: [texto.replace(/^(DICE|NECESITA|NOTA|FINALISTAS|HORAS|HORAS_EXTRA):.*$/gm, "").replace(direcciones.length ? /```json[\s\S]*?```/g : /$^/, "").trim(), "", ...seccionHerramientas(herramientas)].join("\n").trim(),
       nota: nota ? Number.parseFloat(nota) : undefined,
       datos: Object.keys(datos).length ? datos : undefined,
       modo: "real",

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AREAS, agentePorId, FASES } from "@anonymo/agentes";
-import { contarCambios, diferencias, existe, leerEntrega, leerProyecto, responsable, versiones, type TareaId } from "@anonymo/pipeline";
+import { contarCambios, contratoPorId, diferencias, existe, leerEntrega, leerProyecto, responsable, versiones, type TareaId } from "@anonymo/pipeline";
 import { RevisarAgente } from "@/components/estudio/RevisarAgente";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
@@ -64,7 +64,12 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
           <h1 className={`${serif} text-[clamp(38px,4.6vw,64px)] leading-[0.98]`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
           {e && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <a href={`/imprimir/${id}/${tarea}${v ? `?v=${v}` : ""}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#f1ede6] px-4 text-[13px] text-medio transition hover:bg-[#e9e3d9] hover:text-tinta">Exportar · PDF o texto ↗</a>
+              {contratoPorId(t)?.interna ? (
+                <span className="inline-flex min-h-10 items-center rounded-full px-3 text-[12px] text-suave" title="Horas, investigación, jurado o código: es del equipo.">Entrega interna</span>
+              ) : (
+                <a href={`/imprimir/${id}/${tarea}?para=cliente${v ? `&v=${v}` : ""}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-tinta px-4 text-[13px] text-white transition hover:bg-black">PDF para el cliente ↗</a>
+              )}
+              <a href={`/imprimir/${id}/${tarea}?para=interno${v ? `&v=${v}` : ""}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#f1ede6] px-4 text-[13px] text-medio transition hover:bg-[#e9e3d9] hover:text-tinta">PDF interno ↗</a>
             </div>
           )}
           {/* Modo paso: esta entrega espera tu revisión. Arriba el aviso; abajo, al terminar de leer, la decisión. */}

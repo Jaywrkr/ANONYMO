@@ -147,6 +147,8 @@ html[data-trabajando] body { overflow: hidden; }
 .hoja .md a { text-decoration: underline; text-underline-offset: 3px; }
 .hoja .md img { max-width: 100%; }
 .portada { min-height: min(1060px, 140vw); }
+.hoja.apaisada { max-width: 1180px; aspect-ratio: 297 / 210; }
+@page apaisada { size: A4 landscape; margin: 0; }
 @page { size: A4; margin: 16mm 16mm 18mm; }
 @page portada { margin: 0; }
 @media print {
@@ -158,6 +160,8 @@ html[data-trabajando] body { overflow: hidden; }
   .hoja { box-shadow: none; max-width: none; background: none; }
   .salto { break-before: page; }
   .portada { page: portada; height: 297mm; min-height: 0; break-after: page; }
+  .hoja.apaisada { page: apaisada; width: 297mm; height: 209mm; margin: 0; max-width: none; aspect-ratio: auto; break-after: page; overflow: hidden; }
+  .hoja.apaisada:last-of-type { break-after: auto; }
   .no-cortar { break-inside: avoid; }
   html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
