@@ -1,0 +1,32 @@
+// Supabase Storage falso en memoria, para probar el estudio en línea.
+import http from "node:http";
+const datos = new Map();
+http.createServer(async (req, res) => {
+  res.setHeader("access-control-allow-origin", "*"); res.setHeader("access-control-allow-methods", "PUT, POST, OPTIONS"); res.setHeader("access-control-allow-headers", "*");
+  if (req.method === "OPTIONS") { res.end(); return; }
+  const cuerpo = await new Promise((r) => { const c = []; req.on("data", (d) => c.push(d)); req.on("end", () => r(Buffer.concat(c))); });
+  const firma = req.url.match(/^\/storage\/v1\/object\/upload\/sign\/proyectos\/([^?]+)(\?token=(.+))?$/);
+  if (firma) {
+    const ruta = decodeURIComponent(firma[1]);
+    if (req.method === "POST") { res.end(JSON.stringify({ url: `/object/upload/sign/proyectos/${firma[1]}?token=tk-${ruta.length}` })); return; }
+    if (req.method === "PUT" && firma[3] === `tk-${ruta.length}`) { datos.set(ruta, cuerpo); res.end(JSON.stringify({ Key: ruta })); return; }
+    res.writeHead(400).end("firma mala"); return;
+  }
+  const m = req.url.match(/^\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/);
+  if (!m) { res.writeHead(404).end(); return; }
+  const ruta = decodeURIComponent(m[2]);
+  if (m[1]) {
+    const { prefix } = JSON.parse(cuerpo);
+    const hijos = new Map();
+    for (const k of datos.keys()) {
+      if (prefix && !k.startsWith(prefix + "/")) continue;
+      const resto = prefix ? k.slice(prefix.length + 1) : k;
+      const [cabeza, ...cola] = resto.split("/");
+      hijos.set(cabeza, cola.length > 0 || (hijos.get(cabeza) ?? false));
+    }
+    res.end(JSON.stringify([...hijos].map(([name, c]) => ({ name, id: c ? null : name }))));
+  } else if (req.method === "DELETE") { for (const p of JSON.parse(cuerpo).prefixes) datos.delete(p); res.end("[]"); }
+  else if (req.method === "POST") { datos.set(ruta, cuerpo); res.end("{}"); }
+  else if (ruta === "__todo") { res.end(JSON.stringify([...datos.keys()].sort())); }
+  else if (datos.has(ruta)) res.end(datos.get(ruta)); else { res.writeHead(404).end("no"); }
+}).listen(54321, () => console.log("supabase falso en 54321"));
