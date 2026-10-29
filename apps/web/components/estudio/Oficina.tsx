@@ -1,6 +1,7 @@
 "use client";
 
 // La oficina con su panel: tocas a un agente y ves en qué está. En vivo, se actualiza mientras el equipo trabaja.
+import { leerTrabajo } from "@/app/estudio/nuevo/Enviar";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -48,7 +49,7 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
 
   // Mientras un botón deja trabajar al equipo (o el proyecto quedó a medias), se consulta el estado cada 3 s.
   useEffect(() => {
-    const f = (e: Event) => setTrabajando(!!(e as CustomEvent<boolean>).detail);
+    const f = (e: Event) => setTrabajando(leerTrabajo(e).activo);
     addEventListener("anonymo:trabajando", f);
     return () => removeEventListener("anonymo:trabajando", f);
   }, []);

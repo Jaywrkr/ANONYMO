@@ -70,6 +70,12 @@ async function listarRemoto(prefijo: string, f: typeof fetch): Promise<string[]>
   return out;
 }
 
+/** Cuántos pedidos de la web esperan en la nube (sin los archivados). No baja nada. */
+export async function solicitudesEnNube(f: typeof fetch = fetch): Promise<number> {
+  const rutas = await listarRemoto("_solicitudes", f).catch(() => [] as string[]);
+  return rutas.filter((r) => /^_solicitudes\/[^/]+\.json$/.test(r)).length;
+}
+
 /** Baja el proyecto desde la nube (pisa la copia local). Con `espejo`, la copia local queda idéntica: borra lo que ya no está. */
 export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo = false): Promise<number> {
   idSeguro(id);

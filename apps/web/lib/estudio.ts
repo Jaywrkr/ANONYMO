@@ -45,7 +45,7 @@ export const serif = "font-serif font-normal tracking-[-0.01em]";
 export const ESTADO_PROYECTO: Record<string, string> = {
   plan: "Plan por aprobar",
   "en-curso": "En curso",
-  esperando: "Espera tu decisión",
+  esperando: "Espera revisión",
   listo: "Listo",
-  parado: "Parado",
+  parado: "En pausa",
 };
