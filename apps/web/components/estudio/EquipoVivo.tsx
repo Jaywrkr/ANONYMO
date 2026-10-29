@@ -2,6 +2,7 @@
 
 // El equipo de un proyecto, en vivo (sistema/32): cada agente con su cara y en qué está.
 // Mientras un botón deja trabajar al equipo (o el proyecto quedó en curso) consulta el estado cada 3 s.
+import { leerTrabajo } from "@/app/estudio/nuevo/Enviar";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { agentePorId } from "@anonymo/agentes";
@@ -16,7 +17,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ProyectoOficina; en
   const [trabajando, setTrabajando] = useState(false);
   useEffect(() => setP(inicial), [inicial]);
   useEffect(() => {
-    const f = (e: Event) => setTrabajando(!!(e as CustomEvent<boolean>).detail);
+    const f = (e: Event) => setTrabajando(leerTrabajo(e).activo);
     addEventListener("anonymo:trabajando", f);
     return () => removeEventListener("anonymo:trabajando", f);
   }, []);

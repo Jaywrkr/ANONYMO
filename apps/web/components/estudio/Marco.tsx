@@ -3,7 +3,7 @@
 // El marco del estudio (sistema/32): como Arc, la barra vive sobre un fondo de color y el contenido flota en una tarjeta.
 // Cada proyecto es un espacio: al entrar, el marco toma su color. Ctrl/⌘ K lleva a la caja de Atlas desde cualquier lado.
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { caraSvg } from "@/lib/caras";
 import { MARCO_TODO } from "@/lib/espacio";
@@ -45,10 +45,10 @@ const I = {
   papelera: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
   web: "M7 17 17 7M9 7h8v8",
   buscar: "M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM20 20l-3.5-3.5",
+  biblioteca: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z",
 };
 
-function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, ver, alIr }: Omit<Props, "children"> & { activo?: EspacioBarra; ruta: string; ver: string; alIr?: () => void }) {
-  const router = useRouter();
+function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr }: Omit<Props, "children"> & { activo?: EspacioBarra; ruta: string; alIr?: () => void }) {
   const enInicio = ruta === "/estudio";
   return (
     <nav aria-label="Estudio" className="flex h-full flex-col gap-5 text-tinta">
@@ -57,29 +57,23 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, ver, al
         <span className="text-[11px] text-tinta/50">estudio</span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => { alIr?.(); const c = document.getElementById("atlas"); if (c) c.focus(); else router.push("/estudio?buscar=1"); }}
-        className="flex min-h-10 items-center gap-2 rounded-[10px] bg-white/55 px-3 text-[13px] text-tinta/60 shadow-[inset_0_0_0_1px_rgba(255,255,255,.7)] transition hover:bg-white/75"
-      >
-        <Icono d={I.buscar} /> Buscar o pedir
-        <kbd className="ml-auto font-mono text-[10px] text-tinta/50">Ctrl K</kbd>
-      </button>
+      <Link href="/estudio/nuevo" onClick={alIr} className="flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-tinta px-3 text-[14px] font-medium text-white shadow-[0_8px_20px_-10px_rgba(20,15,10,.6)] transition hover:bg-black">
+        <Icono d={I.nuevo} /> Nuevo pedido <kbd className="ml-1 font-mono text-[10px] text-white/50">N</kbd>
+      </Link>
 
       <div className="grid gap-0.5">
-        <Link href="/estudio" onClick={alIr} className={fila(enInicio && ver !== "te-toca")} aria-current={enInicio && ver !== "te-toca" ? "page" : undefined}><Icono d={I.todo} /> Todo</Link>
-        <Link href="/estudio?ver=te-toca" onClick={alIr} className={fila(enInicio && ver === "te-toca")} aria-current={enInicio && ver === "te-toca" ? "page" : undefined}>
-          <Icono d={I.toca} /> Te toca
-          {tetoca > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] font-medium text-white">{tetoca}</span>}
+        <Link href="/estudio" onClick={alIr} className={fila(enInicio)} aria-current={enInicio ? "page" : undefined}>
+          <Icono d={I.todo} /> Inicio
+          {tetoca > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] font-medium text-white" title="Cosas que esperan tu decisión">{tetoca}</span>}
         </Link>
-        <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> El estudio <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
-        <Link href="/estudio/nuevo" onClick={alIr} className={fila(ruta === "/estudio/nuevo")} aria-current={ruta === "/estudio/nuevo" ? "page" : undefined}><Icono d={I.nuevo} /> Nuevo proyecto <kbd className="ml-auto font-mono text-[10px] text-tinta/45">N</kbd></Link>
+        <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
+        <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
       </div>
 
       <div className="grid min-h-0 gap-0.5">
-        <p className="px-2.5 pb-1 text-[11px] text-tinta/50">Espacios · {espacios.length}</p>
+        <p className="px-2.5 pb-1 text-[11px] text-tinta/50">Proyectos · {espacios.length}</p>
         <div className="grid max-h-[46vh] gap-0.5 overflow-y-auto pr-0.5">
-          {espacios.length === 0 && <p className="px-2.5 text-[13px] text-tinta/55">Cada proyecto nuevo aparece aquí con su color.</p>}
+          {espacios.length === 0 && <p className="px-2.5 text-[13px] text-tinta/55">Cada proyecto aparece aquí con su color. Empieza con «Nuevo pedido».</p>}
           {espacios.map((e) => (
             <Link key={e.id} href={`/estudio/${e.id}`} onClick={alIr} className={fila(activo?.id === e.id)} aria-current={activo?.id === e.id ? "page" : undefined}>
               <i aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: e.punto }} />
@@ -92,7 +86,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, ver, al
                   ))}
                 </span>
               )}
-              {e.senal === "toca" && <i className="h-2 w-2 shrink-0 rounded-full bg-urgente" title="Espera tu decisión" />}
+              {e.senal === "toca" && <i className="h-2 w-2 shrink-0 rounded-full bg-urgente" title="Espera una decisión" />}
               {e.senal === "vivo" && <i className="late h-2 w-2 shrink-0 rounded-full bg-vivo" title="El equipo está trabajando" />}
               <span className="sr-only">{e.senal === "toca" ? "Espera tu decisión" : e.senal === "vivo" ? "El equipo está trabajando" : ""}</span>
             </Link>
@@ -123,9 +117,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, ver, al
 
 export function Marco({ children, ...props }: Props) {
   const ruta = usePathname() ?? "/estudio";
-  const params = useSearchParams();
   const router = useRouter();
-  const ver = params.get("ver") ?? "";
   const [abierto, setAbierto] = useState(false);
   const idRuta = ruta.split("/")[2];
   const activo = props.espacios.find((e) => e.id === idRuta);
@@ -136,8 +128,8 @@ export function Marco({ children, ...props }: Props) {
       const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName) || (e.target as HTMLElement)?.isContentEditable;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        const c = document.getElementById("atlas") as HTMLInputElement | null;
-        if (c) { c.focus(); c.select?.(); } else router.push("/estudio?buscar=1");
+        const c = document.getElementById("buscar") as HTMLInputElement | null;
+        if (c) { c.focus(); c.select?.(); } else router.push("/estudio/biblioteca?buscar=1");
       } else if (!escribiendo && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === "n" && !document.querySelector("dialog[open]")) {
         router.push("/estudio/nuevo");
       }
@@ -151,7 +143,7 @@ export function Marco({ children, ...props }: Props) {
   return (
     <div className="estudio-marco flex min-h-dvh gap-2 p-2" style={{ background: activo?.marco ?? MARCO_TODO }}>
       <aside className="sticky top-2 hidden h-[calc(100dvh-16px)] w-[236px] shrink-0 py-2 lg:block">
-        <Barra {...props} activo={activo} ruta={ruta} ver={ver} />
+        <Barra {...props} activo={activo} ruta={ruta} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -167,7 +159,7 @@ export function Marco({ children, ...props }: Props) {
           <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú del estudio">
             <button type="button" aria-label="Cerrar menú" onClick={() => setAbierto(false)} className="absolute inset-0 bg-tinta/30 backdrop-blur-sm" />
             <div id="menu-estudio" className="absolute inset-y-2 left-2 w-[min(300px,calc(100%-16px))] overflow-y-auto rounded-[18px] p-3" style={{ background: activo?.marco ?? MARCO_TODO }}>
-              <Barra {...props} activo={activo} ruta={ruta} ver={ver} alIr={() => setAbierto(false)} />
+              <Barra {...props} activo={activo} ruta={ruta} alIr={() => setAbierto(false)} />
             </div>
           </div>
         )}

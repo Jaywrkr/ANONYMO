@@ -16,7 +16,7 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
         <Cara id="atlas" tam={64} flota />
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-2 text-[12px] text-white/60">
-            <i className="late h-1.5 w-1.5 rounded-full bg-urgente" /> Te toca · plan de Atlas {p.plan.porIA ? "con IA" : "con reglas, sin IA"} · nadie trabaja todavía
+            <i className="late h-1.5 w-1.5 rounded-full bg-urgente" /> Te toca · el plan de Atlas{p.plan.porIA ? "" : " (hecho con reglas, sin IA)"} · nadie trabaja hasta que digas
           </p>
           <p className={`${serif} mt-2 text-[clamp(28px,3.2vw,40px)] leading-[1.05]`}>{p.plan.resumen || `Trabajan ${p.plan.tareas.length} agentes en ${p.plan.fases.length} fases.`}</p>
           <p className="mt-2 text-[14px] text-white/70">Costo aproximado con IA ≈ US$ {costo.toFixed(2)}, sin contar cambios.</p>
@@ -83,18 +83,18 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
       <div className="grid gap-4 border-t border-borde p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-start md:p-8">
         <form action={accionEmpezar} className="grid gap-2">
           <input type="hidden" name="id" value={id} />
-          <Enviar className={`${botonLleno} min-h-12 px-7 text-[14px]`} texto="Que empiecen" trabajando="El equipo está trabajando… no cierres esta página" />
+          <Enviar className={`${botonLleno} min-h-12 px-7 text-[14px]`} texto="Que empiecen" trabajando="El equipo está trabajando…" proyecto={id} largo />
           {conIA && (
             <label className="flex min-h-9 items-center gap-2 text-[12px] text-medio">
-              <input type="checkbox" name="motor" value="simulado" className="accent-tinta" /> Prueba sin gastar (solo estructura)
+              <input type="checkbox" name="motor" value="simulado" className="accent-tinta" /> Probar sin gastar IA (solo arma la estructura)
             </label>
           )}
         </form>
         <form action={accionReplanear} className="grid gap-2">
           <input type="hidden" name="id" value={id} />
           <label className="sr-only" htmlFor="ajuste">Ajuste para Atlas</label>
-          <textarea id="ajuste" name="ajuste" rows={2} required className={campo} placeholder="¿Algo no cuadra? «sin video», «sí necesita nombre», «que Lente haga la sesión de fotos»…" />
-          <div><Enviar className={boton} texto="Ajustar el plan" trabajando="Atlas está ajustando…" /></div>
+          <textarea id="ajuste" name="ajuste" rows={2} required className={campo} placeholder="¿Algo no cuadra? Díselo a Atlas: «sin video», «sí necesita nombre», «que Lente haga las fotos»…" />
+          <div><Enviar className={boton} texto="Ajustar el plan" trabajando="Atlas está rehaciendo el plan…" proyecto={id} largo /></div>
         </form>
       </div>
     </section>

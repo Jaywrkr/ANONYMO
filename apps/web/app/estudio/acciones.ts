@@ -56,12 +56,12 @@ export async function accionCambiar(f: FormData) {
 
 export async function accionParar(f: FormData) {
   const { id, quien, nota } = await leer(f);
-  await correr(id, () => parar(id, quien, nota), "Proyecto parado.");
+  await correr(id, () => parar(id, quien, nota), "Proyecto en pausa. Nadie trabaja en él hasta que lo reanudes.");
 }
 
 export async function accionReanudar(f: FormData) {
   const { id } = await leer(f);
-  await correr(id, () => reanudar(id), "Proyecto reanudado: espera tu decisión.");
+  await correr(id, () => reanudar(id), "Proyecto reanudado: te toca decidir.");
 }
 
 export async function accionPausas(f: FormData) {
@@ -69,7 +69,7 @@ export async function accionPausas(f: FormData) {
   await correr(id, async () => {
     cambiarPausas(id, String(f.get("pausas") ?? "clave"));
     await avanzar(id, motor, subirCadaTarea(id));
-  }, "Pausas actualizadas.");
+  }, "Listo: te pedirá revisar donde elegiste.");
 }
 
 export async function accionSeguir(f: FormData) {
@@ -88,7 +88,7 @@ export async function accionVerReparto(f: FormData) {
   const { id } = await leer(f);
   const texto = String(f.get("texto") ?? "").trim();
   const pendiente = String(f.get("pendiente") ?? "");
-  redirect(`/estudio/${id}?vista=${encodeURIComponent(texto)}${pendiente ? `&pendiente=${encodeURIComponent(pendiente)}` : ""}#cliente`);
+  redirect(`/estudio/${id}?ver=cliente&vista=${encodeURIComponent(texto)}${pendiente ? `&pendiente=${encodeURIComponent(pendiente)}` : ""}#anotar`);
 }
 
 /** Segundo paso: el comentario entra al proyecto, va a los agentes elegidos y el equipo rehace. */
