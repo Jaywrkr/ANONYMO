@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
+import { AGENTES, agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
 import { leerEntrega, listar, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
 import { Cara, fechaLarga, hace, saludo } from "@/components/estudio/piezas";
 import { FilaProyecto } from "@/components/estudio/FilaProyecto";
@@ -65,6 +65,9 @@ export default async function Estudio() {
   const mes = new Date().toISOString().slice(0, 7);
   const gastoMes = proyectos.reduce((s, p) => s + Object.values(p.costos ?? {}).flat().filter((u) => !u.estimado && u.fecha.startsWith(mes)).reduce((a, u) => a + u.usd, 0), 0);
 
+  // Cada día un agente distinto dice su frase.
+  const dia = Math.floor((Date.now() - 5 * 3600_000) / 86400_000);
+  const delDia = AGENTES[dia % AGENTES.length];
   const resumen = pendientes
     ? `Tienes ${pendientes === 1 ? "una cosa" : `${pendientes} cosas`} por decidir.`
     : trabajando.length ? `El equipo está trabajando en ${trabajando.length === 1 ? "un proyecto" : `${trabajando.length} proyectos`}.`
@@ -76,6 +79,10 @@ export default async function Estudio() {
         <div className="min-w-0">
           <p className="text-[13px] text-suave">{fechaLarga()}</p>
           <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1.02]`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
+          <p className="mt-3 flex items-center gap-2 text-[14px] text-medio">
+            <Cara id={delDia.id} tam={26} />
+            <span>Hoy habla {delDia.nombre}: <span className="font-serif text-[17px] italic text-tinta">«{delDia.frase}»</span></span>
+          </p>
         </div>
         <div className="flex gap-2">
           <Link href="/estudio/biblioteca?buscar=1" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Buscar <kbd className="font-mono text-[10px] text-suave">Ctrl K</kbd></Link>
@@ -106,7 +113,7 @@ export default async function Estudio() {
                   <p className="text-[15px] text-medio">Nada espera tu decisión. Cuando el equipo termine una fase, aparece aquí.</p>
                 </div>
               )}
-              {teToca.map(({ p, m, destino, caras }) => <FilaProyecto key={p.pedido.id} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={destino} caras={caras} />)}
+              {teToca.map(({ p, m, destino, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={destino} caras={caras} />)}
               {delPortal.map(({ p, n }) => (
                 <Link key={p.pedido.id + n.fecha} href={`/estudio/${p.pedido.id}?ver=cliente`} className="group grid items-center gap-x-6 gap-y-3 rounded-[18px] bg-[#fff6ec] p-4 pl-5 shadow-[0_0_0_1px_rgba(255,90,31,.15)] transition hover:-translate-y-0.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]">
                   <span className="flex min-w-0 items-center gap-3">
@@ -142,18 +149,18 @@ export default async function Estudio() {
 
             {alOtro.length > 0 && (
               <Grupo id="al-otro" titulo={`Le toca a ${nombreSocio(otro)}`} cuenta={alOtro.length} ayuda={`Fases que aprueba ${nombreSocio(otro)}. Si decides tú, queda a tu nombre.`}>
-                {alOtro.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+                {alOtro.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
               </Grupo>
             )}
 
             <Grupo id="trabajando" titulo="El equipo está trabajando" cuenta={trabajando.length} ayuda="No tienes que hacer nada: te avisa cuando termine la fase.">
               {trabajando.length === 0 && <p className="text-[14px] text-suave">Nadie está trabajando ahora.</p>}
-              {trabajando.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+              {trabajando.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
             </Grupo>
 
             {enPausa.length > 0 && (
               <Grupo id="pausa" titulo="En pausa" cuenta={enPausa.length} ayuda="Nadie trabaja en estos hasta que los reanudes.">
-                {enPausa.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+                {enPausa.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
               </Grupo>
             )}
 
@@ -164,7 +171,7 @@ export default async function Estudio() {
                   <span className="text-[13px] text-suave">{listos.length} · <span className="group-open:hidden">ver</span><span className="hidden group-open:inline">ocultar</span></span>
                 </summary>
                 <div className="mt-4 grid gap-2.5">
-                  {listos.map(({ p, m }) => <FilaProyecto key={p.pedido.id} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={[]} />)}
+                  {listos.map(({ p, m }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={[]} />)}
                 </div>
               </details>
             )}

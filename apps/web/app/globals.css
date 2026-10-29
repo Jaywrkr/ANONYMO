@@ -97,6 +97,11 @@ a.tarjeta:hover, .tarjeta-viva:hover { transform: translateY(-3px); box-shadow: 
 .avanza { animation: avanzar 1.8s ease-in-out infinite; }
 html[data-quieto] .flota, html[data-quieto] .late, html[data-quieto] .avanza { animation: none; }
 dialog.dialogo[open] { animation: aparecer .18s ease-out; }
+.aparece { animation: aparecer .35s ease-out both; }
+@keyframes caer { 0% { transform: translateY(-15vh) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(110vh) rotate(var(--giro, 200deg)); opacity: 1; } }
+.cae { animation: caer var(--dura, 2.4s) cubic-bezier(.3,.1,.6,1) var(--demora, 0s) both; }
+@keyframes saludar { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg) translateY(-2px); } 75% { transform: rotate(7deg); } }
+.cara-viva:hover { animation: saludar .6s ease-in-out; }
 @keyframes aparecer { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 }
 /* Ajustes del estudio sobre estilos globales (fuera de capa, para ganarles). */

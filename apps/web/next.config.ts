@@ -11,7 +11,12 @@ const config: NextConfig = {
   serverExternalPackages: ["playwright", "playwright-core", "lighthouse", "@axe-core/playwright"],
   reactStrictMode: true,
   // Precios en la web (web/12): solo si decides publicarlos (PRECIOS_PUBLICOS=1 y TARIFA_HORA).
-  env: { NEXT_PUBLIC_TARIFA: process.env.PRECIOS_PUBLICOS === "1" ? (process.env.TARIFA_HORA ?? "") : "" },
+  // Versión del estudio (sistema/34): hora del build y commit, para verlos en la esquina.
+  env: {
+    NEXT_PUBLIC_TARIFA: process.env.PRECIOS_PUBLICOS === "1" ? (process.env.TARIFA_HORA ?? "") : "",
+    NEXT_PUBLIC_BUILD: new Date().toISOString(),
+    NEXT_PUBLIC_COMMIT: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7),
+  },
   // Fotos y PDFs del cliente (sistema/07): hasta 15 MB por archivo.
   experimental: { serverActions: { bodySizeLimit: "16mb" } },
 };

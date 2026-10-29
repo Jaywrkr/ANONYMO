@@ -19,9 +19,9 @@ async function leer(f: FormData) {
   return { id, quien, motor, nota: String(f.get("nota") ?? "").trim() || undefined };
 }
 
-async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string) {
+async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string, fiesta = false) {
   await exigirEstudio();
-  let destino = `/estudio/${id}?ok=${encodeURIComponent(ok)}`;
+  let destino = `/estudio/${id}?ok=${encodeURIComponent(ok)}${fiesta ? "&fiesta=1" : ""}`;
   try {
     await conNube([id], fn);
   } catch (e) {
@@ -42,7 +42,7 @@ const subirCadaTarea = (id: string) => async (texto: string) => {
 
 export async function accionAprobar(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
-  await correr(id, () => aprobar(id, quien, nota, motor, subirCadaTarea(id), f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.");
+  await correr(id, () => aprobar(id, quien, nota, motor, subirCadaTarea(id), f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.", true);
 }
 
 export async function accionCambiar(f: FormData) {
@@ -231,7 +231,7 @@ export async function accionNuevoProyecto(f: FormData) {
 /** «Que empiecen»: el plan queda aprobado y el equipo trabaja hasta la primera pausa. */
 export async function accionEmpezar(f: FormData) {
   const { id, quien, motor } = await leer(f);
-  await correr(id, () => empezar(id, quien, motor, subirCadaTarea(id)), "El equipo trabajó hasta la primera pausa.");
+  await correr(id, () => empezar(id, quien, motor, subirCadaTarea(id)), "El equipo trabajó hasta la primera pausa.", true);
 }
 
 /** Corregir el plan con palabras antes de empezar: Atlas lo vuelve a leer. */

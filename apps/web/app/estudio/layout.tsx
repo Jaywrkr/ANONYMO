@@ -51,7 +51,7 @@ export default async function LayoutEstudio({ children }: { children: React.Reac
         </Marco>
       </Suspense>
       <Suspense fallback={null}><Avisos /></Suspense>
-      <Trabajando />
+      <Suspense fallback={null}><Trabajando /></Suspense>
     </>
   );
 }

@@ -5,6 +5,7 @@ import { estudioActivo, quienEsta } from "@/lib/estudio";
 import { MARCO_TODO } from "@/lib/espacio";
 import { Cara } from "@/components/estudio/piezas";
 import { Formulario } from "./Formulario";
+import { Version } from "@/components/estudio/Version";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Entrar — Estudio", robots: { index: false, follow: false } };
@@ -28,6 +29,7 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
         <p className="mt-2 text-[15px] text-medio">El estudio de Jay y Luna. Entra con tu clave.</p>
         <Formulario a={a} />
       </main>
+      <Version className="fixed bottom-2.5 right-4" />
     </div>
   );
 }
