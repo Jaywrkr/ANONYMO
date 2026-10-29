@@ -116,7 +116,7 @@ function PiePublico() {
 }
 
 /** Rutas internas: el estudio, su entrada y el portal del cliente no llevan el menú ni el pie de la web pública. */
-const esInterna = (ruta: string) => /^\/(estudio|entrar)(\/|$)/.test(ruta);
+const esInterna = (ruta: string) => /^\/(estudio|entrar|imprimir)(\/|$)/.test(ruta);
 const esPortal = (ruta: string) => /^\/portal(\/|$)/.test(ruta);
 
 export function Encabezado() {

@@ -9,7 +9,7 @@ import { useQuieto } from "@/lib/movimiento";
 export function Suave() {
   const quieto = useQuieto();
   // El estudio, su entrada y el portal se usan para trabajar: scroll nativo, sin inercia (sistema/32).
-  const interna = /^\/(estudio|entrar|portal)(\/|$)/.test(usePathname() ?? "");
+  const interna = /^\/(estudio|entrar|portal|imprimir)(\/|$)/.test(usePathname() ?? "");
   useEffect(() => {
     if (quieto || interna) return;
     const lenis = new Lenis({ duration: 1.05, easing: (t) => 1 - Math.pow(1 - t, 4), anchors: true });

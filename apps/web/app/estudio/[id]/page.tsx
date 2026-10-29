@@ -15,15 +15,18 @@ import { sesionConfigurada } from "@/lib/sesion";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
 import { momento, nombreFase, nombreSocio } from "@/lib/camino";
+import { segundosEstimados } from "@/lib/duracion";
+import { MarcaEditor } from "@/components/estudio/MarcaEditor";
+import { dinero } from "@/lib/propuesta";
 import { boton, botonLleno, botonSuave, campo, ESTADO_PROYECTO, exigirEstudio, serif } from "@/lib/estudio";
-import { accionAPapelera, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
+import { accionAPapelera, accionCambiar, accionPresupuesto, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
 export const maxDuration = 300;
 export const metadata = { title: "Proyecto — Estudio", robots: { index: false } };
 
-type Ver = "" | "entregas" | "cliente" | "archivos" | "numeros" | "ajustes";
+type Ver = "" | "entregas" | "cliente" | "archivos" | "marca" | "numeros" | "ajustes";
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ vista?: string; pendiente?: string; ver?: string }> };
 
 const ESTADO_TAREA: Record<string, string> = { lista: "Lista", "en-curso": "Trabajando", "por-empezar": "Por empezar", rehacer: "Corrigiendo" };
@@ -39,7 +42,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
   const { vista, pendiente, ver: verCrudo } = await searchParams;
   if (!existe(id)) notFound();
   const p = leerProyecto(id);
-  const e = espacio(id);
+  const e = espacio(id, p.marca);
   const leToca = responsable(p, p.faseActual);
   const m = momento(p, yo, leToca);
   const nota = leerNota(leerEntrega(id, "6.trofeo"));
@@ -57,13 +60,23 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
   const tramos = calendario(p);
   const preguntasSinResponder = p.plan.preguntas.filter((q) => !(p.pedido.contexto?.respuestas ?? []).some((r) => r.pregunta === q && r.respuesta.trim()));
   // Si viene un comentario para repartir, se abre la pestaña del cliente.
-  const ver = (vista ? "cliente" : ["entregas", "cliente", "archivos", "numeros", "ajustes"].includes(verCrudo ?? "") ? verCrudo : "") as Ver;
+  const ver = (vista ? "cliente" : ["entregas", "cliente", "archivos", "marca", "numeros", "ajustes"].includes(verCrudo ?? "") ? verCrudo : "") as Ver;
 
   // Vista previa del reparto de un comentario del cliente.
   const decision = vista ? await repartir(vista, p.plan) : undefined;
   const reparto = decision?.tareas ?? [];
   const arrastra = vista ? dependientes(reparto, p.plan.tareas) : [];
   const conTarea = [...new Set(p.plan.tareas.map((t) => t.split(".")[1]))];
+  // Hex que ya usó el equipo en sus entregas (Mira, Orla, Rhea…), para tomarlos con un toque.
+  const encontrados = ver === "marca" ? (() => {
+    const vistos = new Map<string, string>();
+    for (const t of p.plan.tareas) {
+      const en = p.tareas[t] === "lista" ? leerEntrega(id, t) : undefined;
+      for (const h of en?.contenido.match(/#[0-9a-fA-F]{6}\b/g) ?? []) if (!vistos.has(h.toLowerCase())) vistos.set(h.toLowerCase(), agentePorId(en!.agente)?.nombre ?? "");
+    }
+    return [...vistos].map(([hex, de]) => ({ hex, de }));
+  })() : [];
+  const cortadas = p.plan.tareas.filter((t) => p.tareas[t] === "lista" && leerEntrega(id, t)?.datos?.cortada) as TareaId[];
   const comunes = <><input type="hidden" name="id" value={id} /><input type="hidden" name="motor" value="" /></>;
 
   const PESTANAS: { id: Ver; nombre: string; cuenta?: number }[] = [
@@ -71,6 +84,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
     { id: "entregas", nombre: "Entregas", cuenta: m.hechas },
     { id: "cliente", nombre: "Cliente", cuenta: pendientesPortal.length + preguntasSinResponder.length || undefined },
     { id: "archivos", nombre: "Archivos", cuenta: archivos.length || undefined },
+    { id: "marca", nombre: "Marca", cuenta: p.marca?.colores.length || undefined },
     { id: "numeros", nombre: "Números" },
     { id: "ajustes", nombre: "Ajustes" },
   ];
@@ -101,7 +115,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
       {!p.papelera && p.estado !== "plan" && (
         <section aria-label="Ahora" className={`mt-6 overflow-hidden rounded-[22px] ${m.tono === "toca" || m.tono === "cortado" ? "bg-tinta text-white" : m.tono === "listo" ? "bg-[#e7f5ec]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]"}`}>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-5 p-6 md:p-8">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[min(100%,20rem)] flex-1">
               <p className={`flex items-center gap-2 text-[12px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/60" : "text-suave"}`}>
                 <i className={`h-1.5 w-1.5 rounded-full ${m.tono === "vivo" ? "late bg-vivo" : m.tono === "toca" || m.tono === "otro" || m.tono === "cortado" ? "late bg-urgente" : "bg-suave"}`} />
                 Ahora · fase {m.fase.n} de {m.fase.de}: {m.fase.nombre}
@@ -133,6 +147,21 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           )}
         </section>
       )}
+      {cortadas.length > 0 && !p.papelera && (
+        <section aria-label="Entregas cortadas" className="mt-4 grid gap-2 rounded-[18px] bg-[#fff4e8] p-4 shadow-[inset_0_0_0_1px_rgba(255,90,31,.2)] md:p-5">
+          <p className="text-[14px] font-medium text-[#8a3a0c]">{cortadas.length === 1 ? "Una entrega quedó cortada" : `${cortadas.length} entregas quedaron cortadas`}: al agente se le acabó el espacio antes de terminar.</p>
+          {cortadas.map((t) => (
+            <form key={t} action={accionCambiar} className="flex flex-wrap items-center gap-3">
+              {comunes}
+              <input type="hidden" name="agente" value={t.split(".")[1]} />
+              <input type="hidden" name="nota" value="Tu entrega anterior quedó cortada antes de terminar. Entrégala completa, con todas sus secciones, más concisa si hace falta, y cierra con el bloque final." />
+              <Cara id={t.split(".")[1]} tam={26} titulo={false} />
+              <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="text-[14px] underline underline-offset-4">{agentePorId(t.split(".")[1])?.nombre} · {contratoPorId(t)?.entrega}</Link>
+              <Enviar className="ml-auto inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${agentePorId(t.split(".")[1])?.nombre} la completa…`} proyecto={id} largo />
+            </form>
+          ))}
+        </section>
+      )}
       {!p.papelera && p.estado === "plan" && <div className="mt-6"><PlanAtlas p={p} conIA={!!process.env.ANTHROPIC_API_KEY} /></div>}
 
       {/* Pestañas */}
@@ -154,11 +183,23 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* RESUMEN */}
         {ver === "" && (
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <EquipoVivo inicial={{ id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas }} entregas={Object.fromEntries(p.plan.tareas.map((t) => [t, contratoPorId(t)?.entrega ?? ""]))} />
+            <EquipoVivo inicial={{ id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas, inicios: p.inicios ?? {}, estimados: Object.fromEntries(p.plan.tareas.map((t) => [t, segundosEstimados(t)])) }} entregas={Object.fromEntries(p.plan.tareas.map((t) => [t, contratoPorId(t)?.entrega ?? ""]))} />
             <div className="grid content-start gap-5">
               <Link href={`/estudio/${id}?ver=cliente#anotar`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
                 <Cara id="atlas" tam={40} titulo={false} />
                 <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">¿El cliente dijo algo?</span><span className="block text-[13px] text-medio">Anótalo y Atlas se lo pasa a quien corresponde.</span></span>
+                <span className="text-suave transition group-hover:translate-x-0.5">→</span>
+              </Link>
+              {(p.tareas["1.ledger"] === "lista" || p.propuesta) && (
+                <Link href={`/estudio/${id}/propuesta`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
+                  <Cara id="ledger" tam={40} titulo={false} />
+                  <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">La propuesta para el cliente</span><span className="block text-[13px] text-medio">{p.propuesta ? "Editada. Ábrela para cambiarla o descargarla." : "Borrador listo con precios y quiénes somos. Edítalo y descárgalo."}</span></span>
+                  <span className="text-suave transition group-hover:translate-x-0.5">→</span>
+                </Link>
+              )}
+              <Link href={`/estudio/${id}?ver=marca`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
+                <span className="flex shrink-0 -space-x-2">{(p.marca?.colores.length ? p.marca.colores.slice(0, 4).map((c) => c.hex) : ["#1a1816", "#e7e3da", "#f4f1eb"]).map((h, i) => <i key={i} className="h-9 w-9 rounded-full shadow-[0_0_0_2px_#fff]" style={{ background: h }} />)}</span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">Marca del cliente</span><span className="block text-[13px] text-medio">{p.marca?.colores.length ? `${p.marca.colores.length} colores · ${p.marca.fuentes.length} fuentes` : "Sin definir: se usan los colores de Anonymo."}</span></span>
                 <span className="text-suave transition group-hover:translate-x-0.5">→</span>
               </Link>
               <details className={`${tarjeta} group`}>
@@ -216,6 +257,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                               <span className={`ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-[11px] ${CHIP_TAREA[est]}`}>{ESTADO_TAREA[est]}</span>
                             </span>
                             <span className={`${serif} mt-3 block text-[23px] leading-[1.08]`}>{c.entrega}</span>
+                            {en?.datos?.cortada ? <span className="mt-2 inline-flex rounded-full bg-[#fff1e6] px-2.5 py-1 text-[11px] text-[#b2450f]">Quedó cortada</span> : null}
                             {en?.dice ? <span className="mt-2 line-clamp-3 block text-[14px] leading-snug text-medio">“{en.dice}”</span> : <span className="mt-2 block text-[13px] text-suave">{est === "por-empezar" ? "Todavía no le toca." : "En camino."}</span>}
                           </span>
                           {en && <span className="mt-auto border-t border-[#f2eee8] px-5 py-2.5 text-[12px] text-suave">Versión {en.version} · {hace(en.creado)}</span>}
@@ -370,12 +412,20 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             <form action={accionSubir} className={`${tarjeta} grid content-start gap-3`}>
               {comunes}
               <p className={`${serif} text-[22px] leading-tight`}>Agregar archivos</p>
-              <p className="-mt-2 text-[13px] text-medio">Mira, Orla y los visuales los ven en su próxima entrega.</p>
-              <ZonaArchivos limiteMB={enLinea ? 4 : undefined} />
+              <p className="-mt-2 text-[13px] text-medio">Todo el equipo los ve en su próxima entrega: imágenes, PDF y videos (de cada video se sacan cuadros para que lo vean).</p>
+              <ZonaArchivos nube={enLinea} />
               <label className="sr-only" htmlFor="nota-archivos">Qué es</label>
               <input id="nota-archivos" name="nota" placeholder="Qué es (ej.: fotos del consultorio)" className={campo} />
               <div><Enviar className={botonLleno} texto="Subir" trabajando="Subiendo…" /></div>
             </form>
+          </div>
+        )}
+
+        {/* MARCA */}
+        {ver === "marca" && (
+          <div className="max-w-5xl">
+            <p className="mb-5 max-w-2xl text-[15px] text-medio">{p.marca?.colores.length ? "La marca de este cliente. Todo el equipo la usa tal cual, y el proyecto se tiñe con su color principal." : "Aún no hay marca definida: el proyecto usa los colores de Anonymo. Cuando la definas, el equipo la usa tal cual y el proyecto se tiñe con ella."}</p>
+            <MarcaEditor id={id} marca={p.marca} imagenes={archivos.filter((a) => esImagen(a.nombre)).map((a) => ({ nombre: a.nombre, nota: a.nota }))} encontrados={encontrados} />
           </div>
         )}
 
@@ -384,10 +434,27 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           <div className="grid gap-5 lg:grid-cols-3">
             <div className={tarjeta}>
               <p className="text-[13px] font-medium">Precio para el cliente</p>
-              <p className={`${serif} mt-1 text-[48px] leading-none`}>{b.precio !== undefined ? `$${b.precio.toLocaleString("es-EC")}` : `${(b.base ?? 0) + b.extra} h`}</p>
-              <p className="mt-2 text-[13px] text-medio">Base de Ledger: {b.base ?? "sin definir"} h{b.extra ? ` · cambios por cobrar: +${b.extra} h` : ""}{b.precio === undefined && !b.tarifa ? " · pon TARIFA_HORA en Vercel para ver el precio en dólares" : ""}</p>
+              <p className={`${serif} mt-1 text-[48px] leading-none`}>{b.precio !== undefined ? dinero(b.precio) : `${b.total ?? 0} h`}</p>
+              <p className="mt-2 text-[13px] text-medio">
+                {b.deJay ? `Con tus ${b.base} h` : `Con las ${b.base ?? "—"} h de Ledger`}{b.extra ? ` + ${b.extra} h de cambios` : ""}{b.tarifa ? ` · $${b.tarifa}/h` : " · pon tu tarifa para verlo en dólares"}
+              </p>
+              {b.deJay && b.estimadas !== undefined && <p className="mt-1 text-[12px] text-suave">Ledger había estimado {b.estimadas} h.</p>}
               {b.ajustes.length > 0 && <ul className="mt-3 grid gap-1 text-[13px]">{b.ajustes.map((a) => <li key={a.fecha + a.tarea}>+{a.horas} h {nombreTarea(a.tarea as TareaId)} <span className="text-suave">· {a.motivo}</span></li>)}</ul>}
+              <form action={accionPresupuesto} className="mt-4 grid gap-2 border-t border-[#f2eee8] pt-4">
+                {comunes}
+                <p className="text-[13px] font-medium">Tus números mandan</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="grid gap-1 text-[12px] text-suave">Tus horas reales<input name="horasJay" inputMode="decimal" defaultValue={p.presupuesto?.horasJay ?? ""} placeholder={b.estimadas ? `Ledger: ${b.estimadas}` : "Ej.: 35"} className={campo} /></label>
+                  <label className="grid gap-1 text-[12px] text-suave">Tarifa por hora ($)<input name="tarifa" inputMode="decimal" defaultValue={p.presupuesto?.tarifa ?? ""} placeholder={process.env.TARIFA_HORA ? `Por defecto ${process.env.TARIFA_HORA}` : "Ej.: 40"} className={campo} /></label>
+                </div>
+                <p className="text-[12px] text-suave">Vacío = lo de Ledger. Si Ledger vuelve a calcular, respeta tus horas.</p>
+                <div><button className={boton}>Guardar</button></div>
+              </form>
             </div>
+            <Link href={`/estudio/${id}/propuesta`} className={`${tarjeta} group flex flex-col justify-between gap-6 !bg-tinta text-white transition hover:-translate-y-0.5`}>
+              <span><span className="text-[13px] text-white/60">Para el cliente</span><span className={`${serif} mt-1 block text-[32px] leading-[1.02]`}>La propuesta</span><span className="mt-2 block text-[14px] text-white/70">{p.propuesta ? `Editada ${hace(p.propuesta.actualizado)}. Precios, quiénes somos y qué haremos.` : "Un borrador listo con lo que ya sabe el equipo. Edítalo y descárgalo en PDF."}</span></span>
+              <span className="text-[14px] font-medium">{p.propuesta ? "Abrir la propuesta →" : "Ver el borrador →"}</span>
+            </Link>
             <div className={tarjeta}>
               <p className="text-[13px] font-medium">Lo que costó en IA</p>
               <p className={`${serif} mt-1 text-[48px] leading-none`}>${costo.real.toFixed(2)}</p>

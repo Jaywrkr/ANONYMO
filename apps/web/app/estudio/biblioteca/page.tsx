@@ -136,7 +136,7 @@ export default async function Biblioteca({ searchParams }: { searchParams: Promi
                 <span className="flex aspect-[4/3] items-center justify-center bg-[#f4f1eb] p-4 text-center font-mono text-[12px] text-medio break-all">{a.nombre}</span>
               )}
               <span className="flex items-center gap-2 px-4 py-2.5 text-[12px] text-suave">
-                <i className="h-2 w-2 rounded-[2px]" style={{ background: espacio(p.pedido.id).punto }} />
+                <i className="h-2 w-2 rounded-[2px]" style={{ background: espacio(p.pedido.id, p.marca).punto }} />
                 <span className="truncate">{a.nota ?? a.nombre}</span>
                 <span className="ml-auto shrink-0">{p.pedido.cliente}</span>
               </span>

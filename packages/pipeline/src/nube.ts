@@ -162,3 +162,50 @@ export async function borrarRemoto(id: string, f: typeof fetch = fetch): Promise
   if (!r.ok) throw new Error(`No se pudo borrar ${id} en la nube: ${r.status}`);
   return rutas.length;
 }
+
+// ---- Subida directa (sistema/35) ----
+// Vercel corta los pedidos a ~4,5 MB. Para archivos grandes, el navegador sube directo a la nube privada
+// con una URL firmada de un solo uso (en _subidas/), y la acción del estudio la recoge después.
+
+/** Clave de una subida: «<uuid>/<nombre-seguro>». */
+const claveSegura = (clave: string) => {
+  if (!/^[a-f0-9-]{36}\/[a-z0-9][a-z0-9._-]{0,90}$/.test(clave)) throw new Error("Subida no válida.");
+  return clave;
+};
+
+/** URL firmada para que el navegador suba un archivo a _subidas/<clave> (vale unas 2 horas, una vez). */
+export async function firmarSubida(clave: string, f: typeof fetch = fetch): Promise<string> {
+  claveSegura(clave);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/upload/sign/${bucket}/_subidas/${clave}`, { method: "POST", headers: cabeceras(key, { "content-type": "application/json" }), body: "{}" });
+  if (!r.ok) throw new Error(`No se pudo preparar la subida: ${r.status} ${(await r.text()).slice(0, 120)}`);
+  const { url: ruta } = (await r.json()) as { url: string };
+  return `${url}/storage/v1${ruta.startsWith("/") ? "" : "/"}${ruta}`;
+}
+
+/** Recoge una subida: devuelve sus bytes y la borra de _subidas/. */
+export async function recogerSubida(clave: string, f: typeof fetch = fetch): Promise<{ nombre: string; datos: Buffer }> {
+  claveSegura(clave);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/${bucket}/_subidas/${clave}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  if (!r.ok) throw new Error(`No llegó el archivo ${clave.split("/")[1]} (${r.status}). Vuelve a subirlo.`);
+  const datos = Buffer.from(await r.arrayBuffer());
+  await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: [`_subidas/${clave}`] }) }).catch(() => {});
+  return { nombre: clave.split("/")[1], datos };
+}
+
+/** Borra las subidas que nadie recogió en un día (formularios que no se mandaron). */
+export async function limpiarSubidas(f: typeof fetch = fetch): Promise<number> {
+  const { url, key, bucket } = cfg();
+  const lista = async (prefix: string) => {
+    const r = await f(`${url}/storage/v1/object/list/${bucket}`, { method: "POST", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefix, limit: 1000, offset: 0 }) });
+    return r.ok ? ((await r.json()) as { name: string; id: string | null; created_at?: string }[]) : [];
+  };
+  const viejo = Date.now() - 24 * 3600 * 1000;
+  const borrar: string[] = [];
+  for (const carpeta of (await lista("_subidas")).filter((x) => x.id === null))
+    for (const a of await lista(`_subidas/${carpeta.name}`))
+      if (a.id && a.created_at && Date.parse(a.created_at) < viejo) borrar.push(`_subidas/${carpeta.name}/${a.name}`);
+  if (borrar.length) await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: borrar }) });
+  return borrar.length;
+}

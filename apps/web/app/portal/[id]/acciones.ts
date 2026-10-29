@@ -4,6 +4,7 @@ import { aprobar, avisar, comentarioPortal, elegirMotor, guardarArchivo, leerPro
 import { notFound } from "next/navigation";
 import { portalActivo } from "@/lib/estudio";
 import { llevar, traer } from "@/lib/nube";
+import { archivosDe } from "@/lib/subidas";
 
 async function validar(f: FormData) {
   const id = String(f.get("id") ?? "");
@@ -41,12 +42,13 @@ export async function portalComentar(f: FormData) {
 
 export async function portalSubir(f: FormData) {
   const { id, t } = await validar(f);
-  const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0).slice(0, 10);
-  let msj = `Recibimos ${archivos.length} archivo(s). Gracias.`;
+  let msj = "";
   try {
+    const archivos = await archivosDe(f, 12);
+    msj = `Recibimos ${archivos.length} archivo(s). Gracias.`;
     if (!archivos.length) throw new Error("Elige al menos un archivo.");
-    for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), "Subido por el cliente");
-    await avisar({ proyecto: id, cliente: leerProyecto(id).pedido.cliente, tipo: "comentario", titulo: `Subió ${archivos.length} archivo(s)`, texto: archivos.map((a) => a.name).join(", ") });
+    for (const a of archivos) guardarArchivo(id, a.nombre, a.datos, "Subido por el cliente");
+    await avisar({ proyecto: id, cliente: leerProyecto(id).pedido.cliente, tipo: "comentario", titulo: `Subió ${archivos.length} archivo(s)`, texto: archivos.map((a) => a.nombre).join(", ") });
   } catch (e) {
     msj = (e as Error).message;
   }

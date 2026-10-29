@@ -11,7 +11,7 @@ export async function traer(...ids: string[]) {
 /** Baja todos los proyectos y las solicitudes (no la analítica: tiene su propia página). */
 export async function traerTodo() {
   if (!nubeActiva()) return;
-  await traer(...(await proyectosEnNube()).filter((id) => id !== "_analitica"), "_solicitudes");
+  await traer(...(await proyectosEnNube()).filter((id) => id !== "_analitica" && id !== "_subidas"), "_solicitudes");
 }
 
 /** Sube estos proyectos tal como quedaron. */

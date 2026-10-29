@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { PEDIDOS } from "@anonymo/agentes";
 import type { Momento } from "@/lib/camino";
+import type { Marca } from "@anonymo/pipeline";
 import { espacio } from "@/lib/espacio";
 import { CaminoMini } from "./Camino";
 import { Caras, hace } from "./piezas";
@@ -15,8 +16,8 @@ const BOTON: Record<Momento["tono"], string> = {
   listo: "bg-white text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)]",
 };
 
-export function FilaProyecto({ id, cliente, tipo, m, destino, caras, cuando }: { id: string; cliente: string; tipo: keyof typeof PEDIDOS; m: Momento; destino: string; caras: string[]; cuando?: string }) {
-  const e = espacio(id);
+export function FilaProyecto({ id, cliente, tipo, m, destino, caras, cuando, marca }: { id: string; cliente: string; tipo: keyof typeof PEDIDOS; m: Momento; destino: string; caras: string[]; cuando?: string; marca?: Marca }) {
+  const e = espacio(id, marca);
   return (
     <Link
       href={destino}

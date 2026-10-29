@@ -1,4 +1,4 @@
-import { borrarProyecto, borrarRemoto, listarPapelera, nubeActiva } from "@anonymo/pipeline";
+import { borrarProyecto, borrarRemoto, limpiarSubidas, listarPapelera, nubeActiva } from "@anonymo/pipeline";
 import { PEDIDOS } from "@anonymo/agentes";
 import { traerTodo } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
@@ -22,6 +22,8 @@ export default async function Papelera() {
       borrarProyecto(p.pedido.id);
     } catch {}
   }
+  // Y las subidas directas que nadie recogió (formularios que no se mandaron).
+  if (nubeActiva()) await limpiarSubidas().catch(() => 0);
   const lista = listarPapelera();
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
@@ -34,7 +36,7 @@ export default async function Papelera() {
         <div className="mamposteria mt-8">
           {lista.map(({ p, quedan }) => (
             <article key={p.pedido.id} className="tarjeta">
-              <span className="block h-1.5 opacity-50" style={{ background: espacio(p.pedido.id).punto }} />
+              <span className="block h-1.5 opacity-50" style={{ background: espacio(p.pedido.id, p.marca).punto }} />
               <div className="p-5">
                 <p className="text-[12px] text-suave">{PEDIDOS[p.pedido.tipo].nombre} · la mandó {p.papelera!.quien === "luna" ? "Luna" : "Jay"} {hace(p.papelera!.fecha)}</p>
                 <p className={`${serif} mt-1 text-[28px] leading-[1.02]`}>{p.pedido.cliente}</p>

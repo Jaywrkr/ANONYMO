@@ -17,8 +17,8 @@ const config: NextConfig = {
     NEXT_PUBLIC_BUILD: new Date().toISOString(),
     NEXT_PUBLIC_COMMIT: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7),
   },
-  // Fotos y PDFs del cliente (sistema/07): hasta 15 MB por archivo.
-  experimental: { serverActions: { bodySizeLimit: "16mb" } },
+  // Archivos del cliente: en tu máquina viajan con el formulario (hasta 25 MB cada uno); en línea suben directo a la nube (sistema/35).
+  experimental: { serverActions: { bodySizeLimit: "120mb" }, proxyClientMaxBodySize: "120mb" },
 };
 
 export default config;

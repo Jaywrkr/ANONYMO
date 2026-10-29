@@ -29,7 +29,7 @@ export default async function Portal({ params, searchParams }: Props) {
   if (portalActivo()) await traer(id);
   if (!portalActivo() || !existe(id) || !tokenValido(id, t)) notFound();
   const p = leerProyecto(id);
-  const e = espacio(id);
+  const e = espacio(id, p.marca);
   const visibles = p.plan.tareas.filter((x) => !contratoPorId(x)?.interna) as TareaId[];
   const listas = visibles.filter((x) => p.tareas[x] === "lista").length;
   const abierta = ver ? (ver.replace("-", ".") as TareaId) : undefined;
@@ -137,7 +137,7 @@ export default async function Portal({ params, searchParams }: Props) {
             <form action={portalSubir} className="grid gap-3 rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
               {ocultos}
               <span className={`${serif} text-[24px] leading-tight`}>{tx.archivos}</span>
-              <ZonaArchivos limiteMB={nubeActiva() ? 4 : undefined} texto={tx.archivos} en={p.pedido.idioma === "en"} />
+              <ZonaArchivos nube={nubeActiva()} proyecto={id} t={t} texto={tx.archivos} en={p.pedido.idioma === "en"} />
               <div><button className={botonLleno}>{tx.enviarArch}</button></div>
             </form>
           </section>

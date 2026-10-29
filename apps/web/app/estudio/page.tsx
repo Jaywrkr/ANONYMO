@@ -42,7 +42,8 @@ export default async function Estudio() {
   const solicitudes = listarSolicitudes();
   const filas = proyectos.map((p) => {
     const m = momento(p, yo, responsable(p, p.faseActual));
-    const destino = p.estado === "esperando" && m.teToca ? `/estudio/${p.pedido.id}/revisar` : `/estudio/${p.pedido.id}`;
+    // Siempre al proyecto: ahí se ve cómo va todo y qué te toca (sistema/35).
+    const destino = `/estudio/${p.pedido.id}`;
     const caras = m.trabajando.length ? m.trabajando : p.estado === "esperando" ? Object.keys(p.tareas).filter((t) => t.startsWith(`${p.faseActual}.`)).map((t) => t.split(".")[1]) : p.estado === "plan" ? ["atlas"] : [];
     return { p, m, destino, caras };
   });
@@ -113,11 +114,11 @@ export default async function Estudio() {
                   <p className="text-[15px] text-medio">Nada espera tu decisión. Cuando el equipo termine una fase, aparece aquí.</p>
                 </div>
               )}
-              {teToca.map(({ p, m, destino, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={destino} caras={caras} />)}
+              {teToca.map(({ p, m, destino, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={destino} caras={caras} />)}
               {delPortal.map(({ p, n }) => (
                 <Link key={p.pedido.id + n.fecha} href={`/estudio/${p.pedido.id}?ver=cliente`} className="group grid items-center gap-x-6 gap-y-3 rounded-[18px] bg-[#fff6ec] p-4 pl-5 shadow-[0_0_0_1px_rgba(255,90,31,.15)] transition hover:-translate-y-0.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]">
                   <span className="flex min-w-0 items-center gap-3">
-                    <i aria-hidden className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: espacio(p.pedido.id).punto }} />
+                    <i aria-hidden className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: espacio(p.pedido.id, p.marca).punto }} />
                     <span className="min-w-0"><span className="block truncate font-serif text-[24px] leading-[1.05]">{p.pedido.cliente}</span><span className="text-[12px] text-suave">Escribió en su portal · {hace(n.fecha)}</span></span>
                   </span>
                   <span className="line-clamp-2 font-serif text-[19px] leading-snug">“{n.texto}”</span>
@@ -149,18 +150,18 @@ export default async function Estudio() {
 
             {alOtro.length > 0 && (
               <Grupo id="al-otro" titulo={`Le toca a ${nombreSocio(otro)}`} cuenta={alOtro.length} ayuda={`Fases que aprueba ${nombreSocio(otro)}. Si decides tú, queda a tu nombre.`}>
-                {alOtro.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+                {alOtro.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
               </Grupo>
             )}
 
             <Grupo id="trabajando" titulo="El equipo está trabajando" cuenta={trabajando.length} ayuda="No tienes que hacer nada: te avisa cuando termine la fase.">
               {trabajando.length === 0 && <p className="text-[14px] text-suave">Nadie está trabajando ahora.</p>}
-              {trabajando.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+              {trabajando.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
             </Grupo>
 
             {enPausa.length > 0 && (
               <Grupo id="pausa" titulo="En pausa" cuenta={enPausa.length} ayuda="Nadie trabaja en estos hasta que los reanudes.">
-                {enPausa.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+                {enPausa.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
               </Grupo>
             )}
 
@@ -171,7 +172,7 @@ export default async function Estudio() {
                   <span className="text-[13px] text-suave">{listos.length} · <span className="group-open:hidden">ver</span><span className="hidden group-open:inline">ocultar</span></span>
                 </summary>
                 <div className="mt-4 grid gap-2.5">
-                  {listos.map(({ p, m }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={[]} />)}
+                  {listos.map(({ p, m }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={[]} />)}
                 </div>
               </details>
             )}

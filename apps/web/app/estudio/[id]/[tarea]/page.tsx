@@ -8,7 +8,8 @@ import { boton, botonLleno, etiqueta, exigirEstudio, serif } from "@/lib/estudio
 import { html } from "@/lib/markdown";
 import { Cara, hace } from "@/components/estudio/piezas";
 import { Confirmar } from "@/components/estudio/Confirmar";
-import { accionRestaurar } from "../../acciones";
+import { accionCambiar, accionRestaurar } from "../../acciones";
+import { Enviar } from "../../nuevo/Enviar";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,7 +42,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
   return (
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
       <Link href={`/estudio/${id}`} className="inline-flex min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
-        <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(id).punto }} /> ← {p.pedido.cliente}
+        <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(id, p.marca).punto }} /> ← {p.pedido.cliente}
       </Link>
       <div className="mt-4 grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
@@ -58,6 +59,21 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
 
         <article className="min-w-0 max-w-[74ch]">
           <h1 className={`${serif} text-[clamp(38px,4.6vw,64px)] leading-[0.98]`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
+          {e && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <a href={`/imprimir/${id}/${tarea}${v ? `?v=${v}` : ""}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#f1ede6] px-4 text-[13px] text-medio transition hover:bg-[#e9e3d9] hover:text-tinta">Exportar · PDF o texto ↗</a>
+            </div>
+          )}
+          {e?.datos?.cortada && !v ? (
+            <form action={accionCambiar} className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-[#fff4e8] p-4 shadow-[inset_0_0_0_1px_rgba(255,90,31,.2)]">
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="motor" value="" />
+              <input type="hidden" name="agente" value={a.id} />
+              <input type="hidden" name="nota" value="Tu entrega anterior quedó cortada antes de terminar. Entrégala completa, con todas sus secciones, más concisa si hace falta, y cierra con el bloque final." />
+              <span className="min-w-0 flex-1 text-[14px] text-[#8a3a0c]">Esta entrega quedó cortada: a {a.nombre} se le acabó el espacio antes de terminar.</span>
+              <Enviar className="inline-flex min-h-10 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white" texto="Que la complete" trabajando={`${a.nombre} la completa…`} proyecto={id} largo />
+            </form>
+          ) : null}
           {!e && <p className="mt-3 text-[16px] text-medio">{a.nombre} todavía no trabajó en esto. Aparece aquí cuando el equipo llegue a la fase {fase.nombre}.</p>}
           {actual && anteriores.length > 0 && (
             <nav aria-label="Versiones" className="mt-5 flex flex-wrap items-center gap-1.5">
@@ -97,7 +113,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
               </pre>
             </div>
           ) : (
-            e && <div className="entrega mt-8" dangerouslySetInnerHTML={{ __html: html(e.contenido) }} />
+            e && <div className="entrega mt-8" dangerouslySetInnerHTML={{ __html: html(e.datos?.cortada ? e.contenido.replace(/\n+> ⚠️[\s\S]*$/, "") : e.contenido) }} />
           )}
         </article>
       </div>

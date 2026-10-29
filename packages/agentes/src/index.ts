@@ -119,7 +119,7 @@ export * from "./en.ts";
 
 /** Horas típicas por fase (mínimo, máximo). Ledger las usa para estimar; la web, para mostrar rangos de precio. */
 // Con producción con IA (sistema/29): una web completa con dirección de arte aprobada ≈ 3 días de Jay.
-export const HORAS_FASE: Record<number, [number, number]> = { 1: [2, 4], 2: [3, 6], 3: [6, 12], 4: [16, 28], 5: [8, 16], 6: [2, 4], 7: [2, 4] };
+export const HORAS_FASE: Record<number, [number, number]> = { 1: [1, 3], 2: [2, 4], 3: [6, 10], 4: [12, 20], 5: [3, 6], 6: [1, 2], 7: [1, 2] };
 
 /** Rango de precio de una fase con una tarifa por hora, redondeado a 50. */
 export function rangoPrecio(fase: number, tarifa: number): [number, number] {

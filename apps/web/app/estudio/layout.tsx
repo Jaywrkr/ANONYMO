@@ -29,8 +29,14 @@ export default async function LayoutEstudio({ children }: { children: React.Reac
   let solicitudes = 0;
   try { solicitudes = nubeActiva() ? await solicitudesEnNube() : listarSolicitudes().length; } catch {}
   const tetoca = vivos.filter((p) => mio(p).teToca).length + vivos.reduce((s, p) => s + (p.pendientesCliente?.length ?? 0), 0) + solicitudes;
+  // La campana (sistema/35): lo pendiente, con su enlace al proyecto (no directo a revisar).
+  const avisos = [
+    ...vivos.filter((p) => mio(p).teToca).map((p) => ({ href: `/estudio/${p.pedido.id}`, titulo: p.pedido.cliente, detalle: mio(p).ahora, punto: espacio(p.pedido.id, p.marca).punto })),
+    ...vivos.flatMap((p) => (p.pendientesCliente ?? []).map((n) => ({ href: `/estudio/${p.pedido.id}?ver=cliente#conversacion`, titulo: p.pedido.cliente, detalle: `Escribió en su portal: «${n.texto.slice(0, 90)}»`, punto: espacio(p.pedido.id, p.marca).punto }))),
+    ...(solicitudes ? [{ href: "/estudio#te-toca", titulo: solicitudes === 1 ? "Un pedido nuevo desde la web" : `${solicitudes} pedidos nuevos desde la web`, detalle: "Atlas puede armar el plan con un toque.", punto: "#ff5a1f" }] : []),
+  ];
   const espacios: EspacioBarra[] = vivos.map((p) => {
-    const e = espacio(p.pedido.id);
+    const e = espacio(p.pedido.id, p.marca);
     const caras = Object.entries(p.tareas)
       .filter(([t, est]) => est === "en-curso" || (p.estado === "esperando" && est === "lista" && t.startsWith(`${p.faseActual}.`)))
       .map(([t]) => t.split(".")[1]);
@@ -46,7 +52,7 @@ export default async function LayoutEstudio({ children }: { children: React.Reac
   return (
     <>
       <Suspense fallback={<div className="estudio-marco min-h-dvh" />}>
-        <Marco yo={yo} conSalir={sesionConfigurada()} espacios={espacios} tetoca={tetoca} papelera={todos.length - vivos.length}>
+        <Marco yo={yo} conSalir={sesionConfigurada()} espacios={espacios} tetoca={tetoca} avisos={avisos} papelera={todos.length - vivos.length}>
           {children}
         </Marco>
       </Suspense>
