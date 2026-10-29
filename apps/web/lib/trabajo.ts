@@ -80,7 +80,8 @@ export async function trabajarVuelta(id: string, origen: string) {
 }
 
 async function vuelta(id: string, origen: string) {
-  const plazo = Date.now() + PLAZO_MS;
+  const inicioVuelta = Date.now();
+  const plazo = inicioVuelta + PLAZO_MS;
   await traer(id);
   // Desde aquí, lo que cambie en disco es de esta vuelta: es lo único que se sube al final.
   const inicio = Date.now();
@@ -94,10 +95,14 @@ async function vuelta(id: string, origen: string) {
   escribirVivo(id, vivo);
   await subirVivo(id);
   let ultimaSubida = 0;
+  let ultimoLog = 0;
+  // Registro en Vercel (sistema/39): qué hizo cada vuelta, para poder revisar si algo falla.
+  const log = (texto: string) => console.log(`[vuelta ${id} ${vivo.vuelta.slice(0, 6)}] ${Math.round((Date.now() - inicioVuelta) / 1000)}s ${texto}`);
   const latido = (t: TareaId, x: { fase: Vivo["fase"]; palabras: number }) => {
     Object.assign(vivo, { tarea: t, fase: x.fase, palabras: x.palabras, latido: ahora() });
     escribirVivo(id, vivo);
     if (Date.now() - ultimaSubida > 4000) { ultimaSubida = Date.now(); void subirVivo(id); }
+    if (Date.now() - ultimoLog > 30_000) { ultimoLog = Date.now(); log(`${t} ${x.fase} · ${x.palabras} palabras`); }
   };
   // Al empezar cada agente, la nube sabe quién trabaja (la barra y la oficina lo muestran).
   const aviso = async (texto: string) => {
@@ -111,6 +116,7 @@ async function vuelta(id: string, origen: string) {
     }
   };
 
+  log(`empieza · ${Object.entries(p.tareas).filter(([, e]) => e !== "lista").map(([t]) => t).join(", ")}`);
   let fallo: string | undefined;
   try {
     await avanzar(id, elegirMotor({ simulado: p.prueba }), aviso, { max: 1, plazo, latido });
@@ -137,6 +143,10 @@ async function vuelta(id: string, origen: string) {
     } catch (e) {
       console.error("[trabajo] no se pudo subir", id, (e as Error).message);
     }
+  }
+  {
+    const q = leerProyecto(id);
+    log(`termina · estado ${q.estado}${fallo ? ` · error: ${fallo.slice(0, 200)}` : ""}${q.revision ? ` · revisar ${q.revision.tarea}` : ""}${Object.keys(q.parciales ?? {}).length ? ` · a medias ${Object.keys(q.parciales ?? {}).join(",")}` : ""}${Object.keys(q.reintentos ?? {}).length ? ` · directo ${Object.keys(q.reintentos ?? {}).join(",")}` : ""}`);
   }
   vivo.fin = ahora();
   vivo.latido = vivo.fin;

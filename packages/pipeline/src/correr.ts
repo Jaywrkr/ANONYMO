@@ -130,19 +130,25 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
-        marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
+        marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
       const { uso, pendiente, ...resto } = r;
       // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
       Object.assign(p, fusionar(p, leerProyecto(id)));
       // Se acabó el tiempo de la vuelta: lo escrito queda guardado y la próxima vuelta sigue desde ahí.
       if (pendiente !== undefined) {
         if (uso) p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...uso, fecha: new Date().toISOString() }] };
-        // Si la IA no avanzó nada en esta vuelta (se colgó), no se insiste para siempre: se detiene y se avisa.
+        // Si no escribió nada (se le fue la vuelta pensando o buscando), la próxima va directo a escribir.
+        // Solo si tampoco así avanza, se detiene y se avisa: nunca se insiste para siempre.
         const antes = (sigue ?? "").trim().length;
         if (pendiente.trim().length - antes < 1) {
-          p.parciales = { ...p.parciales, [t]: pendiente.length >= antes ? pendiente : sigue ?? "" };
+          const n = (p.reintentos?.[t] ?? 0) + 1;
+          p.reintentos = { ...p.reintentos, [t]: n };
+          if (sigue) p.parciales = { ...p.parciales, [t]: sigue };
           guardarProyecto(p);
-          throw new Error(`${agentePorId(c.agente)?.nombre} no avanzó en esta vuelta: la IA no respondió a tiempo. Lo escrito está guardado; continúa en un momento.`);
+          if (n > 2) throw new Error(`${agentePorId(c.agente)?.nombre} no alcanzó a escribir en ${n} vueltas seguidas: la IA no respondió a tiempo. Continúa en un momento.`);
+          bitacora(id, `${agentePorId(c.agente)?.nombre} se pasó la vuelta pensando sin escribir: la próxima va directo a escribir.`);
+          await aviso(`  ⋯ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} (directo a escribir)`);
+          return p;
         }
         p.parciales = { ...p.parciales, [t]: pendiente };
         guardarProyecto(p);
@@ -158,6 +164,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       if (p.inicios) delete p.inicios[t];
       if (p.vueltas) delete p.vueltas[t];
       if (p.parciales) delete p.parciales[t];
+      if (p.reintentos) delete p.reintentos[t];
       // Presupuesto vivo: Ledger fija las horas base; si otro agente suma horas, Ledger vuelve a calcular.
       const extra = Number(r.datos?.horasExtra ?? 0);
       // Cuando Ledger da un total nuevo, ese total ya incluye los ajustes anteriores.
@@ -420,6 +427,7 @@ export function fusionar(vuelta: Proyecto, nube: Proyecto): Proyecto {
     inicios: vuelta.inicios,
     vueltas: vuelta.vueltas,
     parciales: vuelta.parciales,
+    reintentos: vuelta.reintentos,
     faseActual: vuelta.faseActual,
     revision: vuelta.revision,
     puertas: vuelta.puertas,

@@ -206,3 +206,48 @@ test("las direcciones se leen del json aunque vengan con ruido", () => {
   assert.equal(d[0].tipografias.titulos, "Frauncesscript");
   assert.equal(d[0].estilo, "editorial");
 });
+
+test("si una vuelta se va entera pensando, la siguiente va directo a escribir", async () => {
+  let pedidos = 0;
+  const cuerpos: Record<string, unknown>[] = [];
+  const srv = http.createServer((req, res) => {
+    let b = ""; req.on("data", (d) => (b += d)); req.on("end", async () => {
+      cuerpos.push(JSON.parse(b)); pedidos++;
+      res.writeHead(200, { "content-type": "text/event-stream" });
+      const env = (e: object) => res.write(`event: x\ndata: ${JSON.stringify(e)}\n\n`);
+      env({ type: "message_start", message: { usage: { input_tokens: 10, output_tokens: 0 } } });
+      if (pedidos === 1) {
+        env({ type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "" } });
+        for (let i = 0; i < 30 && !res.destroyed; i++) { env({ type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "hmm " } }); await new Promise((x) => setTimeout(x, 100)); }
+        res.end();
+      } else {
+        env({ type: "content_block_start", index: 0, content_block: { type: "text", text: "" } });
+        env({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "# Web\n\nListo el código.\n\nDICE: Hecho.\nNECESITA: —" } });
+        env({ type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 20 } });
+        res.end();
+      }
+    });
+  });
+  await new Promise<void>((ok) => srv.listen(0, ok));
+  process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${(srv.address() as { port: number }).port}`;
+  process.env.ANTHROPIC_API_KEY = "sk-ant-prueba-falsa";
+  try {
+    const ped = pedido("directo");
+    crear(ped, planificar(ped, { tareas: ["4.vector"], preguntas: [] }), "plan");
+    await empezar("directo", "jay", real, silencio, { max: 0 });
+    let p = await avanzar("directo", real, silencio, { max: 1, plazo: Date.now() + 1000 });
+    assert.equal(p.tareas["4.vector"], "en-curso");
+    assert.equal(p.reintentos?.["4.vector"], 1);
+    assert.equal(p.error, undefined);
+    p = await avanzar("directo", real, silencio, { max: 1 });
+    assert.equal(p.tareas["4.vector"], "lista");
+    assert.equal(p.reintentos?.["4.vector"], undefined);
+    // La segunda vuelta no busca en la web y no pide pensar a fondo.
+    assert.equal(cuerpos[1].tools, undefined);
+    assert.match(JSON.stringify(cuerpos[1].messages), /Escribe la entrega ya/);
+  } finally {
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_BASE_URL;
+    srv.close();
+  }
+});

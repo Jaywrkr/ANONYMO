@@ -250,6 +250,8 @@ export interface Proyecto {
   parciales?: Record<string, string>;
   /** El último error al trabajar (por ejemplo, la API no respondió): se muestra y se puede continuar. */
   error?: { mensaje: string; tarea?: string; fecha: string };
+  /** Vueltas seguidas en que un agente no alcanzó a escribir nada (sistema/39): la siguiente va directo a escribir. */
+  reintentos?: Record<string, number>;
   /** Se arrancó con «probar sin gastar IA»: todas las vueltas usan el motor simulado. */
   prueba?: boolean;
   /** Direcciones de diseño antes de construir (sistema/37). */

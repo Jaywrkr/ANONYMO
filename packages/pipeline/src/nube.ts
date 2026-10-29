@@ -243,3 +243,27 @@ export async function subirCambiados(id: string, desde: number, f: typeof fetch 
   }
   return n;
 }
+
+/**
+ * Como espejarProyecto, pero sube solo lo que cambió desde `desde` (sistema/39): una acción que toca un archivo
+ * no vuelve a subir todas las fotos del proyecto. Lo que ya no existe en local se borra en la nube.
+ */
+export async function espejarCambios(id: string, desde: number, f: typeof fetch = fetch): Promise<{ subidos: number; borrados: number }> {
+  idSeguro(id);
+  const { url, key, bucket } = cfg();
+  const base = join(carpeta(), id);
+  if (!existsSync(base)) return { subidos: 0, borrados: 0 };
+  const locales = new Set(archivosLocales(base).map((r) => `${id}/${relative(base, r).split("\\").join("/")}`));
+  if (!locales.size) return { subidos: 0, borrados: 0 };
+  const subidos = await subirCambiados(id, desde, f);
+  const sobran = (await listarRemoto(id, f)).filter((r) => !locales.has(r));
+  if (sobran.length) {
+    const r = await f(`${url}/storage/v1/object/${bucket}`, {
+      method: "DELETE",
+      headers: cabeceras(key, { "content-type": "application/json" }),
+      body: JSON.stringify({ prefixes: sobran }),
+    });
+    if (!r.ok) throw new Error(`No se pudo limpiar ${id} en la nube: ${r.status}`);
+  }
+  return { subidos, borrados: sobran.length };
+}

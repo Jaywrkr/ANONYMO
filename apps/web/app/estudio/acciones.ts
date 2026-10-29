@@ -86,6 +86,8 @@ export async function accionSeguir(f: FormData) {
     // Retoma lo que quedó a medias: limpia el error y lo que quedó «en curso» de una vuelta muerta
     // (si tenía entrega, se rehace; si no, se empieza; lo escrito a medias se conserva y sigue desde ahí).
     const p = leerProyecto(id);
+    // Si falló porque la IA no alcanzó a escribir, esta vez va directo a escribir (sin buscar y pensando poco).
+    if (p.error?.tarea && /no alcanzó a escribir|no avanzó/.test(p.error.mensaje)) p.reintentos = { ...p.reintentos, [p.error.tarea]: 1 };
     delete p.error;
     for (const [t, e] of Object.entries(p.tareas)) {
       if (e !== "en-curso" || p.parciales?.[t]) continue;
