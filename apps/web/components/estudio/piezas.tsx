@@ -11,11 +11,11 @@ export function Cara({ id, tam = 32, apagado = false, flota = false, className =
     <img
       src={caraSvg(id, apagado)}
       alt=""
-      title={titulo ? `${a.nombre} · ${a.rol}` : undefined}
+      title={titulo ? `${a.nombre} · ${a.rol} — “${a.frase}”` : undefined}
       width={tam}
       height={Math.round(tam * 1.083)}
       draggable={false}
-      className={`inline-block shrink-0 select-none ${flota ? "flota" : ""} ${className}`}
+      className={`inline-block shrink-0 select-none ${flota ? "flota" : "cara-viva"} ${className}`}
       style={{ width: tam, height: Math.round(tam * 1.083) }}
     />
   );

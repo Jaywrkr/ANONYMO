@@ -8,6 +8,33 @@ import { useEffect, useState } from "react";
 import { caraSvg } from "@/lib/caras";
 import { MARCO_TODO } from "@/lib/espacio";
 import { salir } from "@/app/entrar/acciones";
+import { Version } from "./Version";
+
+const ATAJOS: [string, string][] = [["Ctrl K", "Buscar en la biblioteca"], ["N", "Nuevo pedido"], ["I", "Inicio"], ["B", "Biblioteca"], ["O", "La oficina"], ["?", "Ver estos atajos"], ["Esc", "Cerrar"]];
+
+function Ayuda({ cerrar }: { cerrar: () => void }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Atajos de teclado" className="fixed inset-0 z-[75] grid place-items-center bg-tinta/25 p-4 backdrop-blur-[3px]" onClick={cerrar}>
+      <div className="aparece w-[min(380px,100%)] rounded-[22px] bg-carta p-6 shadow-[0_30px_80px_-20px_rgba(20,15,10,.45)]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={caraSvg("vector")} alt="" width={36} height={39} className="flota" />
+          <p className="font-serif text-[28px] leading-none">Atajos</p>
+          <button type="button" onClick={cerrar} className="ml-auto h-10 w-10 rounded-full bg-[#f1ede6] text-lg" aria-label="Cerrar">×</button>
+        </div>
+        <p className="mt-2 text-[13px] text-medio">Vector dice: «Bonito y rápido, o no sale».</p>
+        <ul className="mt-4 grid gap-1.5">
+          {ATAJOS.map(([k, t]) => (
+            <li key={k} className="flex items-center justify-between gap-3 text-[14px]">
+              <span>{t}</span>
+              <kbd className="min-w-8 rounded-md bg-white px-2 py-1 text-center font-mono text-[12px] shadow-[0_0_0_1px_rgba(26,24,22,.1),0_1px_0_rgba(26,24,22,.15)]">{k}</kbd>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 export interface EspacioBarra {
   id: string;
@@ -122,17 +149,23 @@ export function Marco({ children, ...props }: Props) {
   const idRuta = ruta.split("/")[2];
   const activo = props.espacios.find((e) => e.id === idRuta);
 
-  // Ctrl/⌘ K: a la caja de Atlas. N: nuevo proyecto (si no estás escribiendo).
+  // Atajos: Ctrl/⌘ K busca; sin estar escribiendo: N nuevo pedido, I inicio, B biblioteca, O oficina, ? la ayuda.
+  const [ayuda, setAyuda] = useState(false);
   useEffect(() => {
+    const ir: Record<string, string> = { n: "/estudio/nuevo", i: "/estudio", b: "/estudio/biblioteca", o: "/estudio/oficina" };
     const f = (e: KeyboardEvent) => {
       const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName) || (e.target as HTMLElement)?.isContentEditable;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         const c = document.getElementById("buscar") as HTMLInputElement | null;
         if (c) { c.focus(); c.select?.(); } else router.push("/estudio/biblioteca?buscar=1");
-      } else if (!escribiendo && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === "n" && !document.querySelector("dialog[open]")) {
-        router.push("/estudio/nuevo");
+        return;
       }
+      if (escribiendo || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
+      if (e.key === "Escape") { setAyuda(false); return; }
+      if (e.key === "?") { setAyuda((x) => !x); return; }
+      const destino = ir[e.key.toLowerCase()];
+      if (destino) { setAyuda(false); router.push(destino); }
     };
     addEventListener("keydown", f);
     return () => removeEventListener("keydown", f);
@@ -164,6 +197,11 @@ export function Marco({ children, ...props }: Props) {
           </div>
         )}
 
+        {ayuda && <Ayuda cerrar={() => setAyuda(false)} />}
+        <div className="pointer-events-none fixed bottom-2.5 right-4 z-40 flex items-center gap-3">
+          <button type="button" onClick={() => setAyuda(true)} className="pointer-events-auto hidden h-6 w-6 items-center justify-center rounded-full bg-white/70 font-mono text-[11px] text-tinta/60 shadow-[0_0_0_1px_rgba(26,24,22,.08)] hover:text-tinta lg:inline-flex" aria-label="Atajos de teclado">?</button>
+          <Version className="rounded-full bg-white/70 px-2.5 py-1 shadow-[0_0_0_1px_rgba(26,24,22,.06)] backdrop-blur" />
+        </div>
         <main id="principal" className="min-h-[calc(100dvh-16px)] min-w-0 flex-1 rounded-[18px] bg-carta shadow-[0_0_0_1px_rgba(26,24,22,.05),0_24px_60px_-24px_rgba(60,40,20,.25)]">
           {children}
         </main>

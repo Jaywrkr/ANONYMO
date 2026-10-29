@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 
 export interface Trabajo {
@@ -18,9 +18,15 @@ export interface Trabajo {
  */
 export function Enviar({ className, texto = "Que Atlas arme el plan", trabajando = "Atlas está leyendo…", proyecto, largo = false }: { className: string; texto?: string; trabajando?: string; proyecto?: string; largo?: boolean }) {
   const { pending } = useFormStatus();
+  const enCurso = useRef(false);
   useEffect(() => {
+    enCurso.current = pending;
     dispatchEvent(new CustomEvent<Trabajo>("anonymo:trabajando", { detail: { activo: pending, proyecto, texto: trabajando, largo } }));
   }, [pending, proyecto, trabajando, largo]);
+  // Si el botón desaparece mientras trabajaba (la página cambió al terminar), el aviso también se cierra.
+  useEffect(() => () => {
+    if (enCurso.current) dispatchEvent(new CustomEvent<Trabajo>("anonymo:trabajando", { detail: { activo: false, largo: true } }));
+  }, []);
   return (
     <button disabled={pending} aria-live="polite" className={`${className} disabled:opacity-60`}>
       {pending ? trabajando : texto}

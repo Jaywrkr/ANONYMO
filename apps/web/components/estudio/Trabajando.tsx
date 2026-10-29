@@ -3,8 +3,10 @@
 // Mientras el equipo trabaja (sistema/33): un aviso que dice qué pasa, quién está en qué y cuánto lleva.
 // Se puede achicar a una píldora para seguir mirando el estudio en la misma pestaña.
 import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { agentePorId } from "@anonymo/agentes";
 import { caraSvg } from "@/lib/caras";
+import { queHace } from "@/lib/haciendo";
 import { leerTrabajo, type Trabajo } from "@/app/estudio/nuevo/Enviar";
 
 interface Vivo { tareas: Record<string, string> }
@@ -17,6 +19,11 @@ export function Trabajando() {
   const [ahora, setAhora] = useState(0);
   const [chico, setChico] = useState(false);
   const [vivo, setVivo] = useState<Vivo | null>(null);
+  const [turno, setTurno] = useState(0);
+  // Al llegar a otra página (la acción terminó y redirigió), el aviso se cierra.
+  const ruta = usePathname();
+  const params = useSearchParams();
+  useEffect(() => { setT((x) => (x.activo ? { activo: false } : x)); }, [ruta, params]);
 
   useEffect(() => {
     const f = (e: Event) => {
@@ -33,6 +40,7 @@ export function Trabajando() {
   useEffect(() => {
     if (!t.activo) return;
     const reloj = setInterval(() => setAhora(Date.now()), 1000);
+    const cambio = setInterval(() => setTurno((n) => n + 1), 3200);
     let sigue = true;
     const consultar = async () => {
       if (!t.proyecto) return;
@@ -46,7 +54,7 @@ export function Trabajando() {
     // Cerrar la pestaña corta el trabajo: el navegador avisa antes.
     const antes = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     addEventListener("beforeunload", antes);
-    return () => { sigue = false; clearInterval(reloj); clearInterval(sondeo); removeEventListener("beforeunload", antes); };
+    return () => { sigue = false; clearInterval(reloj); clearInterval(cambio); clearInterval(sondeo); removeEventListener("beforeunload", antes); };
   }, [t.activo, t.proyecto]);
 
   if (!t.activo) return null;
@@ -61,7 +69,7 @@ export function Trabajando() {
       <button type="button" onClick={() => setChico(false)} className="fixed bottom-4 right-4 z-[70] flex min-h-12 items-center gap-3 rounded-full bg-tinta py-2 pl-2 pr-5 text-[13px] text-white shadow-[0_18px_44px_-14px_rgba(20,15,10,.5)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={caraSvg(quien[0])} alt="" width={30} height={32} className="flota" />
-        <span>{t.texto ?? "El equipo está trabajando…"}</span>
+        <span>{agentePorId(quien[0])?.nombre} {queHace(quien[0], turno)}…</span>
         <span className="font-mono text-[11px] text-white/60">{mmss(seg)}</span>
       </button>
     );
@@ -77,11 +85,14 @@ export function Trabajando() {
           ))}
         </div>
         <p className="mt-5 font-serif text-[30px] leading-[1.05]">{t.texto ?? "El equipo está trabajando…"}</p>
-        <p className="mt-2 text-[14px] text-medio">
-          {enCurso.length
-            ? `Ahora: ${enCurso.map((i) => agentePorId(i)?.nombre).join(", ")}${tareas.length ? ` · ${hechas} de ${tareas.length} entregas listas` : ""}`
-            : "Preparando el trabajo…"}
-        </p>
+        <ul className="mx-auto mt-3 grid max-w-sm gap-1 text-[14px] text-medio" aria-live="polite">
+          {quien.slice(0, 3).map((id, i) => (
+            <li key={`${id}-${turno}`} className="aparece" style={{ animationDelay: `${i * 0.08}s` }}>
+              <span className="font-medium text-tinta">{agentePorId(id)?.nombre}</span> {queHace(id, turno + i)}…
+            </li>
+          ))}
+        </ul>
+        {tareas.length > 0 && <p className="mt-2 text-[12px] text-suave">{hechas} de {tareas.length} entregas listas</p>}
         <div className="mx-auto mt-5 h-[3px] w-48 overflow-hidden rounded-full bg-borde"><i className="avanza block h-full w-1/3 rounded-full bg-tinta" /></div>
         <p className="mt-3 font-mono text-[12px] text-suave">{mmss(seg)}</p>
         <p className="mx-auto mt-4 max-w-sm text-[13px] leading-relaxed text-medio">
