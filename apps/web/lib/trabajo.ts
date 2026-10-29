@@ -16,10 +16,12 @@ import { aislado, traer } from "./nube";
 export interface Vivo {
   vuelta: string;
   tarea?: string;
-  fase?: "preparando" | "pensando" | "buscando" | "escribiendo";
+  fase?: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo";
   palabras?: number;
-  /** Última señal (ISO). */
+  /** Última señal de la vuelta (ISO): se renueva cada pocos segundos mientras la vuelta está viva. */
   latido: string;
+  /** Última vez que la IA mandó algo (ISO): si pasa mucho, la IA está tardando en responder. */
+  ia?: string;
   desde: string;
   /** La vuelta terminó (ISO). */
   fin?: string;
@@ -95,14 +97,12 @@ async function vuelta(id: string, origen: string) {
   escribirVivo(id, vivo);
   await subirVivo(id);
   let ultimaSubida = 0;
-  let ultimoLog = 0;
   // Registro en Vercel (sistema/39): qué hizo cada vuelta, para poder revisar si algo falla.
   const log = (texto: string) => console.log(`[vuelta ${id} ${vivo.vuelta.slice(0, 6)}] ${Math.round((Date.now() - inicioVuelta) / 1000)}s ${texto}`);
   const latido = (t: TareaId, x: { fase: Vivo["fase"]; palabras: number }) => {
-    Object.assign(vivo, { tarea: t, fase: x.fase, palabras: x.palabras, latido: ahora() });
+    Object.assign(vivo, { tarea: t, fase: x.fase, palabras: x.palabras, latido: ahora(), ...(x.fase !== "esperando" ? { ia: ahora() } : {}) });
     escribirVivo(id, vivo);
     if (Date.now() - ultimaSubida > 4000) { ultimaSubida = Date.now(); void subirVivo(id); }
-    if (Date.now() - ultimoLog > 30_000) { ultimoLog = Date.now(); log(`${t} ${x.fase} · ${x.palabras} palabras`); }
   };
   // Al empezar cada agente, la nube sabe quién trabaja (la barra y la oficina lo muestran).
   const aviso = async (texto: string) => {
@@ -116,6 +116,15 @@ async function vuelta(id: string, origen: string) {
     }
   };
 
+  // Pulso propio (sistema/40): aunque la IA tarde en responder, la vuelta dice que sigue viva.
+  // Así nadie la da por muerta ni arranca otra encima.
+  let pulsos = 0;
+  const pulso = setInterval(() => {
+    vivo.latido = ahora();
+    escribirVivo(id, vivo);
+    void subirVivo(id);
+    if (++pulsos % 3 === 0) log(`${vivo.tarea ?? "-"} ${vivo.fase} · ${vivo.palabras ?? 0} palabras · la IA habló hace ${vivo.ia ? Math.round((Date.now() - Date.parse(vivo.ia)) / 1000) + "s" : "—"}`);
+  }, 10_000);
   log(`empieza · ${Object.entries(p.tareas).filter(([, e]) => e !== "lista").map(([t]) => t).join(", ")}`);
   let fallo: string | undefined;
   try {
@@ -144,6 +153,7 @@ async function vuelta(id: string, origen: string) {
       console.error("[trabajo] no se pudo subir", id, (e as Error).message);
     }
   }
+  clearInterval(pulso);
   {
     const q = leerProyecto(id);
     log(`termina · estado ${q.estado}${fallo ? ` · error: ${fallo.slice(0, 200)}` : ""}${q.revision ? ` · revisar ${q.revision.tarea}` : ""}${Object.keys(q.parciales ?? {}).length ? ` · a medias ${Object.keys(q.parciales ?? {}).join(",")}` : ""}${Object.keys(q.reintentos ?? {}).length ? ` · directo ${Object.keys(q.reintentos ?? {}).join(",")}` : ""}`);

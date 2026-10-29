@@ -47,7 +47,7 @@ export interface Contexto {
 
 /** Qué está haciendo un agente en este momento (sistema/36). */
 export interface Latido {
-  fase: "preparando" | "pensando" | "buscando" | "escribiendo";
+  fase: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo";
   palabras: number;
 }
 
@@ -187,6 +187,8 @@ export const real: Motor = {
     const enlaces = [...new Set([pedido.descripcion, JSON.stringify(pedido.contexto ?? {}), ...cliente].join(" ").match(/https?:\/\/[^\s"'<>)\]]+/g) ?? [])];
     const abreEnlaces = enlaces.length > 0 && LECTORES.includes(c.agente);
     const rapido = !!c.ligera;
+    // Vuelta de rescate o de continuación: sin imágenes ni PDF, para que la IA responda rápido (sistema/40).
+    const sinAdjuntos = !!directo || !!parcial;
     const modelo = rapido ? process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5" : process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
     // Las creativas piensan: se les da espacio extra para que el pensamiento no se coma la entrega.
     const profunda = !!c.profunda;
@@ -203,7 +205,9 @@ export const real: Motor = {
       buscaEnWeb ? "Puedes buscar en la web. Usa fuentes reales y pon el enlace de cada una. Busca solo lo que tu tarea necesita." : "",
       abreEnlaces ? "Puedes abrir los enlaces que aparecen en el pedido (herramienta web_fetch). Abre solo los que sirvan para tu tarea y di qué sacaste de cada uno." : "",
       c.estructura && direccion !== "proponer" ? `Formato fijo: usa exactamente estas secciones, en este orden, como títulos «##»: ${c.estructura.map((x) => `«${x}»`).join(", ")}. No agregues otras.` : "",
-      "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Nunca digas que no puedes verlos.",
+      sinAdjuntos
+        ? "Esta vez las imágenes del cliente no van adjuntas: usa lo que ya describieron las entregas del equipo y no digas que no las ves."
+        : "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Nunca digas que no puedes verlos.",
       "Termina siempre lo que empiezas: si el espacio no alcanza, resume, pero cierra cada sección y cada tabla.",
       "Lo que sea solo para el equipo (dudas, riesgos internos, márgenes, notas a otros agentes) va al final, bajo el título «## Para el equipo»: el cliente nunca lo ve.",
       "Responde en markdown. Al final agrega exactamente dos líneas:",
@@ -238,17 +242,18 @@ export const real: Motor = {
     // Todos los agentes ven las imágenes y los PDF del cliente (sistema/35): capturas, fotos, logos, briefs.
     const pesa = (r?: string) => (r ? statSync(r).size : Infinity);
     const visibles = (archivos ?? []).filter((x) => x.ruta && existsSync(x.ruta));
-    // Las más nuevas primero, hasta 14 y sin pasar de ~18 MB en total (la API acepta hasta 32 MB por pedido).
-    let cupo = 18 * 1024 * 1024;
+    // Las más nuevas primero, hasta 8 y sin pasar de ~8 MB (sistema/40): más imágenes hacen que la IA tarde
+    // minutos en empezar a responder. Yendo directo a escribir (vuelta de rescate) no se mandan imágenes.
+    let cupo = sinAdjuntos ? 0 : 8 * 1024 * 1024;
     const imagenes: Bloque[] = visibles
-      .filter((x) => /^image\/(jpeg|png|webp|gif)$/.test(x.tipo) && pesa(x.ruta) < 5 * 1024 * 1024)
-      .slice(-14)
+      .filter((x) => /^image\/(jpeg|png|webp|gif)$/.test(x.tipo) && pesa(x.ruta) < 4 * 1024 * 1024)
+      .slice(-8)
       .reverse()
       .filter((x) => (cupo -= pesa(x.ruta)) >= 0)
       .reverse()
       .map((x) => ({ type: "image", source: { type: "base64", media_type: x.tipo, data: readFileSync(x.ruta!).toString("base64") } }));
     const documentos: Bloque[] = visibles
-      .filter((x) => x.tipo === "application/pdf" && pesa(x.ruta) < 4 * 1024 * 1024)
+      .filter((x) => !sinAdjuntos && x.tipo === "application/pdf" && pesa(x.ruta) < 4 * 1024 * 1024)
       .slice(-2)
       .map((x) => ({ type: "document", source: { type: "base64", media_type: "application/pdf", data: readFileSync(x.ruta!).toString("base64") } }));
     const adjuntos = [...imagenes, ...documentos];
@@ -283,7 +288,8 @@ export const real: Motor = {
     for (let vuelta = 0; vuelta < 6; vuelta++) {
       // Sin tiempo para otro pedido completo: se guarda lo que hay y sigue en otra vuelta.
       if (plazo && Date.now() > plazo - MARGEN_VUELTA) return { dice: "", necesita: "", contenido: "", modo: "real", pendiente: textoHastaAhora(), uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false } };
-      latido?.({ fase: "pensando", palabras: palabrasPrevias + bloques.filter((b) => b.type === "text").reduce((n, b) => n + (b.text ?? "").split(/\s+/).filter(Boolean).length, 0) });
+      // Pedido enviado: hasta que la IA mande algo, el agente está «esperando respuesta».
+      latido?.({ fase: "esperando", palabras: palabrasPrevias + bloques.filter((b) => b.type === "text").reduce((n, b) => n + (b.text ?? "").split(/\s+/).filter(Boolean).length, 0) });
       const base = palabrasPrevias + bloques.filter((b) => b.type === "text").reduce((n, b) => n + (b.text ?? "").split(/\s+/).filter(Boolean).length, 0);
       const res = await pedirEnVivo(
         `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
