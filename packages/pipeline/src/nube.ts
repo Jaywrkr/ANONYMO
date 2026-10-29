@@ -3,6 +3,7 @@
 // Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY (clave de servicio, nunca en el navegador), SUPABASE_BUCKET (por defecto "proyectos").
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { createHash } from "node:crypto";
 import { carpeta } from "./almacen.ts";
 
 /** Hay nube configurada (Supabase). */
@@ -276,4 +277,49 @@ export async function leerRemotoBytes(id: string, rel: string, f: typeof fetch =
   if (r.status === 404 || r.status === 400) return undefined;
   if (!r.ok) throw new Error(`No se pudo leer ${id}/${rel}: ${r.status}`);
   return new Uint8Array(await r.arrayBuffer());
+}
+
+/**
+ * Huella del proyecto en disco (sistema/43): ruta → hash del contenido. Sirve para saber qué cambió una acción
+ * sin depender de la hora de los archivos (en Vercel la hora del disco no es fina y se perdían cambios rápidos).
+ */
+export type Huella = Map<string, string>;
+
+export function huellaProyecto(id: string): Huella {
+  idSeguro(id);
+  const base = join(carpeta(), id);
+  const h: Huella = new Map();
+  if (!existsSync(base)) return h;
+  for (const ruta of archivosLocales(base)) h.set(`${id}/${relative(base, ruta).split("\\").join("/")}`, createHash("sha1").update(readFileSync(ruta)).digest("hex"));
+  return h;
+}
+
+/** Sube lo nuevo o cambiado respecto de la huella `antes` y, con `espejo`, borra en la nube lo que ya no está. */
+export async function subirDistintos(id: string, antes: Huella, espejo = true, f: typeof fetch = fetch): Promise<{ subidos: number; borrados: number }> {
+  idSeguro(id);
+  const { url, key, bucket } = cfg();
+  const ahora = huellaProyecto(id);
+  if (!ahora.size) return { subidos: 0, borrados: 0 };
+  let subidos = 0;
+  for (const [rel, hash] of ahora) {
+    if (antes.get(rel) === hash) continue;
+    const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, {
+      method: "POST",
+      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
+      body: new Uint8Array(readFileSync(join(carpeta(), rel))),
+    });
+    if (!r.ok) throw new Error(`No se pudo subir ${rel}: ${r.status} ${(await r.text()).slice(0, 120)}`);
+    subidos++;
+  }
+  let borrados = 0;
+  if (espejo) {
+    // Solo se borra lo que existía al empezar y ya no está (lo que otro subió mientras tanto se respeta).
+    const sobran = [...antes.keys()].filter((r) => !ahora.has(r));
+    if (sobran.length) {
+      const r = await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: sobran }) });
+      if (!r.ok) throw new Error(`No se pudo limpiar ${id} en la nube: ${r.status}`);
+      borrados = sobran.length;
+    }
+  }
+  return { subidos, borrados };
 }

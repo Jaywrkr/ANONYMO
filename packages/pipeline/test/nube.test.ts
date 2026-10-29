@@ -96,3 +96,24 @@ test("en la nube cada evento de analítica va en su propio archivo y sube solo",
   await subirRuta(a, f);
   assert.ok(datos.has(a));
 });
+
+test("subir por contenido: un proyecto recién creado sube aunque la hora del disco no avance (sistema/43)", async () => {
+  const { huellaProyecto, subirDistintos } = await import("../src/nube.ts");
+  const { utimesSync } = await import("node:fs");
+  const n = nubeFalsa();
+  const id = "rapido";
+  const antes = huellaProyecto(id); // no existe todavía
+  mkdirSync(join(carpeta(), id, "entregas"), { recursive: true });
+  writeFileSync(join(carpeta(), id, "estado.json"), "{}");
+  writeFileSync(join(carpeta(), id, "entregas", "1-atlas.md"), "# plan");
+  // Hora del disco vieja (como en Vercel, donde no es fina): igual se suben.
+  const viejo = new Date(Date.now() - 60_000);
+  utimesSync(join(carpeta(), id, "estado.json"), viejo, viejo);
+  const r = await subirDistintos(id, antes, true, n.f);
+  assert.equal(r.subidos, 2);
+  // Sin cambios: no sube nada; si se borra un archivo, se borra en la nube.
+  const h = huellaProyecto(id);
+  assert.equal((await subirDistintos(id, h, true, n.f)).subidos, 0);
+  (await import("node:fs")).rmSync(join(carpeta(), id, "entregas", "1-atlas.md"));
+  assert.equal((await subirDistintos(id, h, true, n.f)).borrados, 1);
+});
