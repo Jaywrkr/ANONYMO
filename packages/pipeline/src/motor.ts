@@ -36,6 +36,11 @@ export interface Contexto {
   plazo?: number;
   /** Señal de vida mientras trabaja: qué hace y cuántas palabras lleva. */
   latido?: (x: Latido) => void;
+  /**
+   * Ir directo a escribir (sistema/39): sin buscar en la web y pensando poco. Se usa cuando una vuelta anterior
+   * se fue entera en pensar y buscar sin escribir nada, para que esta sí entregue.
+   */
+  directo?: boolean;
   /** «proponer»: esta vez propone 3 direcciones de diseño; o la dirección ya elegida, que todos respetan (sistema/37). */
   direccion?: "proponer" | Direccion;
 }
@@ -172,7 +177,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido, direccion }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido, direccion, directo }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -252,6 +257,10 @@ export const real: Motor = {
     ];
     // Vuelta anterior sin tiempo (sistema/36): el agente ve lo que ya escribió y sigue desde ahí.
     const yaEscrito = parcial?.trimEnd() ?? "";
+    if (directo && !yaEscrito)
+      (mensajes[0].content as unknown) = typeof mensajes[0].content === "string"
+        ? `${mensajes[0].content}\n\n# Importante\nEscribe la entrega ya, de corrido, sin buscar en la web. Si algo hay que verificar, márcalo [verificar].`
+        : [...(mensajes[0].content as Bloque[]), { type: "text", text: "# Importante\nEscribe la entrega ya, de corrido, sin buscar en la web. Si algo hay que verificar, márcalo [verificar]." }];
     if (yaEscrito)
       mensajes.push(
         { role: "assistant", content: [{ type: "text", text: yaEscrito }] },
@@ -263,7 +272,9 @@ export const real: Motor = {
     // Con búsqueda web la API puede pausar el turno; si se acaba el espacio, se le pide que siga donde quedó (sistema/35).
     let cortes = 0;
     let extra = 0;
-    let conHerramientas = !yaEscrito;
+    // Siguiendo una vuelta anterior, o si la anterior no alcanzó a escribir: directo a escribir.
+    const apurado = !!yaEscrito || !!directo;
+    let conHerramientas = !apurado;
     const palabrasPrevias = yaEscrito.split(/\s+/).filter(Boolean).length;
     const textoHastaAhora = () => {
       const nuevo = bloques.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
@@ -280,8 +291,8 @@ export const real: Motor = {
         {
           // Tareas livianas con el modelo rápido; el resto con el principal.
           model: modelo,
-          max_tokens: (c.salida ?? 4000) + (profunda ? 8000 : 0) + (buscaEnWeb || abreEnlaces ? 4000 : 0) + extra,
-          ...pensamiento(modelo, profunda),
+          max_tokens: (c.salida ?? 4000) + (profunda && !apurado ? 8000 : 2000) + (conHerramientas && (buscaEnWeb || abreEnlaces) ? 4000 : 0) + extra,
+          ...pensamiento(modelo, profunda && !apurado),
           system: sistema,
           messages: mensajes,
           ...(conHerramientas && (buscaEnWeb || abreEnlaces)

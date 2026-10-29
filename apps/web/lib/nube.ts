@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { bajarProyecto, CARPETA_BASE, carpeta, enCarpeta, espejarProyecto, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
+import { bajarProyecto, CARPETA_BASE, carpeta, enCarpeta, espejarCambios, espejarProyecto, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
 
 /** Bajadas en curso por carpeta y proyecto: dos páginas que piden lo mismo a la vez esperan la misma bajada. */
 const enCurso = new Map<string, Promise<unknown>>();
@@ -51,10 +51,12 @@ export async function llevar(...ids: string[]) {
 export async function conNube<T>(ids: string[], fn: () => Promise<T> | T): Promise<T> {
   return aislado(async () => {
     await traer(...ids);
+    // Solo se sube lo que cambió la acción (sistema/39): sin volver a subir todas las fotos en cada clic.
+    const desde = Date.now();
     try {
       return await fn();
     } finally {
-      await llevar(...ids);
+      if (nubeActiva()) for (const id of new Set(ids.filter(Boolean))) await espejarCambios(id, desde);
     }
   });
 }
