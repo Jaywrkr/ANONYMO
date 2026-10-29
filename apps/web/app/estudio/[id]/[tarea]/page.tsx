@@ -64,6 +64,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
           <h1 className={`${serif} text-[clamp(38px,4.6vw,64px)] leading-[0.98]`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
           {e && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
+              {e.datos?.sitio ? <Link href={`/estudio/${id}/web?v=${e.version}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-vivo px-4 text-[13px] font-medium text-white transition hover:brightness-95">Ver la web funcionando →</Link> : null}
               {contratoPorId(t)?.interna ? (
                 <span className="inline-flex min-h-10 items-center rounded-full px-3 text-[12px] text-suave" title="Horas, investigación, jurado o código: es del equipo.">Entrega interna</span>
               ) : (

@@ -251,3 +251,16 @@ test("si una vuelta se va entera pensando, la siguiente va directo a escribir", 
     srv.close();
   }
 });
+
+test("la web llega como archivos: se leen, se guardan por versión y no se escapan de su carpeta", async () => {
+  const { leerArchivosSitio, sinArchivos, guardarSitio, versionesSitio, archivosSitio, leerArchivoSitio } = await import("../src/sitio.ts");
+  const t = "Páginas: inicio.\n\n```html archivo:index.html\n<h1>Hola</h1>\n```\n\n```css archivo:estilos.css\nh1{color:red}\n```\n\n```js archivo:../malo.js\nx\n```\n\nDICE: listo";
+  const a = leerArchivosSitio(t);
+  assert.deepEqual(Object.keys(a).sort(), ["estilos.css", "index.html"]);
+  assert.match(sinArchivos(t), /`index\.html` · 1 líneas/);
+  guardarSitio("web-test", 2, a);
+  assert.deepEqual(versionesSitio("web-test"), [2]);
+  assert.equal(archivosSitio("web-test", 2)[0].ruta, "index.html");
+  assert.equal(leerArchivoSitio("web-test", 2, "../estado.json"), undefined);
+  assert.equal(String(leerArchivoSitio("web-test", 2, "index.html")), "<h1>Hola</h1>");
+});

@@ -73,7 +73,11 @@ export interface Momento {
   direcciones?: boolean;
 }
 
-export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now()): Momento {
+/** Lo que se sabe en vivo de la vuelta que está trabajando (sistema/42). */
+export interface SenalVivo { tarea?: string; fase?: string; palabras?: number }
+const VERBO: Record<string, string> = { preparando: "se está preparando", esperando: "espera la respuesta de la IA", pensando: "está pensando", buscando: "está buscando en la web", escribiendo: "está escribiendo" };
+
+export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now(), vivo?: SenalVivo): Momento {
   const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
   const total = Math.max(1, p.plan.tareas.length);
   const pos = Math.max(0, p.plan.fases.indexOf(p.faseActual));
@@ -125,6 +129,13 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
   if (p.estado === "en-curso") {
     const modo = p.modo ?? "fase";
     const despues = modo === "paso" ? "Cuando entregue, te toca revisar." : modo === "auto" ? "Sigue solo hasta el final. Te avisamos si algo necesita tu decisión." : `Cuando terminen ${fase.nombre}, te toca revisar.`;
+    // Hay una vuelta viva (da señal): nunca se muestra como detenido, aunque la IA tarde (sistema/42).
+    if (vivo) {
+      const t = vivo.tarea ?? enCurso[0];
+      return { ...base, trabajando: t ? [t.split(".")[1]] : trabajando, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
+        ahora: t ? `${agenteDe(t)} ${VERBO[vivo.fase ?? ""] ?? "está trabajando"}: ${entregaDe(t).toLowerCase()}.` : "El equipo está trabajando.",
+        despues };
+    }
     if (p.error) {
       return { ...base, paso: "trabajo", indice: 2, teToca: true, tono: "cortado", accion: "Continuar", trabado: true,
         ahora: `${p.error.tarea ? agenteDe(p.error.tarea) : "El equipo"} no pudo trabajar. Lo terminado está guardado.`,

@@ -25,3 +25,4 @@ export * from "./analitica.ts";
 export * from "./agencia.ts";
 export * from "./privado.ts";
 export * from "./direcciones.ts";
+export * from "./sitio.ts";

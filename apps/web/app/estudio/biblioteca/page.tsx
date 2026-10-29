@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { agentePorId } from "@anonymo/agentes";
-import { buscar, esImagen, leerEntrega, listar, listarArchivos, type Proyecto, type TareaId } from "@anonymo/pipeline";
+import { buscar, esImagen, leerEntrega, listar, listarArchivos, versionesSitio, type Proyecto, type TareaId } from "@anonymo/pipeline";
+import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
+import { MiniWeb } from "@/components/estudio/MiniWeb";
+import { urlSitio } from "@/lib/sitio";
 import { Cara, hace } from "@/components/estudio/piezas";
 import { traerTodo } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
@@ -9,9 +12,10 @@ import { exigirEstudio, serif } from "@/lib/estudio";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Biblioteca — Estudio", robots: { index: false } };
 
-type Ver = "" | "entregas" | "cliente" | "archivos";
+type Ver = "" | "diseno" | "entregas" | "cliente" | "archivos";
 const FILTROS: { id: Ver; nombre: string; ayuda: string }[] = [
   { id: "", nombre: "Todo", ayuda: "Todo lo que hizo el estudio, lo más nuevo primero." },
+  { id: "diseno", nombre: "Diseño y web", ayuda: "Las webs funcionando y las direcciones de diseño de cada proyecto." },
   { id: "entregas", nombre: "Entregas", ayuda: "Lo que entregó cada agente. Tócala para leerla completa." },
   { id: "cliente", nombre: "Lo que dijo el cliente", ayuda: "Lo anotado por Jay o Luna y lo que escribió el cliente en su portal." },
   { id: "archivos", nombre: "Archivos", ayuda: "Logos, fotos y documentos que subieron." },
@@ -49,7 +53,15 @@ export default async function Biblioteca({ searchParams }: { searchParams: Promi
     .flatMap((p) => listarArchivos(p.pedido.id).map((a) => ({ p, a })))
     .sort((x, y) => y.a.fecha.localeCompare(x.a.fecha))
     .slice(0, limite);
-  const vacio = !entregas.length && !delCliente.length && !archivos.length;
+  // Diseño y web (sistema/42): la última versión de cada web y las direcciones (la elegida o las tres).
+  const webs = proyectos.map((p) => ({ p, v: versionesSitio(p.pedido.id)[0] })).filter((x) => x.v).sort((a, b) => b.p.actualizado.localeCompare(a.p.actualizado));
+  const disenos = proyectos.flatMap((p) => {
+    const d = p.direcciones;
+    if (!d?.opciones.length) return [];
+    const lista = d.elegida !== undefined ? [{ d: d.opciones[d.elegida], n: d.elegida, elegida: true }] : d.opciones.map((x, n) => ({ d: x, n, elegida: false }));
+    return lista.map((x) => ({ p, ...x }));
+  });
+  const vacio = !entregas.length && !delCliente.length && !archivos.length && !webs.length && !disenos.length;
 
   return (
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
@@ -106,6 +118,26 @@ export default async function Biblioteca({ searchParams }: { searchParams: Promi
         </div>
       ) : (
         <div className="mamposteria mt-6">
+          {disenos.length > 0 && muestra("diseno") && <FuentesDirecciones ds={disenos.map((x) => x.d)} />}
+          {muestra("diseno") && webs.map(({ p, v }) => (
+            <Link key={`web-${p.pedido.id}`} href={`/estudio/${p.pedido.id}/web`} className="tarjeta block p-3">
+              <MiniWeb src={urlSitio(p.pedido.id, v!)} titulo={`Web de ${p.pedido.cliente}`} />
+              <span className="flex items-center gap-2 px-1 pb-1 pt-3 text-[12px] text-suave">
+                <i className="h-2 w-2 rounded-[2px]" style={{ background: espacio(p.pedido.id, p.marca).punto }} />
+                <span className="font-medium text-tinta">La web · v{v}</span>
+                <span className="ml-auto">{p.pedido.cliente}</span>
+              </span>
+            </Link>
+          ))}
+          {muestra("diseno") && disenos.map(({ p, d, n, elegida }) => (
+            <Link key={`dir-${p.pedido.id}-${n}`} href={`/estudio/${p.pedido.id}/direcciones`} className="tarjeta block p-3">
+              <Maqueta d={d} />
+              <span className="flex items-center gap-2 px-1 pb-1 pt-3 text-[12px] text-suave">
+                <span className="font-medium text-tinta">{d.nombre}</span>{elegida ? " · elegida" : ` · dirección ${n + 1}`}
+                <span className="ml-auto">{p.pedido.cliente}</span>
+              </span>
+            </Link>
+          ))}
           {muestra("entregas") && entregas.map(({ p, e }) => (
             <Link key={p.pedido.id + e.tarea} href={urlEntrega(p.pedido.id, e.tarea)} className="tarjeta block">
               <span className="block p-5">

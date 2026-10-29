@@ -45,6 +45,21 @@ const subirVivo = (id: string) => (nubeActiva() ? subirRuta(`${id}/vivo.json`).c
 /** La vuelta sigue viva: dio señal hace poco y no terminó. */
 export const vivoActivo = (v?: Vivo) => !!v && !v.fin && Date.now() - Date.parse(v.latido) < SIN_SENAL_MS;
 
+/** ¿Hay una vuelta trabajando ahora en este proyecto? Lee la señal de la nube (o del disco en tu máquina). */
+export async function trabajandoAhora(id: string): Promise<Vivo | undefined> {
+  try {
+    if (nubeActiva()) {
+      const t = await leerRemoto(id, "vivo.json");
+      const v = t ? (JSON.parse(t) as Vivo) : undefined;
+      return vivoActivo(v) ? v : undefined;
+    }
+    const v = leerVivo(id);
+    return vivoActivo(v) ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Firma de las llamadas internas: solo el propio servidor puede pedir una vuelta sin sesión. */
 export const firmaTrabajo = (id: string) => createHmac("sha256", process.env.ESTUDIO_SECRETO ?? "anonymo-local").update(`trabajo:${id}`).digest("hex");
 export function firmaValida(id: string, firma: string | null) {
@@ -96,6 +111,18 @@ async function vuelta(id: string, origen: string) {
   const vivo: Vivo = { vuelta: randomUUID(), fase: "preparando", palabras: 0, latido: ahora(), desde: ahora() };
   escribirVivo(id, vivo);
   await subirVivo(id);
+  // Candado (sistema/42): si dos vueltas arrancaron casi a la vez, gana la última que escribió su señal; la otra se va.
+  if (nubeActiva()) {
+    await new Promise((ok) => setTimeout(ok, 1500));
+    try {
+      const t = await leerRemoto(id, "vivo.json");
+      const otra = t ? (JSON.parse(t) as Vivo) : undefined;
+      if (otra && otra.vuelta !== vivo.vuelta && !otra.fin) {
+        console.log(`[vuelta ${id} ${vivo.vuelta.slice(0, 6)}] otra vuelta (${otra.vuelta.slice(0, 6)}) ya trabaja: esta no sigue`);
+        return;
+      }
+    } catch {}
+  }
   let ultimaSubida = 0;
   // Registro en Vercel (sistema/39): qué hizo cada vuelta, para poder revisar si algo falla.
   const log = (texto: string) => console.log(`[vuelta ${id} ${vivo.vuelta.slice(0, 6)}] ${Math.round((Date.now() - inicioVuelta) / 1000)}s ${texto}`);
