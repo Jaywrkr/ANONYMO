@@ -14,9 +14,9 @@ import { accionSeguir } from "@/app/estudio/acciones";
 
 const PUNTO: Record<string, string> = { trabajando: "bg-vivo", revisar: "bg-urgente", cola: "bg-[#cfc8bc]", listo: "bg-tinta", libre: "bg-[#e5e0d7]", detenido: "bg-[#a3260f]" };
 const TEXTO: Record<string, string> = { ...TEXTO_ESTADO, listo: "Entregó", cola: "Por empezar", detenido: "Se detuvo" };
-const HACE: Record<string, string> = { preparando: "preparando", pensando: "pensando", buscando: "buscando en la web", escribiendo: "escribiendo" };
+const HACE: Record<string, string> = { preparando: "preparando", esperando: "esperando respuesta de la IA", pensando: "pensando", buscando: "buscando en la web", escribiendo: "escribiendo" };
 
-type Vivo = { vuelta: string; tarea?: string; fase?: string; palabras?: number; latido: string; desde: string; fin?: string };
+type Vivo = { vuelta: string; tarea?: string; fase?: string; palabras?: number; latido: string; desde: string; fin?: string; ia?: string };
 type ConTiempos = ProyectoOficina & {
   inicios?: Record<string, string>; vueltas?: Record<string, string>; estimados?: Record<string, number>;
   revision?: { tarea: string }; error?: { mensaje: string; tarea?: string }; actualizado?: string; vivo?: Vivo;
@@ -102,7 +102,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
                   <span className="block text-[14px] font-medium">{a.nombre}</span>
                   <span className="block truncate text-[12px] text-suave">
                     {est === "trabajando" && senal?.fase
-                      ? `${HACE[senal.fase] ?? senal.fase}${senal.palabras ? ` · ${senal.palabras.toLocaleString("es-EC")} palabras` : ""}`
+                      ? `${HACE[senal.fase] ?? senal.fase}${senal.fase === "esperando" && ahora ? ` · ${mmss(Math.round((ahora - Date.parse(senal.ia ?? senal.desde)) / 1000))}` : ""}${senal.palabras ? ` · ${senal.palabras.toLocaleString("es-EC")} palabras` : ""}`
                       : est === "detenido" ? "Sin señal: no está trabajando." : entregas[t] ?? a.rol}
                   </span>
                 </span>
