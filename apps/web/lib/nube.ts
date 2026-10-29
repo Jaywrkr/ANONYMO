@@ -1,11 +1,38 @@
 // El estudio en línea trabaja contra la nube privada (Supabase): antes de leer, baja el proyecto al disco temporal;
 // después de cambiarlo, lo vuelve a subir. En tu máquina (sin nube activa) no hace nada: todo queda en proyectos/.
-import { bajarProyecto, espejarProyecto, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
+import { randomUUID } from "node:crypto";
+import { rmSync } from "node:fs";
+import { join } from "node:path";
+import { bajarProyecto, CARPETA_BASE, carpeta, enCarpeta, espejarProyecto, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
+
+/** Bajadas en curso por carpeta y proyecto: dos páginas que piden lo mismo a la vez esperan la misma bajada. */
+const enCurso = new Map<string, Promise<unknown>>();
 
 /** Baja estos proyectos (copia idéntica a la nube). */
 export async function traer(...ids: string[]) {
   if (!nubeActiva()) return;
-  await Promise.all([...new Set(ids.filter(Boolean))].map((id) => bajarProyecto(id, fetch, true)));
+  await Promise.all([...new Set(ids.filter(Boolean))].map((id) => {
+    const clave = `${carpeta()}::${id}`;
+    const ya = enCurso.get(clave);
+    if (ya) return ya;
+    const p = bajarProyecto(id, fetch, true).finally(() => enCurso.delete(clave));
+    enCurso.set(clave, p);
+    return p;
+  }));
+}
+
+/**
+ * Corre `fn` con su propia copia de los proyectos (sistema/37). En línea, varios pedidos comparten el disco:
+ * así una acción o una vuelta de trabajo no pisa ni es pisada por otra página que baja el mismo proyecto.
+ */
+export async function aislado<T>(fn: () => Promise<T>): Promise<T> {
+  if (!nubeActiva()) return fn();
+  const dir = join(CARPETA_BASE, ".privadas", randomUUID());
+  try {
+    return await enCarpeta(dir, fn);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 /** Baja todos los proyectos y las solicitudes (no la analítica: tiene su propia página). */
@@ -22,12 +49,14 @@ export async function llevar(...ids: string[]) {
 
 /** Baja, hace el cambio y sube, aunque el cambio falle a la mitad (lo que alcanzó a guardar no se pierde). */
 export async function conNube<T>(ids: string[], fn: () => Promise<T> | T): Promise<T> {
-  await traer(...ids);
-  try {
-    return await fn();
-  } finally {
-    await llevar(...ids);
-  }
+  return aislado(async () => {
+    await traer(...ids);
+    try {
+      return await fn();
+    } finally {
+      await llevar(...ids);
+    }
+  });
 }
 
 /**

@@ -2,7 +2,7 @@
 import "./env.ts"; // primero: el mismo .env.local de la raíz que usa la web
 import { relative } from "node:path";
 import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
-import { CARPETA, guardarProyecto, leerEntrega, leerProyecto, listar } from "./almacen.ts";
+import { carpeta, guardarProyecto, leerEntrega, leerProyecto, listar } from "./almacen.ts";
 import { leerPausas } from "./atlas.ts";
 import { contratoPorId } from "./contratos.ts";
 import { anotar, enrutar, nombreTarea, repartir } from "./cliente.ts";
@@ -130,12 +130,12 @@ function resumen(p: Proyecto) {
     console.log(`  npm run pipeline -- parar ${id}`);
   } else if (p.estado === "esperando") {
     console.log(`\nLe toca a ${responsable(p, p.faseActual) === "luna" ? "Luna" : "Jay"}.`);
-    console.log(`\nTerminó ${nombreFase(p.faseActual)}. Revisa ${relative(process.cwd(), CARPETA) || "."}/${id}/entregas y decide:`);
+    console.log(`\nTerminó ${nombreFase(p.faseActual)}. Revisa ${relative(process.cwd(), carpeta()) || "."}/${id}/entregas y decide:`);
     console.log(`  npm run pipeline -- aprobar ${id}`);
     console.log(`  npm run pipeline -- cambiar ${id} --nota "qué cambiar" [--agente nombre]`);
     console.log(`  npm run pipeline -- parar ${id}`);
   }
-  if (p.estado === "listo") console.log(`\nListo. Todo en ${relative(process.cwd(), CARPETA) || "."}/${id}`);
+  if (p.estado === "listo") console.log(`\nListo. Todo en ${relative(process.cwd(), carpeta()) || "."}/${id}`);
   if (p.plan.preguntas.length && p.estado !== "listo") console.log(`\nAtlas necesita saber (responde con: pipeline responder ${id} <n> "..."):\n${p.plan.preguntas.map((q, i) => `  ${i + 1}. ${q}`).join("\n")}`);
 }
 
@@ -305,7 +305,7 @@ async function main() {
     }
     case "pdf": {
       const buf = await exportarPdf(necesitaId(), { internas: op.internas === true });
-      const ruta = unir(CARPETA, id, `${id}${op.internas ? "-interno" : ""}.pdf`);
+      const ruta = unir(carpeta(), id, `${id}${op.internas ? "-interno" : ""}.pdf`);
       writeFileSync(ruta, buf);
       return console.log(`PDF listo: ${relative(process.cwd(), ruta)} (${(buf.length / 1024).toFixed(0)} KB)`);
     }

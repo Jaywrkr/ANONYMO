@@ -1,9 +1,9 @@
 // Almacén privado: copia de cada proyecto en un bucket privado de Supabase Storage.
 // El repo es público: los proyectos de clientes viven en tu máquina (proyectos/, ignorado por git) y en la nube privada.
 // Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY (clave de servicio, nunca en el navegador), SUPABASE_BUCKET (por defecto "proyectos").
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { CARPETA } from "./almacen.ts";
+import { carpeta } from "./almacen.ts";
 
 /** Hay nube configurada (Supabase). */
 export const nubeConfigurada = () => !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
@@ -36,8 +36,8 @@ function archivosLocales(dir: string): string[] {
 export async function subirProyecto(id: string, f: typeof fetch = fetch): Promise<number> {
   idSeguro(id);
   const { url, key, bucket } = cfg();
-  const base = join(CARPETA, id);
-  if (!existsSync(base)) throw new Error(`No hay proyecto "${id}" en ${CARPETA}.`);
+  const base = join(carpeta(), id);
+  if (!existsSync(base)) throw new Error(`No hay proyecto "${id}" en ${carpeta()}.`);
   let n = 0;
   for (const ruta of archivosLocales(base)) {
     const destino = `${id}/${relative(base, ruta).split("\\").join("/")}`;
@@ -82,13 +82,23 @@ export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo 
   const { url, key, bucket } = cfg();
   const rutas = await listarRemoto(id, f);
   if (!rutas.length && !espejo) throw new Error(`No hay "${id}" en la nube.`);
-  if (espejo) rmSync(join(CARPETA, id), { recursive: true, force: true });
+  // Se baja a una carpeta aparte y se cambia de una vez (sistema/37): quien esté leyendo el proyecto
+  // nunca encuentra la carpeta a medio borrar.
+  const final = join(carpeta(), id);
+  const temporal = espejo ? join(carpeta(), `.bajando-${id}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`) : final;
   for (const ruta of rutas) {
     const r = await f(`${url}/storage/v1/object/${bucket}/${ruta}`, { headers: cabeceras(key) });
     if (!r.ok) throw new Error(`No se pudo bajar ${ruta}: ${r.status}`);
-    const local = join(CARPETA, ruta);
+    const local = join(temporal, relative(id, ruta));
     mkdirSync(dirname(local), { recursive: true });
     writeFileSync(local, new Uint8Array(await r.arrayBuffer()));
+  }
+  if (espejo) {
+    mkdirSync(temporal, { recursive: true });
+    const viejo = `${temporal}.viejo`;
+    if (existsSync(final)) renameSync(final, viejo);
+    renameSync(temporal, final);
+    rmSync(viejo, { recursive: true, force: true });
   }
   return rutas.length;
 }
@@ -111,7 +121,7 @@ export async function subirRuta(rel: string, f: typeof fetch = fetch) {
   const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, {
     method: "POST",
     headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
-    body: new Uint8Array(readFileSync(join(CARPETA, rel))),
+    body: new Uint8Array(readFileSync(join(carpeta(), rel))),
   });
   if (!r.ok) throw new Error(`No se pudo subir ${rel}: ${r.status}`);
 }
@@ -120,7 +130,7 @@ export async function subirRuta(rel: string, f: typeof fetch = fetch) {
 export async function espejarProyecto(id: string, f: typeof fetch = fetch): Promise<{ subidos: number; borrados: number }> {
   idSeguro(id);
   const { url, key, bucket } = cfg();
-  const base = join(CARPETA, id);
+  const base = join(carpeta(), id);
   // Sin copia local no se toca nada: nunca se borra la nube por un proyecto que no se bajó.
   if (!existsSync(base)) return { subidos: 0, borrados: 0 };
   const locales = new Set(archivosLocales(base).map((r) => `${id}/${relative(base, r).split("\\").join("/")}`));
@@ -203,9 +213,9 @@ export async function limpiarSubidas(f: typeof fetch = fetch): Promise<number> {
   };
   const viejo = Date.now() - 24 * 3600 * 1000;
   const borrar: string[] = [];
-  for (const carpeta of (await lista("_subidas")).filter((x) => x.id === null))
-    for (const a of await lista(`_subidas/${carpeta.name}`))
-      if (a.id && a.created_at && Date.parse(a.created_at) < viejo) borrar.push(`_subidas/${carpeta.name}/${a.name}`);
+  for (const sub of (await lista("_subidas")).filter((x) => x.id === null))
+    for (const a of await lista(`_subidas/${sub.name}`))
+      if (a.id && a.created_at && Date.parse(a.created_at) < viejo) borrar.push(`_subidas/${sub.name}/${a.name}`);
   if (borrar.length) await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: borrar }) });
   return borrar.length;
 }
@@ -217,11 +227,11 @@ export async function limpiarSubidas(f: typeof fetch = fetch): Promise<number> {
 export async function subirCambiados(id: string, desde: number, f: typeof fetch = fetch): Promise<number> {
   idSeguro(id);
   const { url, key, bucket } = cfg();
-  const base = join(CARPETA, id);
+  const base = join(carpeta(), id);
   if (!existsSync(base)) return 0;
   let n = 0;
   for (const ruta of archivosLocales(base)) {
-    if (statSync(ruta).mtimeMs < desde - 1000) continue;
+    if (statSync(ruta).mtimeMs < desde) continue;
     const destino = `${id}/${relative(base, ruta).split("\\").join("/")}`;
     const r = await f(`${url}/storage/v1/object/${bucket}/${destino}`, {
       method: "POST",

@@ -4,7 +4,7 @@
 //   AVISOS_WEBHOOK                                  → POST JSON (Slack, Make, Zapier, un bot de WhatsApp...)
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CARPETA } from "./almacen.ts";
+import { carpeta } from "./almacen.ts";
 
 export type TipoAviso = "espera" | "listo" | "comentario" | "jurado" | "prueba";
 
@@ -37,7 +37,7 @@ export async function avisar(a: AvisoProyecto): Promise<string[]> {
   const enlace = a.enlace ?? `${process.env.ANONYMO_URL ?? "http://localhost:3000"}/estudio/${a.proyecto}`;
   const hechos: string[] = ["archivo"];
   try {
-    const dir = join(CARPETA, a.proyecto);
+    const dir = join(carpeta(), a.proyecto);
     mkdirSync(dir, { recursive: true });
     const ruta = join(dir, "avisos.md");
     if (!existsSync(ruta)) writeFileSync(ruta, "# Avisos\n\n");

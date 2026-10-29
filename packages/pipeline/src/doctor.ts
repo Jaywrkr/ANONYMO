@@ -3,7 +3,7 @@ import { execSync } from "node:child_process";
 import { accessSync, constants, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { AGENTES, FASES } from "@anonymo/agentes";
-import { CARPETA, RAIZ } from "./almacen.ts";
+import { carpeta, RAIZ } from "./almacen.ts";
 import { contratoPorId } from "./contratos.ts";
 import { canalesActivos } from "./avisos.ts";
 
@@ -27,11 +27,11 @@ export async function revisarSistema(enVivo = false): Promise<Chequeo[]> {
     : { nombre: "Contrato", nivel: "falta", detalle: `sin contrato: ${faltan.join(", ")}`, arreglo: "npm run revisar" });
 
   try {
-    mkdirSync(CARPETA, { recursive: true });
-    accessSync(CARPETA, constants.W_OK);
-    c.push({ nombre: "Carpeta de proyectos", nivel: "ok", detalle: CARPETA });
+    mkdirSync(carpeta(), { recursive: true });
+    accessSync(carpeta(), constants.W_OK);
+    c.push({ nombre: "Carpeta de proyectos", nivel: "ok", detalle: carpeta() });
   } catch {
-    c.push({ nombre: "Carpeta de proyectos", nivel: "falta", detalle: CARPETA, arreglo: "Revisa permisos o define ANONYMO_PROYECTOS." });
+    c.push({ nombre: "Carpeta de proyectos", nivel: "falta", detalle: carpeta(), arreglo: "Revisa permisos o define ANONYMO_PROYECTOS." });
   }
 
   try {

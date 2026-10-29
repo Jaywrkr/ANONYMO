@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 // Guarda y lee proyectos como archivos en proyectos/<id>/ (prototipo).
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -19,9 +20,18 @@ export const RAIZ = buscarRaiz();
  * Dónde viven los proyectos. En tu máquina: proyectos/ (ignorado por git).
  * En Vercel el disco es de solo lectura salvo /tmp: ahí se copia cada proyecto desde la nube privada mientras se usa.
  */
-export const CARPETA = process.env.ANONYMO_PROYECTOS ?? (process.env.VERCEL ? "/tmp/anonymo-proyectos" : join(RAIZ, "proyectos"));
+/** Carpeta base de los proyectos (en Vercel, el disco temporal). */
+export const CARPETA_BASE = process.env.ANONYMO_PROYECTOS ?? (process.env.VERCEL ? "/tmp/anonymo-proyectos" : join(RAIZ, "proyectos"));
+const aislada = new AsyncLocalStorage<string>();
+/**
+ * La carpeta de proyectos de este trabajo (sistema/37): la base o, dentro de `enCarpeta`, una privada.
+ * En línea varios pedidos comparten el mismo disco temporal: cada acción y cada vuelta de trabajo usa su propia
+ * copia, así una página que baja el proyecto no le borra los archivos a un agente que está trabajando.
+ */
+export const carpeta = () => aislada.getStore() ?? CARPETA_BASE;
+export const enCarpeta = <T>(dir: string, fn: () => T): T => aislada.run(dir, fn);
 
-const dir = (id: string) => join(CARPETA, id);
+const dir = (id: string) => join(carpeta(), id);
 const json = (ruta: string) => JSON.parse(readFileSync(ruta, "utf8"));
 const guardar = (ruta: string, dato: unknown) => {
   mkdirSync(dirname(ruta), { recursive: true });
@@ -36,8 +46,8 @@ export function listar(): Proyecto[] {
 }
 
 function todos(): Proyecto[] {
-  if (!existsSync(CARPETA)) return [];
-  return readdirSync(CARPETA).filter(existe).map(leerProyecto);
+  if (!existsSync(carpeta())) return [];
+  return readdirSync(carpeta()).filter((x) => !x.startsWith(".")).filter(existe).map(leerProyecto);
 }
 
 /** Días que un proyecto queda en la papelera antes de borrarse solo. */
