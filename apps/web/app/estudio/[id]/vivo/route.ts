@@ -3,15 +3,20 @@ import { existe, leerProyecto, leerRemoto, nubeActiva, type Proyecto } from "@an
 import { quienEsta } from "@/lib/estudio";
 import type { ProyectoOficina } from "@/lib/oficina";
 import { segundosEstimados } from "@/lib/duracion";
+import { leerVivo, type Vivo } from "@/lib/trabajo";
 
 export const dynamic = "force-dynamic";
 
 // Además de la oficina: cuándo empezó cada tarea en curso y cuánto suele tardar (sistema/35).
-const ligero = (p: Proyecto): ProyectoOficina & { inicios: Record<string, string>; estimados: Record<string, number> } => ({
+// Y la señal del agente que trabaja (sistema/36): qué hace, cuántas palabras lleva y cuándo dio la última señal.
+const ligero = (p: Proyecto, vivo?: Vivo) => ({
   id: p.pedido.id, nombre: p.pedido.cliente, estado: p.estado, faseActual: p.faseActual, tareas: p.tareas,
   inicios: p.inicios ?? {},
+  vueltas: p.vueltas ?? {},
   estimados: Object.fromEntries(Object.keys(p.tareas).map((t) => [t, segundosEstimados(t)])),
-});
+  revision: p.revision, error: p.error, actualizado: p.actualizado,
+  vivo,
+}) satisfies ProyectoOficina & Record<string, unknown>;
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await quienEsta())) return new Response(null, { status: 404 });
@@ -19,12 +24,17 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!/^[a-z0-9_-]+$/.test(id)) return new Response(null, { status: 404 });
   try {
     let p: Proyecto | undefined;
+    let vivo: Vivo | undefined;
     if (nubeActiva()) {
-      const t = await leerRemoto(id, "estado.json");
+      const [t, v] = await Promise.all([leerRemoto(id, "estado.json"), leerRemoto(id, "vivo.json").catch(() => undefined)]);
       p = t ? (JSON.parse(t) as Proyecto) : undefined;
-    } else if (existe(id)) p = leerProyecto(id);
+      try { vivo = v ? (JSON.parse(v) as Vivo) : undefined; } catch {}
+    } else if (existe(id)) {
+      p = leerProyecto(id);
+      vivo = leerVivo(id);
+    }
     if (!p) return new Response(null, { status: 404 });
-    return Response.json(ligero(p), { headers: { "cache-control": "no-store" } });
+    return Response.json(ligero(p, vivo), { headers: { "cache-control": "no-store" } });
   } catch {
     return new Response(null, { status: 503 });
   }

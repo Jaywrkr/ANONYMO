@@ -8,7 +8,9 @@ import { exigirEstudio } from "@/lib/estudio";
 import { espacio } from "@/lib/espacio";
 import { resumenProyectos } from "@/lib/nube";
 import { sesionConfigurada } from "@/lib/sesion";
-import { listarSolicitudes, nubeActiva, responsable, solicitudesEnNube, type Proyecto } from "@anonymo/pipeline";
+import { responsable, type Proyecto } from "@anonymo/pipeline";
+import { pendientes } from "@/lib/pendientes";
+import { Vigia } from "@/components/estudio/Vigia";
 import { momento } from "@/lib/camino";
 
 // Todo el estudio vive dentro del marco: barra de espacios a la izquierda y el contenido en una tarjeta (sistema/32).
@@ -21,20 +23,12 @@ export default async function LayoutEstudio({ children }: { children: React.Reac
     // Si la nube no responde, la barra queda vacía pero la página sigue (y la página dirá el error).
     console.error("[estudio] barra sin proyectos:", (e as Error).message);
   }
-  const vivos = todos.filter((p) => !p.papelera);
+  // Lo pendiente (campana y contador): lo mismo que cuenta «Te toca» en el inicio.
+  const { avisos, vivos, solicitudes } = await pendientes(yo, todos);
   const orden: Record<string, number> = { plan: 0, esperando: 0, "en-curso": 1, parado: 2, listo: 3 };
   vivos.sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || b.actualizado.localeCompare(a.actualizado));
-  // Lo mismo que cuenta «Te toca» en el inicio: proyectos que esperan tu decisión, lo que escribió el cliente y los pedidos de la web.
   const mio = (p: Proyecto) => momento(p, yo, responsable(p, p.faseActual));
-  let solicitudes = 0;
-  try { solicitudes = nubeActiva() ? await solicitudesEnNube() : listarSolicitudes().length; } catch {}
-  const tetoca = vivos.filter((p) => mio(p).teToca).length + vivos.reduce((s, p) => s + (p.pendientesCliente?.length ?? 0), 0) + solicitudes;
-  // La campana (sistema/35): lo pendiente, con su enlace al proyecto (no directo a revisar).
-  const avisos = [
-    ...vivos.filter((p) => mio(p).teToca).map((p) => ({ href: `/estudio/${p.pedido.id}`, titulo: p.pedido.cliente, detalle: mio(p).ahora, punto: espacio(p.pedido.id, p.marca).punto })),
-    ...vivos.flatMap((p) => (p.pendientesCliente ?? []).map((n) => ({ href: `/estudio/${p.pedido.id}?ver=cliente#conversacion`, titulo: p.pedido.cliente, detalle: `Escribió en su portal: «${n.texto.slice(0, 90)}»`, punto: espacio(p.pedido.id, p.marca).punto }))),
-    ...(solicitudes ? [{ href: "/estudio#te-toca", titulo: solicitudes === 1 ? "Un pedido nuevo desde la web" : `${solicitudes} pedidos nuevos desde la web`, detalle: "Atlas puede armar el plan con un toque.", punto: "#ff5a1f" }] : []),
-  ];
+  const tetoca = avisos.length + Math.max(0, solicitudes - 1);
   const espacios: EspacioBarra[] = vivos.map((p) => {
     const e = espacio(p.pedido.id, p.marca);
     const caras = Object.entries(p.tareas)
@@ -58,6 +52,7 @@ export default async function LayoutEstudio({ children }: { children: React.Reac
       </Suspense>
       <Suspense fallback={null}><Avisos /></Suspense>
       <Suspense fallback={null}><Trabajando /></Suspense>
+      <Vigia inicial={avisos.map((a) => a.clave)} />
     </>
   );
 }

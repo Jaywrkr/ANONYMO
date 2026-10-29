@@ -9,8 +9,8 @@ import { consejosPara } from "./plantillas.ts";
 import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
-import { elegirMotor, type Motor } from "./motor.ts";
-import { type Entrega, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
+import { elegirMotor, type Latido, type Motor } from "./motor.ts";
+import { type Entrega, type ModoTrabajo, type Pedido, type Proyecto, type Puerta, type TareaId } from "./tipos.ts";
 
 /** Lo que va pasando. Puede ser asíncrono: en línea se usa para subir a la nube cada tarea apenas termina. */
 export type Aviso = (texto: string) => void | Promise<void>;
@@ -18,6 +18,22 @@ const nombreFase = (n: number) => FASES.find((f) => f.n === n)?.nombre ?? `Fase 
 const faseDe = (t: TareaId) => Number(t.split(".")[0]);
 const quienNombre = (q: Puerta["quien"]) => ({ jay: "Jay", luna: "Luna", auto: "Atlas", cliente: "El cliente" })[q];
 const ultimaPuerta = (p: Proyecto, fase: number) => [...p.puertas].reverse().find((x) => x.fase === fase);
+
+/** Cómo trabaja el equipo en este proyecto. Los proyectos de antes no tienen modo: se detienen por fases. */
+export const modoDe = (p: Pick<Proyecto, "modo">): ModoTrabajo => p.modo ?? "fase";
+
+/** Cómo correr una vuelta de trabajo (sistema/36). */
+export interface OpcionesAvanzar {
+  /** Cuántas tareas trabajar en esta llamada. Sin valor: hasta la próxima pausa (terminal). 0: solo deja todo listo para trabajar. */
+  max?: number;
+  /** Hora límite (ms) de la vuelta: el agente guarda lo que lleva antes de pasarla y sigue en la próxima. */
+  plazo?: number;
+  /** Señal de vida del agente que trabaja. */
+  latido?: (tarea: TareaId, x: Latido) => void;
+}
+
+/** ¿Queda trabajo por hacer sin esperar a nadie? */
+export const hayPendientes = (p: Proyecto) => p.plan.tareas.some((t) => p.tareas[t] !== "lista");
 
 export async function nuevo(pedido: Pedido, motor: Motor = elegirMotor(), aviso: Aviso = console.log) {
   const plan = planificar(pedido);
@@ -27,13 +43,13 @@ export async function nuevo(pedido: Pedido, motor: Motor = elegirMotor(), aviso:
 }
 
 /** Jay o Luna dicen «que empiecen»: el plan queda aprobado y el equipo trabaja hasta la primera pausa. */
-export async function empezar(id: string, quien: "jay" | "luna", motor: Motor = elegirMotor(), aviso: Aviso = console.log) {
+export async function empezar(id: string, quien: "jay" | "luna", motor: Motor = elegirMotor(), aviso: Aviso = console.log, op: OpcionesAvanzar = {}) {
   const p = leerProyecto(id);
   if (p.estado !== "plan") throw new Error("Este proyecto ya empezó.");
   p.estado = "en-curso";
   guardarProyecto(p);
-  bitacora(id, `${quien === "luna" ? "Luna" : "Jay"} aprobó el plan: trabajan ${p.plan.tareas.length} tareas.`);
-  return avanzar(id, motor, aviso);
+  bitacora(id, `${quien === "luna" ? "Luna" : "Jay"} aprobó el plan: trabajan ${p.plan.tareas.length} tareas (${({ paso: "un agente a la vez, con tu revisión", fase: "por fases", auto: "en automático" })[modoDe(p)]}).`);
+  return avanzar(id, motor, aviso, op);
 }
 
 /**
@@ -66,8 +82,11 @@ export async function replanear(id: string, ajuste: string, quien: "jay" | "luna
   return p;
 }
 
-/** Ejecuta tareas pendientes en orden. Se detiene al cerrar una fase con pausa. */
-export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: Aviso = console.log): Promise<Proyecto> {
+/**
+ * Ejecuta tareas pendientes en orden. Se detiene al cerrar una fase con pausa (modo fase),
+ * después de cada entrega (modo paso) o al llegar a `op.max` tareas en esta vuelta (en línea: una por pedido).
+ */
+export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: Aviso = console.log, op: OpcionesAvanzar = {}, cuenta = { n: 0 }): Promise<Proyecto> {
   const p = leerProyecto(id);
   if (p.papelera) throw new Error("El proyecto está en la papelera: sácalo primero.");
   if (p.estado === "parado") throw new Error("El proyecto está parado.");
@@ -81,10 +100,21 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     p.faseActual = fase;
 
     if (p.tareas[t] !== "lista") {
+      // Ya trabajó lo que tocaba en esta vuelta: queda en curso y sigue en la próxima.
+      if (op.max !== undefined && cuenta.n >= op.max) {
+        guardarProyecto(p);
+        return p;
+      }
+      cuenta.n++;
       const c = contratoPorId(t)!;
-      const rehace = p.tareas[t] === "rehacer";
+      // Una tarea que quedó «en curso» de una vuelta cortada y ya tenía entrega también es un rehacer.
+      const rehace = p.tareas[t] === "rehacer" || (p.tareas[t] === "en-curso" && !!leerEntrega(id, t));
+      const ahora = new Date().toISOString();
+      const sigue = p.parciales?.[t];
       p.tareas[t] = "en-curso";
-      p.inicios = { ...p.inicios, [t]: new Date().toISOString() };
+      p.inicios = { ...p.inicios, [t]: sigue && p.inicios?.[t] ? p.inicios[t] : ahora };
+      p.vueltas = { ...p.vueltas, [t]: ahora };
+      delete p.error;
       guardarProyecto(p);
       // Aviso de inicio: en línea sube el estado para que la oficina muestre quién está trabajando.
       await aviso(`  … ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega}`);
@@ -97,14 +127,34 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
-        marca: p.marca });
-      const { uso, ...resto } = r;
+        marca: p.marca, parcial: sigue, plazo: op.plazo, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
+      const { uso, pendiente, ...resto } = r;
+      // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
+      Object.assign(p, fusionar(p, leerProyecto(id)));
+      // Se acabó el tiempo de la vuelta: lo escrito queda guardado y la próxima vuelta sigue desde ahí.
+      if (pendiente !== undefined) {
+        if (uso) p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...uso, fecha: new Date().toISOString() }] };
+        // Si la IA no avanzó nada en esta vuelta (se colgó), no se insiste para siempre: se detiene y se avisa.
+        const antes = (sigue ?? "").trim().length;
+        if (pendiente.trim().length - antes < 1) {
+          p.parciales = { ...p.parciales, [t]: pendiente.length >= antes ? pendiente : sigue ?? "" };
+          guardarProyecto(p);
+          throw new Error(`${agentePorId(c.agente)?.nombre} no avanzó en esta vuelta: la IA no respondió a tiempo. Lo escrito está guardado; continúa en un momento.`);
+        }
+        p.parciales = { ...p.parciales, [t]: pendiente };
+        guardarProyecto(p);
+        bitacora(id, `${agentePorId(c.agente)?.nombre} lleva ${pendiente.split(/\s+/).filter(Boolean).length} palabras de ${c.entrega}: sigue en la próxima vuelta.`);
+        await aviso(`  ⋯ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} (sigue)`);
+        return p;
+      }
       guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto });
       // Costo: real si vino de la API; si no, lo que costaría con el motor real.
       const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
       p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };
       p.tareas[t] = "lista";
       if (p.inicios) delete p.inicios[t];
+      if (p.vueltas) delete p.vueltas[t];
+      if (p.parciales) delete p.parciales[t];
       // Presupuesto vivo: Ledger fija las horas base; si otro agente suma horas, Ledger vuelve a calcular.
       const extra = Number(r.datos?.horasExtra ?? 0);
       // Cuando Ledger da un total nuevo, ese total ya incluye los ajustes anteriores.
@@ -122,6 +172,17 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       guardarProyecto(p);
       bitacora(id, `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} v${version} (${r.modo}).`);
       await aviso(`  ✓ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} v${version}`);
+      // Lo pausaron mientras trabajaba: entrega guardada y nadie sigue.
+      if ((p.estado as string) === "parado" || p.papelera) return p;
+      // Modo paso: cada entrega espera tu revisión antes de que trabaje el siguiente.
+      if (modoDe(p) === "paso") {
+        p.estado = "esperando";
+        p.revision = { tarea: t, fecha: new Date().toISOString() };
+        guardarProyecto(p);
+        const quien = responsable(p, fase);
+        await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} · le toca a ${NOMBRE_SOCIO[quien]}`, texto: `Revisa la entrega: apruébala para que siga el siguiente agente, o pide un cambio.` });
+        return p;
+      }
     }
 
     // ¿Se cerró la fase?
@@ -129,7 +190,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     if (!cierra) continue;
     const ultima = ultimaPuerta(p, fase);
     if (ultima?.decision === "sigue") continue;
-    if (p.plan.pausas.includes(fase)) {
+    if (p.plan.pausas.includes(fase) && modoDe(p) === "fase") {
       p.estado = "esperando";
       guardarProyecto(p);
       bitacora(id, `Pausa al cerrar ${nombreFase(fase)}.`);
@@ -144,7 +205,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
   // Algo quedó por rehacer en una fase ya pasada (por ejemplo, Ledger tras un ajuste de horas): otra vuelta.
   if (p.plan.tareas.some((t) => p.tareas[t] === "rehacer")) {
     guardarProyecto(p);
-    return avanzar(id, motor, aviso);
+    return avanzar(id, motor, aviso, op, cuenta);
   }
 
   // 5.5 Calidad: si el Jurado no llega al mínimo, se rehace lo más débil.
@@ -159,7 +220,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       guardarProyecto(p);
       bitacora(id, `${v.cambio} Rehacen: ${v.rehacer.join(", ")}.`);
       aviso(`\n  ↺ ${v.cambio}\n    Rehacen: ${v.rehacer.map((t) => agentePorId(t.split(".")[1])?.nombre).join(", ")}\n`);
-      return avanzar(id, motor, aviso);
+      return avanzar(id, motor, aviso, op, cuenta);
     }
     p.estado = "esperando";
     p.esperaJurado = true;
@@ -202,11 +263,21 @@ function esperando(id: string) {
   return p;
 }
 
-export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, forzar = false) {
+export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, forzar = false, op: OpcionesAvanzar = {}) {
   const p = esperando(id);
-  const toca = responsable(p, p.faseActual);
+  const toca = responsable(p, p.revision ? faseDe(p.revision.tarea) : p.faseActual);
   if ((quien === "jay" || quien === "luna") && quien !== toca && !forzar && !p.esperaJurado)
     throw new Error(`Esta fase la aprueba ${NOMBRE_SOCIO[toca]}. Si igual quieres aprobarla, usa forzar (terminal: --forzar).`);
+  // Modo paso: se aprueba una entrega y sigue el siguiente agente.
+  if (p.revision && !p.esperaJurado) {
+    const c = contratoPorId(p.revision.tarea);
+    bitacora(id, `${quienNombre(quien)} aprobó ${c?.entrega ?? p.revision.tarea} de ${agentePorId(c?.agente ?? "")?.nombre ?? ""}${nota ? `: ${nota}` : ""}.`);
+    delete p.revision;
+    p.estado = "en-curso";
+    guardarProyecto(p);
+    return avanzar(id, motor, aviso, op);
+  }
+  delete p.revision;
   if (p.esperaJurado) {
     p.juradoAceptado = true;
     p.esperaJurado = false;
@@ -216,24 +287,28 @@ export async function aprobar(id: string, quien: Puerta["quien"], nota?: string,
   p.estado = "en-curso";
   guardarProyecto(p);
   bitacora(id, `${quienNombre(quien)} aprobó ${nombreFase(p.faseActual)}${nota ? `: ${nota}` : ""}.`);
-  return avanzar(id, motor, aviso);
+  return avanzar(id, motor, aviso, op);
 }
 
 /** Rehace la fase actual (o solo un agente) con la nota. Vuelve a pausar al terminar. */
-export async function cambiar(id: string, quien: Puerta["quien"], nota: string, agente?: string, motor?: Motor, aviso?: Aviso) {
+export async function cambiar(id: string, quien: Puerta["quien"], nota: string, agente?: string, motor?: Motor, aviso?: Aviso, op: OpcionesAvanzar = {}) {
   const p = esperando(id);
-  const fase = p.faseActual;
+  // Modo paso: el cambio es para la entrega que se está revisando.
+  const rev = p.revision;
+  const fase = rev ? faseDe(rev.tarea) : p.faseActual;
+  if (rev && !agente) agente = rev.tarea.split(".")[1];
+  delete p.revision;
   const objetivo = p.plan.tareas.filter((t) => faseDe(t) === fase && (!agente || t === `${fase}.${agente}`));
   if (!objetivo.length) throw new Error(`${agente} no tiene tarea en ${nombreFase(fase)}.`);
   puerta(p, { fase, decision: "cambia", quien, nota });
   p.cambios[fase] = nota;
   for (const t of objetivo) p.tareas[t] = "rehacer";
   p.estado = "en-curso";
-  // La fase se revisa de nuevo aunque no tuviera pausa.
-  if (!p.plan.pausas.includes(fase)) p.plan.pausas = [...p.plan.pausas, fase].sort((a, b) => a - b);
+  // La fase se revisa de nuevo aunque no tuviera pausa (en modo paso, cada entrega ya se revisa sola).
+  if (modoDe(p) === "fase" && !p.plan.pausas.includes(fase)) p.plan.pausas = [...p.plan.pausas, fase].sort((a, b) => a - b);
   guardarProyecto(p);
   bitacora(id, `${quienNombre(quien)} pidió cambios en ${nombreFase(fase)}${agente ? ` (${agente})` : ""}: ${nota}`);
-  return avanzar(id, motor, aviso);
+  return avanzar(id, motor, aviso, op);
 }
 
 export function parar(id: string, quien: Puerta["quien"], nota?: string) {
@@ -248,10 +323,50 @@ export function parar(id: string, quien: Puerta["quien"], nota?: string) {
 export function reanudar(id: string) {
   const p = leerProyecto(id);
   if (p.estado !== "parado") return p;
-  p.estado = "esperando";
+  // En modo paso o automático sigue solo si no hay nada que revisar; por fases vuelve a esperar tu decisión.
+  p.estado = modoDe(p) !== "fase" && !p.revision && !p.esperaJurado && hayPendientes(p) ? "en-curso" : "esperando";
   guardarProyecto(p);
   bitacora(id, "Proyecto reanudado.");
   return p;
+}
+
+/** Cambia cómo trabaja el equipo (sistema/36). Si estaba esperando solo por la pausa de fase, queda libre para seguir. */
+export function cambiarModo(id: string, modo: ModoTrabajo) {
+  const p = leerProyecto(id);
+  p.modo = modo;
+  if (p.estado === "esperando" && !p.revision && !p.esperaJurado && modo !== "fase" && hayPendientes(p)) p.estado = "en-curso";
+  guardarProyecto(p);
+  bitacora(id, `Modo de trabajo: ${({ paso: "un agente a la vez, con revisión", fase: "por fases", auto: "automático" })[modo]}.`);
+  return p;
+}
+
+/**
+ * Junta el estado que dejó una vuelta de trabajo con el que está en la nube (sistema/36).
+ * Mientras un agente trabaja, Jay o Luna pueden cambiar la marca, anotar algo del cliente, pausar o cambiar el modo:
+ * eso se respeta. La vuelta solo pone lo suyo: tareas, costos, tiempos, fase y lo que dispara el trabajo.
+ */
+export function fusionar(vuelta: Proyecto, nube: Proyecto): Proyecto {
+  const detenido = nube.estado === "parado" || !!nube.papelera;
+  return {
+    ...nube,
+    tareas: vuelta.tareas,
+    costos: vuelta.costos,
+    inicios: vuelta.inicios,
+    vueltas: vuelta.vueltas,
+    parciales: vuelta.parciales,
+    faseActual: vuelta.faseActual,
+    revision: vuelta.revision,
+    puertas: vuelta.puertas,
+    cambios: vuelta.cambios,
+    rondasJurado: vuelta.rondasJurado,
+    esperaJurado: vuelta.esperaJurado,
+    juradoAceptado: vuelta.juradoAceptado,
+    error: vuelta.error,
+    plan: { ...nube.plan, pausas: vuelta.plan.pausas },
+    presupuesto: vuelta.presupuesto || nube.presupuesto ? { ...nube.presupuesto, horas: vuelta.presupuesto?.horas, ajustes: vuelta.presupuesto?.ajustes ?? nube.presupuesto?.ajustes ?? [] } : undefined,
+    estado: detenido ? nube.estado : vuelta.estado,
+    actualizado: new Date().toISOString(),
+  };
 }
 
 /** Cambia dónde se detiene, en cualquier momento. */

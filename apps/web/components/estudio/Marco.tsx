@@ -78,6 +78,19 @@ const I = {
   biblioteca: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z",
 };
 
+/** Pide permiso para avisar con notificaciones del navegador (una vez). */
+function PermisoAvisos() {
+  const [permiso, setPermiso] = useState<string>("granted");
+  useEffect(() => { if (typeof Notification !== "undefined") setPermiso(Notification.permission); }, []);
+  if (permiso !== "default") return null;
+  return (
+    <button type="button" onClick={async () => setPermiso(await Notification.requestPermission())}
+      className="flex w-full items-center gap-2 border-b border-borde bg-[#fff6ee] px-4 py-2.5 text-left text-[13px] text-[#8a3a0c] transition hover:bg-[#ffeedd]">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4" /></svg> Avísame aunque esté en otra pestaña
+    </button>
+  );
+}
+
 /** La campana: lo que espera una decisión, sin sacarte de donde estás. */
 function Campana({ avisos, alIr }: { avisos: AvisoCampana[]; alIr?: () => void }) {
   const [abierta, setAbierta] = useState(false);
@@ -95,6 +108,7 @@ function Campana({ avisos, alIr }: { avisos: AvisoCampana[]; alIr?: () => void }
           <button type="button" aria-label="Cerrar" className="fixed inset-0 z-40 cursor-default" onClick={() => setAbierta(false)} />
           <div className="aparece absolute right-0 top-11 z-50 w-[min(340px,calc(100vw-32px))] lg:left-0 lg:right-auto overflow-hidden rounded-[18px] bg-carta shadow-[0_0_0_1px_rgba(26,24,22,.07),0_24px_60px_-18px_rgba(20,15,10,.45)]">
             <p className="border-b border-borde px-4 py-3 text-[13px] font-medium">Pendientes {avisos.length ? `· ${avisos.length}` : ""}</p>
+            <PermisoAvisos />
             {avisos.length === 0 ? <p className="px-4 py-5 text-[14px] text-medio">Nada pendiente. Estás al día.</p> : (
               <ul className="max-h-[60vh] overflow-y-auto">
                 {avisos.map((a, i) => (

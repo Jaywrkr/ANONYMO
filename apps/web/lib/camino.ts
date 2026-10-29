@@ -1,6 +1,12 @@
 // El camino de un proyecto en palabras simples (sistema/33): en qué paso va, qué te toca ahora y qué viene después.
 // Sin dependencias de servidor: lo usan el inicio, el proyecto y la revisión.
 import { FASES, agentePorId } from "@anonymo/agentes";
+import { contratoPorId, type TareaId } from "@anonymo/pipeline";
+
+/** Una vuelta de trabajo dura menos de 5 minutos: una tarea «en curso» por más que esto quedó trabada (sistema/36). */
+export const VUELTA_MUERTA_MS = 330_000;
+/** Entre una vuelta y la siguiente pasan segundos; si pasa más que esto sin nadie trabajando, se detuvo. */
+export const SIN_VUELTA_MS = 90_000;
 
 export type Paso = "pedido" | "plan" | "trabajo" | "revision" | "listo";
 
@@ -20,7 +26,18 @@ export interface ProyectoCamino {
   tareas: Record<string, string>;
   esperaJurado?: boolean;
   pendientesCliente?: { fecha: string; texto: string }[];
+  modo?: "paso" | "fase" | "auto";
+  revision?: { tarea: string; fecha: string };
+  vueltas?: Record<string, string>;
+  inicios?: Record<string, string>;
+  error?: { mensaje: string; tarea?: string; fecha: string };
+  actualizado?: string;
 }
+
+const entregaDe = (t: string) => contratoPorId(t as TareaId)?.entrega ?? t;
+const agenteDe = (t: string) => agentePorId(t.split(".")[1])?.nombre ?? t;
+/** La próxima tarea que va a trabajar, si hay. */
+export const siguienteTarea = (p: ProyectoCamino) => p.plan.tareas.find((t) => p.tareas[t] !== "lista" && t !== p.revision?.tarea);
 
 export type Socio = "jay" | "luna";
 export const nombreSocio = (s: string) => (s === "luna" ? "Luna" : "Jay");
@@ -47,15 +64,22 @@ export interface Momento {
   total: number;
   /** Agentes trabajando ahora mismo. */
   trabajando: string[];
+  /** Modo paso: la entrega que espera revisión. */
+  revision?: string;
+  /** La vuelta se cortó o falló: hay que continuar. */
+  trabado?: boolean;
 }
 
-export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio): Momento {
+export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now()): Momento {
   const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
   const total = Math.max(1, p.plan.tareas.length);
   const pos = Math.max(0, p.plan.fases.indexOf(p.faseActual));
   const fase = { n: pos + 1, de: p.plan.fases.length, nombre: nombreFase(p.faseActual) };
   const siguiente = p.plan.fases[pos + 1];
-  const trabajando = Object.entries(p.tareas).filter(([, e]) => e === "en-curso").map(([t]) => t.split(".")[1]);
+  const enCurso = Object.entries(p.tareas).filter(([, e]) => e === "en-curso").map(([t]) => t);
+  // Una tarea «en curso» cuya vuelta empezó hace más de 5 minutos y medio ya no la está trabajando nadie.
+  const viva = (t: string) => { const v = p.vueltas?.[t] ?? p.inicios?.[t]; return !!v && ahoraMs - Date.parse(v) < VUELTA_MUERTA_MS; };
+  const trabajando = enCurso.filter(viva).map((t) => t.split(".")[1]);
   const nombres = (ids: string[]) => {
     const n = [...new Set(ids)].map((i) => agentePorId(i)?.nombre ?? i);
     return n.length <= 2 ? n.join(" y ") : `${n.slice(0, -1).join(", ")} y ${n.at(-1)}`;
@@ -66,6 +90,15 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio):
     return { ...base, paso: "plan", indice: 1, teToca: true, tono: "toca", accion: "Ver el plan",
       ahora: `Atlas armó el plan: ${p.plan.tareas.length} entregas en ${p.plan.fases.length} fase${p.plan.fases.length === 1 ? "" : "s"}. Revísalo y di «que empiecen».`,
       despues: `El equipo trabaja ${nombreFase(p.plan.fases[0])} y te avisa cuando toque revisar.` };
+  }
+  if (p.estado === "esperando" && p.revision && !p.esperaJurado) {
+    const mio = responsableActual === yo;
+    const t = p.revision.tarea;
+    const sig = siguienteTarea(p);
+    return { ...base, paso: "revision", indice: 3, teToca: mio, tono: mio ? "toca" : "otro", revision: t,
+      accion: mio ? "Revisar la entrega" : "Revisar igual",
+      ahora: mio ? `${agenteDe(t)} entregó ${entregaDe(t).toLowerCase()}. Revisa su entrega.` : `${agenteDe(t)} entregó ${entregaDe(t).toLowerCase()}. Le toca revisar a ${nombreSocio(responsableActual)}.`,
+      despues: sig ? `Si apruebas, sigue ${agenteDe(sig)} con ${entregaDe(sig).toLowerCase()}.` : "Si apruebas, el proyecto queda listo." };
   }
   if (p.estado === "esperando") {
     const mio = responsableActual === yo;
@@ -78,18 +111,33 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio):
       despues: siguiente ? `Si apruebas, el equipo sigue con ${nombreFase(siguiente)}.` : "Si apruebas, el proyecto queda listo." };
   }
   if (p.estado === "en-curso") {
-    if (trabajando.length) {
-      return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
-        ahora: `${nombres(trabajando)} ${trabajando.length === 1 ? "está" : "están"} trabajando en ${fase.nombre}.`,
-        despues: `Cuando terminen ${fase.nombre}, te toca revisar.` };
+    const modo = p.modo ?? "fase";
+    const despues = modo === "paso" ? "Cuando entregue, te toca revisar." : modo === "auto" ? "Sigue solo hasta el final. Te avisamos si algo necesita tu decisión." : `Cuando terminen ${fase.nombre}, te toca revisar.`;
+    if (p.error) {
+      return { ...base, paso: "trabajo", indice: 2, teToca: true, tono: "cortado", accion: "Continuar", trabado: true,
+        ahora: `${p.error.tarea ? agenteDe(p.error.tarea) : "El equipo"} no pudo trabajar. Lo terminado está guardado.`,
+        despues: `Motivo: ${p.error.mensaje.slice(0, 160)}. Al continuar, lo intenta de nuevo.` };
     }
-    return { ...base, paso: "trabajo", indice: 2, teToca: true, tono: "cortado", accion: "Continuar",
-      ahora: "El trabajo se cortó a mitad de camino (pasa si tarda más de 5 minutos). Lo terminado está guardado.",
-      despues: "Al continuar, el equipo sigue desde donde quedó." };
+    if (trabajando.length) {
+      const t = enCurso.find(viva)!;
+      return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
+        ahora: trabajando.length === 1 ? `${agenteDe(t)} está trabajando: ${entregaDe(t).toLowerCase()}.` : `${nombres(trabajando)} están trabajando en ${fase.nombre}.`,
+        despues };
+    }
+    // Entre una vuelta y la siguiente pasan segundos: recién después de un rato sin nadie se da por detenido.
+    const reciente = p.actualizado && ahoraMs - Date.parse(p.actualizado) < SIN_VUELTA_MS && !enCurso.length;
+    if (reciente) {
+      const sig = siguienteTarea(p);
+      return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
+        ahora: sig ? `${agenteDe(sig)} está por empezar: ${entregaDe(sig).toLowerCase()}.` : "El equipo está cerrando la fase.", despues };
+    }
+    return { ...base, paso: "trabajo", indice: 2, teToca: true, tono: "cortado", accion: "Continuar", trabado: true,
+      ahora: enCurso.length ? `${agenteDe(enCurso[0])} se detuvo a mitad de camino. Lo terminado está guardado.` : "El equipo se detuvo. Lo terminado está guardado.",
+      despues: "Al continuar, sigue desde donde quedó." };
   }
   if (p.estado === "parado") {
     return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "pausa", accion: "Reanudar",
-      ahora: "Proyecto en pausa: nadie trabaja en él.", despues: "Al reanudar, vuelve a esperar tu decisión." };
+      ahora: "Proyecto en pausa: nadie trabaja en él.", despues: (p.modo ?? "fase") === "fase" ? "Al reanudar, vuelve a esperar tu decisión." : "Al reanudar, el equipo sigue desde donde quedó." };
   }
   return { ...base, paso: "listo", indice: 4, teToca: false, tono: "listo", accion: "Ver el proyecto",
     ahora: "Todas las fases están aprobadas.", despues: "Comparte el portal con el cliente para que vea el resultado." };

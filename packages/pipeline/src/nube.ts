@@ -209,3 +209,27 @@ export async function limpiarSubidas(f: typeof fetch = fetch): Promise<number> {
   if (borrar.length) await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: borrar }) });
   return borrar.length;
 }
+
+/**
+ * Sube solo lo que cambió desde `desde` (ms), sin borrar nada en la nube (sistema/36).
+ * Lo usan las vueltas de trabajo: si mientras tanto alguien subió un archivo, no se pierde.
+ */
+export async function subirCambiados(id: string, desde: number, f: typeof fetch = fetch): Promise<number> {
+  idSeguro(id);
+  const { url, key, bucket } = cfg();
+  const base = join(CARPETA, id);
+  if (!existsSync(base)) return 0;
+  let n = 0;
+  for (const ruta of archivosLocales(base)) {
+    if (statSync(ruta).mtimeMs < desde - 1000) continue;
+    const destino = `${id}/${relative(base, ruta).split("\\").join("/")}`;
+    const r = await f(`${url}/storage/v1/object/${bucket}/${destino}`, {
+      method: "POST",
+      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
+      body: new Uint8Array(readFileSync(ruta)),
+    });
+    if (!r.ok) throw new Error(`No se pudo subir ${destino}: ${r.status}`);
+    n++;
+  }
+  return n;
+}

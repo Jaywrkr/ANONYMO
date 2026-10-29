@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { portalActivo } from "@/lib/estudio";
 import { llevar, traer } from "@/lib/nube";
 import { archivosDe } from "@/lib/subidas";
+import { lanzar } from "@/lib/trabajo";
 
 async function validar(f: FormData) {
   const id = String(f.get("id") ?? "");
@@ -20,11 +21,13 @@ export async function portalAprobar(f: FormData) {
   let msj = "Gracias. El equipo sigue con la siguiente fase.";
   try {
     if (leerProyecto(id).estado !== "esperando") throw new Error("Esta fase ya no espera aprobación.");
-    await aprobar(id, "cliente", "Aprobado por el cliente en su portal", elegirMotor(), () => {});
+    await aprobar(id, "cliente", "Aprobado por el cliente en su portal", elegirMotor(), () => {}, false, { max: 0 });
   } catch (e) {
     msj = (e as Error).message;
   }
   await llevar(id);
+  // El equipo sigue en segundo plano (sistema/36).
+  if (leerProyecto(id).estado === "en-curso") await lanzar(id);
   redirect(`/portal/${id}?t=${t}&m=${encodeURIComponent(msj)}`);
 }
 

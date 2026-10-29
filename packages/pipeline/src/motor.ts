@@ -1,5 +1,6 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import { claveAnthropic, ocultarClaves, pensamiento, textoDe } from "./ia.ts";
+import { pedirEnVivo } from "./envivo.ts";
 import { COMO_TRABAJAMOS, tarifaHora } from "./agencia.ts";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
@@ -28,6 +29,18 @@ export interface Contexto {
   archivos?: { nombre: string; nota?: string; ruta?: string; tipo: string }[];
   /** Colores, fuentes y logo del cliente, si ya están definidos. */
   marca?: Marca;
+  /** Lo que el agente ya escribió en una vuelta anterior que se quedó sin tiempo: sigue desde ahí (sistema/36). */
+  parcial?: string;
+  /** Hora límite (ms) de esta vuelta: antes de pasarla, el agente guarda lo que lleva y devuelve «pendiente». */
+  plazo?: number;
+  /** Señal de vida mientras trabaja: qué hace y cuántas palabras lleva. */
+  latido?: (x: Latido) => void;
+}
+
+/** Qué está haciendo un agente en este momento (sistema/36). */
+export interface Latido {
+  fase: "preparando" | "pensando" | "buscando" | "escribiendo";
+  palabras: number;
 }
 
 /** La marca del cliente en texto, para que todos la usen tal cual. */
@@ -40,7 +53,11 @@ export const textoMarca = (m?: Marca) =>
         m.notas ? `Notas: ${m.notas}` : ""].filter(Boolean).join("\n")
     : "";
 
-export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota" | "modo" | "datos"> & { uso?: Uso };
+export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota" | "modo" | "datos"> & {
+  uso?: Uso;
+  /** Se acabó el tiempo de la vuelta: lo escrito hasta ahora, para seguir en la próxima (sistema/36). */
+  pendiente?: string;
+};
 
 const seccionHerramientas = (h: ResultadoHerramienta[]) =>
   h.length ? ["## Datos de herramientas", "", ...h.flatMap((x) => [`**${x.herramienta}** ${x.ok ? "" : "(pendiente)"}`, "", x.resumen, ""])] : [];
@@ -65,7 +82,8 @@ const TXT = {
 
 export const simulado: Motor = {
   nombre: "simulado",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, latido }) {
+    latido?.({ fase: "escribiendo", palabras: 0 });
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const fase = FASES.find((f) => f.n === c.fase)!;
@@ -133,10 +151,13 @@ export function recortar(texto: string, max: number): string {
   return `${texto.slice(0, cabeza)}\n\n[… recortado para ahorrar: ${texto.length - max} caracteres; está completo en el estudio …]\n\n${texto.slice(-(max - cabeza))}`;
 }
 
+/** Antes de abrir otro pedido a la API, cuánto tiempo mínimo debe quedar en la vuelta (ms). */
+const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
+
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -212,18 +233,34 @@ export const real: Motor = {
     const mensajes: { role: "user" | "assistant"; content: string | Bloque[] }[] = [
       { role: "user", content: adjuntos.length ? [...adjuntos, { type: "text", text: usuario }] : usuario },
     ];
+    // Vuelta anterior sin tiempo (sistema/36): el agente ve lo que ya escribió y sigue desde ahí.
+    const yaEscrito = parcial?.trimEnd() ?? "";
+    if (yaEscrito)
+      mensajes.push(
+        { role: "assistant", content: [{ type: "text", text: yaEscrito }] },
+        { role: "user", content: "Se acabó el tiempo de tu vuelta anterior. Sigue exactamente donde quedaste, sin repetir nada de lo ya escrito y sin volver a buscar. Cierra todas las secciones y termina con las líneas finales." },
+      );
     const bloques: Bloque[] = [];
     const uso = { entrada: 0, salida: 0, busquedas: 0 };
     let fin = "";
     // Con búsqueda web la API puede pausar el turno; si se acaba el espacio, se le pide que siga donde quedó (sistema/35).
     let cortes = 0;
     let extra = 0;
-    let conHerramientas = true;
+    let conHerramientas = !yaEscrito;
+    const palabrasPrevias = yaEscrito.split(/\s+/).filter(Boolean).length;
+    const textoHastaAhora = () => {
+      const nuevo = bloques.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+      return yaEscrito + (/[\p{L}\p{N}.,;:]$/u.test(yaEscrito) && /^[\p{L}\p{N}]/u.test(nuevo) ? " " : "") + nuevo;
+    };
     for (let vuelta = 0; vuelta < 6; vuelta++) {
-      const r = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({
+      // Sin tiempo para otro pedido completo: se guarda lo que hay y sigue en otra vuelta.
+      if (plazo && Date.now() > plazo - MARGEN_VUELTA) return { dice: "", necesita: "", contenido: "", modo: "real", pendiente: textoHastaAhora(), uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false } };
+      latido?.({ fase: "pensando", palabras: palabrasPrevias + bloques.filter((b) => b.type === "text").reduce((n, b) => n + (b.text ?? "").split(/\s+/).filter(Boolean).length, 0) });
+      const base = palabrasPrevias + bloques.filter((b) => b.type === "text").reduce((n, b) => n + (b.text ?? "").split(/\s+/).filter(Boolean).length, 0);
+      const res = await pedirEnVivo(
+        `${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`,
+        { "content-type": "application/json", "x-api-key": clave, "anthropic-version": "2023-06-01" },
+        {
           // Tareas livianas con el modelo rápido; el resto con el principal.
           model: modelo,
           max_tokens: (c.salida ?? 4000) + (profunda ? 8000 : 0) + (buscaEnWeb || abreEnlaces ? 4000 : 0) + extra,
@@ -238,21 +275,22 @@ export const real: Motor = {
                 ],
               }
             : {}),
-        }),
-      });
-      if (!r.ok) throw new Error(ocultarClaves(`API ${r.status}: ${(await r.text()).slice(0, 300)}`));
-      const res = (await r.json()) as { content: Bloque[]; stop_reason: string; usage?: { input_tokens?: number; output_tokens?: number; server_tool_use?: { web_search_requests?: number } } };
-      bloques.push(...res.content);
+        },
+        { plazo, alAvanzar: (fase, palabras) => latido?.({ fase, palabras: base + palabras }) },
+      ).catch((e: Error) => { throw new Error(ocultarClaves(e.message)); });
+      bloques.push(...(res.content as Bloque[]));
       uso.entrada += res.usage?.input_tokens ?? 0;
       uso.salida += res.usage?.output_tokens ?? 0;
       uso.busquedas += res.usage?.server_tool_use?.web_search_requests ?? 0;
       fin = res.stop_reason;
-      if (res.stop_reason === "pause_turn") { mensajes.push({ role: "assistant", content: res.content }); continue; }
+      // Sin tiempo, o la conexión se cortó sin terminar: se guarda lo escrito y sigue en otra vuelta.
+      if (res.sinTiempo || !res.stop_reason) return { dice: "", necesita: "", contenido: "", modo: "real", pendiente: textoHastaAhora(), uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false } };
+      if (res.stop_reason === "pause_turn") { mensajes.push({ role: "assistant", content: res.content as Bloque[] }); continue; }
       if (res.stop_reason === "max_tokens" && cortes < 2) {
         cortes++;
         // Solo se reenvía lo que la API acepta de vuelta: pensamientos firmados y búsquedas con su resultado.
         const ids = new Set(res.content.filter((b) => b.type === "web_search_tool_result" || b.type === "web_fetch_tool_result").map((b) => (b as { tool_use_id?: string }).tool_use_id));
-        const limpio = res.content.filter((b) =>
+        const limpio = (res.content as Bloque[]).filter((b) =>
           b.type === "thinking" ? !!(b as { signature?: string }).signature
           : b.type === "server_tool_use" ? ids.has((b as { id?: string }).id)
           : b.type !== "text" || !!b.text?.trim());
@@ -268,7 +306,11 @@ export const real: Motor = {
       }
       break;
     }
-    let texto = textoDe({ content: bloques, stop_reason: fin });
+    // Al unir lo de la vuelta anterior con lo nuevo, que no queden dos palabras pegadas.
+    const primero = bloques.find((b) => b.type === "text")?.text ?? "";
+    const union = /[\p{L}\p{N}.,;:]$/u.test(yaEscrito) && /^[\p{L}\p{N}]/u.test(primero) ? " " : "";
+    const bloquesFinal: Bloque[] = yaEscrito ? [{ type: "text", text: yaEscrito + union }, ...bloques] : bloques;
+    let texto = textoDe({ content: bloquesFinal, stop_reason: fin });
     // Si aun así quedó cortada, se dice en la entrega (nunca se guarda a medias en silencio).
     const cortada = fin === "max_tokens";
     if (cortada) texto += "\n\n> ⚠️ Esta entrega quedó cortada: se acabó el espacio. Pide un cambio con «complétala» para que la termine.";

@@ -3,12 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
-import { guardarProyecto, type Marca, type Propuesta } from "@anonymo/pipeline";
+import { cambiarModo, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
 import { archivosDe } from "@/lib/subidas";
+import { lanzar } from "@/lib/trabajo";
 
 type Quien = "jay" | "luna";
 
@@ -21,7 +22,12 @@ async function leer(f: FormData) {
   return { id, quien, motor, nota: String(f.get("nota") ?? "").trim() || undefined };
 }
 
-async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string, fiesta = false, ruta = "") {
+/**
+ * Corre una acción del estudio sobre la nube y vuelve al proyecto con un aviso.
+ * Con `trabaja`, al terminar pide una vuelta de trabajo en segundo plano (sistema/36): la acción vuelve al momento
+ * y el equipo trabaja aparte, un agente por vuelta, sin cortes por tiempo.
+ */
+async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string, fiesta = false, ruta = "", trabaja = false) {
   await exigirEstudio();
   // ruta: a qué parte del proyecto volver (ej. «?ver=marca» o «/propuesta»).
   const base = `/estudio/${id}${ruta.startsWith("/") ? ruta.split("?")[0] : ""}`;
@@ -29,25 +35,22 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
   let destino = `${base}?${extra}ok=${encodeURIComponent(ok)}${fiesta ? "&fiesta=1" : ""}`;
   try {
     await conNube([id], fn);
+    if (trabaja) await lanzar(id);
   } catch (e) {
-    destino = `${base}?${extra}error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+    const msj = ocultarClaves((e as Error).message);
+    // Aprobar dos veces o reintentar mientras trabajan no es un error: el equipo ya está en eso.
+    destino = /no está esperando una decisión \(estado: en-curso\)/.test(msj)
+      ? `${base}?${extra}ok=${encodeURIComponent("Ya está trabajando: te avisamos cuando termine.")}`
+      : `${base}?${extra}error=${encodeURIComponent(msj)}`;
   }
   revalidatePath(`/estudio/${id}`);
   redirect(destino);
 }
 
 
-/** Cada tarea terminada sube a la nube al momento: si Vercel corta por tiempo, lo hecho no se pierde y «Seguir» continúa. */
-const subirCadaTarea = (id: string) => async (texto: string) => {
-  const t = texto.trimStart();
-  if (t.startsWith("✓")) await llevar(id);
-  // Al empezar una tarea basta con el estado: así la oficina ve quién está trabajando.
-  else if (t.startsWith("…") && nubeActiva()) await subirRuta(`${id}/estado.json`).catch(() => {});
-};
-
 export async function accionAprobar(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
-  await correr(id, () => aprobar(id, quien, nota, motor, subirCadaTarea(id), f.get("forzar") === "1"), "Aprobado. El equipo siguió hasta la próxima pausa.", true);
+  await correr(id, () => aprobar(id, quien, nota, motor, undefined, f.get("forzar") === "1", { max: 0 }), "Aprobado. Sigue el equipo: te avisamos cuando haya algo para revisar.", true, "", true);
 }
 
 export async function accionCambiar(f: FormData) {
@@ -55,8 +58,8 @@ export async function accionCambiar(f: FormData) {
   const agente = String(f.get("agente") ?? "") || undefined;
   await correr(id, () => {
     if (!nota) throw new Error("Escribe qué hay que cambiar.");
-    return cambiar(id, quien, nota, agente, motor, subirCadaTarea(id));
-  }, "Cambio pedido. Se rehizo y quedó esperando tu revisión.");
+    return cambiar(id, quien, nota, agente, motor, undefined, { max: 0 });
+  }, "Cambio pedido. Lo están rehaciendo: te avisamos cuando esté.", false, "", true);
 }
 
 export async function accionParar(f: FormData) {
@@ -66,20 +69,33 @@ export async function accionParar(f: FormData) {
 
 export async function accionReanudar(f: FormData) {
   const { id } = await leer(f);
-  await correr(id, () => reanudar(id), "Proyecto reanudado: te toca decidir.");
+  await correr(id, () => reanudar(id), "Proyecto reanudado.", false, "", true);
 }
 
 export async function accionPausas(f: FormData) {
   const { id, motor } = await leer(f);
   await correr(id, async () => {
     cambiarPausas(id, String(f.get("pausas") ?? "clave"));
-    await avanzar(id, motor, subirCadaTarea(id));
-  }, "Listo: te pedirá revisar donde elegiste.");
+    await avanzar(id, motor, undefined, { max: 0 });
+  }, "Listo: te pedirá revisar donde elegiste.", false, "?ver=ajustes", true);
 }
 
 export async function accionSeguir(f: FormData) {
   const { id, motor } = await leer(f);
-  await correr(id, () => avanzar(id, motor, subirCadaTarea(id)), "El equipo siguió trabajando.");
+  await correr(id, () => {
+    // Retoma lo que quedó a medias: limpia el error y lo que quedó «en curso» de una vuelta muerta
+    // (si tenía entrega, se rehace; si no, se empieza; lo escrito a medias se conserva y sigue desde ahí).
+    const p = leerProyecto(id);
+    delete p.error;
+    for (const [t, e] of Object.entries(p.tareas)) {
+      if (e !== "en-curso" || p.parciales?.[t]) continue;
+      p.tareas[t as TareaId] = leerEntrega(id, t as TareaId) ? "rehacer" : "por-empezar";
+      if (p.vueltas) delete p.vueltas[t];
+    }
+    if (p.estado === "esperando" && !p.revision && !p.esperaJurado) p.estado = "en-curso";
+    guardarProyecto(p);
+    return avanzar(id, motor, undefined, { max: 0 });
+  }, "El equipo sigue desde donde quedó.", false, "", true);
 }
 
 export async function accionPortal(f: FormData) {
@@ -108,8 +124,8 @@ export async function accionMandarCliente(f: FormData) {
     if (!agentes.length) throw new Error("Elige al menos un agente.");
     anotar(id, texto, origen, agentes);
     if (pendiente) quitarPendiente(id, pendiente);
-    await avanzar(id, motor, subirCadaTarea(id));
-  }, "Comentario enviado: el equipo rehízo lo necesario.");
+    await avanzar(id, motor, undefined, { max: 0 });
+  }, "Comentario enviado: el equipo lo está rehaciendo.", false, "", true);
 }
 
 export async function accionDescartarPendiente(f: FormData) {
@@ -237,7 +253,14 @@ export async function accionNuevoProyecto(f: FormData) {
 /** «Que empiecen»: el plan queda aprobado y el equipo trabaja hasta la primera pausa. */
 export async function accionEmpezar(f: FormData) {
   const { id, quien, motor } = await leer(f);
-  await correr(id, () => empezar(id, quien, motor, subirCadaTarea(id)), "El equipo trabajó hasta la primera pausa.", true);
+  const modo = (["paso", "fase", "auto"].includes(String(f.get("modo"))) ? f.get("modo") : "paso") as ModoTrabajo;
+  await correr(id, () => {
+    const p = leerProyecto(id);
+    p.modo = modo;
+    p.prueba = motor.nombre === "simulado" || undefined;
+    guardarProyecto(p);
+    return empezar(id, quien, motor, undefined, { max: 0 });
+  }, modo === "paso" ? "Empezaron. Trabaja un agente a la vez: te avisamos cuando entregue." : "Empezaron. Te avisamos cuando haya algo para revisar.", true, "", true);
 }
 
 /** Corregir el plan con palabras antes de empezar: Atlas lo vuelve a leer. */
@@ -350,4 +373,11 @@ export async function accionPropuesta(f: FormData) {
     p.propuesta = propuesta;
     guardarProyecto(p);
   }, rehacer ? "Volvió al borrador con los datos de hoy." : "Propuesta guardada.", false, "/propuesta");
+}
+
+/** Cambia cómo trabaja el equipo (sistema/36): un agente a la vez, por fases o automático. */
+export async function accionModo(f: FormData) {
+  const { id } = await leer(f);
+  const modo = (["paso", "fase", "auto"].includes(String(f.get("modo"))) ? f.get("modo") : "paso") as ModoTrabajo;
+  await correr(id, () => cambiarModo(id, modo), "Modo de trabajo cambiado.", false, "?ver=ajustes", true);
 }

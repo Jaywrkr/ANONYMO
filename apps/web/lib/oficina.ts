@@ -11,6 +11,8 @@ export interface ProyectoOficina {
   estado: string; // plan | en-curso | esperando | listo | parado
   faseActual: number;
   tareas: Record<string, string>; // "4.orla": "lista" | "en-curso" | "por-empezar" | "rehacer"
+  /** Modo paso (sistema/36): la única entrega que espera revisión. */
+  revision?: { tarea: string };
 }
 
 export interface TrabajoAgente {
@@ -39,7 +41,11 @@ export const TEXTO_ESTADO: Record<EstadoAgente, string> = {
 export function estadoTarea(p: ProyectoOficina, tarea: string): EstadoAgente {
   const t = p.tareas[tarea];
   if (t === "en-curso") return p.estado === "parado" ? "cola" : "trabajando";
-  if (t === "lista") return p.estado === "esperando" && Number(tarea.split(".")[0]) === p.faseActual ? "revisar" : "listo";
+  if (t === "lista") {
+    if (p.estado !== "esperando") return "listo";
+    if (p.revision) return p.revision.tarea === tarea ? "revisar" : "listo";
+    return Number(tarea.split(".")[0]) === p.faseActual ? "revisar" : "listo";
+  }
   if (p.estado === "listo" || p.estado === "parado") return "libre";
   return "cola";
 }

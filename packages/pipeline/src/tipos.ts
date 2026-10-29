@@ -180,6 +180,9 @@ export interface NotaCliente {
   tareas: TareaId[];
 }
 
+/** Cómo trabaja el equipo: un agente a la vez con tu revisión, por fases o solo (sistema/36). */
+export type ModoTrabajo = "paso" | "fase" | "auto";
+
 /** estado.json: la foto del proyecto que lee la sala. */
 export interface Proyecto {
   pedido: Pedido;
@@ -198,6 +201,21 @@ export interface Proyecto {
   presupuesto?: { horas?: number; horasJay?: number; tarifa?: number; ajustes: { tarea: string; horas: number; motivo: string; fecha: string; incluido?: boolean }[] };
   /** Cuándo empezó cada tarea que está en curso (sistema/35), para mostrar cuánto lleva. */
   inicios?: Record<string, string>;
+  /**
+   * Cómo trabaja el equipo (sistema/36). «paso»: trabaja un agente y espera tu revisión;
+   * «fase»: se detiene al cerrar las fases con pausa; «auto»: sigue solo hasta el final. Sin valor: «fase».
+   */
+  modo?: ModoTrabajo;
+  /** En modo paso: la entrega que espera tu revisión antes de que siga el siguiente agente. */
+  revision?: { tarea: TareaId; fecha: string };
+  /** Cuándo empezó la vuelta actual de cada tarea (cada vuelta corre en un pedido de menos de 5 minutos). */
+  vueltas?: Record<string, string>;
+  /** Lo que un agente alcanzó a escribir antes de que se acabara el tiempo de su vuelta: la siguiente sigue desde ahí. */
+  parciales?: Record<string, string>;
+  /** El último error al trabajar (por ejemplo, la API no respondió): se muestra y se puede continuar. */
+  error?: { mensaje: string; tarea?: string; fecha: string };
+  /** Se arrancó con «probar sin gastar IA»: todas las vueltas usan el motor simulado. */
+  prueba?: boolean;
   /** Colores, fuentes y logo del cliente (sistema/35). */
   marca?: Marca;
   /** Propuesta editable para el cliente (sistema/35). */
