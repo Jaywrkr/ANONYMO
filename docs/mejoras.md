@@ -42,6 +42,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/38-sin-choques | En línea, cada acción y cada vuelta de trabajo usa su propia copia del proyecto: una página que se recarga ya no le borra los archivos a un agente que está trabajando (lo que dejaba a Vector «por empezar» sin trabajar). Las bajadas del proyecto se cambian de una vez, sin carpetas a medio borrar, y al terminar una vuelta se sube solo lo que hizo esa vuelta | `/estudio/<id>` |
 | sistema/39-vector-escribe | Si un agente se pasa toda la vuelta pensando o buscando sin escribir (pasaba con Vector), la vuelta siguiente va directo a escribir: sin buscar en la web y pensando poco; solo se detiene si tampoco así avanza. Continuar tras ese error también va directo. Las acciones suben solo lo que cambió (antes resubían todas las fotos y tardaban). Cada vuelta deja registro en Vercel | `/estudio/<id>` |
 | sistema/40-senal-y-ligero | Mientras la IA tarda en responder, el agente sigue dando señal («esperando respuesta de la IA · 1:20») y nadie lo da por detenido ni arranca otra vuelta encima. Pedidos más livianos a la IA: hasta 8 imágenes (antes 14) y, en las vueltas de rescate o de continuación, ninguna, para que responda en segundos | `/estudio/<id>` |
+| sistema/41-sin-pensar-de-nuevo | Al seguir una entrega ya empezada (o en la vuelta de rescate), el agente escribe sin volver a pensar: el registro mostró que cada vuelta se iba ~150 s pensando de nuevo antes de escribir | `/estudio/<id>` |
 
 ## Web
 
