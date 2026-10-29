@@ -1,5 +1,5 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
-import { claveAnthropic, ocultarClaves, pensamiento, textoDe } from "./ia.ts";
+import { claveAnthropic, ocultarClaves, pensamiento, sinPensar, textoDe } from "./ia.ts";
 import { pedirEnVivo } from "./envivo.ts";
 import { direccionesSimuladas, leerDirecciones, PEDIDO_DIRECCIONES, textoDireccion } from "./direcciones.ts";
 import { COMO_TRABAJAMOS, tarifaHora } from "./agencia.ts";
@@ -298,7 +298,7 @@ export const real: Motor = {
           // Tareas livianas con el modelo rápido; el resto con el principal.
           model: modelo,
           max_tokens: (c.salida ?? 4000) + (profunda && !apurado ? 8000 : 2000) + (conHerramientas && (buscaEnWeb || abreEnlaces) ? 4000 : 0) + extra,
-          ...pensamiento(modelo, profunda && !apurado),
+          ...(apurado ? sinPensar(modelo) : pensamiento(modelo, profunda)),
           system: sistema,
           messages: mensajes,
           ...(conHerramientas && (buscaEnWeb || abreEnlaces)

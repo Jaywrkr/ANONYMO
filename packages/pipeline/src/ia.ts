@@ -29,6 +29,15 @@ export function pensamiento(modelo: string, profundo: boolean): Record<string, u
   return {};
 }
 
+/**
+ * Sin pensar (sistema/41): para seguir una entrega que ya se empezó a escribir. El registro mostró que cada vuelta
+ * se iba ~150 s pensando de nuevo antes de escribir una palabra; al continuar, ya no hace falta.
+ */
+export function sinPensar(modelo: string): Record<string, unknown> {
+  if (/(haiku|sonnet|opus)-5-5/.test(modelo)) return { thinking: { type: "disabled" } };
+  return {};
+}
+
 /** Saca el texto de una respuesta; si no hay, explica por qué (por ejemplo, se acabó el espacio pensando). */
 export function textoDe(d: { content?: { type: string; text?: string }[]; stop_reason?: string }): string {
   const t = (d.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
