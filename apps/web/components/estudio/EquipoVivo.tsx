@@ -12,8 +12,13 @@ import { estadoTarea, TEXTO_ESTADO, type ProyectoOficina } from "@/lib/oficina";
 const PUNTO: Record<string, string> = { trabajando: "bg-vivo", revisar: "bg-urgente", cola: "bg-[#cfc8bc]", listo: "bg-tinta", libre: "bg-[#e5e0d7]" };
 const TEXTO: Record<string, string> = { ...TEXTO_ESTADO, listo: "Entregó", cola: "Por empezar" };
 
-export function EquipoVivo({ inicial, entregas }: { inicial: ProyectoOficina; entregas: Record<string, string> }) {
-  const [p, setP] = useState(inicial);
+type ConTiempos = ProyectoOficina & { inicios?: Record<string, string>; estimados?: Record<string, number> };
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+
+export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entregas: Record<string, string> }) {
+  const [p, setP] = useState<ConTiempos>(inicial);
+  // 0 hasta montar: el reloj solo se pinta en el navegador (si no, el servidor y el navegador no coinciden).
+  const [ahora, setAhora] = useState(0);
   const [trabajando, setTrabajando] = useState(false);
   useEffect(() => setP(inicial), [inicial]);
   useEffect(() => {
@@ -28,12 +33,14 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ProyectoOficina; en
     const consultar = async () => {
       try {
         const r = await fetch(`/estudio/${p.id}/vivo`, { cache: "no-store" });
-        if (r.ok && sigue) setP((await r.json()) as ProyectoOficina);
+        if (r.ok && sigue) setP((await r.json()) as ConTiempos);
       } catch {}
     };
     consultar();
     const t = setInterval(consultar, 3000);
-    return () => { sigue = false; clearInterval(t); };
+    setAhora(Date.now());
+    const reloj = setInterval(() => setAhora(Date.now()), 1000);
+    return () => { sigue = false; clearInterval(t); clearInterval(reloj); };
   }, [p.id, trabajando, enCurso]);
 
   const tareas = Object.keys(p.tareas).sort((a, b) => Number(a.split(".")[0]) - Number(b.split(".")[0]));
@@ -60,9 +67,18 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ProyectoOficina; en
                   <span className="block text-[14px] font-medium">{a.nombre}</span>
                   <span className="block truncate text-[12px] text-suave">{entregas[t] ?? a.rol}</span>
                 </span>
-                <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-medio">
-                  <i className={`h-2 w-2 rounded-full ${PUNTO[est]} ${est === "trabajando" ? "late" : ""}`} />
-                  {TEXTO[est]}
+                <span className="flex shrink-0 flex-col items-end gap-1 text-[12px] text-medio">
+                  <span className="flex items-center gap-1.5"><i className={`h-2 w-2 rounded-full ${PUNTO[est]} ${est === "trabajando" ? "late" : ""}`} />{TEXTO[est]}</span>
+                  {est === "trabajando" && ahora > 0 && p.inicios?.[t] && (() => {
+                    const lleva = Math.round((ahora - Date.parse(p.inicios![t])) / 1000);
+                    const suele = p.estimados?.[t] ?? 120;
+                    return (
+                      <span className="flex items-center gap-1.5 font-mono text-[10px] text-suave" title={`Suele tardar unos ${Math.max(1, Math.round(suele / 60))} min`}>
+                        <span className="block h-[3px] w-14 overflow-hidden rounded-full bg-borde"><i className="block h-full rounded-full bg-vivo" style={{ width: `${Math.min(95, (lleva / suele) * 100)}%` }} /></span>
+                        {mmss(lleva)}
+                      </span>
+                    );
+                  })()}
                 </span>
               </Link>
             </li>

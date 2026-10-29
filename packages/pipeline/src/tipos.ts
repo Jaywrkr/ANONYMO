@@ -71,6 +71,33 @@ export interface Contrato {
   salida?: number;
   /** Herramientas que necesita de verdad (fase 5.4). En simulado se marcan como pendientes. */
   herramientas?: ("web" | "dominios" | "redes" | "lighthouse" | "imagen")[];
+  /** Formato fijo (sistema/35): las secciones que siempre lleva la entrega, en este orden. */
+  estructura?: string[];
+}
+
+/** La marca del cliente (sistema/35): colores, fuentes y logo que el equipo usa tal cual. */
+export interface Marca {
+  colores: { nombre: string; hex: string }[];
+  fuentes: { nombre: string; uso: string }[];
+  /** Nombre del archivo del logo dentro de los archivos del proyecto. */
+  logo?: string;
+  notas?: string;
+  actualizado?: string;
+}
+
+/** La propuesta para el cliente (sistema/35): editable por Jay o Luna y lista para descargar. */
+export interface Propuesta {
+  titulo: string;
+  intro: string;
+  quienes: string;
+  entendimos: string;
+  haremos: string;
+  entregables: string;
+  tiempos: string;
+  items: { concepto: string; detalle: string; precio: number }[];
+  condiciones: string;
+  validez: string;
+  actualizado: string;
 }
 
 /** El plan que arma Atlas para un pedido. */
@@ -167,8 +194,14 @@ export interface Proyecto {
   costos?: Record<string, { entrada: number; salida: number; busquedas: number; usd: number; estimado: boolean; fecha: string }[]>;
   /** Caso público (web/03): solo con permiso escrito del cliente. */
   caso?: { publico: boolean; permiso: string; fecha: string; resumen?: string; testimonio?: { texto: string; autor: string; logo?: string } };
-  /** Presupuesto vivo (sistema/15): horas base de Ledger y lo que suman los cambios. */
-  presupuesto?: { horas?: number; ajustes: { tarea: string; horas: number; motivo: string; fecha: string; incluido?: boolean }[] };
+  /** Presupuesto vivo (sistema/15): horas base de Ledger y lo que suman los cambios. Jay puede fijar sus horas reales y su tarifa (sistema/35). */
+  presupuesto?: { horas?: number; horasJay?: number; tarifa?: number; ajustes: { tarea: string; horas: number; motivo: string; fecha: string; incluido?: boolean }[] };
+  /** Cuándo empezó cada tarea que está en curso (sistema/35), para mostrar cuánto lleva. */
+  inicios?: Record<string, string>;
+  /** Colores, fuentes y logo del cliente (sistema/35). */
+  marca?: Marca;
+  /** Propuesta editable para el cliente (sistema/35). */
+  propuesta?: Propuesta;
   /** Enlace privado del cliente: /portal/<id>?t=<token>. */
   portal?: { token: string; creado: string };
   /** Comentarios que el cliente dejó en su portal y que Jay o Luna todavía no mandan al equipo. */

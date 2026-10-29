@@ -33,7 +33,7 @@ export default async function Revisar({ params, searchParams }: Props) {
   const decidir = n >= total;
   const leToca = responsable(p, p.faseActual);
   const m = momento(p, yo, leToca);
-  const e = espacio(id);
+  const e = espacio(id, p.marca);
   const base = `/estudio/${id}/revisar`;
   const fase = nombreFase(p.faseActual);
   const conClaves = sesionConfigurada();

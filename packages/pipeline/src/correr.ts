@@ -84,6 +84,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const c = contratoPorId(t)!;
       const rehace = p.tareas[t] === "rehacer";
       p.tareas[t] = "en-curso";
+      p.inicios = { ...p.inicios, [t]: new Date().toISOString() };
       guardarProyecto(p);
       // Aviso de inicio: en línea sube el estado para que la oficina muestre quién está trabajando.
       await aviso(`  … ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega}`);
@@ -94,22 +95,24 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const herramientas = await prepararHerramientas({ pedido: p.pedido, tarea: t, lecturas: leidas, motorReal: motor.nombre !== "simulado" });
       for (const h of herramientas) bitacora(id, `${h.herramienta}: ${h.ok ? "ok" : "pendiente"}.`);
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
-        consejos: consejosPara(p.pedido.plantilla, c.agente),
-        archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })) });
+        consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
+        archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
+        marca: p.marca });
       const { uso, ...resto } = r;
       guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto });
       // Costo: real si vino de la API; si no, lo que costaría con el motor real.
       const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
       p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };
       p.tareas[t] = "lista";
+      if (p.inicios) delete p.inicios[t];
       // Presupuesto vivo: Ledger fija las horas base; si otro agente suma horas, Ledger vuelve a calcular.
       const extra = Number(r.datos?.horasExtra ?? 0);
       // Cuando Ledger da un total nuevo, ese total ya incluye los ajustes anteriores.
       if (t.endsWith(".ledger") && typeof r.datos?.horas === "number")
-        p.presupuesto = { horas: r.datos.horas as number, ajustes: (p.presupuesto?.ajustes ?? []).map((a) => ({ ...a, incluido: true })) };
+        p.presupuesto = { ...p.presupuesto, horas: r.datos.horas as number, ajustes: (p.presupuesto?.ajustes ?? []).map((a) => ({ ...a, incluido: true })) };
       if (extra > 0) {
         const motivo = cambio ?? "Cambio en la entrega";
-        p.presupuesto = { horas: p.presupuesto?.horas, ajustes: [...(p.presupuesto?.ajustes ?? []), { tarea: t, horas: extra, motivo, fecha: new Date().toISOString() }] };
+        p.presupuesto = { ...p.presupuesto, horas: p.presupuesto?.horas, ajustes: [...(p.presupuesto?.ajustes ?? []), { tarea: t, horas: extra, motivo, fecha: new Date().toISOString() }] };
         if (tareas.includes("1.ledger") && t !== "1.ledger") {
           p.tareas["1.ledger"] = "rehacer";
           p.cambios[1] = `Ajuste de presupuesto: ${agentePorId(c.agente)?.nombre} suma ${extra} h (${motivo.slice(0, 120)}).`;

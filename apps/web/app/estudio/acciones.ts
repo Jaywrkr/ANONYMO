@@ -3,10 +3,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
+import { guardarProyecto, type Marca, type Propuesta } from "@anonymo/pipeline";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
+import { archivosDe } from "@/lib/subidas";
 
 type Quien = "jay" | "luna";
 
@@ -19,13 +21,16 @@ async function leer(f: FormData) {
   return { id, quien, motor, nota: String(f.get("nota") ?? "").trim() || undefined };
 }
 
-async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string, fiesta = false) {
+async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string, fiesta = false, ruta = "") {
   await exigirEstudio();
-  let destino = `/estudio/${id}?ok=${encodeURIComponent(ok)}${fiesta ? "&fiesta=1" : ""}`;
+  // ruta: a qué parte del proyecto volver (ej. «?ver=marca» o «/propuesta»).
+  const base = `/estudio/${id}${ruta.startsWith("/") ? ruta.split("?")[0] : ""}`;
+  const extra = ruta.includes("?") ? `${ruta.split("?")[1]}&` : "";
+  let destino = `${base}?${extra}ok=${encodeURIComponent(ok)}${fiesta ? "&fiesta=1" : ""}`;
   try {
     await conNube([id], fn);
   } catch (e) {
-    destino = `/estudio/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+    destino = `${base}?${extra}error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
   }
   revalidatePath(`/estudio/${id}`);
   redirect(destino);
@@ -131,11 +136,12 @@ export async function accionRestaurar(f: FormData) {
 export async function accionSubir(f: FormData) {
   const { id } = await leer(f);
   const nota = String(f.get("nota") ?? "").trim() || undefined;
-  const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0);
+  const cuantos = f.getAll("archivos").filter((x) => x instanceof File && x.size > 0).length + f.getAll("subida").filter(Boolean).length;
   await correr(id, async () => {
+    const archivos = await archivosDe(f);
     if (!archivos.length) throw new Error("Elige al menos un archivo.");
-    for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), nota);
-  }, `${archivos.length} archivo(s) agregado(s). Los agentes los verán en su próxima entrega.`);
+    for (const a of archivos) guardarArchivo(id, a.nombre, a.datos, nota);
+  }, `${cuantos} archivo(s) agregado(s). Los agentes los verán en su próxima entrega.`, false, "?ver=archivos");
 }
 
 export async function accionResponder(f: FormData) {
@@ -199,9 +205,9 @@ export async function accionNuevoProyecto(f: FormData) {
   const quienN = yo === "luna" ? "Luna" : "Jay";
   const texto = String(f.get("texto") ?? "").trim();
   const nombre = String(f.get("cliente") ?? "").trim().slice(0, 80) || undefined;
-  const archivos = f.getAll("archivos").filter((x): x is File => x instanceof File && x.size > 0).slice(0, 15);
   let destino = "/estudio/nuevo";
   try {
+    const archivos = (await archivosDe(f)).map((a) => ({ name: a.nombre, datos: a.datos }));
     if (texto.length < 20) throw new Error("Cuéntale a Atlas un poco más: al menos un par de frases de lo que hablaron.");
     const l = await entenderPedido(texto, { cliente: nombre, archivos: archivos.map((a) => a.name) });
     const cliente = l.cliente;
@@ -217,7 +223,7 @@ export async function accionNuevoProyecto(f: FormData) {
       crear(pedido, plan, "plan");
       bitacora(id, `${quienN} contó el pedido de ${cliente}. Atlas ${plan.porIA ? "lo leyó con IA" : "usó sus reglas"}: trabajan ${plan.tareas.length} tareas en las fases ${plan.fases.join(", ")}.`);
       // Los archivos entran antes de que trabajen: así los agentes los ven desde la primera entrega.
-      for (const a of archivos) guardarArchivo(id, a.name, Buffer.from(await a.arrayBuffer()), `Subido por ${quienN} al crear el proyecto`);
+      for (const a of archivos) guardarArchivo(id, a.name, a.datos, `Subido por ${quienN} al crear el proyecto`);
     });
     destino = `/estudio/${id}`;
   } catch (e) {
@@ -286,4 +292,62 @@ export async function accionSacarDePapelera(f: FormData) {
   }
   revalidatePath("/estudio");
   redirect(destino);
+}
+
+// ---- sistema/35 ----
+
+const hexOk = (h: string) => /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(h.trim());
+const normalHex = (h: string) => {
+  const x = h.trim().replace("#", "").toLowerCase();
+  return `#${x.length === 3 ? x.split("").map((c) => c + c).join("") : x}`;
+};
+
+/** Guarda la marca del cliente: colores, fuentes, logo y notas. */
+export async function accionMarca(f: FormData) {
+  const { id } = await leer(f);
+  await correr(id, () => {
+    const colores = (JSON.parse(String(f.get("colores") ?? "[]")) as { nombre: string; hex: string }[])
+      .filter((c) => hexOk(c.hex)).slice(0, 16).map((c) => ({ nombre: c.nombre.trim().slice(0, 40) || normalHex(c.hex), hex: normalHex(c.hex) }));
+    const fuentes = (JSON.parse(String(f.get("fuentes") ?? "[]")) as { nombre: string; uso: string }[])
+      .filter((x) => x.nombre.trim()).slice(0, 8).map((x) => ({ nombre: x.nombre.trim().slice(0, 60), uso: x.uso.trim().slice(0, 80) }));
+    const p = leerProyecto(id);
+    const marca: Marca = { colores, fuentes, logo: String(f.get("logo") ?? "") || undefined, notas: String(f.get("notas") ?? "").trim().slice(0, 1500) || undefined, actualizado: new Date().toISOString() };
+    p.marca = marca;
+    guardarProyecto(p);
+    bitacora(id, `Marca actualizada: ${colores.length} colores, ${fuentes.length} fuentes.`);
+  }, "Marca guardada. El equipo la usa desde su próxima entrega.", false, "?ver=marca");
+}
+
+/** Horas reales de Jay y tarifa: mandan sobre la estimación de Ledger. */
+export async function accionPresupuesto(f: FormData) {
+  const { id } = await leer(f);
+  await correr(id, () => {
+    const num = (k: string) => { const v = Number(String(f.get(k) ?? "").replace(",", ".")); return Number.isFinite(v) && v > 0 ? v : undefined; };
+    const p = leerProyecto(id);
+    p.presupuesto = { ...p.presupuesto, ajustes: p.presupuesto?.ajustes ?? [], horasJay: num("horasJay"), tarifa: num("tarifa") };
+    guardarProyecto(p);
+    bitacora(id, `Presupuesto: ${p.presupuesto.horasJay ? `${p.presupuesto.horasJay} h de Jay` : "horas de Ledger"}${p.presupuesto.tarifa ? ` a $${p.presupuesto.tarifa}/h` : ""}.`);
+  }, "Números guardados.", false, "?ver=numeros");
+}
+
+/** Guarda la propuesta editada (o la borra para volver al borrador). */
+export async function accionPropuesta(f: FormData) {
+  const { id } = await leer(f);
+  const rehacer = f.get("rehacer") === "1";
+  await correr(id, () => {
+    const p = leerProyecto(id);
+    if (rehacer) { delete p.propuesta; guardarProyecto(p); return; }
+    const t = (k: string) => String(f.get(k) ?? "").trim();
+    const conceptos = f.getAll("concepto").map(String);
+    const detalles = f.getAll("detalle").map(String);
+    const precios = f.getAll("precio").map((x) => Number(String(x).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0);
+    const propuesta: Propuesta = {
+      titulo: t("titulo"), intro: t("intro"), quienes: t("quienes"), entendimos: t("entendimos"), haremos: t("haremos"),
+      entregables: t("entregables"), tiempos: t("tiempos"), condiciones: t("condiciones"), validez: t("validez"),
+      items: conceptos.map((c, i) => ({ concepto: c.trim(), detalle: (detalles[i] ?? "").trim(), precio: precios[i] ?? 0 })).filter((x) => x.concepto),
+      actualizado: new Date().toISOString(),
+    };
+    p.propuesta = propuesta;
+    guardarProyecto(p);
+  }, rehacer ? "Volvió al borrador con los datos de hoy." : "Propuesta guardada.", false, "/propuesta");
 }

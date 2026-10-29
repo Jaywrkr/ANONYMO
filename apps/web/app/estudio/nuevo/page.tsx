@@ -50,7 +50,7 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
             </label>
             <div className="grid content-start gap-2">
               <span className="text-[13px] font-medium">Imágenes y archivos <span className="font-normal text-suave">· opcional</span></span>
-              <ZonaArchivos limiteMB={enLinea ? 4 : undefined} texto="Logo, fotos o capturas de lo que le gusta" />
+              <ZonaArchivos nube={enLinea} texto="Logo, fotos o capturas de lo que le gusta" />
             </div>
           </div>
           <p className="-mt-3 text-[12px] text-suave">Mira, Orla y los visuales ven las imágenes. Los enlaces del texto los abren Sonda, Nova, Orla y Vector.</p>

@@ -13,4 +13,4 @@ export default async function proxy(req: NextRequest) {
   return NextResponse.redirect(entrar);
 }
 
-export const config = { matcher: ["/estudio", "/estudio/:path*"] };
+export const config = { matcher: ["/estudio", "/estudio/:path*", "/imprimir/:path*"] };

@@ -1,7 +1,7 @@
 "use client";
 
-// Mientras el equipo trabaja (sistema/33): un aviso que dice qué pasa, quién está en qué y cuánto lleva.
-// Se puede achicar a una píldora para seguir mirando el estudio en la misma pestaña.
+// Mientras la IA trabaja (sistema/35): la pantalla queda bloqueada y borrosa hasta que termine.
+// Dice quién está en qué, cuánto lleva cada uno y cuánto suele tardar. No se puede salir a medias.
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { agentePorId } from "@anonymo/agentes";
@@ -9,15 +9,14 @@ import { caraSvg } from "@/lib/caras";
 import { queHace } from "@/lib/haciendo";
 import { leerTrabajo, type Trabajo } from "@/app/estudio/nuevo/Enviar";
 
-interface Vivo { tareas: Record<string, string> }
+interface Vivo { tareas: Record<string, string>; inicios?: Record<string, string>; estimados?: Record<string, number> }
 
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 
 export function Trabajando() {
   const [t, setT] = useState<Trabajo>({ activo: false });
   const [desde, setDesde] = useState(0);
   const [ahora, setAhora] = useState(0);
-  const [chico, setChico] = useState(false);
   const [vivo, setVivo] = useState<Vivo | null>(null);
   const [turno, setTurno] = useState(0);
   // Al llegar a otra página (la acción terminó y redirigió), el aviso se cierra.
@@ -30,15 +29,16 @@ export function Trabajando() {
       const x = leerTrabajo(e);
       if (!x.largo) return;
       setT(x);
-      if (x.activo) { setDesde(Date.now()); setAhora(Date.now()); setChico(false); setVivo(null); }
+      if (x.activo) { setDesde(Date.now()); setAhora(Date.now()); setVivo(null); }
     };
     addEventListener("anonymo:trabajando", f);
     return () => removeEventListener("anonymo:trabajando", f);
   }, []);
 
-  // Reloj y estado en vivo del proyecto.
+  // Mientras trabaja: reloj, estado en vivo, nada de atajos ni de salir.
   useEffect(() => {
     if (!t.activo) return;
+    document.documentElement.setAttribute("data-trabajando", "1");
     const reloj = setInterval(() => setAhora(Date.now()), 1000);
     const cambio = setInterval(() => setTurno((n) => n + 1), 3200);
     let sigue = true;
@@ -51,54 +51,65 @@ export function Trabajando() {
     };
     consultar();
     const sondeo = setInterval(consultar, 3000);
-    // Cerrar la pestaña corta el trabajo: el navegador avisa antes.
     const antes = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    const teclas = (e: KeyboardEvent) => { if (!(e.target as HTMLElement)?.closest?.("[data-aviso-trabajo]")) { e.stopImmediatePropagation(); if (e.key !== "Tab") e.preventDefault(); } };
     addEventListener("beforeunload", antes);
-    return () => { sigue = false; clearInterval(reloj); clearInterval(cambio); clearInterval(sondeo); removeEventListener("beforeunload", antes); };
+    addEventListener("keydown", teclas, true);
+    return () => {
+      sigue = false; clearInterval(reloj); clearInterval(cambio); clearInterval(sondeo);
+      removeEventListener("beforeunload", antes); removeEventListener("keydown", teclas, true);
+      document.documentElement.removeAttribute("data-trabajando");
+    };
   }, [t.activo, t.proyecto]);
 
   if (!t.activo) return null;
   const seg = Math.max(0, Math.round((ahora - desde) / 1000));
   const tareas = Object.entries(vivo?.tareas ?? {});
-  const enCurso = tareas.filter(([, e]) => e === "en-curso").map(([x]) => x.split(".")[1]);
+  const enCurso = tareas.filter(([, e]) => e === "en-curso").map(([x]) => x);
   const hechas = tareas.filter(([, e]) => e === "lista").length;
-  const quien = enCurso.length ? enCurso : ["atlas"];
-
-  if (chico) {
-    return (
-      <button type="button" onClick={() => setChico(false)} className="fixed bottom-4 right-4 z-[70] flex min-h-12 items-center gap-3 rounded-full bg-tinta py-2 pl-2 pr-5 text-[13px] text-white shadow-[0_18px_44px_-14px_rgba(20,15,10,.5)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={caraSvg(quien[0])} alt="" width={30} height={32} className="flota" />
-        <span>{agentePorId(quien[0])?.nombre} {queHace(quien[0], turno)}…</span>
-        <span className="font-mono text-[11px] text-white/60">{mmss(seg)}</span>
-      </button>
-    );
-  }
+  const filas = enCurso.length ? enCurso : ["1.atlas"];
 
   return (
-    <div role="status" aria-live="polite" className="fixed inset-0 z-[70] grid place-items-center bg-tinta/25 p-4 backdrop-blur-[3px]">
-      <div className="dialogo w-[min(460px,100%)] rounded-[24px] bg-carta p-7 text-center shadow-[0_0_0_1px_rgba(26,24,22,.06),0_30px_80px_-20px_rgba(20,15,10,.45)]">
+    <div data-aviso-trabajo role="alertdialog" aria-modal="true" aria-live="polite" aria-label="La IA está trabajando" className="fixed inset-0 z-[90] grid place-items-center bg-[#efe9df]/55 p-4 backdrop-blur-md">
+      <div className="aparece w-[min(500px,100%)] rounded-[26px] bg-carta p-7 text-center shadow-[0_0_0_1px_rgba(26,24,22,.06),0_30px_80px_-20px_rgba(20,15,10,.45)]">
         <div className="flex items-end justify-center gap-2">
-          {quien.slice(0, 4).map((id, i) => (
+          {filas.slice(0, 4).map((x, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={id} src={caraSvg(id)} alt="" width={64} height={69} className="flota" style={{ animationDelay: `${i * 0.25}s` }} />
+            <img key={x} src={caraSvg(x.split(".")[1])} alt="" width={64} height={69} className="flota" style={{ animationDelay: `${i * 0.25}s` }} />
           ))}
         </div>
         <p className="mt-5 font-serif text-[30px] leading-[1.05]">{t.texto ?? "El equipo está trabajando…"}</p>
-        <ul className="mx-auto mt-3 grid max-w-sm gap-1 text-[14px] text-medio" aria-live="polite">
-          {quien.slice(0, 3).map((id, i) => (
-            <li key={`${id}-${turno}`} className="aparece" style={{ animationDelay: `${i * 0.08}s` }}>
-              <span className="font-medium text-tinta">{agentePorId(id)?.nombre}</span> {queHace(id, turno + i)}…
-            </li>
-          ))}
+        <p className="mt-1 text-[13px] text-suave">La IA aún no termina. Espera aquí: la pantalla se libera sola.</p>
+
+        <ul className="mx-auto mt-5 grid max-w-sm gap-3 text-left">
+          {filas.slice(0, 3).map((x, i) => {
+            const id = x.split(".")[1];
+            const inicio = vivo?.inicios?.[x] ? Date.parse(vivo.inicios[x]) : desde;
+            const lleva = Math.max(0, Math.round((ahora - inicio) / 1000));
+            const suele = vivo?.estimados?.[x] ?? 120;
+            const avance = Math.min(0.95, lleva / suele);
+            return (
+              <li key={x} className="aparece" style={{ animationDelay: `${i * 0.08}s` }}>
+                <p className="flex items-baseline gap-2 text-[14px]">
+                  <span className="font-medium">{agentePorId(id)?.nombre}</span>
+                  <span key={turno} className="aparece min-w-0 flex-1 truncate text-medio">{queHace(id, turno + i)}…</span>
+                  <span className="shrink-0 font-mono text-[11px] text-suave">{mmss(lleva)}</span>
+                </p>
+                <span className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-borde">
+                  <i className="block h-full rounded-full bg-vivo transition-[width] duration-1000" style={{ width: `${avance * 100}%` }} />
+                </span>
+                <p className="mt-1 text-[11px] text-suave">{lleva > suele ? "Está tardando más de lo normal; sigue trabajando." : `Suele tardar unos ${Math.max(1, Math.round(suele / 60))} min.`}</p>
+              </li>
+            );
+          })}
         </ul>
-        {tareas.length > 0 && <p className="mt-2 text-[12px] text-suave">{hechas} de {tareas.length} entregas listas</p>}
-        <div className="mx-auto mt-5 h-[3px] w-48 overflow-hidden rounded-full bg-borde"><i className="avanza block h-full w-1/3 rounded-full bg-tinta" /></div>
-        <p className="mt-3 font-mono text-[12px] text-suave">{mmss(seg)}</p>
-        <p className="mx-auto mt-4 max-w-sm text-[13px] leading-relaxed text-medio">
-          Puede tardar unos minutos. Deja esta pestaña abierta: si se corta, lo terminado queda guardado y puedes continuar.
+
+        <p className="mt-5 text-[12px] text-suave">
+          {tareas.length ? `${hechas} de ${tareas.length} entregas listas · ` : ""}total {mmss(seg)}
         </p>
-        <button type="button" onClick={() => setChico(true)} className="mt-5 inline-flex min-h-11 items-center rounded-full bg-white px-5 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Achicar y seguir mirando</button>
+        <p className="mx-auto mt-3 max-w-sm text-[12px] leading-relaxed text-medio">
+          No cierres ni recargues esta pestaña. Si pasa de 5 minutos el servidor corta, pero lo terminado queda guardado y continúas con un toque.
+        </p>
       </div>
     </div>
   );

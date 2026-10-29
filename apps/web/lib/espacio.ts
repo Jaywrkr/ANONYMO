@@ -1,31 +1,53 @@
-// Cada proyecto es un espacio con su color, como en Arc (sistema/32).
-// El color sale del id: siempre el mismo para el mismo proyecto, sin guardarlo en ningún lado.
+// Los colores del estudio (sistema/35).
+// Afuera de un proyecto: el marco cálido del estudio. Adentro: los colores de la marca del cliente;
+// si todavía no tiene, los de Anonymo (hueso y tinta). Nada de colores al azar.
+import type { Marca } from "@anonymo/pipeline";
 
 export interface Espacio {
-  /** Color sólido: el punto del proyecto y la fase que espera revisión. */
+  /** Color sólido: el punto del proyecto en la barra y en las filas. */
   punto: string;
-  /** Degradado del marco cuando estás dentro del proyecto. */
+  /** Fondo del marco cuando estás dentro del proyecto. */
   marco: string;
   /** Fondo claro para resaltar dentro de la tarjeta. */
   suave: string;
+  /** Si viene de la marca del cliente. */
+  deMarca: boolean;
 }
 
-const PALETA: Espacio[] = [
-  { punto: "#4f6bff", marco: "linear-gradient(160deg,#cdd8ff 0%,#e2e8ff 45%,#efe8ff 100%)", suave: "#eef1ff" },
-  { punto: "#2f8f6b", marco: "linear-gradient(160deg,#cfeadc 0%,#e4f2e7 45%,#f1efdc 100%)", suave: "#e9f5ee" },
-  { punto: "#ff7a3d", marco: "linear-gradient(160deg,#ffd9c2 0%,#fde6d6 45%,#f6ead6 100%)", suave: "#fff1e8" },
-  { punto: "#d6458f", marco: "linear-gradient(160deg,#f8d0e6 0%,#f9e2ee 45%,#efe4f6 100%)", suave: "#fcedf5" },
-  { punto: "#8a5cf6", marco: "linear-gradient(160deg,#ddd0ff 0%,#ebe3ff 45%,#f6e6ef 100%)", suave: "#f2edff" },
-  { punto: "#1f9bb5", marco: "linear-gradient(160deg,#c9ecf3 0%,#e0f2f5 45%,#ecefe2 100%)", suave: "#e6f5f8" },
-  { punto: "#c9a300", marco: "linear-gradient(160deg,#f6ebb5 0%,#f8f0d2 45%,#f1ead9 100%)", suave: "#fbf5dc" },
-  { punto: "#e0473b", marco: "linear-gradient(160deg,#fbd3cd 0%,#fbe3dd 45%,#f5e7dc 100%)", suave: "#fdecea" },
-];
-
-/** El marco de «Todo»: cálido y neutro. */
+/** El marco de afuera: cálido y neutro, como una mente. */
 export const MARCO_TODO = "linear-gradient(160deg,#e6def5 0%,#f2e7dc 55%,#efe9d9 100%)";
 
-export function espacio(id: string): Espacio {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return PALETA[h % PALETA.length];
+/** Anonymo por defecto: hueso, papel y tinta. */
+const ANONYMO: Espacio = { punto: "#1a1816", marco: "linear-gradient(160deg,#e7e3da 0%,#efece5 55%,#e9e5dc 100%)", suave: "#f4f1eb", deMarca: false };
+
+const hex = (h: string) => {
+  const m = h.trim().replace("#", "");
+  const x = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+  return /^[0-9a-f]{6}$/i.test(x) ? [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16)) : undefined;
+};
+/** Mezcla un color con blanco (t = cuánto blanco). */
+const aclarar = (h: string, t: number) => {
+  const c = hex(h);
+  if (!c) return "#f4f1eb";
+  return `#${c.map((v) => Math.round(v + (255 - v) * t).toString(16).padStart(2, "0")).join("")}`;
+};
+/** Qué tan claro es (0 negro, 1 blanco). */
+export const luz = (h: string) => {
+  const c = hex(h);
+  return c ? (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255 : 1;
+};
+export const hexValido = (h: string) => !!hex(h);
+
+export function espacio(_id: string, marca?: Marca): Espacio {
+  const colores = (marca?.colores ?? []).map((c) => c.hex).filter(hexValido);
+  if (!colores.length) return ANONYMO;
+  // El primero que no sea casi blanco ni casi negro es el principal; los otros acompañan el degradado.
+  const principal = colores.find((c) => luz(c) > 0.12 && luz(c) < 0.9) ?? colores[0];
+  const segundo = colores.find((c) => c !== principal && luz(c) > 0.12) ?? principal;
+  return {
+    punto: principal,
+    marco: `linear-gradient(160deg,${aclarar(principal, 0.72)} 0%,${aclarar(segundo, 0.84)} 55%,${aclarar(principal, 0.9)} 100%)`,
+    suave: aclarar(principal, 0.9),
+    deMarca: true,
+  };
 }

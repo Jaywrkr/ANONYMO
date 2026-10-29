@@ -47,8 +47,11 @@ export interface EspacioBarra {
   senal: "toca" | "vivo" | "parado" | "listo" | "";
 }
 
+export interface AvisoCampana { href: string; titulo: string; detalle: string; punto: string }
+
 interface Props {
   yo: "jay" | "luna";
+  avisos: AvisoCampana[];
   conSalir: boolean;
   espacios: EspacioBarra[];
   tetoca: number;
@@ -75,13 +78,50 @@ const I = {
   biblioteca: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z",
 };
 
-function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr }: Omit<Props, "children"> & { activo?: EspacioBarra; ruta: string; alIr?: () => void }) {
+/** La campana: lo que espera una decisión, sin sacarte de donde estás. */
+function Campana({ avisos, alIr }: { avisos: AvisoCampana[]; alIr?: () => void }) {
+  const [abierta, setAbierta] = useState(false);
+  const ruta = usePathname();
+  useEffect(() => setAbierta(false), [ruta]);
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setAbierta((x) => !x)} aria-expanded={abierta} aria-label={`Pendientes: ${avisos.length}`}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-full transition ${abierta ? "bg-white" : "hover:bg-white/50"}`}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={avisos.length ? "campana" : ""}><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4" /></svg>
+        {avisos.length > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-urgente px-1 text-[10px] font-medium text-white">{avisos.length}</span>}
+      </button>
+      {abierta && (
+        <>
+          <button type="button" aria-label="Cerrar" className="fixed inset-0 z-40 cursor-default" onClick={() => setAbierta(false)} />
+          <div className="aparece absolute right-0 top-11 z-50 w-[min(340px,calc(100vw-32px))] lg:left-0 lg:right-auto overflow-hidden rounded-[18px] bg-carta shadow-[0_0_0_1px_rgba(26,24,22,.07),0_24px_60px_-18px_rgba(20,15,10,.45)]">
+            <p className="border-b border-borde px-4 py-3 text-[13px] font-medium">Pendientes {avisos.length ? `· ${avisos.length}` : ""}</p>
+            {avisos.length === 0 ? <p className="px-4 py-5 text-[14px] text-medio">Nada pendiente. Estás al día.</p> : (
+              <ul className="max-h-[60vh] overflow-y-auto">
+                {avisos.map((a, i) => (
+                  <li key={i}>
+                    <Link href={a.href} onClick={() => { setAbierta(false); alIr?.(); }} className="flex gap-3 px-4 py-3 transition hover:bg-white">
+                      <i className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: a.punto }} />
+                      <span className="min-w-0"><span className="block truncate text-[14px] font-medium">{a.titulo}</span><span className="line-clamp-2 text-[12px] text-medio">{a.detalle}</span></span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, avisos }: Omit<Props, "children"> & { activo?: EspacioBarra; ruta: string; alIr?: () => void }) {
   const enInicio = ruta === "/estudio";
   return (
     <nav aria-label="Estudio" className="flex h-full flex-col gap-5 text-tinta">
-      <div className="flex items-center gap-2 px-2.5 pt-1">
+      <div className="flex items-center gap-2 pl-2.5 pt-0.5">
         <Link href="/estudio" onClick={alIr} className="font-display text-[24px] uppercase leading-none tracking-[0.01em]">Anonymo*</Link>
         <span className="text-[11px] text-tinta/50">estudio</span>
+        <span className="ml-auto"><Campana avisos={avisos} alIr={alIr} /></span>
       </div>
 
       <Link href="/estudio/nuevo" onClick={alIr} className="flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-tinta px-3 text-[14px] font-medium text-white shadow-[0_8px_20px_-10px_rgba(20,15,10,.6)] transition hover:bg-black">
@@ -99,10 +139,10 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr }:
 
       <div className="grid min-h-0 gap-0.5">
         <p className="px-2.5 pb-1 text-[11px] text-tinta/50">Proyectos · {espacios.length}</p>
-        <div className="grid max-h-[46vh] gap-0.5 overflow-y-auto pr-0.5">
+        <div className="grid max-h-[46vh] min-w-0 grid-cols-[minmax(0,1fr)] gap-0.5 overflow-y-auto overflow-x-hidden pr-0.5">
           {espacios.length === 0 && <p className="px-2.5 text-[13px] text-tinta/55">Cada proyecto aparece aquí con su color. Empieza con «Nuevo pedido».</p>}
           {espacios.map((e) => (
-            <Link key={e.id} href={`/estudio/${e.id}`} onClick={alIr} className={fila(activo?.id === e.id)} aria-current={activo?.id === e.id ? "page" : undefined}>
+            <Link key={e.id} href={`/estudio/${e.id}`} onClick={alIr} className={`${fila(activo?.id === e.id)} min-w-0`} aria-current={activo?.id === e.id ? "page" : undefined}>
               <i aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: e.punto }} />
               <span className="min-w-0 flex-1 truncate">{e.nombre}</span>
               {e.caras.length > 0 && (
@@ -184,7 +224,8 @@ export function Marco({ children, ...props }: Props) {
         <div className="flex items-center gap-3 px-2 pt-1 lg:hidden">
           <Link href="/estudio" className="font-display text-[22px] uppercase leading-none">Anonymo*</Link>
           {activo && <span className="flex min-w-0 items-center gap-1.5 text-[13px]"><i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: activo.punto }} /><span className="truncate">{activo.nombre}</span></span>}
-          <button type="button" onClick={() => setAbierto(true)} aria-expanded={abierto} aria-controls="menu-estudio" className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-full bg-white/60 px-4 text-[13px]">
+          <span className="ml-auto"><Campana avisos={props.avisos} /></span>
+          <button type="button" onClick={() => setAbierto(true)} aria-expanded={abierto} aria-controls="menu-estudio" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/60 px-4 text-[13px]">
             Menú {props.tetoca > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] text-white">{props.tetoca}</span>}
           </button>
         </div>

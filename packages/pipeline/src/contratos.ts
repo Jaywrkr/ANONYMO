@@ -4,8 +4,9 @@ import type { Contrato, TareaId } from "./tipos.ts";
 export const CONTRATOS: Contrato[] = [
   // 1 · Arranque
   {
-    id: "1.atlas", salida: 3000, fase: 1, agente: "atlas", entrega: "Plan del proyecto", formato: "md", usa: [],
+    id: "1.atlas", salida: 3500, fase: 1, agente: "atlas", entrega: "Plan del proyecto", formato: "md", usa: [],
     objetivo: "Leer el pedido, decidir qué fases aplican y por qué, poner fechas y nombrar los riesgos.",
+    estructura: ["Resumen en tres líneas", "Lo que pidió el cliente", "Qué entra", "Qué no entra", "Fases y entregas (tabla: fase · entrega · responsable · fecha)", "Fechas clave", "Riesgos y cómo los cubrimos", "Lo que falta saber del cliente", "Siguiente paso"],
     criterios: ["Cada fase tiene una razón", "Cada entrega tiene un responsable y una fecha", "Lista corta de preguntas para el cliente"],
   },
   {
@@ -20,7 +21,8 @@ export const CONTRATOS: Contrato[] = [
   },
   {
     id: "1.ledger", interna: true, fase: 1, agente: "ledger", entrega: "Presupuesto", formato: "md", usa: ["1.atlas"],
-    objetivo: "Poner precio por fase con las horas reales de producción con IA (no las de una agencia tradicional), con margen y condiciones de pago, para un cliente en Ecuador.",
+    objetivo: "Poner precio por fase con las horas reales de Jay produciendo con IA (no las de una agencia tradicional), con margen y condiciones de pago, para un cliente en Ecuador. Respeta los techos de horas de «cómo trabajamos»: si tu total los pasa, revísalo hacia abajo.",
+    estructura: ["Resumen", "Horas por fase (tabla)", "Precio por fase (tabla)", "Total y margen", "Qué incluye", "Qué no incluye", "Forma de pago", "Validez de la propuesta"],
     criterios: ["Horas reales con IA por fase", "Costo y precio por fase", "Margen visible", "Qué está incluido y qué no", "Lo que no acelera la IA (fotos, esperas del cliente) aparte"],
   },
 

@@ -9,7 +9,7 @@ import { medir } from "@/lib/medir";
 export function Medicion() {
   const ruta = usePathname();
   useEffect(() => {
-    if (ruta.startsWith("/estudio") || ruta.startsWith("/portal")) return;
+    if (ruta.startsWith("/estudio") || ruta.startsWith("/portal") || ruta.startsWith("/imprimir")) return;
     medir("vista");
   }, [ruta]);
   const dominio = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;

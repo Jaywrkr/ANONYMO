@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSyn
 import { basename, extname, join } from "node:path";
 import { bitacora, CARPETA } from "./almacen.ts";
 
-export const MAX_BYTES = 15 * 1024 * 1024;
+export const MAX_BYTES = 25 * 1024 * 1024;
 export const TIPOS: Record<string, string> = {
   ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif",
   ".pdf": "application/pdf", ".txt": "text/plain", ".md": "text/markdown", ".svg": "image/svg+xml",
@@ -13,6 +13,18 @@ export const esImagen = (nombre: string) => /\.(jpe?g|png|webp|gif)$/i.test(nomb
 export interface Archivo { nombre: string; bytes: number; tipo: string; fecha: string; nota?: string }
 
 const carpeta = (id: string) => join(CARPETA, id, "archivos");
+
+/** Un nombre de archivo limpio (sin carpeta), para guardarlo o subirlo. */
+export function limpiarNombre(original: string): string {
+  const ext = extname(original).toLowerCase();
+  const base = basename(original, extname(original)).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "archivo";
+  return `${base}${ext}`;
+}
+
+/** Se puede subir: tipo permitido y no más de 25 MB. */
+export function validarSubida(nombre: string, bytes: number) {
+  validar(nombre, bytes);
+}
 
 /** Nombre seguro: sin rutas, sin caracteres raros, sin pisar otro archivo. */
 export function nombreSeguro(id: string, original: string): string {
@@ -25,7 +37,7 @@ export function nombreSeguro(id: string, original: string): string {
 
 function validar(nombre: string, bytes: number) {
   if (!TIPOS[extname(nombre).toLowerCase()]) throw new Error(`Tipo no permitido: ${nombre}. Se aceptan ${Object.keys(TIPOS).join(" ")}`);
-  if (bytes > MAX_BYTES) throw new Error(`${nombre} pesa más de 15 MB.`);
+  if (bytes > MAX_BYTES) throw new Error(`${nombre} pesa más de 25 MB.`);
 }
 
 function anotar(id: string, a: Archivo) {
