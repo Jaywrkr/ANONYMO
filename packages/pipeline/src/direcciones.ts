@@ -1,5 +1,5 @@
 // Tres direcciones de diseño antes de construir (sistema/37).
-// El agente de diseño (Orla) propone 3 caminos distintos en un formato fijo; la web los dibuja como maquetas,
+// Orla propone tres portadas propias y metadatos; las entregas antiguas mantienen su maqueta.
 // Jay, Luna o el cliente eligen uno y recién ahí se diseña y se construye todo con esa dirección.
 import type { Direccion, Marca, Pedido } from "./tipos.ts";
 
@@ -15,7 +15,9 @@ export const PEDIDO_DIRECCIONES = [
   "Si el cliente ya tiene marca, las tres la respetan: cambian composición, tipografía, ritmo y tono, no los colores de la marca.",
   "Para cada una escribe una sección «## Dirección N: <nombre>» con la idea, para quién funciona y qué se arriesga.",
   "Al final agrega un bloque ```json con un arreglo de 3 objetos, exactamente con esta forma:",
-  '{"nombre":"…","idea":"una o dos frases","estilo":"editorial|minimal|audaz|calido","colores":[{"nombre":"…","hex":"#rrggbb"}],"tipografias":{"titulos":"Nombre en Google Fonts","texto":"Nombre en Google Fonts"},"tono":"…","portada":{"titular":"…","bajada":"…","boton":"…"},"seccion":{"titulo":"…","items":[{"titulo":"…","texto":"…"}]},"imagen":"qué foto iría en la portada"}',
+  '{"nombre":"…","idea":"una o dos frases","estilo":"editorial|minimal|audaz|calido","colores":[{"nombre":"…","hex":"#rrggbb"}],"tipografias":{"titulos":"Nombre en Google Fonts","texto":"Nombre en Google Fonts"},"tono":"…","portada":{"titular":"…","bajada":"…","boton":"…"},"seccion":{"titulo":"…","items":[{"titulo":"…","texto":"…"}]},"imagen":"qué foto iría en la portada","html":"<!doctype html>…","justificacion":"qué pedido y referencia resuelve"}',
+  "Añade a cada objeto html (documento HTML completo con CSS y JS inline, máximo 60000 caracteres, con main, imágenes por URL HTTPS pública o data URI; sin rutas relativas ni enlaces privados del estudio) y justificacion (qué pedido y referencia del cliente resuelve). No uses los cuatro estilos como moldes: diseña una portada y una sección propias. Tres estructuras, jerarquías y tratamientos de imagen realmente distintos. Compara las tres y explica sus diferencias. HTML válido escapado dentro del JSON; sin bloques de código dentro del campo.",
+  "Diseña a 390 y 1440 px, con teclado, contraste y prefers-reduced-motion. Referencias del nivel Awwwards/SOTD del rubro, sin inventar premios ni decir que visitaste enlaces que no pudiste consultar. Evita hero centrado con botón, tres tarjetas iguales, iconos genéricos, degradados automáticos y stock sin propósito. Justifica composición, escala tipográfica, imagen y ritmo con el pedido, respuestas y referencias concretas del cliente. Sin datos ni testimonios inventados.",
   "Reglas del json: 3 a 5 colores con hex válido (el primero es el principal); tipografías que existan en Google Fonts; un estilo distinto en cada dirección; 3 items en la sección; textos reales para este cliente, en su idioma, cortos.",
 ].join("\n");
 
@@ -47,6 +49,8 @@ function normalizar(d: unknown, i: number): Direccion | undefined {
   if (!nombre || colores.length < 2 || !txt(port.titular)) return;
   return {
     nombre,
+    html: typeof x.html === "string" && x.html.length <= 60000 && /<main[\s>]/i.test(x.html) ? x.html.trim() : undefined,
+    justificacion: txt(x.justificacion, 1200),
     idea: txt(x.idea, 400),
     estilo: ESTILOS.includes(x.estilo as Direccion["estilo"]) ? (x.estilo as Direccion["estilo"]) : ESTILOS[i % ESTILOS.length],
     colores,
@@ -67,6 +71,8 @@ export const textoDireccion = (d?: Direccion) =>
     ? [
         `# Dirección de diseño elegida: «${d.nombre}» (respétala; si un cambio la contradice, dilo)`,
         d.idea,
+        d.justificacion ?? "",
+        d.html ? `Portada elegida (conserva su composición y lenguaje visual):\n${d.html}` : "",
         `Estilo: ${d.estilo}. Tono: ${d.tono}.`,
         `Colores: ${d.colores.map((c) => `${c.nombre} ${c.hex}`).join(" · ")}`,
         `Tipografías: títulos ${d.tipografias.titulos}, texto ${d.tipografias.texto}.`,

@@ -67,22 +67,22 @@ export const CONTRATOS: Contrato[] = [
 
   // 4 · Web
   {
-    id: "4.orla", profunda: true, direcciones: true, salida: 4000, fase: 4, agente: "orla", entrega: "Diseño de la web", formato: "md", usa: ["1.nova", "1.sonda", "3.mira", "3.rhea"],
+    id: "4.orla", profunda: true, direcciones: true, salida: 14000, fase: 4, agente: "orla", entrega: "Diseño de la web", formato: "md", usa: ["1.atlas", "1.ledger", "1.nova", "1.sonda", "3.mira", "3.rhea"],
     objetivo: "Definir páginas, secciones, jerarquía y la idea visual que la hace memorable.",
     criterios: ["Mapa del sitio", "Contenido por sección", "Una idea central que un jurado recuerde"],
   },
   {
-    id: "4.lumen", fase: 4, agente: "lumen", entrega: "Concepto 3D", formato: "md", usa: ["4.orla"],
+    id: "4.lumen", fase: 4, agente: "lumen", entrega: "Concepto 3D", formato: "md", usa: ["1.atlas", "3.mira", "4.orla"],
     objetivo: "Proponer la interacción o escena 3D que sostiene la idea central sin matar el rendimiento.",
     criterios: ["Qué se toca y qué responde", "Plan para celulares", "Presupuesto de rendimiento"],
   },
   {
-    id: "4.vector", profunda: true, interna: true, sitio: true, salida: 14000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["4.orla", "4.lumen", "4.kine"],
+    id: "4.vector", profunda: true, interna: true, sitio: true, salida: 14000, fase: 4, agente: "vector", entrega: "Web construida", formato: "md", usa: ["1.atlas", "1.ledger", "1.nova", "1.sonda", "3.mira", "3.rhea", "4.orla", "4.lumen", "4.kine"],
     objetivo: "Construir la web como sitio estático (HTML, CSS y JS) a partir del diseño y la dirección elegida: que se vea funcionando y se pueda publicar tal cual.",
     criterios: ["Abre directo en el navegador, sin errores", "Se ve perfecta en celular y escritorio", "Respeta la dirección y la marca", "Accesibilidad sin errores graves"],
   },
   {
-    id: "4.kine", fase: 4, agente: "kine", entrega: "Sistema de movimiento", formato: "md", usa: ["4.orla"],
+    id: "4.kine", fase: 4, agente: "kine", entrega: "Sistema de movimiento", formato: "md", usa: ["1.atlas", "3.mira", "4.orla"],
     objetivo: "Definir transiciones, scroll y microinteracciones.",
     criterios: ["Tres duraciones y dos curvas", "Respeta reducir movimiento", "Ejemplo por tipo de interacción"],
   },

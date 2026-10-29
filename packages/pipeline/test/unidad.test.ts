@@ -25,7 +25,7 @@ test("ordenar respeta dependencias dentro de la fase", () => {
 
 test("lecturas solo incluye lo que está antes en el plan", () => {
   const plan = ordenar([1, 4, 6]);
-  assert.deepEqual(lecturas("4.orla", plan), ["1.nova", "1.sonda"]);
+  assert.deepEqual(lecturas("4.orla", plan), ["1.atlas", "1.ledger", "1.nova", "1.sonda"]);
 });
 
 test("dependientes arrastra lo que lee lo cambiado y siempre el jurado", () => {

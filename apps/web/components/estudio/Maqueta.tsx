@@ -34,6 +34,16 @@ function paleta(d: Direccion) {
 }
 
 export function Maqueta({ d, dominio = "tuweb.com" }: { d: Direccion; dominio?: string }) {
+  // Sin same-origin: el código de la dirección no puede leer la sesión ni el documento del estudio.
+  // La política también bloquea peticiones, formularios y rutas base aportadas por el HTML.
+  if (d.html) {
+    const politica = "default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https:; connect-src 'none'; form-action 'none'; base-uri 'none'";
+    return (
+      <iframe title={`Dirección ${d.nombre}`} sandbox="allow-scripts" referrerPolicy="no-referrer"
+        className="h-[600px] w-full rounded-[10px] border-0 bg-white"
+        srcDoc={`<!doctype html><meta http-equiv="Content-Security-Policy" content="${politica}"><meta name="viewport" content="width=device-width, initial-scale=1">${d.html}`} />
+    );
+  }
   const c = paleta(d);
   const titulos = familia(d.tipografias.titulos, "Georgia, serif");
   const texto = familia(d.tipografias.texto, "system-ui, sans-serif");
@@ -127,6 +137,7 @@ export function Maqueta({ d, dominio = "tuweb.com" }: { d: Direccion; dominio?: 
 export function FichaDireccion({ d }: { d: Direccion }) {
   return (
     <div className="grid gap-3">
+      {d.justificacion && <p className="text-[13px] text-medio">{d.justificacion}</p>}
       <div className="flex flex-wrap gap-1.5">
         {d.colores.map((c) => (
           <span key={c.hex} className="inline-flex items-center gap-1.5 rounded-full bg-[#f6f3ee] py-1 pl-1 pr-2.5 text-[11px]">

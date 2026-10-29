@@ -81,6 +81,9 @@ export interface Contrato {
 
 /** Una dirección de diseño (sistema/37): lo justo para dibujar una maqueta y decidir. */
 export interface Direccion {
+  /** Portada propia y autocontenida; las entregas antiguas conservan su maqueta. */
+  html?: string;
+  justificacion?: string;
   nombre: string;
   /** La idea en una o dos frases. */
   idea: string;
