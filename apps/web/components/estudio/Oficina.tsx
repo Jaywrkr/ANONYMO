@@ -3,7 +3,7 @@
 // La oficina con su panel: tocas a un agente y ves en qué está. En vivo, se actualiza mientras el equipo trabaja.
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AGENTES, AREAS } from "@anonymo/agentes";
 import { puestos as calcular, TEXTO_ESTADO, type EstadoAgente, type ProyectoOficina } from "@/lib/oficina";
 import { sin3D } from "@/lib/calidad";
@@ -39,6 +39,7 @@ function Lista({ p, onElegir }: { p: ReturnType<typeof calcular>; onElegir: (id:
 
 export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[min(62vh,620px)]" }: { proyectos: ProyectoOficina[]; vivo?: string; alto?: string }) {
   const [datos, setDatos] = useState(proyectos);
+  const capa = useRef<HTMLDivElement>(null);
   const [elegido, setElegido] = useState("");
   const [con3D, setCon3D] = useState(true);
   const [trabajando, setTrabajando] = useState(false);
@@ -92,7 +93,8 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
 
       {con3D ? (
         <div className={`relative w-full overflow-hidden rounded-3xl bg-[#e9e3d8] ${alto}`}>
-          <OficinaEscena puestos={p} elegido={elegido} onElegir={setElegido} className="absolute inset-0" />
+          <OficinaEscena puestos={p} elegido={elegido} onElegir={setElegido} className="absolute inset-0" capa={capa as React.RefObject<HTMLElement>} />
+          <div ref={capa} className="pointer-events-none absolute inset-0 overflow-hidden" />
         </div>
       ) : (
         <Lista p={p} onElegir={setElegido} />

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { boton, botonLleno, campo, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
 import { accionNuevoProyecto } from "../acciones";
 import { Enviar } from "./Enviar";
+import { Contar } from "@/components/estudio/Contar";
+import { ZonaArchivos } from "@/components/estudio/ZonaArchivos";
+import { nubeActiva } from "@anonymo/pipeline";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -11,6 +14,7 @@ export const metadata = { title: "Nuevo proyecto — Estudio", robots: { index: 
 export default async function NuevoProyecto({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const yo = await exigirEstudio();
   const { error } = await searchParams;
+  const enLinea = nubeActiva();
   return (
     <main className={`${lateral} pb-20`}>
       <p className="pt-4"><Link href="/estudio" className={etiqueta}>← Estudio</Link></p>
@@ -21,32 +25,18 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
       {error && <p role="alert" className="mt-6 max-w-2xl rounded-2xl bg-[#fde8e4] p-4 text-[#8a1c0c]">{error}</p>}
 
       <form action={accionNuevoProyecto} className="mt-10 grid max-w-2xl gap-6">
-        <label className="grid gap-2">
-          <span className={etiqueta}>Lo que hablaron</span>
-          <textarea
-            name="texto"
-            required
-            minLength={20}
-            rows={12}
-            autoFocus
-            className={`${campo} text-[17px] leading-relaxed`}
-            placeholder={
-              "Ej.: Gabriela es odontóloga estética en Cuenca. Quiere una web para su consultorio, mucho más elegante que la de su competencia, nada de azul clínico. Ya tiene logo. Pacientes de 30 a 50. Agenda por WhatsApp. Le gusta https://… Lo necesita antes de diciembre, presupuesto unos 2.000."
-            }
-          />
-          <span className="text-[13px] text-gris">Pega aquí los enlaces que te pasó (su web, su Instagram, lo que le gusta): los agentes que investigan y diseñan los abren.</span>
-        </label>
+        <Contar />
 
         <label className="grid gap-2">
           <span className={etiqueta}>Cliente (opcional)</span>
           <input name="cliente" maxLength={80} placeholder="Si no lo pones, Atlas lo saca del texto" className={campo} />
         </label>
 
-        <label className="grid gap-2">
+        <div className="grid gap-2">
           <span className={etiqueta}>Imágenes y archivos (opcional)</span>
-          <input type="file" name="archivos" multiple accept="image/*,.pdf,.svg,.txt,.md,.docx" className="text-[15px]" />
-          <span className="text-[13px] text-gris">Logo, fotos, capturas de lo que le gusta. Mira, Orla y los visuales las ven. En línea: hasta 4 MB en total.</span>
-        </label>
+          <ZonaArchivos limiteMB={enLinea ? 4 : undefined} texto="Arrastra aquí el logo, fotos o capturas de lo que le gusta" />
+          <span className="text-[13px] text-gris">Mira, Orla y los visuales ven las imágenes. Los enlaces del texto los abren Sonda, Nova, Orla y Vector.</span>
+        </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <Enviar className={botonLleno} />

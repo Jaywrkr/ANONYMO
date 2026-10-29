@@ -7,10 +7,13 @@ import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { Oficina } from "@/components/estudio/Oficina";
 import { Enviar } from "../nuevo/Enviar";
 import type { ProyectoOficina } from "@/lib/oficina";
+import { Anillo, Ficha, LineaFases, estadosDeFases, hace } from "@/components/estudio/piezas";
+import { Confirmar } from "@/components/estudio/Confirmar";
+import { ZonaArchivos } from "@/components/estudio/ZonaArchivos";
 import { sesionConfigurada } from "@/lib/sesion";
 import { traer } from "@/lib/nube";
 import { boton, botonLleno, campo, ESTADO_PROYECTO, etiqueta, exigirEstudio, lateral } from "@/lib/estudio";
-import { accionBorrar, accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
+import { accionAPapelera, accionSacarDePapelera, accionAprobar, accionCambiar, accionDescartarPendiente, accionMandarCliente, accionParar, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
@@ -51,6 +54,11 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
   const b = presupuestoVivo(p);
   const costo = sumar(p);
   const archivos = listarArchivos(id);
+  const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
+  const conversacion = [
+    ...(p.notasCliente ?? []).map((n) => ({ fecha: n.fecha, texto: n.texto, quien: n.quien, a: n.tareas.map(nombreTarea).join(", "), pendiente: false })),
+    ...(p.pendientesCliente ?? []).map((n) => ({ fecha: n.fecha, texto: n.texto, quien: "cliente" as const, a: "", pendiente: true })),
+  ].sort((x, y) => x.fecha.localeCompare(y.fecha));
   const linkSuave = "inline-flex min-h-11 items-center font-mono text-[12px] uppercase tracking-[0.12em] text-gris underline underline-offset-4";
 
   return (
@@ -58,19 +66,26 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
       <Link href="/estudio" className={`${etiqueta} inline-flex min-h-11 items-center underline underline-offset-4`}>← Estudio</Link>
       <div className="flex flex-wrap items-end justify-between gap-6 pb-4 pt-2">
         <div>
-          <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre}{plantillaPorId(p.pedido.plantilla) ? ` · ${plantillaPorId(p.pedido.plantilla)!.nombre}` : ""} · {ESTADO_PROYECTO[p.estado]}</p>
+          <p className={etiqueta}>{PEDIDOS[p.pedido.tipo].nombre}{plantillaPorId(p.pedido.plantilla) ? ` · ${plantillaPorId(p.pedido.plantilla)!.nombre}` : ""} · {p.papelera ? "En la papelera" : ESTADO_PROYECTO[p.estado]}</p>
           <h1 className="display mt-2 text-[clamp(48px,7vw,112px)] leading-none">{p.pedido.cliente}</h1>
         </div>
-        {nota && <p className="display text-7xl">{String(nota.final).replace(".", ",")}</p>}
+        <div className="flex items-center gap-4">
+          {nota && <div className="text-right"><p className={etiqueta}>Jurado</p><p className="display text-6xl leading-none">{String(nota.final).replace(".", ",")}</p></div>}
+          <Anillo valor={hechas / Math.max(1, p.plan.tareas.length)} tam={64} grosor={5} etiqueta={`${hechas} de ${p.plan.tareas.length} entregas listas`} />
+        </div>
       </div>
+      <div className="mb-4 overflow-x-auto pb-1"><LineaFases fases={estadosDeFases(p)} estado={p.estado} /></div>
+      {p.papelera && (
+        <div role="alert" className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#fde8e4] p-5">
+          <p className="text-[15px] text-[#8a1c0c]">Este proyecto está en la papelera desde {hace(p.papelera.fecha)}: no aparece ni trabaja.</p>
+          <Confirmar accion={accionSacarDePapelera} campos={{ id }} disparador="Restaurar" claseDisparador={botonLleno} titulo="¿Restaurar el proyecto?" texto={`«${p.pedido.cliente}» vuelve al estudio tal como estaba.`} confirmar="Restaurar" />
+        </div>
+      )}
       <details className="max-w-3xl">
         <summary className={`${etiqueta} cursor-pointer`}>Lo que contaron del cliente</summary>
         <p className="mt-2 whitespace-pre-line text-[16px] font-light">{p.pedido.descripcion}</p>
       </details>
 
-      {(ok || error) && (
-        <p role="status" className={`mt-6 rounded-2xl p-4 text-[15px] ${error ? "bg-[#fde8e4] text-[#8a1c0c]" : "bg-[#e3f5e1]"}`}>{error ?? ok}</p>
-      )}
 
       {/* AHORA: lo único que hay que decidir en este momento. */}
       {p.estado === "plan" && <PlanAtlas p={p} conIA={!!process.env.ANTHROPIC_API_KEY} />}
@@ -153,18 +168,22 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               return (
                 <div key={f} className="border-t border-linea py-4">
                   <p className="text-[15px] font-medium">{String(f).padStart(2, "0")} · {fase.nombre} <span className="font-normal text-gris">· aprueba {responsable(p, f) === "luna" ? "Luna" : "Jay"}</span></p>
-                  <ul className="mt-2 grid gap-1">
+                  <ul className="mt-3 grid gap-3 sm:grid-cols-2">
                     {deFase(f).map((t) => {
                       const c = contratoPorId(t)!;
                       const a = agentePorId(c.agente)!;
                       const e = leerEntrega(id, t);
+                      const est = p.tareas[t];
                       return (
                         <li key={t}>
-                          <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-2xl px-3 py-2 hover:bg-papel">
-                            <i aria-hidden className="block h-3 w-3 shrink-0 rounded-full" style={{ background: AREAS[a.area].medio }} />
-                            <span className="w-20 font-medium">{a.nombre}</span>
-                            <span className="flex-1">{c.entrega}{e ? ` · v${e.version}` : ""}</span>
-                            <span className={etiqueta}>{ESTADO_TAREA[p.tareas[t]]}</span>
+                          <Link href={`/estudio/${id}/${t.replace(".", "-")}`} className={`flex h-full flex-col gap-2 rounded-2xl border p-4 transition-transform hover:-translate-y-0.5 ${est === "lista" ? "border-linea bg-papel" : est === "en-curso" ? "border-[#2bb673] bg-hueso" : "border-dashed border-linea bg-transparent"}`}>
+                            <span className="flex items-center gap-3">
+                              <Ficha id={a.id} tam={30} apagado={est === "por-empezar"} />
+                              <span className="flex-1 leading-tight"><span className="block font-medium">{a.nombre}</span><span className="block text-[13px] text-gris">{c.entrega}{e ? ` · v${e.version}` : ""}</span></span>
+                              <span className={`rounded-full px-2 py-0.5 text-[11px] ${est === "lista" ? "bg-[#e3f5e1]" : est === "en-curso" ? "bg-[#2bb673] text-white" : est === "rehacer" ? "bg-[#fff1c2]" : "bg-linea/60 text-gris"}`}>{ESTADO_TAREA[est]}</span>
+                            </span>
+                            {e?.dice && <span className="line-clamp-3 text-[14px] leading-snug">“{e.dice}”</span>}
+                            {e?.necesita && e.necesita !== "—" && <span className="line-clamp-2 text-[12px] text-gris">Necesita: {e.necesita}</span>}
                           </Link>
                         </li>
                       );
@@ -178,26 +197,29 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           <section id="cliente" aria-label="Lo que dijo el cliente" className="mt-8 border-t border-tinta pt-4">
             <p className={etiqueta}>Lo que dijo el cliente</p>
             <p className="mt-1 text-[14px] text-gris">Lo que te diga por WhatsApp, llamada o en persona: Atlas lo manda a quien corresponde y todos lo leen desde ahora.</p>
-            {(p.pendientesCliente ?? []).length > 0 && (
-              <ul className="mt-3 grid gap-2">
-                {p.pendientesCliente!.map((c) => (
-                  <li key={c.fecha} className="rounded-2xl bg-[#fff5d6] p-4">
-                    <p className={etiqueta}>Desde su portal · {c.fecha.slice(0, 10)} · sin mandar al equipo</p>
-                    <p className="mt-1 text-lg font-light">“{c.texto}”</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <form action={accionVerReparto}>{comunes}<input type="hidden" name="texto" value={c.texto} /><input type="hidden" name="pendiente" value={c.fecha} /><button className={boton}>Ver a quién va</button></form>
-                      <form action={accionDescartarPendiente}>{comunes}<input type="hidden" name="pendiente" value={c.fecha} /><button className={linkSuave}>Descartar</button></form>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {(p.notasCliente ?? []).length > 0 && (
-              <ul className="mt-3 grid gap-1 text-[15px]">
-                {p.notasCliente!.map((n) => (
-                  <li key={n.fecha}>“{n.texto}” <span className="text-gris">· {n.fecha.slice(0, 10)} · {n.tareas.map(nombreTarea).join(", ")}</span></li>
-                ))}
-              </ul>
+            {conversacion.length > 0 && (
+              <ol className="mt-4 grid gap-3">
+                {conversacion.map((m) => {
+                  const delCliente = m.quien === "cliente";
+                  return (
+                    <li key={m.fecha + m.texto} className={`flex ${delCliente ? "justify-start" : "justify-end"}`}>
+                      <div className={`max-w-[85%] rounded-3xl px-4 py-3 ${m.pendiente ? "rounded-bl-md bg-[#fff1c2]" : delCliente ? "rounded-bl-md bg-papel" : "rounded-br-md bg-tinta text-hueso"}`}>
+                        <p className={`text-[12px] ${delCliente || m.pendiente ? "text-gris" : "text-hueso/70"}`}>
+                          {delCliente ? p.pedido.cliente : m.quien === "luna" ? "Luna anotó" : "Jay anotó"} · {hace(m.fecha)}{m.pendiente ? " · desde su portal, sin mandar al equipo" : ""}
+                        </p>
+                        <p className="mt-1 text-[16px] leading-snug">{m.texto}</p>
+                        {m.a && <p className={`mt-1 text-[12px] ${delCliente ? "text-gris" : "text-hueso/70"}`}>→ {m.a}</p>}
+                        {m.pendiente && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <form action={accionVerReparto}>{comunes}<input type="hidden" name="texto" value={m.texto} /><input type="hidden" name="pendiente" value={m.fecha} /><button className={boton}>Revisar y mandar</button></form>
+                            <form action={accionDescartarPendiente}>{comunes}<input type="hidden" name="pendiente" value={m.fecha} /><button className={linkSuave}>Descartar</button></form>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             )}
             {vista ? (
               <form action={accionMandarCliente} className="mt-4 grid gap-3 rounded-3xl bg-papel p-5">
@@ -226,8 +248,10 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             ) : (
               <form action={accionVerReparto} className="mt-4 grid gap-2">
                 {comunes}
-                <textarea name="texto" rows={3} required placeholder="Ej.: la de estética tiene que ser mucho más elegante" className={campo} aria-label="Lo que dijo el cliente" />
-                <div><button className={boton}>Ver a quién va</button></div>
+                <div className="flex items-end gap-2 rounded-3xl border border-linea bg-papel p-2 focus-within:border-tinta">
+                  <textarea name="texto" rows={2} required placeholder="Lo que te dijo el cliente… (ej.: la de estética tiene que ser mucho más elegante)" className="flex-1 resize-none bg-transparent p-2 text-[15px] outline-none" aria-label="Lo que dijo el cliente" />
+                  <button className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-tinta px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-hueso">Ver a quién va</button>
+                </div>
               </form>
             )}
           </section>
@@ -254,10 +278,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             )}
             <form action={accionSubir} className="mt-3 grid gap-2">
               {comunes}
-              <input type="file" name="archivos" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.txt,.md,.svg" className="text-[14px]" aria-label="Archivos" />
+              <ZonaArchivos limiteMB={enLinea ? 4 : undefined} />
               <input name="nota" placeholder="Qué es (ej.: fotos del consultorio)" className={campo} />
               <button className={boton}>Subir</button>
-              {enLinea && <p className="text-[12px] text-gris">En línea: hasta 4 MB por envío.</p>}
             </form>
           </div>
 
@@ -369,20 +392,14 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 )}
               </div>
 
-              {p.estado !== "parado" && p.estado !== "listo" && (
-                <form action={accionParar}>
-                  {comunes}
-                  <button className={linkSuave}>Parar el proyecto</button>
-                </form>
-              )}
-
-              <form action={accionBorrar} className="grid gap-2 rounded-2xl bg-[#fde8e4] p-4">
-                <input type="hidden" name="id" value={id} />
-                <p className="text-[14px] font-medium text-[#8a1c0c]">Borrar el proyecto</p>
-                <p className="text-[13px] text-[#8a1c0c]">Se borra todo: entregas, archivos y lo que dijo el cliente. No se puede deshacer. Escribe «{p.pedido.cliente}» para confirmar.</p>
-                <input name="confirmar" required className={campo} aria-label="Nombre del cliente para confirmar" autoComplete="off" />
-                <div><button className="inline-flex min-h-11 items-center rounded-full bg-[#8a1c0c] px-5 font-mono text-[12px] uppercase tracking-[0.12em] text-white">Borrar para siempre</button></div>
-              </form>
+              <div className="flex flex-wrap gap-4 border-t border-linea pt-4">
+                {p.estado !== "parado" && p.estado !== "listo" && (
+                  <Confirmar accion={accionParar} campos={{ id, motor: "" }} disparador="Parar el proyecto" titulo="¿Parar el proyecto?" texto="El equipo deja de trabajar en él hasta que lo reanudes. No se pierde nada." confirmar="Parar" />
+                )}
+                {!p.papelera && (
+                  <Confirmar accion={accionAPapelera} campos={{ id }} disparador="Mandar a la papelera" titulo="¿Mandar a la papelera?" texto={`«${p.pedido.cliente}» deja de aparecer y de trabajar. Lo puedes restaurar desde la papelera durante 30 días; después se borra solo.`} confirmar="Mandar a la papelera" peligro />
+                )}
+              </div>
             </div>
           </details>
         </aside>

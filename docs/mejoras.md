@@ -32,6 +32,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 | sistema/24 a 28 | Atlas dice por qué no usó la IA; claves nunca visibles en errores; pensamiento solo en tareas creativas; plan estructurado (herramienta con esquema); cada tarea se guarda en la nube al terminar | — |
 | sistema/29-produccion-con-ia | Todos los agentes planifican y cotizan con tiempos reales de producción con IA (web ≈ 3 días), Ecuador, calidad nivel Awwwards sin sumar horas | `ANONYMO_COMO_TRABAJAMOS`, `TARIFA_HORA` |
 | sistema/30-oficina | El estudio es una oficina 3D isométrica: un escritorio por agente con su estado (trabajando, revisar, en cola, entregó, libre), en vivo mientras trabajan; «Te toca» con lo que espera decisión; página del proyecto con «qué hacer ahora» arriba y lo técnico en Ajustes; borrar proyecto; menú interno propio | `/estudio` |
+| sistema/31-papelera-y-ui | Papelera (mandar, restaurar, borrar para siempre escribiendo el nombre; se vacía sola a los 30 días) con cuadros de confirmación; avisos flotantes; cifras del estudio y actividad reciente; línea de fases y anillo de avance; entregas como tarjetas con lo que dijo cada agente; el cliente como conversación; arrastrar archivos con vista previa; atajos de un toque, pistas de lo que falta y enlaces detectados al contar un pedido | `/estudio`, `/estudio/papelera` |
 
 ## Web
 

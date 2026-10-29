@@ -2,7 +2,7 @@
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
+import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
@@ -252,8 +252,36 @@ export async function accionBorrar(f: FormData) {
     if (nubeActiva()) await borrarRemoto(id);
     borrarProyecto(id);
     console.error(`[estudio] ${yo} borró el proyecto ${id}`);
+    destino = `/estudio/papelera?ok=${encodeURIComponent(`«${p.pedido.cliente}» se borró para siempre.`)}`;
   } catch (e) {
-    destino = `/estudio/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#ajustes`;
+    destino = `/estudio/papelera?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+  }
+  revalidatePath("/estudio");
+  redirect(destino);
+}
+
+/** Mandar a la papelera: deja de aparecer y de trabajar. Se restaura cuando quieras; a los 30 días se borra sola. */
+export async function accionAPapelera(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  let destino = `/estudio?ok=${encodeURIComponent("Proyecto en la papelera. Lo puedes restaurar durante 30 días.")}`;
+  try {
+    await conNube([id], () => mandarAPapelera(id, yo));
+  } catch (e) {
+    destino = `/estudio/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+  }
+  revalidatePath("/estudio");
+  redirect(destino);
+}
+
+export async function accionSacarDePapelera(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  let destino = `/estudio/${id}?ok=${encodeURIComponent("Proyecto restaurado: volvió a donde estaba.")}`;
+  try {
+    await conNube([id], () => sacarDePapelera(id, yo));
+  } catch (e) {
+    destino = `/estudio/papelera?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
   }
   revalidatePath("/estudio");
   redirect(destino);
