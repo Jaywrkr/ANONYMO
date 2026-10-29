@@ -7,10 +7,10 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { headers } from "next/headers";
 import {
-  avanzar, bitacora, CARPETA, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
+  avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
   leerRemoto, nubeActiva, ocultarClaves, subirCambiados, subirRuta, type Proyecto, type TareaId,
 } from "@anonymo/pipeline";
-import { traer } from "./nube";
+import { aislado, traer } from "./nube";
 
 /** Lo que se ve en vivo de una vuelta: quién trabaja, qué hace y cuándo dio la última señal. */
 export interface Vivo {
@@ -30,12 +30,12 @@ const PLAZO_MS = Number(process.env.ANONYMO_PLAZO_MS ?? 235_000);
 /** Sin señal por más de esto, una vuelta se da por muerta. */
 export const SIN_SENAL_MS = 75_000;
 
-const rutaVivo = (id: string) => join(CARPETA, id, "vivo.json");
+const rutaVivo = (id: string) => join(carpeta(), id, "vivo.json");
 export function leerVivo(id: string): Vivo | undefined {
   try { return existsSync(rutaVivo(id)) ? (JSON.parse(readFileSync(rutaVivo(id), "utf8")) as Vivo) : undefined; } catch { return undefined; }
 }
 function escribirVivo(id: string, v: Vivo) {
-  mkdirSync(join(CARPETA, id), { recursive: true });
+  mkdirSync(join(carpeta(), id), { recursive: true });
   writeFileSync(rutaVivo(id), JSON.stringify(v));
 }
 const subirVivo = (id: string) => (nubeActiva() ? subirRuta(`${id}/vivo.json`).catch(() => {}) : Promise.resolve());
@@ -75,9 +75,15 @@ export async function lanzar(id: string, origen?: string) {
  * Si ya hay otra vuelta viva en este proyecto, no hace nada (nunca dos agentes pisándose).
  */
 export async function trabajarVuelta(id: string, origen: string) {
-  const inicio = Date.now();
-  const plazo = inicio + PLAZO_MS;
+  // Cada vuelta trabaja en su propia copia del proyecto: ninguna página la puede pisar mientras el agente escribe.
+  return aislado(() => vuelta(id, origen));
+}
+
+async function vuelta(id: string, origen: string) {
+  const plazo = Date.now() + PLAZO_MS;
   await traer(id);
+  // Desde aquí, lo que cambie en disco es de esta vuelta: es lo único que se sube al final.
+  const inicio = Date.now();
   if (!existe(id)) return;
   const p = leerProyecto(id);
   if (p.estado !== "en-curso" || p.papelera) return;

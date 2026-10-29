@@ -7,7 +7,7 @@ import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId } from "./contratos.ts";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { CARPETA } from "./almacen.ts";
+import { carpeta } from "./almacen.ts";
 import { usd, type Uso } from "./costo.ts";
 import { archivoEntrega, type Direccion, type Entrega, type Marca, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
 
@@ -374,7 +374,7 @@ export const real: Motor = {
 export const manual: Motor = {
   nombre: "manual",
   async trabajar(ctx) {
-    const base = join(CARPETA, ctx.pedido.id, "borradores", archivoEntrega(ctx.tarea).replace(".md", ""));
+    const base = join(carpeta(), ctx.pedido.id, "borradores", archivoEntrega(ctx.tarea).replace(".md", ""));
     const propia = `${base}.v${ctx.version}.md`;
     const ruta = [propia, `${base}.md`].find(existsSync);
     if (!ruta) return simulado.trabajar(ctx);

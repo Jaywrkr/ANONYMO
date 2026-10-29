@@ -2,11 +2,11 @@
 // No guarda IP ni identificadores: ruta, evento, idioma, tipo de equipo, de dónde vino (solo el dominio) y un valor.
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CARPETA } from "./almacen.ts";
+import { carpeta } from "./almacen.ts";
 
 export interface Evento { t: string; e: string; ruta: string; idioma?: string; equipo?: "celular" | "escritorio"; origen?: string; valor?: string | number }
 
-const carpeta = () => join(CARPETA, "_analitica");
+const dirAnalitica = () => join(carpeta(), "_analitica");
 const EVENTOS = new Set(["vista", "sala-tiempo", "sala-agente", "formulario", "compartir", "sonido", "idioma"]);
 
 /**
@@ -24,18 +24,18 @@ export function registrar(ev: Omit<Evento, "t">, suelto = false): string | undef
     origen: ev.origen ? String(ev.origen).slice(0, 80) : undefined,
     valor: typeof ev.valor === "number" ? Math.max(0, Math.min(ev.valor, 86400)) : ev.valor ? String(ev.valor).slice(0, 40) : undefined,
   };
-  mkdirSync(carpeta(), { recursive: true });
+  mkdirSync(dirAnalitica(), { recursive: true });
   const nombre = suelto ? `${limpio.t.slice(0, 7)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.jsonl` : `${limpio.t.slice(0, 7)}.jsonl`;
-  appendFileSync(join(carpeta(), nombre), JSON.stringify(limpio) + "\n");
+  appendFileSync(join(dirAnalitica(), nombre), JSON.stringify(limpio) + "\n");
   return `_analitica/${nombre}`;
 }
 
 export function leerEventos(dias = 30): Evento[] {
-  if (!existsSync(carpeta())) return [];
+  if (!existsSync(dirAnalitica())) return [];
   const desde = Date.now() - dias * 86400_000;
-  return readdirSync(carpeta())
+  return readdirSync(dirAnalitica())
     .filter((f) => f.endsWith(".jsonl"))
-    .flatMap((f) => readFileSync(join(carpeta(), f), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as Evento))
+    .flatMap((f) => readFileSync(join(dirAnalitica(), f), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as Evento))
     .filter((e) => new Date(e.t).getTime() >= desde);
 }
 

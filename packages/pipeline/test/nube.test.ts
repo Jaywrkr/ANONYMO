@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 process.env.SUPABASE_URL = "https://falso.supabase.co";
 process.env.SUPABASE_SERVICE_KEY = "clave-falsa";
-const { CARPETA } = await import("../src/almacen.ts");
+const { carpeta } = await import("../src/almacen.ts");
 const { bajarProyecto, espejarProyecto, subirRuta, nubeActiva } = await import("../src/nube.ts");
 const { registrar } = await import("../src/analitica.ts");
 
@@ -54,7 +54,7 @@ test("la nube solo se activa en Vercel o con ANONYMO_NUBE=1", () => {
 
 test("espejar sube el proyecto y borra en la nube lo que ya no existe en local", async () => {
   const { datos, f } = nubeFalsa();
-  const base = join(CARPETA, "_solicitudes");
+  const base = join(carpeta(), "_solicitudes");
   mkdirSync(join(base, "archivo"), { recursive: true });
   writeFileSync(join(base, "a.json"), "{}");
   await espejarProyecto("_solicitudes", f);
@@ -75,11 +75,11 @@ test("sin copia local, espejar no borra nada en la nube", async () => {
 test("bajar en espejo deja la copia local idéntica a la nube", async () => {
   const { datos, f } = nubeFalsa();
   datos.set("clinica/estado.json", new TextEncoder().encode('{"v":2}'));
-  mkdirSync(join(CARPETA, "clinica"), { recursive: true });
-  writeFileSync(join(CARPETA, "clinica", "viejo.md"), "x");
+  mkdirSync(join(carpeta(), "clinica"), { recursive: true });
+  writeFileSync(join(carpeta(), "clinica", "viejo.md"), "x");
   await bajarProyecto("clinica", f, true);
-  assert.equal(readFileSync(join(CARPETA, "clinica", "estado.json"), "utf8"), '{"v":2}');
-  assert.ok(!existsSync(join(CARPETA, "clinica", "viejo.md")));
+  assert.equal(readFileSync(join(carpeta(), "clinica", "estado.json"), "utf8"), '{"v":2}');
+  assert.ok(!existsSync(join(carpeta(), "clinica", "viejo.md")));
 });
 
 test("un nombre de proyecto con ../ se rechaza antes de tocar el disco", async () => {
