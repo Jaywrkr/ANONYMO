@@ -7,6 +7,7 @@ try{
  const p=await browser.newPage({viewport:{width:390,height:844}}),errores=[];p.on('pageerror',e=>errores.push(e.message));
  await p.goto(base+'/entrar');await p.locator('input[name="clave"]').fill('prueba-clave-jay');await p.getByRole('button',{name:'Entrar al estudio',exact:true}).click();await p.waitForURL(base+'/estudio');
  await p.goto(base+'/estudio/conexiones');assert.equal(await p.getByText(/Conexión comprobada/).count(),0);await p.getByRole('button',{name:'Comprobar conexiones',exact:true}).click();await p.getByText('Conexión de IA · Conexión comprobada',{exact:true}).waitFor();await p.getByText('Almacén privado · Conexión comprobada',{exact:true}).waitFor();assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=390));
+ await p.getByText('Guardado y reservas del piloto · Piloto desactivado',{exact:true}).waitFor();
  console.log('✓ Conexiones autenticadas: solo aparecen comprobadas tras respuesta válida de IA y almacén privado falsos.');
  const abrir=async n=>{const s=p.getByText('Referencias de calidad · '+n,{exact:true});if(!await s.locator('..').evaluate(d=>d.open))await s.click();};
  await p.goto(base+'/estudio/control-prueba/calidad');await abrir(1);const imagen=p.getByAltText('Claridad de prueba',{exact:true});await imagen.waitFor();const src=await imagen.getAttribute('src');const consultar=src=>p.evaluate(async src=>{const r=await fetch(src);return {estado:r.status,tipo:r.headers.get('content-type')};},src);const copia=await consultar(src);assert.equal(copia.estado,200);assert.match(copia.tipo,/^image\//);

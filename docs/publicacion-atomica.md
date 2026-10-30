@@ -22,6 +22,10 @@ El pulso de la cola se presenta en el estudio y los errores de reserva/conflicto
 
 **No desactivar la variable ni volver a un despliegue antiguo sobre un proyecto importado:** leería rutas antiguas desactualizadas. Todavía no hay exportación controlada para volver al protocolo anterior. Por eso esta rama no activa ni migra proyectos reales automáticamente.
 
+## Comprobación desde el despliegue · 0.54
+
+Conexiones del estudio añade una tarjeta para el piloto. Apagado no hace consultas SQL; habilitado exige una selección explícita y consulta `anonymo_preparacion()`. Solo admite protocolo 1 y permisos privados comprobados. La función inspecciona el catálogo, sin leer proyectos ni crear reservas. Reaplicar `infra/publicaciones.sql` en ensayo para actualizarla; esquema ausente, permisos abiertos o conexión fallida aparecen como pendientes de revisar. No equivale a haber ensayado escritura, restauración o producción. CI repite el recorrido móvil después del build con servicios ficticios; sus resultados efectivos se consultan en la ejecución de GitHub Actions.
+
 ## Límites del piloto
 
 - Cualquier cambio concurrente puede rechazar el resultado del agente; no hay mezcla semántica ni recuperación asistida. Puede requerir repetir parte del trabajo.
