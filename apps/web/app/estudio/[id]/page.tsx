@@ -118,6 +118,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         </div>
         {nota && <div className="text-right"><p className="text-[12px] text-suave">Nota de calidad</p><p className={`${serif} text-[44px] leading-none`}>{String(nota.final).replace(".", ",")}</p></div>}
       </div>
+      <Link href={`/estudio/${id}/atlas`} className="mt-3 mr-2 inline-flex min-h-11 items-center rounded-full bg-tinta px-4 text-[13px] text-white">Hablar con Atlas →</Link>
       <Link href={`/estudio/${id}/calidad`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px]">Requisitos y calidad →</Link>
       <div className="hidden lg:block mt-4 max-w-3xl"><Camino m={m} p={p} /></div>
 

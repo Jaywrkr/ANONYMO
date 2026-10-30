@@ -1,3 +1,4 @@
+import {PiezasMarca} from "@/components/estudio/PiezasMarca";
 import Link from "next/link";
 import {ControlCalidad} from "@/components/estudio/ControlCalidad";
 import { notFound } from "next/navigation";
@@ -64,6 +65,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
         <article className="min-w-0 max-w-[74ch]">
           <h1 className={`${serif} text-[clamp(38px,4.6vw,64px)] leading-[0.98]`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
           {e && <ControlCalidad p={p} e={e}/>}
+          {e?.datos?.piezas ? <PiezasMarca p={p} e={e}/>:null}
           {e && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {e.datos?.sitio ? <Link href={`/estudio/${id}/web?v=${e.version}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-vivo px-4 text-[13px] font-medium text-white transition hover:brightness-95">Ver la web funcionando →</Link> : null}

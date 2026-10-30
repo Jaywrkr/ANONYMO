@@ -18,6 +18,14 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({content:[{type:'text',text:JSON.stringify({nota:9,resumen:'Revisión de prueba: condiciones comprobadas con la API falsa.',comprobaciones:condiciones.map(c=>({id:c.id,estado:'cumple',evidencia:'Comprobación de prueba para '+c.texto}))})}],usage:{input_tokens:100,output_tokens:100},stop_reason:'end_turn'}));
       return;
     }
+    if (cuerpo.system?.includes('Consulta de solo lectura.')) {
+      res.writeHead(200,{'content-type':'application/json'});
+      res.end(JSON.stringify({content:[{type:'text',text:JSON.stringify({respuesta:'Respuesta ficticia: revisa el avance del proyecto en sus registros.',fuentes:['proyecto','pedido']})}],usage:{input_tokens:100,output_tokens:50}}));return;
+    }
+    if (cuerpo.system?.startsWith('Interpreta un encargo explícito')) {
+      res.writeHead(200,{'content-type':'application/json'});
+      res.end(JSON.stringify({content:[{type:'text',text:JSON.stringify({accion:'pausar',nota:'Pausa ficticia solicitada desde el chat.'})}],usage:{input_tokens:100,output_tokens:50}}));return;
+    }
     const sigue = cuerpo.messages.length > 1;
     console.log(new Date().toISOString(), "pedido", n, sigue ? "(sigue)" : "", cuerpo.stream ? "stream" : "json");
     res.writeHead(200, { "content-type": "text/event-stream" });

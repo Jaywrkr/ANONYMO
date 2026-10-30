@@ -18,3 +18,6 @@ export const urlSitio = (id: string, v: number, ruta = "index.html") => `/sitio/
 export const firmaBoceto=(id:string,v:number)=>createHmac("sha256",process.env.ESTUDIO_SECRETO??"anonymo-local").update(`boceto:${id}:${v}`).digest("hex").slice(0,32);
 export const urlBoceto=(id:string,v:number)=>`/boceto/${id}/${v}/${firmaBoceto(id,v)}/img/`;
 export function firmaBocetoValida(id:string,v:number,firma:string){const a=Buffer.from(firma),b=Buffer.from(firmaBoceto(id,v));return a.length===b.length&&timingSafeEqual(a,b);}
+export const firmaPieza=(id:string,tarea:string,v:number)=>createHmac('sha256',process.env.ESTUDIO_SECRETO??'anonymo-local').update(`pieza:${id}:${tarea}:${v}`).digest('hex').slice(0,32);
+export const urlPieza=(id:string,tarea:string,v:number,archivo:string)=>`/pieza/${id}/${tarea.replace('.','-')}/${v}/${firmaPieza(id,tarea,v)}/${archivo}`;
+export function firmaPiezaValida(id:string,tarea:string,v:number,firma:string){const a=Buffer.from(firma),b=Buffer.from(firmaPieza(id,tarea,v));return a.length===b.length&&timingSafeEqual(a,b);}

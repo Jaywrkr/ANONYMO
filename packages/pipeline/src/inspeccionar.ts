@@ -1,4 +1,5 @@
 // Navegador sin sesión del estudio. Solo sirve los archivos de la versión elegida.
+import {archivosPiezas,leerPieza} from './piezas.ts';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -21,16 +22,20 @@ export async function navegadorCalidad(puerto?: number) {
 
 export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, plazo?: number, huella = "") {
   const id = p.pedido.id;
+  const vectorial=e.tarea==='3.mira';
+  const vectores=vectorial?archivosPiezas(id,e.tarea,e.version):[];
   const direcciones = proponer ? p.direcciones?.opciones ?? [] : [];
   const archivos = proponer ? [] : archivosSitio(id, e.version);
-  const paginas = proponer ? direcciones.map((_, i) => `direccion-${i + 1}.html`) : archivos.filter(a => a.ruta.endsWith('.html')).map(a => a.ruta);
+  const paginas = vectorial?vectores.map((_,i)=>`vector-${i+1}.html`):proponer ? direcciones.map((_, i) => `direccion-${i + 1}.html`) : archivos.filter(a => a.ruta.endsWith('.html')).map(a => a.ruta);
   if (!paginas.length || paginas.length > 12) throw new Error('Faltan piezas para ver o hay más de 12 páginas: divide la revisión.');
   if (proponer && (direcciones.length !== 3 || direcciones.some(d => !d.html))) throw new Error('Las tres direcciones necesitan una portada propia para revisarlas.');
   const servidor = createServer((req, res) => {
     let ruta: string;
     try { ruta = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname).slice(1); } catch { res.writeHead(400).end(); return; }
     const n = paginas.indexOf(ruta);
-    const cuerpo = proponer ? (n < 0 ? leerImagenDireccion(id,e.version,ruta) : Buffer.from(direcciones[n].html!)) : leerArchivoSitio(id, e.version, ruta);
+    const vector=vectores[paginas.indexOf(ruta)];
+    const muestra=vector?`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba de logo</title><style>body{font:16px system-ui;color:#141414;background:#f5f1e8;margin:0;padding:24px}section{padding:24px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;background:white;margin-block:16px}img{max-width:100%}.oscuro{background:#171717;color:white}</style></head><body><main><h1>${vector}</h1><section aria-label="Tamaños de reproducción"><img src="${vector}" width="128" height="128" alt="Logo a 128 píxeles"><img src="${vector}" width="32" height="32" alt="Logo a 32 píxeles"><img src="${vector}" width="16" height="16" alt="Logo a 16 píxeles"></section><section class="oscuro" aria-label="Fondo oscuro"><img src="${vector}" width="128" height="128" alt="Logo sobre fondo oscuro"></section></main></body></html>`:undefined;
+    const cuerpo = vectorial?(muestra?Buffer.from(muestra):leerPieza(id,e.tarea,e.version,ruta)):proponer ? (n < 0 ? leerImagenDireccion(id,e.version,ruta) : Buffer.from(direcciones[n].html!)) : leerArchivoSitio(id, e.version, ruta);
     if (!cuerpo) { res.writeHead(404).end(); return; }
     res.writeHead(200, { 'content-type': TIPOS_SITIO[ruta.split('.').at(-1)!] ?? 'application/octet-stream', 'cache-control': 'no-store', 'content-security-policy': "default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; frame-src 'none'; base-uri 'none'" });
     res.end(cuerpo);
@@ -99,7 +104,7 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
     await ctx.close();
     await browser.close();
     // Lighthouse comprueba los archivos recién generados, nunca pedido.contexto.url.
-    if (!proponer) {
+    if (!proponer && !vectorial) {
       const { auditar } = await import('./herramientas/auditar.ts');
       for (const pagina of paginas) {
         if(auditorias[pagina]){puntos.push(auditorias[pagina]);continue;}

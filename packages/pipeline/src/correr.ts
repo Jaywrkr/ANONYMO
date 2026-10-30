@@ -1,4 +1,6 @@
 // Corre un proyecto hasta la siguiente pausa y maneja las decisiones de Jay y Luna.
+import {guardarPiezas} from "./piezas.ts";
+import {registrarDecisiones,detectarMejora} from "./operaciones.ts";
 import { agentePorId, FASES, NOMBRE_SOCIO, RESPONSABLE_FASE } from "@anonymo/agentes";
 import { bitacora, crear, guardarEntrega, guardarPedido, guardarProyecto, leerEntrega, leerProyecto } from "./almacen.ts";
 import { entenderPedido, leerPausas, planificar, resolverPausas } from "./atlas.ts";
@@ -159,6 +161,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     op.latido?.(e.tarea,{fase:"revisando",palabras:0});
     e.calidad = await controlar(p,e,q.proponer,op.plazo);
     guardarEntrega(id,e);
+    if(e.calidad.estado==="cambios"||e.calidad.estado==="pendiente")detectarMejora(id,{tipo:e.calidad.estado==="cambios"?"calidad":"limitacion",tarea:e.tarea,version:e.version,titulo:`Revisión de ${e.titulo}: ${e.calidad.estado}`,detalle:e.calidad.resumen+"\n"+e.calidad.comprobaciones.filter(c=>c.estado!=="cumple").map(c=>c.evidencia).join("\n")});
     if(e.calidad.uso) p.costos={...p.costos,[e.tarea]:[...(p.costos?.[e.tarea]??[]),{...e.calidad.uso,busquedas:0,estimado:false,fecha:e.calidad.fecha}]};
     Object.assign(p,fusionar(p,leerProyecto(id)));
     delete p.controlPendiente;
@@ -227,7 +230,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
         condiciones: condicionesDe(p,t), marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
-      const { uso, pendiente, sitio, ...resto } = r;
+      const { uso, pendiente, sitio, piezas, ...resto } = r;
       // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
       Object.assign(p, fusionar(p, leerProyecto(id)));
       // Se acabó el tiempo de la vuelta: lo escrito queda guardado y la próxima vuelta sigue desde ahí.
@@ -256,9 +259,11 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       guardarEntrega(id, entrega);
       // La web como archivos de verdad, por versión (sistema/42).
       if (sitio && Object.keys(sitio).length) guardarSitio(id, version, sitio);
+      if(piezas&&Object.keys(piezas).length)guardarPiezas(id,t,version,piezas);
       if(proponer)guardarImagenesDirecciones(id,version,JSON.stringify(r.datos?.direcciones??[]));
       entrega.calidad = controlInicial(p,entrega);
       guardarEntrega(id,entrega);
+      registrarDecisiones(id,entrega);
       // Costo: real si vino de la API; si no, lo que costaría con el motor real.
       const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
       p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };

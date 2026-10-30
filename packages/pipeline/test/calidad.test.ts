@@ -74,7 +74,7 @@ test('flujo real: genera, verifica por separado y solo la persona aprueba',async
 });
 test('sin archivos reproducibles una descripción de logo no queda verificada',async()=>{
  const p=proyecto('calidad-logo'),e={...entrega(),tarea:'3.mira' as const};
- const r=await controlar(p,e,false);assert.equal(r.estado,'pendiente');assert.match(r.resumen,/archivos reproducibles/);
+ const r=await controlar(p,e,false);assert.equal(r.estado,'cambios');assert.match(r.resumen,/archivo vectorial/);
 });
 test('la fusión conserva los controles y respeta la pausa y las condiciones nuevas',()=>{
  const p=proyecto('calidad-fusion');

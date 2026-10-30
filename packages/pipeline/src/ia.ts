@@ -3,6 +3,7 @@
 /** Tapa cualquier cosa que parezca una clave antes de mostrar o guardar un mensaje de error. */
 export function ocultarClaves(texto: string): string {
   return texto
+    .replace(/(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,})/g, "credencial-•••")
     .replace(/sk-ant-[A-Za-z0-9_\-]+/g, "sk-ant-•••")
     .replace(/eyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g, "eyJ•••")
     .replace(/(Bearer|x-api-key:?)\s+\S+/gi, "$1 •••");

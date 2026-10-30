@@ -1,3 +1,4 @@
+import {archivosPiezas,leerPieza,validarSvg} from './piezas.ts';
 import {usd} from './costo.ts';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -11,6 +12,7 @@ import type { Comprobacion, ControlEntrega, Entrega, Proyecto } from './tipos.ts
 export function huellaEntrega(p: Proyecto, e: Entrega): string {
   const h = createHash('sha256').update(e.contenido.trim()).update(JSON.stringify(e.datos ?? {}));
   if (e.tarea === '4.vector') for (const a of archivosSitio(p.pedido.id, e.version)) h.update(a.ruta).update(leerArchivoSitio(p.pedido.id, e.version, a.ruta)!);
+  if(e.tarea==='3.mira'||e.datos?.piezas)for(const r of archivosPiezas(p.pedido.id,e.tarea,e.version))h.update(r).update(leerPieza(p.pedido.id,e.tarea,e.version,r)!);
   if(e.datos?.direcciones)for(const a of imagenesDirecciones(p.pedido.id,e.version))h.update(a.ruta).update(a.bytes);
   return h.digest('hex');
 }
@@ -56,7 +58,13 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
       if(!vector || !vector.calidad?.auditoria || !['verificado','aprobado'].includes(estadoEntrega(p,vector)) || !e.datos?.lighthouse) throw new Error('Prisma necesita una auditoría vigente de los archivos generados, no la URL anterior del cliente.');
     }
     let textos: string[] = [];
-    const visual = proponer || e.tarea === '4.vector';
+    const vectorial=e.tarea==='3.mira';
+    if(vectorial){
+      const archivos=archivosPiezas(p.pedido.id,e.tarea,e.version);
+      for(const r of ['logo-principal.svg','logo-monocromo.svg','simbolo.svg','ruta-1.svg','ruta-2.svg','ruta-3.svg'])if(!archivos.includes(r))throw Object.assign(new Error('Falta el archivo vectorial '+r+'.'),{defecto:true});
+      for(const r of archivos){const error=validarSvg(leerPieza(p.pedido.id,e.tarea,e.version,r)!.toString());if(error)throw Object.assign(new Error(r+': '+error),{defecto:true});}
+    }
+    const visual = proponer || e.tarea === '4.vector' || vectorial;
     if (visual) {
       const {inspeccionar} = await import('./inspeccionar.ts');
       const r = await inspeccionar(p,e,proponer,plazo,informe.huella);
@@ -64,8 +72,8 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
       informe.comprobaciones = r.comprobaciones;
       informe.auditoria = r.auditoria;
       textos = r.textos;
-      for (const [id,texto] of Object.entries({ fidelidad: 'El diseño responde al pedido y sus referencias.', originalidad: 'Hay composición propia, no una plantilla genérica.', tipografia: 'Tipografía y jerarquía cuidadas.', composicion: 'Composición, ritmo e imágenes resueltos.', movil: 'La pieza funciona visualmente en celular.' })) condiciones.push({id:`visual-${id}`,texto,fuente:'Revisión visual'});
-    } else if (['3.mira','3.kine','3.eco'].includes(e.tarea)) {
+      for (const [id,texto] of Object.entries({ fidelidad: 'El diseño responde al pedido y sus referencias.', originalidad: 'Hay composición propia, no una plantilla genérica.', tipografia: 'Tipografía y jerarquía cuidadas.', composicion: 'Composición, ritmo e imágenes resueltos.', movil: vectorial?'El logo mantiene legibilidad a 16, 32 y 128 píxeles y en una tinta.':'La pieza funciona visualmente en celular.' })) condiciones.push({id:`visual-${id}`,texto,fuente:'Revisión visual'});
+    } else if (['3.kine','3.eco'].includes(e.tarea)) {
       throw new Error('Esta entrega describe una pieza visual o sonora, pero aún necesita archivos reproducibles para poder verificarla.');
     }
     if (condiciones.length > 60) throw new Error('Hay más de 60 condiciones en esta entrega. Agrupa o asigna los requisitos antes de revisarla.');
@@ -95,8 +103,9 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
     const incompleto = revision.nota === undefined || informe.comprobaciones.some(c => c.estado === 'pendiente');
     informe.estado = incompleto ? 'pendiente' : revision.nota! < 8 || informe.comprobaciones.some(c => c.estado === 'falla') ? 'cambios' : 'verificado';
   } catch (error) {
+    if((error as {defecto?:boolean}).defecto)informe.estado='cambios';
     informe.resumen = ocultarClaves((error as Error).message).slice(0,1000);
-    informe.comprobaciones.push({id:'revision-incompleta',texto:'Revisión completa de esta versión',estado:'pendiente',evidencia:informe.resumen});
+    informe.comprobaciones.push({id:'revision-incompleta',texto:'Revisión completa de esta versión',estado:informe.estado==='cambios'?'falla':'pendiente',evidencia:informe.resumen});
   }
   if (e.calidad) { const {historial,...anterior} = e.calidad; informe.historial = [...(historial ?? []),anterior]; }
   return informe;

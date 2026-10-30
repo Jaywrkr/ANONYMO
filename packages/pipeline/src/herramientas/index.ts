@@ -49,7 +49,7 @@ export async function prepararHerramientas({ pedido, tarea, lecturas, motorReal 
         }
         out.push({herramienta:h,ok:true,resumen:resumenAuditoria(a),datos:a});
       } else if (h === "imagen") {
-        out.push({ herramienta: h, ok: false, resumen: "Imágenes: por ahora el agente describe y arma referencias; la generación queda pendiente.", falta: "Bocetos a mano o generación de imágenes (pendiente)." });
+        out.push({ herramienta: h, ok: true, resumen: "Producción de SVG editable disponible. Los archivos generados se validan y revisan visualmente antes de aprobarlos; no se generan fotografías con esta herramienta." });
       }
     } catch (e) {
       out.push({ herramienta: h, ok: false, resumen: `${h} falló: ${(e as Error).message.slice(0, 200)}`, falta: `Revisar por qué falló ${h}.` });

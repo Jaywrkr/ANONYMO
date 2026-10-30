@@ -22,7 +22,7 @@ Cada entrega real se revisa en una vuelta separada, antes de presentarla para ap
 - Direcciones: las tres portadas HTML, renderizadas completas a 1440 y 390 px; errores JS, imágenes y accesibilidad; capturas enviadas al revisor visual.
 - Web: archivos de la versión generada, todas sus páginas HTML (hasta doce por revisión), capturas a ambos tamaños, axe y Lighthouse móvil/escritorio. Se exige rendimiento móvil ≥85, accesibilidad móvil ≥90 y ninguna incidencia de axe en la auditoría.
 - Prisma consume la auditoría vigente de Vector. No utiliza la URL anterior del cliente como evidencia del sitio nuevo.
-- Una descripción de logo, animación o audio sin archivos reproducibles queda pendiente; esta rama no construye el servicio completo de producción de logos, video o sonido.
+- En 0.49, Mira puede entregar seis SVG editables: se comprueba la estructura vectorial y se renderizan a tamaños pequeños y sobre fondo oscuro. La revisión creativa necesita evidencia real; no se deduce de la validez del archivo. Una descripción de animación o audio sin archivos reproducibles sigue pendiente.
 
 Las capturas, auditoría, huella de los archivos y huella de los requisitos se guardan por versión. Las fotos usadas por direcciones y sitios se copian con esa versión. Las imágenes de las direcciones tienen enlaces firmados; las capturas del control requieren sesión del estudio. El portal no muestra propuestas sin revisión vigente.
 

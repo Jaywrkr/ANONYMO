@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { headers } from "next/headers";
 import {
-  avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
+  detectarMejora, avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
   huellaProyecto, leerRemoto, nubeActiva, ocultarClaves, subirDistintos, subirRuta, type Proyecto, type TareaId,
 } from "@anonymo/pipeline";
 import { aislado, traer } from "./nube";
@@ -183,6 +183,7 @@ async function vuelta(id: string, origen: string) {
       q.tareas[tarea] = leerEntrega(id, tarea) ? "rehacer" : "por-empezar";
       if (q.vueltas) delete q.vueltas[tarea];
     }
+    detectarMejora(id,{tipo:"fallo",titulo:"Fallo al ejecutar una vuelta",detalle:fallo,tarea});
     q.error = { mensaje: fallo.slice(0, 400), tarea, fecha: ahora() };
     guardarProyecto(q);
     bitacora(id, `No se pudo trabajar${tarea ? ` en ${tarea}` : ""}: ${fallo.slice(0, 200)}`);
