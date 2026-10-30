@@ -10,7 +10,7 @@ import { claveAnthropic, json, ocultarClaves, pensamiento, textoDe } from './ia.
 import type { Comprobacion, ControlEntrega, Entrega, Proyecto } from './tipos.ts';
 
 export function huellaEntrega(p: Proyecto, e: Entrega): string {
-  const h = createHash('sha256').update(e.contenido.trim()).update(JSON.stringify(e.datos ?? {}));
+  const h = createHash('sha256').update(e.tarea==='4.vector'?'funciones-web:1':'').update(e.contenido.trim()).update(JSON.stringify(e.datos ?? {}));
   if (e.tarea === '4.vector') for (const a of archivosSitio(p.pedido.id, e.version)) h.update(a.ruta).update(leerArchivoSitio(p.pedido.id, e.version, a.ruta)!);
   if(e.tarea==='3.mira'||e.datos?.piezas)for(const r of archivosPiezas(p.pedido.id,e.tarea,e.version))h.update(r).update(leerPieza(p.pedido.id,e.tarea,e.version,r)!);
   if(e.datos?.direcciones)for(const a of imagenesDirecciones(p.pedido.id,e.version))h.update(a.ruta).update(a.bytes);
@@ -72,6 +72,9 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
       informe.comprobaciones = r.comprobaciones;
       informe.auditoria = r.auditoria;
       textos = r.textos;
+      const fallos=r.comprobaciones.filter(c=>c.estado==='falla');
+      if(fallos.length)throw Object.assign(new Error('Hay comprobaciones que fallaron: '+fallos.slice(0,3).map(c=>c.evidencia).join(' · ')),{defecto:true});
+      if(r.comprobaciones.some(c=>c.estado==='pendiente'))throw new Error('Faltan pruebas funcionales: '+r.comprobaciones.filter(c=>c.estado==='pendiente').slice(0,3).map(c=>c.evidencia).join(' · '));
       for (const [id,texto] of Object.entries({ fidelidad: 'El diseño responde al pedido y sus referencias.', originalidad: 'Hay composición propia, no una plantilla genérica.', tipografia: 'Tipografía y jerarquía cuidadas.', composicion: 'Composición, ritmo e imágenes resueltos.', movil: vectorial?'El logo mantiene legibilidad a 16, 32 y 128 píxeles y en una tinta.':'La pieza funciona visualmente en celular.' })) condiciones.push({id:`visual-${id}`,texto,fuente:'Revisión visual'});
     } else if (['3.kine','3.eco'].includes(e.tarea)) {
       throw new Error('Esta entrega describe una pieza visual o sonora, pero aún necesita archivos reproducibles para poder verificarla.');

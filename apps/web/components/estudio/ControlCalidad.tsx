@@ -7,7 +7,7 @@ export function ControlCalidad({p,e,detalle=false}: {p:Proyecto;e:Entrega;detall
   const vigente = revisionVigente(p,e);
   return <section aria-label={`Calidad de ${e.titulo}`} className="my-4 min-w-0 rounded-2xl border border-current/15 p-4 text-[13px]">
     <div className="flex flex-wrap items-center gap-2"><strong>{TEXTO_CALIDAD[estado]}</strong><span>· versión {e.version}</span>{q?.nota !== undefined && <span>· {vigente?"revisión":"revisión anterior"} {q.nota}/10</span>}</div>
-    <p className="mt-2 break-words">{vigente && q ? q.resumen : q ? 'Cambió la pieza o el pedido. Hace falta revisar de nuevo esta versión.' : 'Esta entrega aún no tiene comprobaciones registradas.'}</p>
+    <p className="mt-2 break-words">{vigente && q ? q.resumen : q ? 'Hace falta revisar de nuevo esta versión con los controles actuales.' : 'Esta entrega aún no tiene comprobaciones registradas.'}</p>
     {!detalle && <Link className="mt-2 inline-flex min-h-11 items-center underline" href={`/estudio/${p.pedido.id}/calidad#${e.tarea.replace('.','-')}`}>Ver requisitos y comprobaciones →</Link>}
     {detalle && q && <>
       {q.comprobaciones.some(c=>c.estado!=="cumple") && <ul className="mt-3 grid gap-3">{q.comprobaciones.filter(c=>c.estado!=="cumple").map((c,i)=><li key={c.id+i}><strong>{c.estado==='falla'?'Cambiar':'Pendiente'} · {c.texto}</strong><p className="mt-1 break-words opacity-80">{c.evidencia}</p></li>)}</ul>}

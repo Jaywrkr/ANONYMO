@@ -1,5 +1,5 @@
 // La versión del estudio (sistema/34). Sube con cada «sistema/NN» que se fusiona.
-export const VERSION = "0.49";
+export const VERSION = "0.50";
 
 /** «29 oct, 10:42» en hora de Cuenca. */
 export function horaBuild(iso = process.env.NEXT_PUBLIC_BUILD ?? "") {

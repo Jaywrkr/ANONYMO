@@ -1,3 +1,4 @@
+import {comprobarEnlaces,comprobarInteracciones,leerPruebasWeb} from './funciones-web.ts';
 // Navegador sin sesión del estudio. Solo sirve los archivos de la versión elegida.
 import {archivosPiezas,leerPieza} from './piezas.ts';
 import { createServer } from 'node:http';
@@ -26,7 +27,9 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
   const vectores=vectorial?archivosPiezas(id,e.tarea,e.version):[];
   const direcciones = proponer ? p.direcciones?.opciones ?? [] : [];
   const archivos = proponer ? [] : archivosSitio(id, e.version);
+  const planFunciones=leerPruebasWeb(!proponer&&!vectorial?leerArchivoSitio(id,e.version,'pruebas.json')?.toString():undefined);
   const paginas = vectorial?vectores.map((_,i)=>`vector-${i+1}.html`):proponer ? direcciones.map((_, i) => `direccion-${i + 1}.html`) : archivos.filter(a => a.ruta.endsWith('.html')).map(a => a.ruta);
+  if(planFunciones.pruebas.some(p=>!paginas.includes(p.pagina)))planFunciones.error='pruebas.json contiene una página que no existe en esta versión.';
   if (!paginas.length || paginas.length > 12) throw new Error('Faltan piezas para ver o hay más de 12 páginas: divide la revisión.');
   if (proponer && (direcciones.length !== 3 || direcciones.some(d => !d.html))) throw new Error('Las tres direcciones necesitan una portada propia para revisarlas.');
   const servidor = createServer((req, res) => {
@@ -55,17 +58,17 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
   let auditorias: Record<string,Auditoria>={};
   try {
     const guardado=JSON.parse(readFileSync(checkpoint,"utf8")) as {motor:number;huella:string;capturas:CapturaCalidad[];comprobaciones:Comprobacion[];textos:string[];auditorias:Record<string,Auditoria>};
-    if(guardado.motor===1 && huella && guardado.huella===huella && guardado.capturas.every(c=> /^calidad\/[0-9]+-[a-z]+\/v[1-9][0-9]*\/[1-9][0-9]*-(390|1440)(-[0-9a-f]{12})?\.jpg$/.test(c.ruta) && createHash('sha256').update(readFileSync(join(carpeta(),id,c.ruta))).digest('hex')===c.sha256)) {
+    if(guardado.motor===2 && huella && guardado.huella===huella && guardado.capturas.every(c=> /^calidad\/[0-9]+-[a-z]+\/v[1-9][0-9]*\/[1-9][0-9]*-(390|1440)(-[0-9a-f]{12})?\.jpg$/.test(c.ruta) && createHash('sha256').update(readFileSync(join(carpeta(),id,c.ruta))).digest('hex')===c.sha256)) {
       capturas=guardado.capturas;comprobaciones=guardado.comprobaciones;textos=guardado.textos;auditorias=guardado.auditorias;
     }
   } catch { /* Sin punto de reanudación válido: se comprueba de nuevo. */ }
-  const guardar=()=>{writeFileSync(checkpoint+".tmp",JSON.stringify({motor:1,huella,capturas,comprobaciones,textos,auditorias}));renameSync(checkpoint+".tmp",checkpoint);};
+  const guardar=()=>{writeFileSync(checkpoint+".tmp",JSON.stringify({motor:2,huella,capturas,comprobaciones,textos,auditorias}));renameSync(checkpoint+".tmp",checkpoint);};
 
   try {
     const ctx = await browser.newContext({ reducedMotion: 'reduce', serviceWorkers: 'block' });
     await ctx.route('**/*', async route => {
       const u = new URL(route.request().url());
-      const permitido = u.origin === base || (u.protocol === 'https:' && ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'].includes(u.hostname));
+      const permitido = ['GET','HEAD'].includes(route.request().method()) && (u.origin === base || (u.protocol === 'https:' && ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'].includes(u.hostname)));
       return permitido ? route.continue() : route.abort();
     });
     const { default: AxeBuilder } = await import('@axe-core/playwright');
@@ -75,8 +78,11 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
         if(capturas.some(c=>c.pagina===pagina&&c.ancho===ancho)) continue;
         if (plazo && Date.now() > plazo - 25000) throw new Error('La revisión necesita otra vuelta; las capturas guardadas se conservan.');
         const page = await ctx.newPage();
-        const errores: string[] = [];
+        const errores: string[] = [],conexiones:string[]=[];
+        page.on('console',m=>{if(m.type()==='error'&&/connect-src|Refused to connect|Connecting to/i.test(m.text()))conexiones.push('Una conexión de datos fue bloqueada por el aislamiento; falta comprobar su destino y recepción real.');});
+        page.on('requestfailed',r=>{if(['fetch','xhr'].includes(r.resourceType()))conexiones.push('Una conexión de datos no pudo completarse; falta comprobar su destino y resultado.');});
         page.on('pageerror', err => errores.push(err.message.slice(0, 160)));
+        page.on('response',r=>{if(r.url().startsWith(base+'/')&&r.status()>=400)errores.push(`Recurso local ausente (${r.status()}): ${new URL(r.url()).pathname}`);});
         await page.setViewportSize({width: ancho, height: 900});
         await page.goto(`${base}/${pagina}`, {waitUntil: 'load', timeout: 20000});
         await page.evaluate(async () => { await document.fonts.ready; });
@@ -87,7 +93,7 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
         const imagen = await page.screenshot({type: 'jpeg', quality: 65, fullPage: medidas.alto <= 16000, animations: 'disabled'});
         const nombre = `${i+1}-${ancho}-${createHash('sha256').update(imagen).digest('hex').slice(0,12)}.jpg`;
         writeFileSync(join(destino, nombre), imagen);
-        capturas.push({ruta: `calidad/${e.tarea.replace('.', '-')}/v${e.version}/${nombre}`, sha256: createHash('sha256').update(imagen).digest('hex'), ancho, pagina});
+        const captura={ruta: `calidad/${e.tarea.replace('.', '-')}/v${e.version}/${nombre}`, sha256: createHash('sha256').update(imagen).digest('hex'), ancho, pagina};
         const axe = await new AxeBuilder({page: page as never}).analyze();
         const problemas = [
           ...errores,
@@ -97,6 +103,13 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
           ...axe.violations.filter(v => v.impact === 'critical' || v.impact === 'serious').map(v => v.help),
         ];
         comprobaciones.push({ id: `navegador-${i}-${ancho}`, texto: `${pagina} a ${ancho}px`, estado: problemas.length ? 'falla' : 'cumple', evidencia: problemas.length ? problemas.join(' · ') : 'Renderizada, sin errores JS, imágenes rotas, desbordamiento ni errores graves de accesibilidad.' });
+        if(!proponer&&!vectorial){
+          comprobaciones.push(...await comprobarEnlaces(page,pagina,ancho,base,r=>leerArchivoSitio(id,e.version,r)));
+          comprobaciones.push(...await comprobarInteracciones(page,pagina,ancho as 390|1440,base,planFunciones,plazo));
+        }
+        if(conexiones.length)comprobaciones.push({id:`conexion-${i}-${ancho}`,texto:`Conexiones de ${pagina} a ${ancho}px`,estado:'pendiente',evidencia:conexiones[0]+' El navegador de revisión no autoriza envíos a servicios.'});
+        if(errores.length)comprobaciones.push({id:`errores-${i}-${ancho}`,texto:`Errores durante la revisión de ${pagina}`,estado:'falla',evidencia:[...new Set(errores)].slice(0,10).join(' · ')});
+        capturas.push(captura);
         await page.close();
         guardar();
       }
@@ -104,7 +117,7 @@ export async function inspeccionar(p: Proyecto, e: Entrega, proponer: boolean, p
     await ctx.close();
     await browser.close();
     // Lighthouse comprueba los archivos recién generados, nunca pedido.contexto.url.
-    if (!proponer && !vectorial) {
+    if (!proponer && !vectorial && !comprobaciones.some(c=>c.estado!=='cumple')) {
       const { auditar } = await import('./herramientas/auditar.ts');
       for (const pagina of paginas) {
         if(auditorias[pagina]){puntos.push(auditorias[pagina]);continue;}
