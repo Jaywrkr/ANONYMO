@@ -1,10 +1,12 @@
+import {versionadoActivo,vivoVersionado,bajarVersionado,leerArchivoVersionado,indiceActual,registrarBase,publicarVersionado,proyectosVersionados,estadoConCola,enPublicacion,hayPublicacionSinConfirmar} from "./versionado.ts";
 // Almacén privado: copia de cada proyecto en un bucket privado de Supabase Storage.
 // El repo es público: los proyectos de clientes viven en tu máquina (proyectos/, ignorado por git) y en la nube privada.
 // Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY (clave de servicio, nunca en el navegador), SUPABASE_BUCKET (por defecto "proyectos").
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { createHash } from "node:crypto";
-import { carpeta } from "./almacen.ts";
+import {tmpdir} from "node:os";
+import { carpeta, enCarpeta } from "./almacen.ts";
 
 /** Hay nube configurada (Supabase). */
 export const nubeConfigurada = () => !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
@@ -36,6 +38,7 @@ function archivosLocales(dir: string): string[] {
 /** Sube (o actualiza) todo el proyecto. */
 export async function subirProyecto(id: string, f: typeof fetch = fetch): Promise<number> {
   idSeguro(id);
+  if(versionadoActivo(id))return (await publicarVersionado(id,new Map(),false,f)).subidos;
   const { url, key, bucket } = cfg();
   const base = join(carpeta(), id);
   if (!existsSync(base)) throw new Error(`No hay proyecto "${id}" en ${carpeta()}.`);
@@ -53,22 +56,12 @@ export async function subirProyecto(id: string, f: typeof fetch = fetch): Promis
   return n;
 }
 
-async function listarRemoto(prefijo: string, f: typeof fetch): Promise<string[]> {
-  const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/list/${bucket}`, {
-    method: "POST",
-    headers: cabeceras(key, { "content-type": "application/json" }),
-    body: JSON.stringify({ prefix: prefijo, limit: 1000, offset: 0 }),
-  });
-  if (!r.ok) throw new Error(`No se pudo listar ${prefijo}: ${r.status}`);
-  const items = (await r.json()) as { name: string; id: string | null }[];
-  const out: string[] = [];
-  for (const it of items) {
-    const ruta = prefijo ? `${prefijo}/${it.name}` : it.name;
-    if (it.id === null) out.push(...(await listarRemoto(ruta, f)));
-    else out.push(ruta);
-  }
-  return out;
+async function listarNivel(prefijo:string,f:typeof fetch){
+ const {url,key,bucket}=cfg(),todos:{name:string;id:string|null}[]=[];let anterior='';
+ for(let offset=0;offset<100000;offset+=1000){const r=await f(`${url}/storage/v1/object/list/${bucket}`,{method:'POST',headers:cabeceras(key,{'content-type':'application/json'}),body:JSON.stringify({prefix:prefijo,limit:1000,offset,sortBy:{column:'name',order:'asc'}})});if(!r.ok)throw new Error(`No se pudo listar el almacén: ${r.status}`);const pagina=await r.json() as {name:string;id:string|null}[];const firma=JSON.stringify(pagina);if(pagina.length&&firma===anterior)throw new Error('El almacén no avanzó al listar. No se usa una copia incompleta.');anterior=firma;todos.push(...pagina);if(pagina.length<1000)return todos;}throw new Error('El listado supera el límite de la operación.');
+}
+async function listarRemoto(prefijo:string,f:typeof fetch):Promise<string[]>{
+ const out:string[]=[];for(const it of await listarNivel(prefijo,f)){if(!it.name||it.name==='.'||it.name==='..'||it.name.includes('/'))throw new Error('Ruta remota no válida.');const ruta=prefijo?`${prefijo}/${it.name}`:it.name;if(it.id===null)out.push(...await listarRemoto(ruta,f));else out.push(ruta);}return out;
 }
 
 /** Cuántos pedidos de la web esperan en la nube (sin los archivados). No baja nada. */
@@ -81,7 +74,9 @@ export async function solicitudesEnNube(f: typeof fetch = fetch): Promise<number
 export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo = false): Promise<number> {
   idSeguro(id);
   const { url, key, bucket } = cfg();
+  if(versionadoActivo(id)){const n=await bajarVersionado(id,f);if(n!==false)return n;}
   const rutas = await listarRemoto(id, f);
+  if(versionadoActivo(id))registrarBase(id,null,rutas.length>0);
   if (!rutas.length && !espejo) throw new Error(`No hay "${id}" en la nube.`);
   // Se baja a una carpeta aparte y se cambia de una vez (sistema/37): quien esté leyendo el proyecto
   // nunca encuentra la carpeta a medio borrar.
@@ -105,19 +100,14 @@ export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo 
 }
 
 /** Proyectos que hay en la nube. */
-export async function proyectosEnNube(f: typeof fetch = fetch): Promise<string[]> {
-  const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/list/${bucket}`, {
-    method: "POST",
-    headers: cabeceras(key, { "content-type": "application/json" }),
-    body: JSON.stringify({ prefix: "", limit: 1000, offset: 0 }),
-  });
-  if (!r.ok) throw new Error(`No se pudo listar la nube: ${r.status}`);
-  return ((await r.json()) as { name: string; id: string | null }[]).filter((x) => x.id === null).map((x) => x.name);
+export async function proyectosEnNube(f:typeof fetch=fetch):Promise<string[]>{
+ const legado=(await listarNivel('',f)).filter(x=>x.id===null&&x.name!=='_anonymo').map(x=>x.name);
+ return process.env.ANONYMO_ALMACEN_VERSIONADO==='1'?[...new Set([...legado,...await proyectosVersionados(f)])]:legado;
 }
 
 /** Sube un solo archivo, por su ruta dentro de proyectos/ ("_analitica/2026-10-x.jsonl"). */
 export async function subirRuta(rel: string, f: typeof fetch = fetch) {
+  if(versionadoActivo(rel.split("/")[0]))throw new Error("No se guardan rutas sueltas de un proyecto versionado.");
   const { url, key, bucket } = cfg();
   const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, {
     method: "POST",
@@ -129,6 +119,7 @@ export async function subirRuta(rel: string, f: typeof fetch = fetch) {
 
 /** Sube el proyecto y borra en la nube lo que ya no existe en local (por ejemplo, una solicitud archivada). */
 export async function espejarProyecto(id: string, f: typeof fetch = fetch): Promise<{ subidos: number; borrados: number }> {
+  if(versionadoActivo(id))throw new Error("Usa una operación aislada para guardar cambios versionados.");
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const base = join(carpeta(), id);
@@ -151,6 +142,7 @@ export async function espejarProyecto(id: string, f: typeof fetch = fetch): Prom
 
 /** Lee un solo archivo de la nube sin bajar el proyecto entero (la oficina en vivo lee solo estado.json). */
 export async function leerRemoto(id: string, rel: string, f: typeof fetch = fetch): Promise<string | undefined> {
+  if(versionadoActivo(id)){if(rel==="vivo.json"){const v=await vivoVersionado(id,f);return v?JSON.stringify(v):undefined;}const d=await leerArchivoVersionado(id,rel,f);if(d){const t=d.bytes?.toString("utf8");return rel==="estado.json"&&t?estadoConCola(id,t,f):t;}}
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const r = await f(`${url}/storage/v1/object/${bucket}/${id}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
@@ -161,6 +153,7 @@ export async function leerRemoto(id: string, rel: string, f: typeof fetch = fetc
 
 /** Borra un proyecto entero de la nube (solo cuando Jay o Luna lo piden con confirmación). */
 export async function borrarRemoto(id: string, f: typeof fetch = fetch): Promise<number> {
+  if(versionadoActivo(id))throw new Error("El borrado definitivo no está habilitado en el piloto versionado. No se borró ningún archivo.");
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const rutas = await listarRemoto(id, f);
@@ -201,7 +194,7 @@ export async function recogerSubida(clave: string, f: typeof fetch = fetch): Pro
   const r = await f(`${url}/storage/v1/object/${bucket}/_subidas/${clave}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
   if (!r.ok) throw new Error(`No llegó el archivo ${clave.split("/")[1]} (${r.status}). Vuelve a subirlo.`);
   const datos = Buffer.from(await r.arrayBuffer());
-  await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: [`_subidas/${clave}`] }) }).catch(() => {});
+  if(process.env.ANONYMO_ALMACEN_VERSIONADO!=="1")await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: [`_subidas/${clave}`] }) }).catch(() => {});
   return { nombre: clave.split("/")[1], datos };
 }
 
@@ -226,6 +219,7 @@ export async function limpiarSubidas(f: typeof fetch = fetch): Promise<number> {
  * Lo usan las vueltas de trabajo: si mientras tanto alguien subió un archivo, no se pierde.
  */
 export async function subirCambiados(id: string, desde: number, f: typeof fetch = fetch): Promise<number> {
+  if(versionadoActivo(id))throw new Error("El guardado por hora no está habilitado en modo versionado.");
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const base = join(carpeta(), id);
@@ -250,6 +244,7 @@ export async function subirCambiados(id: string, desde: number, f: typeof fetch 
  * no vuelve a subir todas las fotos del proyecto. Lo que ya no existe en local se borra en la nube.
  */
 export async function espejarCambios(id: string, desde: number, f: typeof fetch = fetch): Promise<{ subidos: number; borrados: number }> {
+  if(versionadoActivo(id))throw new Error("El espejo por hora no está habilitado en modo versionado.");
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const base = join(carpeta(), id);
@@ -271,6 +266,7 @@ export async function espejarCambios(id: string, desde: number, f: typeof fetch 
 
 /** Lee un archivo de la nube como bytes, sin bajar el proyecto (sistema/42: la vista previa de la web). */
 export async function leerRemotoBytes(id: string, rel: string, f: typeof fetch = fetch): Promise<Uint8Array | undefined> {
+  if(versionadoActivo(id)){const d=await leerArchivoVersionado(id,rel,f);if(d)return d.bytes;}
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const r = await f(`${url}/storage/v1/object/${bucket}/${id}/${rel.split("/").map(encodeURIComponent).join("/")}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
@@ -296,6 +292,7 @@ export function huellaProyecto(id: string): Huella {
 
 /** Sube lo nuevo o cambiado respecto de la huella `antes` y, con `espejo`, borra en la nube lo que ya no está. */
 export async function subirDistintos(id: string, antes: Huella, espejo = true, f: typeof fetch = fetch): Promise<{ subidos: number; borrados: number }> {
+  if(versionadoActivo(id))return publicarVersionado(id,antes,espejo,f);
   idSeguro(id);
   const { url, key, bucket } = cfg();
   const ahora = huellaProyecto(id);
@@ -322,4 +319,21 @@ export async function subirDistintos(id: string, antes: Huella, espejo = true, f
     }
   }
   return { subidos, borrados };
+}
+
+/** Importación explícita: solo con el proyecto detenido y la carpeta antigua estable. No elimina el origen. */
+export async function importarProyectoVersionado(id:string,f:typeof fetch=fetch){
+ if(!versionadoActivo(id))throw new Error('El proyecto no está incluido en el piloto versionado.');
+ const temporal=mkdtempSync(join(tmpdir(),'anonymo-importacion-'));let conservar=false;
+ try{return await enPublicacion(()=>enCarpeta(temporal,async()=>{
+  if(await indiceActual(id,f))throw new Error('Este proyecto ya tiene una revisión versionada.');
+  await bajarProyecto(id,f,true);const base=join(carpeta(),id),estado=JSON.parse(readFileSync(join(base,'estado.json'),'utf8'));
+  if(estado.estado==='en-curso')throw new Error('Pausa el proyecto y espera a que terminen las vueltas antiguas antes de importar.');
+  const vivo=existsSync(join(base,'vivo.json'))?JSON.parse(readFileSync(join(base,'vivo.json'),'utf8')):undefined;
+  if(vivo&&!vivo.fin&&Date.now()-Date.parse(vivo.latido)<90000)throw new Error('Todavía hay una vuelta antigua con señal reciente.');
+  const rutas=await listarRemoto(id,f),locales=archivosLocales(base).map(p=>id+'/'+relative(base,p).split('\\').join('/'));
+  if(JSON.stringify([...rutas].sort())!==JSON.stringify(locales.sort()))throw new Error('La carpeta cambió durante la importación. No se publicó.');
+  for(const ruta of rutas){const b=await leerRemotoBytes(id,ruta.slice(id.length+1),f);if(!b||!Buffer.from(b).equals(readFileSync(join(base,ruta.slice(id.length+1)))))throw new Error('Un archivo cambió durante la importación. No se publicó.');}
+  try{return await publicarVersionado(id,new Map(),false,f,true);}catch(e){conservar=hayPublicacionSinConfirmar();throw e;}
+ }));}finally{if(!conservar)rmSync(temporal,{recursive:true,force:true});}
 }

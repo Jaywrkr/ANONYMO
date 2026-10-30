@@ -19,7 +19,7 @@ function nubeFalsa() {
     const metodo = init.method ?? "GET";
     const m = url.match(/\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/)!;
     if (m[1]) {
-      const { prefix } = JSON.parse(String(init.body));
+      const { prefix,offset=0,limit=1000 } = JSON.parse(String(init.body));
       const hijos = new Map<string, boolean>();
       for (const k of datos.keys()) {
         if (prefix && !k.startsWith(prefix + "/")) continue;
@@ -27,7 +27,7 @@ function nubeFalsa() {
         const [cabeza, ...cola] = resto.split("/");
         hijos.set(cabeza, cola.length > 0 || (hijos.get(cabeza) ?? false));
       }
-      return Response.json([...hijos].map(([name, carpeta]) => ({ name, id: carpeta ? null : name })));
+      return Response.json([...hijos].sort(([a],[b])=>a.localeCompare(b)).slice(offset,offset+limit).map(([name, carpeta]) => ({ name, id: carpeta ? null : name })));
     }
     if (metodo === "DELETE") {
       for (const p of JSON.parse(String(init.body)).prefixes) datos.delete(p);
@@ -116,4 +116,11 @@ test("subir por contenido: un proyecto recién creado sube aunque la hora del di
   assert.equal((await subirDistintos(id, h, true, n.f)).subidos, 0);
   (await import("node:fs")).rmSync(join(carpeta(), id, "entregas", "1-atlas.md"));
   assert.equal((await subirDistintos(id, h, true, n.f)).borrados, 1);
+});
+
+
+test("baja todos los archivos aunque Storage los divida en páginas de mil", async () => {
+ const {datos,f}=nubeFalsa();for(let i=0;i<1003;i++)datos.set(`paginado/f${String(i).padStart(4,'0')}.txt`,Buffer.from(String(i)));
+ await bajarProyecto('paginado',f,true);
+ assert.equal(readFileSync(join(carpeta(),'paginado','f1002.txt'),'utf8'),'1002');
 });

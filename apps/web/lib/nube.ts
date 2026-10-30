@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { bajarProyecto, CARPETA_BASE, carpeta, enCarpeta, espejarProyecto, huellaProyecto, subirDistintos, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
+import { hayPublicacionSinConfirmar,enPublicacion, bajarProyecto, CARPETA_BASE, carpeta, enCarpeta, espejarProyecto, huellaProyecto, subirDistintos, leerRemoto, listar, listarPapelera, nubeActiva, proyectosEnNube, type Proyecto } from "@anonymo/pipeline";
 
 /** Bajadas en curso por carpeta y proyecto: dos páginas que piden lo mismo a la vez esperan la misma bajada. */
 const enCurso = new Map<string, { p: Promise<unknown>; gen: number }>();
@@ -31,11 +31,9 @@ export async function traer(...ids: string[]) {
 export async function aislado<T>(fn: () => Promise<T>): Promise<T> {
   if (!nubeActiva()) return fn();
   const dir = join(CARPETA_BASE, ".privadas", randomUUID());
-  try {
-    return await enCarpeta(dir, fn);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  let conservar=false;
+  try {return await enPublicacion(()=>enCarpeta(dir,async()=>{try{return await fn();}catch(e){conservar=hayPublicacionSinConfirmar();throw e;}}));}
+  finally {if(!conservar)rmSync(dir,{recursive:true,force:true});else console.error('[nube] copia temporal conservada: publicación sin confirmar');}
 }
 
 /** Baja todos los proyectos y las solicitudes (no la analítica: tiene su propia página). */

@@ -1,3 +1,4 @@
+import {versionadoActivo} from "@anonymo/pipeline";
 import {AbrirAtlas} from "@/components/estudio/AbrirAtlas";
 import {urlBoceto} from "@/lib/sitio";
 import Link from "next/link";
@@ -536,6 +537,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* AJUSTES */}
         {ver === "ajustes" && (
           <div className="grid max-w-3xl gap-5">
+            {versionadoActivo(id) && <Link className={boton} href={`/estudio/${id}/guardados`}>Revisar avances en conflicto</Link>}
             <form action={accionModo} className={`${tarjeta} grid gap-3`}>
               {comunes}
               <p className={`${serif} text-[22px] leading-tight`}>¿Cómo trabaja el equipo?</p>

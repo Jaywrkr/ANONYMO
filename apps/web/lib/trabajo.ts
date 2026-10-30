@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { headers } from "next/headers";
 import {
-  detectarMejora, avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
+  versionadoActivo,encolarVersionado,tomarVersionado,conReserva,reservaActual,pulsoVersionado,vivoVersionado,marcarFalloPublicacion,terminarReserva,detectarMejora, avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
   huellaProyecto, leerRemoto, nubeActiva, ocultarClaves, subirDistintos, subirRuta, type Proyecto, type TareaId,
 } from "@anonymo/pipeline";
 import { aislado, traer } from "./nube";
@@ -40,7 +40,7 @@ function escribirVivo(id: string, v: Vivo) {
   mkdirSync(join(carpeta(), id), { recursive: true });
   writeFileSync(rutaVivo(id), JSON.stringify(v));
 }
-const subirVivo = (id: string) => (nubeActiva() ? subirRuta(`${id}/vivo.json`).catch(() => {}) : Promise.resolve());
+const subirVivo = async(id:string)=>{if(versionadoActivo(id)){await pulsoVersionado(id,leerVivo(id)).catch(()=>false);return;}if(nubeActiva())await subirRuta(`${id}/vivo.json`).catch(()=>{});};
 
 /** La vuelta sigue viva: dio señal hace poco y no terminó. */
 export const vivoActivo = (v?: Vivo) => !!v && !v.fin && Date.now() - Date.parse(v.latido) < SIN_SENAL_MS;
@@ -48,6 +48,7 @@ export const vivoActivo = (v?: Vivo) => !!v && !v.fin && Date.now() - Date.parse
 /** ¿Hay una vuelta trabajando ahora en este proyecto? Lee la señal de la nube (o del disco en tu máquina). */
 export async function trabajandoAhora(id: string): Promise<Vivo | undefined> {
   try {
+    if(versionadoActivo(id)){const v=await vivoVersionado(id);return vivoActivo(v)?v:undefined;}
     if (nubeActiva()) {
       const t = await leerRemoto(id, "vivo.json");
       const v = t ? (JSON.parse(t) as Vivo) : undefined;
@@ -81,6 +82,7 @@ export async function origenActual() {
 export async function lanzar(id: string, origen?: string) {
   try {
     const base = origen ?? (await origenActual());
+    if(versionadoActivo(id))await encolarVersionado(id);
     // Si el servidor no lo recibe, se intenta otra vez; y queda escrito en el registro (sistema/44).
     for (let intento = 1; intento <= 2; intento++) {
       try {
@@ -102,7 +104,11 @@ export async function lanzar(id: string, origen?: string) {
  */
 export async function trabajarVuelta(id: string, origen: string) {
   // Cada vuelta trabaja en su propia copia del proyecto: ninguna página la puede pisar mientras el agente escribe.
-  return aislado(() => vuelta(id, origen));
+  return aislado(async()=>{
+    if(!versionadoActivo(id))return vuelta(id,origen);
+    const r=await tomarVersionado(id);if(!r)return;
+    return conReserva(r,async()=>{try{await vuelta(id,origen);await terminarReserva(r,true,'No quedó trabajo publicable en esta vuelta.');}catch(e){await terminarReserva(r,false,'No se confirmó la publicación de esta vuelta.').catch(()=>false);throw e;}});
+  });
 }
 
 async function vuelta(id: string, origen: string) {
@@ -115,14 +121,14 @@ async function vuelta(id: string, origen: string) {
   if (!existe(id)) return nada("el proyecto no está en la nube");
   const p = leerProyecto(id);
   if (p.estado !== "en-curso" || p.papelera) return nada(`estado ${p.estado}${p.papelera ? " (papelera)" : ""}`);
-  if (vivoActivo(leerVivo(id))) return nada("ya hay otra vuelta trabajando");
+  if (!reservaActual()&&vivoActivo(leerVivo(id))) return nada("ya hay otra vuelta trabajando");
 
   const ahora = () => new Date().toISOString();
-  const vivo: Vivo = { vuelta: randomUUID(), tarea: p.controlPendiente?.tarea, fase: p.controlPendiente ? "revisando" : "preparando", palabras: 0, latido: ahora(), desde: ahora() };
+  const vivo: Vivo = { vuelta: reservaActual()?.propietario??randomUUID(), tarea: p.controlPendiente?.tarea, fase: p.controlPendiente ? "revisando" : "preparando", palabras: 0, latido: ahora(), desde: ahora() };
   escribirVivo(id, vivo);
   await subirVivo(id);
   // Candado (sistema/42): si dos vueltas arrancaron casi a la vez, gana la última que escribió su señal; la otra se va.
-  if (nubeActiva()) {
+  if (nubeActiva()&&!versionadoActivo(id)) {
     await new Promise((ok) => setTimeout(ok, 1500));
     try {
       const t = await leerRemoto(id, "vivo.json");
@@ -134,6 +140,7 @@ async function vuelta(id: string, origen: string) {
     } catch {}
   }
   const juntarConNube = async () => {
+    if(versionadoActivo(id))return;
     try {
       const remoto = await leerRemoto(id, "estado.json");
       if (remoto) guardarProyecto(fusionar(leerProyecto(id), JSON.parse(remoto) as Proyecto));
@@ -157,7 +164,7 @@ async function vuelta(id: string, origen: string) {
       escribirVivo(id, vivo);
       // Antes de subir el estado, se junta con el de la nube: si Jay pausó hace un segundo, la pausa no se pisa (sistema/43).
       await juntarConNube();
-      await Promise.all([subirRuta(`${id}/estado.json`).catch(() => {}), subirVivo(id)]);
+      await Promise.all([versionadoActivo(id)?Promise.resolve():subirRuta(`${id}/estado.json`).catch(() => {}), subirVivo(id)]);
     }
   };
 
@@ -170,6 +177,7 @@ async function vuelta(id: string, origen: string) {
     void subirVivo(id);
     if (++pulsos % 3 === 0) log(`${vivo.tarea ?? "-"} ${vivo.fase} · ${vivo.palabras ?? 0} palabras · la IA habló hace ${vivo.ia ? Math.round((Date.now() - Date.parse(vivo.ia)) / 1000) + "s" : "—"}`);
   }, 10_000);
+  try {
   log(`empieza · ${Object.entries(p.tareas).filter(([, e]) => e !== "lista").map(([t]) => t).join(", ")}`);
   let fallo: string | undefined;
   try {
@@ -194,8 +202,10 @@ async function vuelta(id: string, origen: string) {
     try {
       await juntarConNube();
       // Sin borrar nada en la nube: la vuelta solo agrega o cambia lo suyo.
+      marcarFalloPublicacion(fallo);
       await subirDistintos(id, antes, false);
     } catch (e) {
+      if(versionadoActivo(id)){clearInterval(pulso);throw e;}
       console.error("[trabajo] no se pudo subir", id, (e as Error).message);
     }
   }
@@ -211,6 +221,7 @@ async function vuelta(id: string, origen: string) {
 
   const q = leerProyecto(id);
   if (!fallo && q.estado === "en-curso" && !q.papelera && hayPendientes(q)) await lanzar(id, origen);
+  } finally {clearInterval(pulso);}
 }
 
 /** Últimos arranques automáticos por proyecto (en este servidor): nunca más de uno por minuto. */
