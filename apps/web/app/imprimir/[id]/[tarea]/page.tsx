@@ -2,7 +2,7 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import { agentePorId, FASES } from "@anonymo/agentes";
-import { esInterna, existe, leerEntrega, leerProyecto, versionCliente, type TareaId } from "@anonymo/pipeline";
+import {estadoEntrega,TEXTO_CALIDAD, esInterna, existe, leerEntrega, leerProyecto, versionCliente, type TareaId } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
 import { exigirEstudio } from "@/lib/estudio";
@@ -43,6 +43,7 @@ export default async function EntregaImprimir({ params, searchParams }: { params
       {!interno && soloEquipo && (
         <p className="no-imprimir mx-auto mb-4 max-w-[820px] rounded-xl bg-[#fff4e8] p-4 text-[13px] text-[#8a3a0c]">Esta entrega es interna del equipo (horas, investigación, jurado o código): no conviene mandarla al cliente. <a className="underline" href={`?para=interno${v ? `&v=${v}` : ""}`}>Ver la versión interna</a>.</p>
       )}
+      <p className="mx-auto mb-3 max-w-[820px] rounded-xl border border-current/20 p-3 text-[13px]">Estado de esta versión: {TEXTO_CALIDAD[estadoEntrega(p,e)]}. La verificación automática y la aprobación son pasos distintos.</p>
       <article className="hoja px-12 py-12 md:px-16 md:py-14">
         <header className="border-b-[1.5px] border-[#1a1816] pb-6">
           <div className="flex items-start justify-between gap-6 text-[12px] text-[#5f5a52]">

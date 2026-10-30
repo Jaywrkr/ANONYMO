@@ -1,7 +1,9 @@
+import {urlBoceto} from "@/lib/sitio";
 import Link from "next/link";
+import { SeguimientoMovil } from "@/components/estudio/SeguimientoMovil";
 import { notFound } from "next/navigation";
 import { FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
+import { estadoEntrega, TEXTO_CALIDAD, contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { EquipoVivo } from "@/components/estudio/EquipoVivo";
@@ -104,6 +106,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
 
   return (
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
+      <SeguimientoMovil/>
       {/* Quién es y en qué paso va. */}
       <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
         <div className="min-w-0 flex-1">
@@ -115,7 +118,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         </div>
         {nota && <div className="text-right"><p className="text-[12px] text-suave">Nota de calidad</p><p className={`${serif} text-[44px] leading-none`}>{String(nota.final).replace(".", ",")}</p></div>}
       </div>
-      <div className="mt-6 max-w-3xl"><Camino m={m} p={p} /></div>
+      <Link href={`/estudio/${id}/atlas`} className="mt-3 mr-2 inline-flex min-h-11 items-center rounded-full bg-tinta px-4 text-[13px] text-white">Hablar con Atlas →</Link>
+      <Link href={`/estudio/${id}/calidad`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px]">Requisitos y calidad →</Link>
+      <div className="hidden lg:block mt-4 max-w-3xl"><Camino m={m} p={p} /></div>
 
       {p.papelera && (
         <div role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#fde8e4] p-5">
@@ -143,7 +148,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                   <FuentesDirecciones ds={p.direcciones.opciones} />
                   {p.direcciones.opciones.map((d, n) => (
                     <span key={n} className="block transition group-hover:opacity-90">
-                      <Maqueta d={d} />
+                      <Maqueta recursos={urlBoceto(id,p.direcciones?.version??1)} d={d} />
                       <span className="mt-2 block text-[14px] font-medium">{n + 1}. {d.nombre}{p.direcciones?.cliente?.n === n ? " · le gusta al cliente" : ""}</span>
                     </span>
                   ))}
@@ -203,7 +208,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
       <nav aria-label="Secciones del proyecto" className="sticky top-0 z-10 -mx-5 mt-8 overflow-x-auto border-b border-borde bg-carta/95 px-5 backdrop-blur md:-mx-10 md:px-10">
         <ul className="flex gap-1">
           {PESTANAS.map((t) => (
-            <li key={t.id}>
+            <li key={t.id} className={["","entregas","cliente"].includes(t.id)?"":"hidden lg:block"}>
               <Link href={t.id ? `/estudio/${id}?ver=${t.id}` : `/estudio/${id}`} aria-current={ver === t.id ? "page" : undefined} scroll={false}
                 className={`relative inline-flex min-h-12 items-center gap-1.5 whitespace-nowrap px-3 text-[14px] transition ${ver === t.id ? "font-medium text-tinta after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-tinta" : "text-medio hover:text-tinta"}`}>
                 {t.nombre}
@@ -214,11 +219,12 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         </ul>
       </nav>
 
+      <details className="mt-3 lg:hidden"><summary className="min-h-11 cursor-pointer text-[13px]">Más opciones del proyecto</summary><div className="flex flex-wrap gap-2">{PESTANAS.filter(t=>!["","entregas","cliente"].includes(t.id)).map(t=><Link href={`/estudio/${id}?ver=${t.id}`} key={t.id} className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px]">{t.nombre}</Link>)}</div></details>
       <div className="pt-7">
         {/* RESUMEN */}
         {ver === "" && (
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <EquipoVivo inicial={{ id, nombre: p.pedido.cliente, estado: p.estado, revision: p.revision, corriendo: ocupado ? ocupado.tarea ?? "si" : "no", faseActual: p.faseActual, tareas: p.tareas, inicios: p.inicios ?? {}, estimados: Object.fromEntries(p.plan.tareas.map((t) => [t, segundosEstimados(t)])) }} entregas={Object.fromEntries(p.plan.tareas.map((t) => [t, contratoPorId(t)?.entrega ?? ""]))} />
+            <EquipoVivo inicial={{ id, nombre: p.pedido.cliente, estado: p.estado, controlPendiente:p.controlPendiente, revision: p.revision, corriendo: ocupado ? ocupado.tarea ?? "si" : "no", faseActual: p.faseActual, tareas: p.tareas, inicios: p.inicios ?? {}, estimados: Object.fromEntries(p.plan.tareas.map((t) => [t, segundosEstimados(t)])) }} entregas={Object.fromEntries(p.plan.tareas.map((t) => [t, contratoPorId(t)?.entrega ?? ""]))} />
             <div className="grid content-start gap-5">
               <Link href={`/estudio/${id}?ver=cliente#anotar`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
                 <Cara id="atlas" tam={40} titulo={false} />
@@ -234,7 +240,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               )}
               {versionWeb ? (
                 <Link href={`/estudio/${id}/web`} className={`${tarjeta} group grid gap-3 transition hover:-translate-y-0.5`}>
-                  <MiniWeb src={urlSitio(id, versionWeb)} />
+                  <span className="hidden lg:block"><MiniWeb src={urlSitio(id, versionWeb)} /></span>
                   <span className="flex items-center gap-3"><span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">La web · versión {versionWeb}</span><span className="block text-[13px] text-medio">Funcionando: escritorio, tablet y celular.</span></span><span className="text-suave transition group-hover:translate-x-0.5">→</span></span>
                 </Link>
               ) : null}
@@ -301,7 +307,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                             <span className="flex items-center gap-2">
                               <Cara id={a.id} tam={26} apagado={est === "por-empezar"} titulo={false} />
                               <span className="text-[13px] font-medium">{a.nombre}</span>
-                              <span className={`ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-[11px] ${CHIP_TAREA[est]}`}>{ESTADO_TAREA[est]}</span>
+                              <span className={`ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-[11px] ${CHIP_TAREA[est]}`}>{en ? TEXTO_CALIDAD[estadoEntrega(p,en)] : ESTADO_TAREA[est]}</span>
                             </span>
                             <span className={`${serif} mt-3 block text-[23px] leading-[1.08]`}>{c.entrega}</span>
                             {en?.datos?.cortada ? <span className="mt-2 inline-flex rounded-full bg-[#fff1e6] px-2.5 py-1 text-[11px] text-[#b2450f]">Quedó cortada</span> : null}

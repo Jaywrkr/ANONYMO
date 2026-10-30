@@ -10,19 +10,19 @@ export interface Auditoria {
 export interface Puntajes { rendimiento: number; accesibilidad: number; practicas: number; seo: number }
 
 export async function auditar(url: string): Promise<Auditoria> {
-  const { chromium } = await import("playwright");
+  const { navegadorCalidad } = await import("../inspeccionar.ts");
   const { default: AxeBuilder } = await import("@axe-core/playwright");
   const { default: lighthouse } = await import("lighthouse");
   const puerto = 9300 + Math.floor(Math.random() * 500);
-  const browser = await chromium.launch({
-    args: [`--remote-debugging-port=${puerto}`, "--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
-  });
+  const browser = await navegadorCalidad(puerto);
   try {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
     const axe = await new AxeBuilder({ page: page as never }).disableRules(["region"]).analyze();
-    await ctx.close();
+    await page.close();
+    // Se conserva el contexto hasta cerrar el navegador: Chromium de servidor
+    // puede terminar el proceso al cerrar el último contexto aislado.
 
     const correr = async (celular: boolean) => {
       const r = await lighthouse(url, {
@@ -36,6 +36,8 @@ export async function auditar(url: string): Promise<Auditoria> {
           : { mobile: false, width: 1440, height: 900, deviceScaleFactor: 1, disabled: false },
       });
       if (!r) throw new Error("Lighthouse no devolvió resultado.");
+      if(r.lhr.runtimeError) throw new Error(`Lighthouse no pudo medir: ${r.lhr.runtimeError.message}`);
+      if(["performance","accessibility","best-practices","seo"].some(k=>r.lhr.categories[k]?.score == null)) throw new Error(`Lighthouse devolvió mediciones incompletas: ${r.lhr.runWarnings?.join(" · ") ?? "sin detalle"}`);
       return r.lhr;
     };
     const cel = await correr(true);

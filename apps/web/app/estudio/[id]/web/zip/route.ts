@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
   for (const a of listarArchivos(id)) {
     const p = rutaArchivo(id, a.nombre);
-    if (p && /^image\//.test(a.tipo)) zip[`img/${a.nombre}`] = new Uint8Array(readFileSync(p));
+    if (p && /^image\//.test(a.tipo) && !zip[`img/${a.nombre}`]) zip[`img/${a.nombre}`] = new Uint8Array(readFileSync(p));
   }
   return new Response(zipSync(zip, { level: 6 }) as BodyInit, {
     headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="${id}-web-v${v}.zip"` },

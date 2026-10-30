@@ -26,3 +26,14 @@ export * from "./agencia.ts";
 export * from "./privado.ts";
 export * from "./direcciones.ts";
 export * from "./sitio.ts";
+
+export * from "./requisitos.ts";
+export * from "./calidad.ts";
+
+export * from "./operaciones.ts";
+
+export * from "./servicios.ts";
+
+export * from "./encargos.ts";
+
+export * from "./piezas.ts";

@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { headers } from "next/headers";
 import {
-  avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
+  detectarMejora, avanzar, bitacora, carpeta, elegirMotor, existe, fusionar, guardarProyecto, hayPendientes, leerEntrega, leerProyecto,
   huellaProyecto, leerRemoto, nubeActiva, ocultarClaves, subirDistintos, subirRuta, type Proyecto, type TareaId,
 } from "@anonymo/pipeline";
 import { aislado, traer } from "./nube";
@@ -16,7 +16,7 @@ import { aislado, traer } from "./nube";
 export interface Vivo {
   vuelta: string;
   tarea?: string;
-  fase?: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo";
+  fase?: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo" | "revisando";
   palabras?: number;
   /** Última señal de la vuelta (ISO): se renueva cada pocos segundos mientras la vuelta está viva. */
   latido: string;
@@ -118,7 +118,7 @@ async function vuelta(id: string, origen: string) {
   if (vivoActivo(leerVivo(id))) return nada("ya hay otra vuelta trabajando");
 
   const ahora = () => new Date().toISOString();
-  const vivo: Vivo = { vuelta: randomUUID(), fase: "preparando", palabras: 0, latido: ahora(), desde: ahora() };
+  const vivo: Vivo = { vuelta: randomUUID(), tarea: p.controlPendiente?.tarea, fase: p.controlPendiente ? "revisando" : "preparando", palabras: 0, latido: ahora(), desde: ahora() };
   escribirVivo(id, vivo);
   await subirVivo(id);
   // Candado (sistema/42): si dos vueltas arrancaron casi a la vez, gana la última que escribió su señal; la otra se va.
@@ -178,11 +178,12 @@ async function vuelta(id: string, origen: string) {
     fallo = ocultarClaves((e as Error).message);
     // Lo que estaba en curso vuelve a quedar pendiente: «Continuar» lo retoma.
     const q = leerProyecto(id);
-    const tarea = Object.entries(q.tareas).find(([, e]) => e === "en-curso")?.[0] as TareaId | undefined;
-    if (tarea) {
+    const tarea = q.controlPendiente?.tarea ?? Object.entries(q.tareas).find(([, e]) => e === "en-curso")?.[0] as TareaId | undefined;
+    if (tarea && !q.controlPendiente) {
       q.tareas[tarea] = leerEntrega(id, tarea) ? "rehacer" : "por-empezar";
       if (q.vueltas) delete q.vueltas[tarea];
     }
+    detectarMejora(id,{tipo:"fallo",titulo:"Fallo al ejecutar una vuelta",detalle:fallo,tarea});
     q.error = { mensaje: fallo.slice(0, 400), tarea, fecha: ahora() };
     guardarProyecto(q);
     bitacora(id, `No se pudo trabajar${tarea ? ` en ${tarea}` : ""}: ${fallo.slice(0, 200)}`);

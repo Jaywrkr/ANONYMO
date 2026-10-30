@@ -18,10 +18,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   let datos: Uint8Array | undefined;
   try {
     if (nubeActiva()) {
-      datos = await leerRemotoBytes(id, esImagen ? `archivos/${r.slice(4)}` : `sitio/v${version}/${r}`);
+      datos = await leerRemotoBytes(id, `sitio/v${version}/${r}`);
+      if (!datos && esImagen) datos = await leerRemotoBytes(id, `archivos/${r.slice(4)}`);
     } else if (esImagen) {
       const p = rutaArchivo(id, r.slice(4));
-      datos = p ? new Uint8Array(readFileSync(p)) : undefined;
+      datos = leerArchivoSitio(id,version,r) ?? (p ? new Uint8Array(readFileSync(p)) : undefined);
     } else {
       const b = leerArchivoSitio(id, version, r);
       datos = b ? new Uint8Array(b) : undefined;

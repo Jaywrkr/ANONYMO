@@ -1,3 +1,4 @@
+import {urlBoceto} from "@/lib/sitio";
 import "@fontsource/instrument-serif/latin-400.css";
 import { notFound } from "next/navigation";
 import { agentePorId } from "@anonymo/agentes";
@@ -57,7 +58,7 @@ export default async function DireccionesImprimir({ params }: { params: Promise<
               </div>
               <FichaDireccion d={x} />
             </div>
-            <div className="self-center"><Maqueta d={x} dominio={dominio} /></div>
+            <div className="self-center"><Maqueta recursos={urlBoceto(id,p.direcciones?.version??1)} d={x} dominio={dominio} /></div>
           </article>
         ))}
       </div>

@@ -5,7 +5,7 @@ import { agentePorId } from "@anonymo/agentes";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
-import { anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { prepararEncargo, aplicarEncargo, cambiarMejora, type AccionEncargo, pedirControl, anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
@@ -408,4 +408,48 @@ export async function accionElegirDireccion(f: FormData) {
 export async function accionPedirDirecciones(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
   await correr(id, () => pedirDirecciones(id, quien, nota, motor, undefined, { max: 0 }), "Pedidas. Te avisamos cuando lleguen las 3 direcciones.", false, "", true);
+}
+
+
+export async function accionVerificar(f: FormData) {
+  const {id} = await leer(f);
+  const tarea = String(f.get("tarea") ?? "") as TareaId;
+  await correr(id,() => pedirControl(id,tarea),"La revisión está en marcha. Puedes seguir su avance aquí.",false,"/calidad",true);
+}
+
+export async function accionCondiciones(f: FormData) {
+  const {id} = await leer(f);
+  await correr(id,() => {
+    const p = leerProyecto(id);
+    if (p.estado === "en-curso") throw new Error("Espera a que termine el trabajo actual para cambiar las condiciones.");
+    const tarea = String(f.get("tarea") ?? "") as TareaId;
+    if (tarea && !p.plan.tareas.includes(tarea)) throw new Error("La entrega no pertenece a este proyecto.");
+    const lineas = String(f.get("condiciones") ?? "").split(/\n/).map(s=>s.trim()).filter(Boolean);
+    if (lineas.length > 30 || lineas.some(s=>s.length>600)) throw new Error("Usa hasta 30 condiciones, de hasta 600 caracteres cada una.");
+    p.requisitos = [...(p.requisitos ?? []).filter(r => (r.tarea ?? "") !== tarea),...lineas.map((texto,i)=>({id:`manual-${tarea || "proyecto"}-${i}`,texto,fuente:"Decisión de Jay o Luna",...(tarea?{tarea}:{})}))];
+    if (p.estado === "listo") {
+      const primera = p.plan.tareas.find(t=>p.tareas[t] === "lista");
+      if (primera) {p.estado="esperando";p.revision={tarea:primera,fecha:new Date().toISOString()};}
+    }
+    guardarProyecto(p);
+  },"Condiciones guardadas. Las revisiones anteriores necesitan comprobar los nuevos requisitos.",false,"/calidad");
+}
+
+export async function accionEncargarAtlas(f:FormData){
+ const {id,quien}=await leer(f);
+ const clave=String(f.get("solicitud")??""),accion=String(f.get("accion")??"") as AccionEncargo,t=String(f.get("tarea")??"");
+ // Primero se conserva la solicitud; si la aplicación se interrumpe, el encargo queda visible.
+ await conNube([id],()=>prepararEncargo(id,{id:clave,quien,accion,tarea:t?t as TareaId:undefined,nota:String(f.get("nota")??"")}));
+ await correr(id,async()=>{
+  const r=await aplicarEncargo(id,clave);
+  if(r.estado!=="aplicado")throw new Error(r.resultado??"El encargo quedó pendiente.");
+ },"Encargo registrado. El proyecto muestra el avance y lo que falta revisar.",false,"/atlas",accion!=="pausar");
+}
+export async function accionReintentarEncargo(f:FormData){
+ const {id}=await leer(f);const clave=String(f.get("solicitud")??"");
+ await correr(id,async()=>{const r=await aplicarEncargo(id,clave);if(r.estado!=="aplicado")throw new Error(r.resultado??"El encargo sigue pendiente.");},"Encargo aplicado.",false,"/atlas",true);
+}
+export async function accionEstadoMejora(f:FormData){
+ const {id}=await leer(f);
+ await correr(id,()=>cambiarMejora(id,String(f.get("mejora")??""),String(f.get("estado")??"") as "detectada"|"investigando"|"propuesta"|"resuelta",String(f.get("prueba")??"")),"Mejora actualizada.",false,"/atlas");
 }

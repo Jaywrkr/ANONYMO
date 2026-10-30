@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {ControlCalidad} from "@/components/estudio/ControlCalidad";
 import { notFound, redirect } from "next/navigation";
 import { AREAS, agentePorId } from "@anonymo/agentes";
 import { contratoPorId, existe, leerEntrega, leerProyecto, responsable, type TareaId } from "@anonymo/pipeline";

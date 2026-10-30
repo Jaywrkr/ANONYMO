@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {ControlCalidad} from "@/components/estudio/ControlCalidad";
 import { notFound } from "next/navigation";
 import { agentePorId } from "@anonymo/agentes";
 import { archivosSitio, existe, leerEntrega, leerProyecto, versionesSitio, type TareaId } from "@anonymo/pipeline";
@@ -58,6 +59,7 @@ export default async function Web({ params, searchParams }: { params: Promise<{ 
           </div>
         ) : null}
       </div>
+      {e && <ControlCalidad p={p} e={e}/>}
       {!v ? (
         <div className="mt-8 rounded-[20px] border border-dashed border-borde p-10 text-center">
           <p className={`${serif} text-[28px]`}>Todavía no hay web para ver.</p>

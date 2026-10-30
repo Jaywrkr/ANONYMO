@@ -20,4 +20,11 @@ jobs:
       - run: npm run lint
       - run: npm run revisar
       - run: npm run probar
+      - name: Comprobar funciones de webs ficticias
+        run: |
+          mkdir -p "$TMPDIR"
+          node --experimental-strip-types scripts/pruebas/funciones-web.ts
+        env:
+          VERCEL: "1"
+          TMPDIR: /tmp/anonymo-chromium-funciones
       - run: npm run build

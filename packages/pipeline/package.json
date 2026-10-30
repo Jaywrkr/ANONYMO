@@ -12,10 +12,11 @@
   },
   "dependencies": {
     "@anonymo/agentes": "*",
-    "playwright": "1.56.0",
-    "lighthouse": "12.8.2",
     "@axe-core/playwright": "4.10.2",
-    "marked": "15.0.12"
+    "@sparticuz/chromium": "141.0.0",
+    "lighthouse": "12.8.2",
+    "marked": "15.0.12",
+    "playwright": "1.56.0"
   },
   "devDependencies": {
     "@types/node": "22.15.0",

@@ -1,4 +1,6 @@
 // El plan que armó Atlas, antes de que nadie trabaje (sistema/32): quién entra, quién no y por qué, y cuánto costaría.
+import Link from "next/link";
+import {requisitosDe} from "@anonymo/pipeline";
 import { agentePorId, FASES } from "@anonymo/agentes";
 import { contratoPorId, costoPlan, ocultarClaves, type Proyecto, type TareaId } from "@anonymo/pipeline";
 
@@ -17,6 +19,7 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
   const costo = costoPlan(p.pedido, p.plan);
   return (
     <section aria-label="Plan de Atlas" className="overflow-hidden rounded-[20px] bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06),0_18px_44px_-24px_rgba(40,30,20,.3)]">
+      <details className="border-b border-borde p-4 text-[14px]"><summary className="min-h-11 cursor-pointer font-medium">Qué debe cumplir este pedido · antes de producir</summary><ul className="mt-2 grid gap-2">{requisitosDe(p).map((r,i)=><li key={r.id+i}>{r.texto}</li>)}</ul><Link href={`/estudio/${id}/calidad`} className="inline-flex min-h-11 items-center underline">Revisar condiciones por entrega →</Link></details>
       <div className="flex flex-wrap items-start gap-5 bg-tinta p-6 text-white md:p-8">
         <Cara id="atlas" tam={64} flota />
         <div className="min-w-0 flex-1">

@@ -6,6 +6,10 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 
 | Rama | Qué hace | Cómo se usa |
 |---|---|---|
+| sistema/50-web-comprobada | Comprueba enlaces, anclas y casos de interacción en las webs; los formularios sin recepción comprobada quedan pendientes | Proyecto → Requisitos y calidad: fallos concretos antes de aprobar. Vector entrega pruebas.json con el sitio |
+| sistema/49-atlas-operaciones | Chat con Atlas y agentes con fuentes, encargos internos con recibo, decisiones y problemas registrados; propuestas de logo como SVG editables | Proyecto → Hablar con Atlas; entrega de Mira → archivos vectoriales. Plan y límites en docs/plan-agencia.md |
+| sistema/48-calidad-movil | Separa generado, verificado y aprobado; requisitos por entrega, revisión visual y auditoría de la versión real; inicio móvil con búsqueda y avance | Estudio desde el teléfono → Proyectos / Buscar / Pendientes; proyecto → Requisitos y calidad |
+| sistema/47-orla-continuacion | Corrige el error de la IA al continuar una entrega de Orla o Vector con Sonnet | Proyecto detenido por API 400 → Continuar, tras actualizar la aplicación |
 | sistema/46-diseno-pro | Direcciones con portada propia, explicación del pedido y contexto completo; web con movimiento y librerías gratuitas opcionales | Estudio, portal y PDF → direcciones; nuevas entregas de Orla y Vector |
 | sistema/01-panel-web | Panel del estudio: proyectos, aprobar, cambiar, parar, pausas, bitácora | `npm run dev` → `/estudio` (o `ESTUDIO=1 npm run start`) |
 | sistema/02-portal-cliente | Enlace privado del cliente: ve sus entregas (sin las internas), aprueba fases y comenta | Estudio → "Crear enlace", o `npm run pipeline -- portal <id>`; necesita `PORTAL=1` o `ESTUDIO=1` |

@@ -1,8 +1,9 @@
+import {urlBoceto} from "@/lib/sitio";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import { FASES, agentePorId } from "@anonymo/agentes";
-import { contratoPorId, esInterna, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, versionCliente, type TareaId, calendario } from "@anonymo/pipeline";
+import { puedeAprobar, contratoPorId, esInterna, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, versionCliente, type TareaId, calendario } from "@anonymo/pipeline";
 import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
 import { botonLleno, campo, portalActivo, serif } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
@@ -31,13 +32,14 @@ export default async function Portal({ params, searchParams }: Props) {
   if (!portalActivo() || !existe(id) || !tokenValido(id, t)) notFound();
   const p = leerProyecto(id);
   const e = espacio(id, p.marca);
-  const visibles = p.plan.tareas.filter((x) => !contratoPorId(x)?.interna) as TareaId[];
+  const visibles = p.plan.tareas.filter((x) => { const en=leerEntrega(id,x); return !contratoPorId(x)?.interna && (!en || puedeAprobar(p,en)); }) as TareaId[];
   const listas = visibles.filter((x) => p.tareas[x] === "lista").length;
   const abierta = ver ? (ver.replace("-", ".") as TareaId) : undefined;
   const entregaAbierta = abierta && visibles.includes(abierta) ? leerEntrega(id, abierta) : undefined;
   // Lo que el cliente puede aprobar: nunca una entrega interna ni mientras hay direcciones por elegir.
   const esperaCliente = p.estado === "esperando" && !p.esperaJurado && !p.direcciones?.esperando && !(p.revision && esInterna(p.revision.tarea));
-  const dirs = p.estado === "esperando" && p.direcciones?.esperando ? p.direcciones : undefined;
+  const direccion=p.direcciones?leerEntrega(id,p.direcciones.tarea):undefined;
+  const dirs = p.estado === "esperando" && p.direcciones?.esperando && direccion && puedeAprobar(p,direccion) ? p.direcciones : undefined;
   const fase = FASES.find((f) => f.n === p.faseActual);
   const tx = TEXTOS_PORTAL[p.pedido.idioma ?? "es"];
   const ocultos = <><input type="hidden" name="id" value={id} /><input type="hidden" name="t" value={t} /></>;
@@ -74,7 +76,7 @@ export default async function Portal({ params, searchParams }: Props) {
                 <form key={n} action={portalElegirDireccion} className={`grid content-start gap-3 rounded-[16px] p-3 ${dirs.cliente?.n === n ? "bg-[#e7f5ec] shadow-[0_0_0_2px_#2bb673]" : "bg-[#faf8f4]"}`}>
                   {ocultos}
                   <input type="hidden" name="n" value={n} />
-                  <Maqueta d={d} dominio={`${id.split("-")[0]}.com`} />
+                  <Maqueta recursos={urlBoceto(id,p.direcciones?.version??1)} d={d} dominio={`${id.split("-")[0]}.com`} />
                   <p className={`${serif} text-[26px] leading-none`}>{d.nombre}</p>
                   <p className="text-[14px] text-medio">{d.idea}</p>
                   {d.justificacion && <p className="text-[14px] text-medio">{d.justificacion}</p>}

@@ -1,4 +1,5 @@
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
+import {PEDIDO_MARCA,leerPiezas} from "./piezas.ts";
 import { claveAnthropic, ocultarClaves, pensamiento, sinPensar, textoDe } from "./ia.ts";
 import { pedirEnVivo } from "./envivo.ts";
 import { direccionesSimuladas, leerDirecciones, PEDIDO_DIRECCIONES, textoDireccion } from "./direcciones.ts";
@@ -14,6 +15,7 @@ import { archivoEntrega, type Direccion, type Entrega, type Marca, type Pedido, 
 
 export interface Contexto {
   pedido: Pedido;
+  condiciones?: {id:string; texto:string; fuente:string}[];
   tarea: TareaId;
   /** Entregas que el contrato dice que debe leer. */
   lecturas: Entrega[];
@@ -48,7 +50,7 @@ export interface Contexto {
 
 /** Qué está haciendo un agente en este momento (sistema/36). */
 export interface Latido {
-  fase: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo";
+  fase: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo" | "revisando";
   palabras: number;
 }
 
@@ -68,6 +70,7 @@ export type Resultado = Pick<Entrega, "dice" | "necesita" | "contenido" | "nota"
   pendiente?: string;
   /** Los archivos de la web, si la entrega es un sitio (sistema/42). */
   sitio?: Record<string, string>;
+  piezas?:Record<string,string>;
 };
 
 const seccionHerramientas = (h: ResultadoHerramienta[]) =>
@@ -181,7 +184,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido, direccion, directo }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, marca, parcial, plazo, latido, direccion, directo }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -212,6 +215,7 @@ export const real: Motor = {
       sinAdjuntos
         ? "Esta vez las imágenes del cliente no van adjuntas: usa lo que ya describieron las entregas del equipo y no digas que no las ves."
         : "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Las referencias muestran lo que le gusta al cliente: tu diseño tiene que dialogar con ellas y explicar qué decisiones nacen de cada una. No inventes haber consultado enlaces. Nunca digas que no puedes verlos.",
+      "Antes de las líneas finales puedes añadir un bloque json {\"decisiones\":[{\"decision\":\"qué elegiste\",\"motivo\":\"justificación breve y comprobable\",\"fuentes\":[\"id del requisito o tarea leída\"]}]}. Registra solo decisiones tomadas en esta entrega, hasta ocho. Usa ids exactos de los requisitos o tareas recibidos, nunca inventes fuentes.",
       "Termina siempre lo que empiezas: si el espacio no alcanza, resume, pero cierra cada sección y cada tabla.",
       "Lo que sea solo para el equipo (dudas, riesgos internos, márgenes, notas a otros agentes) va al final, bajo el título «## Para el equipo»: el cliente nunca lo ve.",
       "Responde en markdown. Al final agrega exactamente dos líneas:",
@@ -230,8 +234,10 @@ export const real: Motor = {
       pedido.contexto ? "```json\n" + JSON.stringify(pedido.contexto, null, 2) + "\n```" : "",
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
+      condiciones?.length ? "# Requisitos y condiciones de aceptación (resuelve los que aplican a esta tarea y explica dónde)\n" + JSON.stringify(condiciones) : "",
       direccion === "proponer" ? PEDIDO_DIRECCIONES : textoDireccion(typeof direccion === "object" ? direccion : undefined),
       c.sitio ? PEDIDO_SITIO : "",
+      tarea==="3.mira"?PEDIDO_MARCA:"",
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
       consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
       archivos?.length ? "# Archivos del cliente (las imágenes y los PDF van adjuntos arriba)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
@@ -366,10 +372,13 @@ export const real: Motor = {
     }
     const direcciones = direccion === "proponer" ? leerDirecciones(texto) : [];
     const sitio = c.sitio ? leerArchivosSitio(texto) : {};
-    if (c.sitio && Object.keys(sitio).length) texto = sinArchivos(texto);
+    const piezas=tarea==="3.mira"?leerPiezas(texto):{};
+    if (Object.keys(sitio).length || Object.keys(piezas).length) texto = sinArchivos(texto);
     const horas = Number.parseFloat(linea("HORAS") ?? "");
     const horasExtra = Number.parseFloat(linea("HORAS_EXTRA") ?? "");
+    const decisiones=[...texto.matchAll(/```json\s*([\s\S]*?)```/g)].flatMap(m=>{try{const d=JSON.parse(m[1]);return Array.isArray(d?.decisiones)?d.decisiones:[];}catch{return [];}});
     const datos = {
+      ...(decisiones.length?{decisiones}:{}),
       ...datosHerramientas(herramientas),
       ...(finalistas?.length ? { finalistas } : {}),
       ...(jurado ? { jurado } : {}),
@@ -378,15 +387,17 @@ export const real: Motor = {
       ...(cortada ? { cortada: true } : {}),
       ...(direcciones.length ? { direcciones } : {}),
       ...(Object.keys(sitio).length ? { sitio: Object.keys(sitio) } : {}),
+      ...(Object.keys(piezas).length?{piezas:Object.keys(piezas)}:{}),
     };
     return {
       dice: linea("DICE") ?? "",
       necesita: linea("NECESITA") ?? "",
-      contenido: [texto.replace(/^(DICE|NECESITA|NOTA|FINALISTAS|HORAS|HORAS_EXTRA):.*$/gm, "").replace(direcciones.length ? /```json[\s\S]*?```/g : /$^/, "").trim(), "", ...seccionHerramientas(herramientas)].join("\n").trim(),
+      contenido: [texto.replace(/```json\s*([\s\S]*?)```/g,(bloque,cuerpo)=>{try{return Array.isArray(JSON.parse(cuerpo)?.decisiones)?"":bloque;}catch{return bloque;}}).replace(/^(DICE|NECESITA|NOTA|FINALISTAS|HORAS|HORAS_EXTRA):.*$/gm, "").replace(direcciones.length ? /```json[\s\S]*?```/g : /$^/, "").trim(), "", ...seccionHerramientas(herramientas)].join("\n").trim(),
       nota: nota ? Number.parseFloat(nota) : undefined,
       datos: Object.keys(datos).length ? datos : undefined,
       modo: "real",
       ...(Object.keys(sitio).length ? { sitio } : {}),
+      ...(Object.keys(piezas).length?{piezas}:{}),
       uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false },
     };
   },

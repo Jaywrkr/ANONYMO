@@ -1,7 +1,9 @@
 // Corre las herramientas que pide el contrato antes de que el agente escriba. Funcionan igual en simulado y en real.
 import { contratoPorId } from "../contratos.ts";
 import type { Entrega, Pedido, ResultadoHerramienta, TareaId } from "../tipos.ts";
-import { auditar, resumenAuditoria } from "./auditar.ts";
+import { leerEntrega, leerProyecto } from "../almacen.ts";
+import { estadoEntrega } from "../calidad.ts";
+import { resumenAuditoria } from "./auditar.ts";
 import { chequear, resumenChequeo } from "./dominios.ts";
 
 export interface EntradaHerramientas {
@@ -38,15 +40,16 @@ export async function prepararHerramientas({ pedido, tarea, lecturas, motorReal 
           datos: chequeo,
         });
       } else if (h === "lighthouse") {
-        const url = pedido.contexto?.url;
-        if (!url) {
-          out.push({ herramienta: h, ok: false, resumen: "Sin URL para auditar. Agrégala con: pipeline url <id> <url>", falta: "La URL de la web para auditarla." });
+        const p = leerProyecto(pedido.id);
+        const e = leerEntrega(pedido.id,"4.vector");
+        const a = e?.calidad?.auditoria;
+        if (!e || !a || !["verificado","aprobado"].includes(estadoEntrega(p,e))) {
+          out.push({herramienta:h,ok:false,resumen:"La versión generada todavía no tiene una auditoría vigente. No se audita la web anterior del cliente.",falta:"Verificar la versión actual de la web."});
           continue;
         }
-        const a = await auditar(url);
-        out.push({ herramienta: h, ok: true, resumen: resumenAuditoria(a), datos: a });
+        out.push({herramienta:h,ok:true,resumen:resumenAuditoria(a),datos:a});
       } else if (h === "imagen") {
-        out.push({ herramienta: h, ok: false, resumen: "Imágenes: por ahora el agente describe y arma referencias; la generación queda pendiente.", falta: "Bocetos a mano o generación de imágenes (pendiente)." });
+        out.push({ herramienta: h, ok: true, resumen: "Producción de SVG editable disponible. Los archivos generados se validan y revisan visualmente antes de aprobarlos; no se generan fotografías con esta herramienta." });
       }
     } catch (e) {
       out.push({ herramienta: h, ok: false, resumen: `${h} falló: ${(e as Error).message.slice(0, 200)}`, falta: `Revisar por qué falló ${h}.` });

@@ -127,6 +127,15 @@ test("pensamiento: apagado en Atlas y tareas livianas, encendido en las creativa
   assert.throws(() => textoDe({ content: [{ type: "thinking" }], stop_reason: "max_tokens" }), /sin texto.*max_tokens/);
 });
 
+test("continuaciones: Sonnet requiere between_tools; los demás conservan su modo", async () => {
+  const { sinPensar } = await import("../src/ia.ts");
+  assert.deepEqual(sinPensar("claude-sonnet-5-5"), { thinking: { type: "between_tools" } });
+  assert.deepEqual(sinPensar("claude-sonnet-5-5-20261001"), { thinking: { type: "between_tools" } });
+  assert.deepEqual(sinPensar("claude-haiku-5-5"), { thinking: { type: "disabled" } });
+  assert.deepEqual(sinPensar("claude-opus-5-5"), { thinking: { type: "disabled" } });
+  assert.deepEqual(sinPensar("otro-modelo"), {});
+});
+
 test("Atlas manda el pensamiento apagado al modelo rápido", async () => {
   const antes = globalThis.fetch;
   process.env.ANTHROPIC_API_KEY = "sk-ant-prueba";

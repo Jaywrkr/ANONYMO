@@ -1,7 +1,9 @@
+import {urlBoceto} from "@/lib/sitio";
 import Link from "next/link";
+import {ControlCalidad} from "@/components/estudio/ControlCalidad";
 import { notFound } from "next/navigation";
 import { agentePorId } from "@anonymo/agentes";
-import { contratoPorId, existe, leerProyecto, responsable } from "@anonymo/pipeline";
+import { contratoPorId, leerEntrega, existe, leerProyecto, responsable } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
 import { boton, campo, exigirEstudio, serif } from "@/lib/estudio";
@@ -34,6 +36,7 @@ export default async function Direcciones({ params, searchParams }: { params: Pr
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
+      {tarea && leerEntrega(id,tarea,d?.version) && <ControlCalidad p={p} e={leerEntrega(id,tarea,d?.version)!}/>}
       {d && <FuentesDirecciones ds={d.opciones} />}
       <Link href={`/estudio/${id}`} className="inline-flex min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
         <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(id, p.marca).punto }} /> ← {p.pedido.cliente}
@@ -69,7 +72,7 @@ export default async function Direcciones({ params, searchParams }: { params: Pr
           {grande !== undefined && (
             <section className="mt-8">
               <div className="flex items-center justify-between gap-3"><p className={`${serif} text-[28px]`}>{d.opciones[grande].nombre}</p><Link href={`/estudio/${id}/direcciones`} scroll={false} className="text-[13px] text-medio underline underline-offset-4">Ver las tres</Link></div>
-              <div className="mt-3"><Maqueta d={d.opciones[grande]} dominio={dominio} /></div>
+              <div className="mt-3"><Maqueta recursos={urlBoceto(id,p.direcciones?.version??1)} d={d.opciones[grande]} dominio={dominio} /></div>
             </section>
           )}
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-3">
@@ -77,7 +80,7 @@ export default async function Direcciones({ params, searchParams }: { params: Pr
               const elegida = d.elegida === n;
               return (
                 <article key={n} className={`grid gap-4 rounded-[20px] p-4 ${elegida ? "bg-[#e7f5ec] shadow-[0_0_0_2px_#2bb673]" : d.cliente?.n === n ? "bg-white shadow-[0_0_0_2px_#ff5a1f]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]"}`}>
-                  <Link href={`/estudio/${id}/direcciones?ver=${n}`} scroll={false} className="block transition hover:-translate-y-0.5" aria-label={`Ver «${x.nombre}» en grande`}><Maqueta d={x} dominio={dominio} /></Link>
+                  <Link href={`/estudio/${id}/direcciones?ver=${n}`} scroll={false} className="block transition hover:-translate-y-0.5" aria-label={`Ver «${x.nombre}» en grande`}><Maqueta recursos={urlBoceto(id,p.direcciones?.version??1)} d={x} dominio={dominio} /></Link>
                   <div>
                     <p className="flex items-center gap-2 text-[12px] text-suave">Dirección {n + 1} · {x.estilo}{elegida && <span className="rounded-full bg-vivo px-2 py-0.5 text-white">elegida</span>}{d.cliente?.n === n && <span className="rounded-full bg-urgente px-2 py-0.5 text-white">le gusta al cliente</span>}</p>
                     <p className={`${serif} mt-1 text-[30px] leading-none`}>{x.nombre}</p>

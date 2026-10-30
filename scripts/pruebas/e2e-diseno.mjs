@@ -16,6 +16,12 @@ try {
   await p.waitForLoadState("networkidle");
   const marco = p.frameLocator('iframe[title="Dirección Serena"]');
   await marco.getByRole('heading', {name:'Una portada propia'}).waitFor();
+  const foto=marco.getByAltText('Referencia del taller');
+  await foto.waitFor();
+  assert.ok(await foto.evaluate(el=>el.complete&&el.naturalWidth>0));
+  const recurso=await foto.evaluate(el=>el.currentSrc);
+  const sinFirma=new URL(recurso);sinFirma.pathname=sinFirma.pathname.replace(/\/[a-f0-9]{32}\//,'/firma-incorrecta/');
+  assert.equal((await p.request.get(sinFirma.toString())).status(),404);
   assert.equal(await p.locator('iframe[title="Dirección Serena"]').getAttribute('sandbox'), 'allow-scripts');
   await marco.getByRole('button', {name:'Explorar'}).click();
   await marco.getByRole('heading', {name:'Movimiento activo'}).waitFor();

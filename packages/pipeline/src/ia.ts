@@ -3,6 +3,7 @@
 /** Tapa cualquier cosa que parezca una clave antes de mostrar o guardar un mensaje de error. */
 export function ocultarClaves(texto: string): string {
   return texto
+    .replace(/(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,})/g, "credencial-•••")
     .replace(/sk-ant-[A-Za-z0-9_\-]+/g, "sk-ant-•••")
     .replace(/eyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g, "eyJ•••")
     .replace(/(Bearer|x-api-key:?)\s+\S+/gi, "$1 •••");
@@ -34,7 +35,9 @@ export function pensamiento(modelo: string, profundo: boolean): Record<string, u
  * se iba ~150 s pensando de nuevo antes de escribir una palabra; al continuar, ya no hace falta.
  */
 export function sinPensar(modelo: string): Record<string, unknown> {
-  if (/(haiku|sonnet|opus)-5-5/.test(modelo)) return { thinking: { type: "disabled" } };
+  // Sonnet usa el mismo modo que las tareas livianas, también al rescatar o continuar.
+  if (/sonnet-5-5/.test(modelo)) return pensamiento(modelo, false);
+  if (/(haiku|opus)-5-5/.test(modelo)) return { thinking: { type: "disabled" } };
   return {};
 }
 

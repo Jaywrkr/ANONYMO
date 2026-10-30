@@ -1,6 +1,7 @@
 // La web que construye el equipo, como archivos de verdad (sistema/42).
 // El constructor (Vector) entrega un sitio estático (HTML, CSS y JS, sin compilar) en bloques de código con su
 // nombre de archivo. Se guarda por versión en proyectos/<id>/sitio/v<N>/ y el estudio lo muestra funcionando.
+import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
 import { carpeta } from "./almacen.ts";
@@ -24,6 +25,8 @@ export const PEDIDO_SITIO = [
   "Usa las fuentes de Google Fonts con <link>. Celular primero: tiene que verse perfecto a 390 px y a 1440 px.",
   "Imágenes: las del cliente están en img/<nombre-del-archivo> (usa los nombres exactos de la lista de archivos). Si falta una foto, usa un espacio neutro integrado en la composición y un texto corto que diga qué foto va ahí.",
   "Textos reales del cliente en su idioma, nada de lorem ipsum. Accesible: alt en imágenes, contraste suficiente, botones con texto.",
+  "Funciones verificables: todos los enlaces deben apuntar a archivos y anclas existentes. Para abrir menús, desplegar contenido u otras acciones usa botones con nombres claros. No entregues botones decorativos sin acción. No simules el envío de un formulario con un mensaje de éxito: sin destino real y recepción comprobada, informa que falta conectar el formulario.",
+  'Si hay botones interactivos, entrega pruebas.json: {"version":1,"pruebas":[{"nombre":"Abrir menú móvil","pagina":"index.html","ancho":390,"pasos":[{"accion":"clic","selector":"#abrir-menu"}],"resultado":{"selector":"#menu","visible":true}}]}. Incluye casos para cada botón visible a 390 y 1440 px. El resultado debe cambiar tras el último paso y no estar cumplido justo antes de ese paso. Se permite clic y rellenar con valor; resultado visible booleano y/o texto exacto. Selectores únicos. Hasta 24 casos en total y 12 por página y ancho, 6 pasos por caso; no envíes formularios, no uses código de prueba ni destinos externos. Para controles que abren y cierran, prueba ambos recorridos por separado, con los pasos previos necesarios.',
   "Antes de los archivos, en pocas líneas: qué páginas hay y qué falta para publicar. Después de los archivos, las líneas finales de siempre.",
 ].join("\n");
 
@@ -53,6 +56,16 @@ export function sinArchivos(texto: string): string {
 const dirSitio = (id: string, v?: number) => join(carpeta(), id, "sitio", ...(v ? [`v${v}`] : []));
 
 export function guardarSitio(id: string, version: number, archivos: Record<string, string>) {
+  // Las fotos usadas quedan congeladas junto al código de esta versión.
+  const contenido = Object.values(archivos).join("\n");
+  for (const a of listarArchivos(id)) {
+    if (!/^image\//.test(a.tipo) || !contenido.includes(`img/${a.nombre}`)) continue;
+    const origen = rutaArchivo(id,a.nombre);
+    if (!origen) continue;
+    const destino = join(dirSitio(id,version),"img",a.nombre);
+    mkdirSync(dirname(destino),{recursive:true});
+    writeFileSync(destino,readFileSync(origen));
+  }
   for (const [ruta, contenido] of Object.entries(archivos)) {
     const r = rutaSegura(ruta);
     if (!r) continue;
@@ -60,6 +73,26 @@ export function guardarSitio(id: string, version: number, archivos: Record<strin
     mkdirSync(dirname(destino), { recursive: true });
     writeFileSync(destino, contenido);
   }
+}
+
+/** Imágenes de las direcciones, congeladas por versión igual que las de la web. */
+export function guardarImagenesDirecciones(id:string, version:number, html:string) {
+  for(const a of listarArchivos(id)) {
+    if(!/^image\//.test(a.tipo)||!html.includes(`img/${a.nombre}`))continue;
+    const origen=rutaArchivo(id,a.nombre);if(!origen)continue;
+    const destino=join(carpeta(),id,"bocetos",`v${version}`,"img",a.nombre);
+    mkdirSync(dirname(destino),{recursive:true});writeFileSync(destino,readFileSync(origen));
+  }
+}
+export function imagenesDirecciones(id:string,version:number):{ruta:string;bytes:Buffer}[] {
+  const dir=join(carpeta(),id,"bocetos",`v${version}`,"img");
+  if(!existsSync(dir))return [];
+  return readdirSync(dir).sort().map(nombre=>({ruta:`img/${nombre}`,bytes:readFileSync(join(dir,nombre))}));
+}
+export function leerImagenDireccion(id:string,version:number,ruta:string):Buffer|undefined {
+  const r=rutaSegura(ruta);if(!r||!r.startsWith("img/")||!/^img\/[^/]+\.(png|jpe?g|webp|gif|svg)$/i.test(r))return;
+  const archivo=join(carpeta(),id,"bocetos",`v${version}`,r);
+  return existsSync(archivo)?readFileSync(archivo):undefined;
 }
 
 /** Versiones del sitio guardadas, de la más nueva a la más vieja. */

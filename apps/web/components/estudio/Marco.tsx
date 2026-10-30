@@ -176,6 +176,8 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
       </div>
 
       <div className="mt-auto grid gap-0.5">
+        <span className="px-2.5 text-[11px] text-medio lg:hidden"><Version/></span>
+        <Link href="/estudio?vista=completa" onClick={alIr} className={`${fila(false)} lg:hidden`}>Vista completa del estudio</Link>
         <Link href="/estudio/analitica" onClick={alIr} className={fila(ruta === "/estudio/analitica")}><Icono d={I.metricas} /> Métricas de la web</Link>
         <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")}><Icono d={I.papelera} /> Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>
         <a href="/" target="_blank" rel="noreferrer" className={fila(false)}><Icono d={I.web} /> Ver la web</a>
@@ -216,7 +218,7 @@ export function Marco({ children, ...props }: Props) {
         return;
       }
       if (escribiendo || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
-      if (e.key === "Escape") { setAyuda(false); return; }
+      if (e.key === "Escape") { setAyuda(false); setAbierto(false); return; }
       if (e.key === "?") { setAyuda((x) => !x); return; }
       const destino = ir[e.key.toLowerCase()];
       if (destino) { setAyuda(false); router.push(destino); }
@@ -253,11 +255,14 @@ export function Marco({ children, ...props }: Props) {
         )}
 
         {ayuda && <Ayuda cerrar={() => setAyuda(false)} />}
-        <div className="pointer-events-none fixed bottom-2.5 right-4 z-40 flex items-center gap-3">
+        <div className="pointer-events-none fixed bottom-2.5 right-4 z-40 hidden items-center gap-3 lg:flex">
           <button type="button" onClick={() => setAyuda(true)} className="pointer-events-auto hidden h-6 w-6 items-center justify-center rounded-full bg-white/70 font-mono text-[11px] text-tinta/60 shadow-[0_0_0_1px_rgba(26,24,22,.08)] hover:text-tinta lg:inline-flex" aria-label="Atajos de teclado">?</button>
           <Version className="rounded-full bg-white/70 px-2.5 py-1 shadow-[0_0_0_1px_rgba(26,24,22,.06)] backdrop-blur" />
         </div>
-        <main id="principal" className="min-h-[calc(100dvh-16px)] min-w-0 flex-1 rounded-[18px] bg-carta shadow-[0_0_0_1px_rgba(26,24,22,.05),0_24px_60px_-24px_rgba(60,40,20,.25)]">
+        <nav aria-label="Accesos móviles" className="fixed inset-x-2 bottom-2 z-40 grid grid-cols-3 rounded-2xl border border-borde bg-carta/95 p-1 pb-[max(4px,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
+          {[["/estudio","Proyectos"],["/estudio/biblioteca?buscar=1","Buscar"],["/estudio#te-toca","Pendientes"]].map(([href,texto])=><Link key={texto} href={href} className="flex min-h-12 items-center justify-center rounded-xl text-[13px] font-medium">{texto}{texto==="Pendientes"&&props.tetoca>0?` · ${props.tetoca}`:""}</Link>)}
+        </nav>
+        <main id="principal" className="mb-20 min-h-[calc(100dvh-16px)] min-w-0 flex-1 lg:mb-0 rounded-[18px] bg-carta shadow-[0_0_0_1px_rgba(26,24,22,.05),0_24px_60px_-24px_rgba(60,40,20,.25)]">
           {children}
         </main>
       </div>
