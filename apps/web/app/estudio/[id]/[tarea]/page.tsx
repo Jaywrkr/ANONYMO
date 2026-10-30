@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {ControlCalidad} from "@/components/estudio/ControlCalidad";
 import { notFound } from "next/navigation";
 import { AREAS, agentePorId, FASES } from "@anonymo/agentes";
 import { contarCambios, contratoPorId, diferencias, existe, leerEntrega, leerProyecto, responsable, versiones, type TareaId } from "@anonymo/pipeline";
@@ -49,7 +50,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
       </Link>
       <div className="mt-4 grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="grid place-items-center rounded-[20px] py-6" style={{ background: `radial-gradient(80% 70% at 50% 35%, ${(a.tono ?? area).luz}, #fbf9f6 80%)` }}>
+          <div className="hidden lg:grid place-items-center rounded-[20px] py-6" style={{ background: `radial-gradient(80% 70% at 50% 35%, ${(a.tono ?? area).luz}, #fbf9f6 80%)` }}>
             <Cara id={a.id} tam={130} flota />
           </div>
           <p className="mt-4 text-[12px]" style={{ color: area.texto ?? area.sombra }}>{area.nombre} · fase {String(fase.n).padStart(2, "0")} {fase.nombre}</p>
@@ -62,6 +63,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
 
         <article className="min-w-0 max-w-[74ch]">
           <h1 className={`${serif} text-[clamp(38px,4.6vw,64px)] leading-[0.98]`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
+          {e && <ControlCalidad p={p} e={e}/>}
           {e && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {e.datos?.sitio ? <Link href={`/estudio/${id}/web?v=${e.version}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-vivo px-4 text-[13px] font-medium text-white transition hover:brightness-95">Ver la web funcionando →</Link> : null}

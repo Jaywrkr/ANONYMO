@@ -14,6 +14,7 @@ import { archivoEntrega, type Direccion, type Entrega, type Marca, type Pedido, 
 
 export interface Contexto {
   pedido: Pedido;
+  condiciones?: {id:string; texto:string; fuente:string}[];
   tarea: TareaId;
   /** Entregas que el contrato dice que debe leer. */
   lecturas: Entrega[];
@@ -48,7 +49,7 @@ export interface Contexto {
 
 /** Qué está haciendo un agente en este momento (sistema/36). */
 export interface Latido {
-  fase: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo";
+  fase: "preparando" | "esperando" | "pensando" | "buscando" | "escribiendo" | "revisando";
   palabras: number;
 }
 
@@ -181,7 +182,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, marca, parcial, plazo, latido, direccion, directo }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, marca, parcial, plazo, latido, direccion, directo }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -230,6 +231,7 @@ export const real: Motor = {
       pedido.contexto ? "```json\n" + JSON.stringify(pedido.contexto, null, 2) + "\n```" : "",
       `# Tu tarea: ${c.entrega} (versión ${version})`,
       c.objetivo,
+      condiciones?.length ? "# Requisitos y condiciones de aceptación (resuelve los que aplican a esta tarea y explica dónde)\n" + JSON.stringify(condiciones) : "",
       direccion === "proponer" ? PEDIDO_DIRECCIONES : textoDireccion(typeof direccion === "object" ? direccion : undefined),
       c.sitio ? PEDIDO_SITIO : "",
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),

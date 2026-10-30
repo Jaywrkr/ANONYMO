@@ -1,4 +1,7 @@
 import Link from "next/link";
+import {pendientes as avisosPendientes} from "@/lib/pendientes";
+import { InicioMovil } from "@/components/estudio/InicioMovil";
+import { estadoEntrega, TEXTO_CALIDAD } from "@anonymo/pipeline";
 import { AGENTES, agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
 import { leerEntrega, listar, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
 import { Cara, fechaLarga, hace, saludo } from "@/components/estudio/piezas";
@@ -31,7 +34,8 @@ function Grupo({ id, titulo, ayuda, cuenta, children }: { id: string; titulo: st
 }
 
 // El inicio es una lista de trabajo (sistema/33): primero lo que te toca, después lo que hace el equipo.
-export default async function Estudio() {
+export default async function Estudio({searchParams}:{searchParams:Promise<{vista?:string}>}) {
+  const completa=(await searchParams).vista==="completa";
   const yo = await exigirEstudio();
   let errorNube = "";
   try { await traerTodo(); } catch (e) { errorNube = (e as Error).message; }
@@ -74,7 +78,17 @@ export default async function Estudio() {
     : trabajando.length ? `El equipo está trabajando en ${trabajando.length === 1 ? "un proyecto" : `${trabajando.length} proyectos`}.`
     : proyectos.length ? "Estás al día." : "Empecemos.";
 
-  return (
+  const avisosMoviles=await avisosPendientes(yo,proyectos);
+  const moviles = filas.map(({p,m})=>({
+    id:p.pedido.id,nombre:p.pedido.cliente,fase:`Fase ${m.fase.n} de ${m.fase.de} · ${m.fase.nombre}`,
+    estado:p.estado,toca:m.teToca,texto:m.ahora,
+    accion:p.controlPendiente&&m.tono==='vivo'?'Ver la revisión':m.accion,href:p.controlPendiente&&m.tono==='vivo'?`/estudio/${p.pedido.id}/calidad`:`/estudio/${p.pedido.id}`,
+    actualizado:p.actualizado,generadas:Object.values(p.tareas).filter(e=>e==='lista').length,total:p.plan.tareas.length,
+    entregas:p.plan.tareas.map(t=>leerEntrega(p.pedido.id,t)).filter(e=>!!e).sort((a,b)=>b.creado.localeCompare(a.creado)).slice(0,4).map(e=>({titulo:e.titulo,resumen:e.dice,href:`/estudio/${p.pedido.id}/${e.tarea.replace('.','-')}`,calidad:TEXTO_CALIDAD[estadoEntrega(p,e)]})),
+  }));
+  return (<>
+    {!completa&&<InicioMovil proyectos={moviles} nombre={nombreYo} error={errorNube} avisos={avisosMoviles.avisos} pendientes={avisosMoviles.avisos.length+Math.max(0,avisosMoviles.solicitudes-1)}/>}
+    <div className={completa?"":"hidden lg:block"}>
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0">
@@ -214,5 +228,6 @@ export default async function Estudio() {
         </div>
       )}
     </div>
+    </div></>
   );
 }

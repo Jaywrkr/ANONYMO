@@ -25,9 +25,10 @@ export interface ProyectoCamino {
   plan: { fases: number[]; tareas: string[] };
   tareas: Record<string, string>;
   esperaJurado?: boolean;
+  controlPendiente?: {tarea:string;version:number};
   pendientesCliente?: { fecha: string; texto: string }[];
   modo?: "paso" | "fase" | "auto";
-  revision?: { tarea: string; fecha: string };
+  revision?: { tarea: string; fecha: string; calidad?: "pendiente" | "cambios" };
   vueltas?: Record<string, string>;
   inicios?: Record<string, string>;
   error?: { mensaje: string; tarea?: string; fecha: string };
@@ -75,7 +76,7 @@ export interface Momento {
 
 /** Lo que se sabe en vivo de la vuelta que está trabajando (sistema/42). */
 export interface SenalVivo { tarea?: string; fase?: string; palabras?: number }
-const VERBO: Record<string, string> = { preparando: "se está preparando", esperando: "espera la respuesta de la IA", pensando: "está pensando", buscando: "está buscando en la web", escribiendo: "está escribiendo" };
+const VERBO: Record<string, string> = { preparando: "se está preparando", esperando: "espera la respuesta de la IA", pensando: "está pensando", buscando: "está buscando en la web", revisando: "está revisando", escribiendo: "está escribiendo" };
 
 /**
  * `ultima`: cuándo dio la última señal una vuelta de este proyecto (la página del proyecto lo sabe).
@@ -102,6 +103,10 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
       ahora: `Atlas armó el plan: ${p.plan.tareas.length} entregas en ${p.plan.fases.length} fase${p.plan.fases.length === 1 ? "" : "s"}. Revísalo y di «que empiecen».`,
       despues: `El equipo trabaja ${nombreFase(p.plan.fases[0])} y te avisa cuando toque revisar.` };
   }
+  if (p.estado === "en-curso" && p.controlPendiente && !p.error && (vivo || ahoraMs-(Date.parse(p.actualizado??"")||0)<VUELTA_MUERTA_MS)) {
+    const t=p.controlPendiente.tarea;
+    return {...base,paso:"trabajo",indice:2,teToca:false,tono:"vivo",accion:"Ver la revisión",trabajando:[t.split(".")[1]],ahora:`Revisando ${entregaDe(t).toLowerCase()}, versión ${p.controlPendiente.version}.`,despues:"Comprobamos los requisitos antes de pedirte una decisión. Si falta una prueba, quedará pendiente."};
+  }
   if (p.estado === "esperando" && p.direcciones?.esperando) {
     const mio = responsableActual === yo;
     const n = p.direcciones.opciones.length;
@@ -115,6 +120,7 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
     const mio = responsableActual === yo;
     const t = p.revision.tarea;
     const sig = siguienteTarea(p);
+    if(p.revision.calidad) return {...base,paso:"revision",indice:3,teToca:mio,tono:mio?"toca":"otro",revision:t,accion:"Ver qué falta",ahora:p.revision.calidad==="cambios"?`${entregaDe(t)} necesita cambios antes de poder aprobarse.`:`Falta completar la revisión de ${entregaDe(t).toLowerCase()}.`,despues:"En Requisitos y calidad puedes ver qué falta y volver a verificar la pieza. También puedes pedir cambios."};
     return { ...base, paso: "revision", indice: 3, teToca: mio, tono: mio ? "toca" : "otro", revision: t,
       accion: mio ? "Revisar la entrega" : "Revisar igual",
       ahora: mio ? `${agenteDe(t)} entregó ${entregaDe(t).toLowerCase()}. Revisa su entrega.` : `${agenteDe(t)} entregó ${entregaDe(t).toLowerCase()}. Le toca revisar a ${nombreSocio(responsableActual)}.`,

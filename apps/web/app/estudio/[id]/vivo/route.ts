@@ -14,7 +14,7 @@ const ligero = (p: Proyecto, vivo?: Vivo) => ({
   inicios: p.inicios ?? {},
   vueltas: p.vueltas ?? {},
   estimados: Object.fromEntries(Object.keys(p.tareas).map((t) => [t, segundosEstimados(t)])),
-  revision: p.revision, error: p.error, actualizado: p.actualizado,
+  controlPendiente:p.controlPendiente, revision: p.revision, error: p.error, actualizado: p.actualizado,
   vivo,
 }) satisfies ProyectoOficina & Record<string, unknown>;
 

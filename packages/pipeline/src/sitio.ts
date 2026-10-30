@@ -1,6 +1,7 @@
 // La web que construye el equipo, como archivos de verdad (sistema/42).
 // El constructor (Vector) entrega un sitio estático (HTML, CSS y JS, sin compilar) en bloques de código con su
 // nombre de archivo. Se guarda por versión en proyectos/<id>/sitio/v<N>/ y el estudio lo muestra funcionando.
+import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
 import { carpeta } from "./almacen.ts";
@@ -53,6 +54,16 @@ export function sinArchivos(texto: string): string {
 const dirSitio = (id: string, v?: number) => join(carpeta(), id, "sitio", ...(v ? [`v${v}`] : []));
 
 export function guardarSitio(id: string, version: number, archivos: Record<string, string>) {
+  // Las fotos usadas quedan congeladas junto al código de esta versión.
+  const contenido = Object.values(archivos).join("\n");
+  for (const a of listarArchivos(id)) {
+    if (!/^image\//.test(a.tipo) || !contenido.includes(`img/${a.nombre}`)) continue;
+    const origen = rutaArchivo(id,a.nombre);
+    if (!origen) continue;
+    const destino = join(dirSitio(id,version),"img",a.nombre);
+    mkdirSync(dirname(destino),{recursive:true});
+    writeFileSync(destino,readFileSync(origen));
+  }
   for (const [ruta, contenido] of Object.entries(archivos)) {
     const r = rutaSegura(ruta);
     if (!r) continue;
@@ -60,6 +71,26 @@ export function guardarSitio(id: string, version: number, archivos: Record<strin
     mkdirSync(dirname(destino), { recursive: true });
     writeFileSync(destino, contenido);
   }
+}
+
+/** Imágenes de las direcciones, congeladas por versión igual que las de la web. */
+export function guardarImagenesDirecciones(id:string, version:number, html:string) {
+  for(const a of listarArchivos(id)) {
+    if(!/^image\//.test(a.tipo)||!html.includes(`img/${a.nombre}`))continue;
+    const origen=rutaArchivo(id,a.nombre);if(!origen)continue;
+    const destino=join(carpeta(),id,"bocetos",`v${version}`,"img",a.nombre);
+    mkdirSync(dirname(destino),{recursive:true});writeFileSync(destino,readFileSync(origen));
+  }
+}
+export function imagenesDirecciones(id:string,version:number):{ruta:string;bytes:Buffer}[] {
+  const dir=join(carpeta(),id,"bocetos",`v${version}`,"img");
+  if(!existsSync(dir))return [];
+  return readdirSync(dir).sort().map(nombre=>({ruta:`img/${nombre}`,bytes:readFileSync(join(dir,nombre))}));
+}
+export function leerImagenDireccion(id:string,version:number,ruta:string):Buffer|undefined {
+  const r=rutaSegura(ruta);if(!r||!r.startsWith("img/")||!/^img\/[^/]+\.(png|jpe?g|webp|gif|svg)$/i.test(r))return;
+  const archivo=join(carpeta(),id,"bocetos",`v${version}`,r);
+  return existsSync(archivo)?readFileSync(archivo):undefined;
 }
 
 /** Versiones del sitio guardadas, de la más nueva a la más vieja. */

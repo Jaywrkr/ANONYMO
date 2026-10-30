@@ -11,6 +11,13 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'To turn thinking off on this model, send "thinking": {"type": "between_tools"}.' } }));
       return;
     }
+    if (cuerpo.system?.startsWith('Revisor de calidad.')) {
+      const texto=cuerpo.messages[0].content.find(c=>c.type==='text'&&c.text.includes('# Revisión de calidad'))?.text??'';
+      const condiciones=JSON.parse(texto.match(/CONDICIONES: ([^\n]+)/)?.[1]??'[]');
+      res.writeHead(200,{'content-type':'application/json'});
+      res.end(JSON.stringify({content:[{type:'text',text:JSON.stringify({nota:9,resumen:'Revisión de prueba: condiciones comprobadas con la API falsa.',comprobaciones:condiciones.map(c=>({id:c.id,estado:'cumple',evidencia:'Comprobación de prueba para '+c.texto}))})}],usage:{input_tokens:100,output_tokens:100},stop_reason:'end_turn'}));
+      return;
+    }
     const sigue = cuerpo.messages.length > 1;
     console.log(new Date().toISOString(), "pedido", n, sigue ? "(sigue)" : "", cuerpo.stream ? "stream" : "json");
     res.writeHead(200, { "content-type": "text/event-stream" });

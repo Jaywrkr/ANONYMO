@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { agentePorId } from "@anonymo/agentes";
 
 type Vivo = { tarea?: string; fase?: string; palabras?: number; latido: string; desde: string; ia?: string; fin?: string };
-const FASE: Record<string, string> = { preparando: "preparándose", esperando: "esperando respuesta de la IA", pensando: "pensando", buscando: "buscando en la web", escribiendo: "escribiendo" };
+const FASE: Record<string, string> = { preparando: "preparándose", esperando: "esperando respuesta de la IA", pensando: "pensando", buscando: "buscando en la web", revisando: "comprobando requisitos y calidad", escribiendo: "escribiendo" };
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 
 export function AhoraEnVivo({ id }: { id: string }) {

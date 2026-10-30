@@ -1,6 +1,8 @@
 // Revisar UNA entrega (sistema/36, modo paso a paso): aprobar y que siga el siguiente, pedir un cambio o rehacer.
 // Lo usan el panel «Ahora» del proyecto y la página de la entrega.
 import Link from "next/link";
+import {puedeAprobar} from "@anonymo/pipeline";
+import {ControlCalidad} from "./ControlCalidad";
 import { agentePorId } from "@anonymo/agentes";
 import { contratoPorId, leerEntrega, type Proyecto, type TareaId } from "@anonymo/pipeline";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
@@ -32,6 +34,7 @@ export function RevisarAgente({ p, t, mio, oscuro = false, verEntrega = true }: 
           {e?.necesita && e.necesita !== "—" && <p className={`mt-1 text-[13px] ${tenue}`}><span className="font-medium">Necesita:</span> {e.necesita}</p>}
         </div>
       </div>
+      {e && <ControlCalidad p={p} e={e}/>}
       <div className="flex flex-wrap items-center gap-2">
         {e?.datos?.sitio ? (
           <Link href={`/estudio/${id}/web?v=${e.version}`} className={`inline-flex min-h-12 items-center rounded-full px-6 text-[14px] font-medium transition ${oscuro ? "bg-vivo text-white hover:brightness-95" : "bg-vivo text-white"}`}>
@@ -43,11 +46,11 @@ export function RevisarAgente({ p, t, mio, oscuro = false, verEntrega = true }: 
             Leer la entrega →
           </Link>
         )}
-        <form action={accionAprobar}>
+        {e && puedeAprobar(p,e) && <form action={accionAprobar}>
           {comunes}
           <Enviar className={`inline-flex min-h-12 items-center rounded-full px-7 text-[14px] font-medium transition ${oscuro ? "bg-white text-tinta hover:bg-[#f1ede6]" : "bg-tinta text-white hover:bg-black"}`}
             texto={mio ? (sig ? "Aprobar y seguir" : "Aprobar y cerrar") : "Aprobar igual"} trabajando="Aprobando…" proyecto={id} />
-        </form>
+        </form>}
         <Confirmar
           accion={accionCambiar}
           campos={{ id, motor: "", agente: a.id, nota: "Rehazla desde cero con otro enfoque: la versión anterior no sirve.", ...(mio ? {} : { forzar: "1" }) }}

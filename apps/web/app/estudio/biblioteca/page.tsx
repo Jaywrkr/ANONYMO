@@ -3,7 +3,7 @@ import { agentePorId } from "@anonymo/agentes";
 import { buscar, esImagen, leerEntrega, listar, listarArchivos, versionesSitio, type Proyecto, type TareaId } from "@anonymo/pipeline";
 import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
 import { MiniWeb } from "@/components/estudio/MiniWeb";
-import { urlSitio } from "@/lib/sitio";
+import { urlBoceto, urlSitio } from "@/lib/sitio";
 import { Cara, hace } from "@/components/estudio/piezas";
 import { traerTodo } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
@@ -131,7 +131,7 @@ export default async function Biblioteca({ searchParams }: { searchParams: Promi
           ))}
           {muestra("diseno") && disenos.map(({ p, d, n, elegida }) => (
             <Link key={`dir-${p.pedido.id}-${n}`} href={`/estudio/${p.pedido.id}/direcciones`} className="tarjeta block p-3">
-              <Maqueta d={d} />
+              <Maqueta recursos={urlBoceto(p.pedido.id,p.direcciones?.version??1)} d={d} />
               <span className="flex items-center gap-2 px-1 pb-1 pt-3 text-[12px] text-suave">
                 <span className="font-medium text-tinta">{d.nombre}</span>{elegida ? " · elegida" : ` · dirección ${n + 1}`}
                 <span className="ml-auto">{p.pedido.cliente}</span>

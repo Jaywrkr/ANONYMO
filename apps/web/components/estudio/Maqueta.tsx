@@ -33,15 +33,15 @@ function paleta(d: Direccion) {
   return { fondo, texto: sobre(fondo), acento: principal === claro ? segundo : principal, suave: segundo, tarjeta };
 }
 
-export function Maqueta({ d, dominio = "tuweb.com" }: { d: Direccion; dominio?: string }) {
+export function Maqueta({ d, dominio = "tuweb.com", recursos }: { d: Direccion; dominio?: string; recursos?:string }) {
   // Sin same-origin: el código de la dirección no puede leer la sesión ni el documento del estudio.
   // La política también bloquea peticiones, formularios y rutas base aportadas por el HTML.
   if (d.html) {
-    const politica = "default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https:; connect-src 'none'; form-action 'none'; base-uri 'none'";
+    const politica = "default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'";
     return (
       <iframe title={`Dirección ${d.nombre}`} sandbox="allow-scripts" referrerPolicy="no-referrer"
         className="h-[600px] w-full rounded-[10px] border-0 bg-white"
-        srcDoc={`<!doctype html><meta http-equiv="Content-Security-Policy" content="${politica}"><meta name="viewport" content="width=device-width, initial-scale=1">${d.html}`} />
+        srcDoc={`<!doctype html><meta http-equiv="Content-Security-Policy" content="${politica}"><meta name="viewport" content="width=device-width, initial-scale=1">${recursos ? d.html.replace(/(?<![\w/])img\//g,recursos) : d.html}`} />
     );
   }
   const c = paleta(d);

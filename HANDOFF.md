@@ -3,6 +3,9 @@
 Para quien siga el desarrollo (Codex u otro agente de código). Escrito el 29 de octubre de 2026, en la versión **0.44**.
 Primero lee [README.md](README.md) (qué hay y cómo correrlo) y [AGENTS.md](AGENTS.md) (reglas del repo).
 
+
+**Trabajo 0.48 para revisión:** requisitos con fuente y condiciones por entrega; estados generado → verificado → aprobado; revisión automática en una vuelta separada, con capturas y auditoría de la versión real. El inicio móvil prioriza búsqueda, avance y pendientes. Ver [docs/calidad.md](docs/calidad.md) para el flujo, límites y pruebas nuevas. `p.controlPendiente` mantiene la revisión en cola y `e.calidad` guarda evidencias y huellas por versión; `tareas[t] === "lista"` solo indica que se generó la entrega. Chromium 141 se incluye en la función de trabajo; su binario se comprobó en esta máquina, no en un despliegue nuevo de Vercel.
+
 ---
 
 ## 1. Estado actual en una página

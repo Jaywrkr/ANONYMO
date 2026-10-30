@@ -1,3 +1,4 @@
+import {urlBoceto} from "@/lib/sitio";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
@@ -58,7 +59,7 @@ export default async function Dossier({ params }: { params: Promise<{ id: string
             <p className="text-[12px] uppercase tracking-[0.08em] text-[#8a8378]">Dirección de diseño</p>
             <h2 className={`${serif} mt-2 text-[48px] leading-[0.95]`}>{dir.nombre}</h2>
             <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed">{dir.idea}</p>
-            <div className="mt-6"><Maqueta d={dir} dominio={dominio} /></div>
+            <div className="mt-6"><Maqueta recursos={urlBoceto(id,p.direcciones?.version??1)} d={dir} dominio={dominio} /></div>
             <div className="mt-5"><FichaDireccion d={dir} /></div>
           </section>
         )}

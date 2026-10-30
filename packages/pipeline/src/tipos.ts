@@ -102,6 +102,7 @@ export interface Direccion {
 
 /** Las direcciones propuestas y la elegida (sistema/37). */
 export interface Direcciones {
+  version?: number;
   tarea: TareaId;
   opciones: Direccion[];
   /** Esperando que Jay, Luna o el cliente elijan. */
@@ -176,9 +177,29 @@ export interface ResultadoHerramienta {
 
 export type EstadoTarea = "por-empezar" | "en-curso" | "lista" | "rehacer";
 
+export interface Requisito { id: string; texto: string; fuente: string; tarea?: TareaId }
+export interface Comprobacion { id: string; texto: string; estado: "cumple" | "falla" | "pendiente"; evidencia: string }
+export interface CapturaCalidad { ruta: string; sha256: string; ancho: number; pagina: string }
+export interface ControlEntrega {
+  estado: "generado" | "pendiente" | "cambios" | "verificado" | "aprobado" | "simulado";
+  version: number;
+  huella: string;
+  contexto: string;
+  fecha: string;
+  resumen: string;
+  comprobaciones: Comprobacion[];
+  capturas: CapturaCalidad[];
+  auditoria?: import("./herramientas/auditar.ts").Auditoria;
+  nota?: number;
+  aprobadoPor?: string;
+  uso?: {entrada:number;salida:number;usd:number};
+  historial?: Omit<ControlEntrega, "historial">[];
+}
+
 /** Lo que entrega un agente. Se guarda como entregas/<fase>-<agente>.md */
 export interface Entrega {
   tarea: TareaId;
+  calidad?: ControlEntrega;
   agente: string;
   titulo: string; // = Contrato.entrega
   /** Lo que el agente "dice" en la sala: una o dos frases. */
@@ -227,6 +248,10 @@ export type ModoTrabajo = "paso" | "fase" | "auto";
 /** estado.json: la foto del proyecto que lee la sala. */
 export interface Proyecto {
   pedido: Pedido;
+  requisitos?: Requisito[];
+  controlPendiente?: { tarea: TareaId; version: number; proponer: boolean };
+  controlRondas?: Record<string, number>;
+  controlIntentos?: Record<string, number>;
   plan: Plan;
   faseActual: number;
   estado: EstadoProyecto;
@@ -248,7 +273,7 @@ export interface Proyecto {
    */
   modo?: ModoTrabajo;
   /** En modo paso: la entrega que espera tu revisión antes de que siga el siguiente agente. */
-  revision?: { tarea: TareaId; fecha: string };
+  revision?: { tarea: TareaId; fecha: string; calidad?: "pendiente" | "cambios" };
   /** Cuándo empezó la vuelta actual de cada tarea (cada vuelta corre en un pedido de menos de 5 minutos). */
   vueltas?: Record<string, string>;
   /** Lo que un agente alcanzó a escribir antes de que se acabara el tiempo de su vuelta: la siguiente sigue desde ahí. */

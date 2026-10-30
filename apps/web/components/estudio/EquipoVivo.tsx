@@ -14,11 +14,12 @@ import { accionSeguir } from "@/app/estudio/acciones";
 
 const PUNTO: Record<string, string> = { trabajando: "bg-vivo", revisar: "bg-urgente", cola: "bg-[#cfc8bc]", listo: "bg-tinta", libre: "bg-[#e5e0d7]", detenido: "bg-[#a3260f]" };
 const TEXTO: Record<string, string> = { ...TEXTO_ESTADO, listo: "Entregó", cola: "Por empezar", detenido: "Se detuvo" };
-const HACE: Record<string, string> = { preparando: "preparando", esperando: "esperando respuesta de la IA", pensando: "pensando", buscando: "buscando en la web", escribiendo: "escribiendo" };
+const HACE: Record<string, string> = { preparando: "preparando", esperando: "esperando respuesta de la IA", pensando: "pensando", buscando: "buscando en la web", revisando: "revisando la calidad", escribiendo: "escribiendo" };
 
 type Vivo = { vuelta: string; tarea?: string; fase?: string; palabras?: number; latido: string; desde: string; fin?: string; ia?: string };
 type ConTiempos = ProyectoOficina & {
   inicios?: Record<string, string>; vueltas?: Record<string, string>; estimados?: Record<string, number>;
+  controlPendiente?: {tarea:string;version:number};
   revision?: { tarea: string }; error?: { mensaje: string; tarea?: string }; actualizado?: string; vivo?: Vivo; corriendo?: string;
 };
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
@@ -28,6 +29,7 @@ const VUELTA_MUERTA = 330_000;
 
 export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entregas: Record<string, string> }) {
   const router = useRouter();
+  const [verTodos,setVerTodos]=useState(false);
   const [p, setP] = useState<ConTiempos>(inicial);
   // 0 hasta montar: el reloj solo se pinta en el navegador (si no, el servidor y el navegador no coinciden).
   const [ahora, setAhora] = useState(0);
@@ -57,7 +59,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
         // Algo cambió de verdad (entregó, terminó, se detuvo): se refresca la página para que «Ahora» lo muestre.
         // También cuando una vuelta empieza o termina: así «Ahora» nunca dice «se detuvo» mientras alguien trabaja.
         const corriendo = !!q.vivo && !q.vivo.fin && Date.now() - Date.parse(q.vivo.latido) < 75_000;
-        const nueva = `${q.estado}:${q.revision?.tarea ?? ""}:${Object.values(q.tareas).filter((e) => e === "lista").length}:${corriendo ? q.vivo?.tarea ?? "si" : "no"}`;
+        const nueva = `${q.estado}:${q.controlPendiente?.tarea ?? ""}:${q.revision?.tarea ?? ""}:${Object.values(q.tareas).filter((e) => e === "lista").length}:${corriendo ? q.vivo?.tarea ?? "si" : "no"}`;
         if (nueva !== firma.current) { firma.current = nueva; router.refresh(); }
       } catch {}
     };
@@ -70,12 +72,14 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
   // Una tarea en curso está viva si su vuelta es reciente y (cuando hay señal) la señal también.
   const viva = (t: string) => {
     if (!ahora) return true;
+    if(p.controlPendiente?.tarea===t) return !p.vivo || ahora-Date.parse(p.vivo.latido)<SIN_SENAL;
     const v = p.vueltas?.[t] ?? p.inicios?.[t];
     if (!v || ahora - Date.parse(v) > VUELTA_MUERTA) return false;
     if (p.vivo && !p.vivo.fin && p.vivo.tarea === t) return ahora - Date.parse(p.vivo.latido) < SIN_SENAL;
     return true;
   };
   const estado = (t: string) => {
+    if(p.estado==="en-curso"&&p.controlPendiente?.tarea===t) return viva(t)?"trabajando":"detenido";
     const e = estadoTarea(p, t);
     return e === "trabajando" && !viva(t) ? "detenido" : e;
   };
@@ -96,7 +100,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
           const est = estado(t);
           const senal = p.vivo && p.vivo.tarea === t && !p.vivo.fin ? p.vivo : undefined;
           return (
-            <li key={t}>
+            <li key={t} className={verTodos || est === "trabajando" || est === "revisar" || est === "detenido" ? "" : "hidden lg:block"}>
               <Link href={`/estudio/${p.id}/${t.replace(".", "-")}`} className={`flex min-h-11 items-center gap-3 rounded-xl px-1.5 py-1 transition hover:bg-[#f6f3ee] ${est === "detenido" ? "bg-[#fdf1ee]" : ""}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={caraSvg(id, est === "cola")} alt="" width={30} height={32} className={est === "trabajando" ? "flota" : ""} />
@@ -128,6 +132,7 @@ export function EquipoVivo({ inicial, entregas }: { inicial: ConTiempos; entrega
           );
         })}
       </ul>
+      <button type="button" onClick={()=>setVerTodos(x=>!x)} className="min-h-11 text-[13px] underline lg:hidden">{verTodos?"Mostrar solo lo actual":"Ver todo el equipo"}</button>
       {detenido && enCurso && (
         <form action={accionSeguir} className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-[#fdf1ee] p-3">
           <input type="hidden" name="id" value={p.id} />

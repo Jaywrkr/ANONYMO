@@ -6,6 +6,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 
 | Rama | Qué hace | Cómo se usa |
 |---|---|---|
+| sistema/48-calidad-movil | Separa generado, verificado y aprobado; requisitos por entrega, revisión visual y auditoría de la versión real; inicio móvil con búsqueda y avance | Estudio desde el teléfono → Proyectos / Buscar / Pendientes; proyecto → Requisitos y calidad |
 | sistema/47-orla-continuacion | Corrige el error de la IA al continuar una entrega de Orla o Vector con Sonnet | Proyecto detenido por API 400 → Continuar, tras actualizar la aplicación |
 | sistema/46-diseno-pro | Direcciones con portada propia, explicación del pedido y contexto completo; web con movimiento y librerías gratuitas opcionales | Estudio, portal y PDF → direcciones; nuevas entregas de Orla y Vector |
 | sistema/01-panel-web | Panel del estudio: proyectos, aprobar, cambiar, parar, pausas, bitácora | `npm run dev` → `/estudio` (o `ESTUDIO=1 npm run start`) |

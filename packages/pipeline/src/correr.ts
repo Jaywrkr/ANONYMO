@@ -6,7 +6,9 @@ import { contratoPorId, dependientes, lecturas } from "./contratos.ts";
 import { avisar } from "./avisos.ts";
 import { estimar, textoEntrada } from "./costo.ts";
 import { consejosPara } from "./plantillas.ts";
-import { guardarSitio } from "./sitio.ts";
+import { controlInicial, controlar, puedeAprobar, estadoEntrega } from "./calidad.ts";
+import { condicionesDe } from "./requisitos.ts";
+import { guardarImagenesDirecciones, guardarSitio } from "./sitio.ts";
 import { listarArchivos, rutaArchivo } from "./archivos.ts";
 import { evaluar, RONDAS_MAX } from "./jurado.ts";
 import { prepararHerramientas } from "./herramientas/index.ts";
@@ -34,7 +36,7 @@ export interface OpcionesAvanzar {
 }
 
 /** ¿Queda trabajo por hacer sin esperar a nadie? */
-export const hayPendientes = (p: Proyecto) => p.plan.tareas.some((t) => p.tareas[t] !== "lista");
+export const hayPendientes = (p: Proyecto) => !!p.controlPendiente || p.plan.tareas.some((t) => p.tareas[t] !== "lista");
 
 export async function nuevo(pedido: Pedido, motor: Motor = elegirMotor(), aviso: Aviso = console.log) {
   const plan = planificar(pedido);
@@ -83,6 +85,52 @@ export async function replanear(id: string, ajuste: string, quien: "jay" | "luna
   return p;
 }
 
+/** Presentar solo después del control: la aprobación humana sigue siendo una decisión aparte. */
+async function presentar(p: Proyecto, e: Entrega, proponer: boolean): Promise<boolean> {
+  const id = p.pedido.id;
+  const t = e.tarea;
+  if (p.estado === "parado" || p.papelera) return true;
+  if (proponer) {
+    p.direcciones = { tarea: t, version:e.version, opciones: (e.datos?.direcciones as Direccion[] | undefined) ?? [], esperando: true };
+    p.estado = "esperando";
+    delete p.revision;
+    guardarProyecto(p);
+    await avisar({proyecto:id,cliente:p.pedido.cliente,tipo:"espera",titulo:"Direcciones listas para elegir",texto:"Revisa los resultados y elige una dirección."});
+    return true;
+  }
+  if (modoDe(p) === "paso") {
+    p.estado = "esperando";
+    p.revision = {tarea:t,fecha:new Date().toISOString()};
+    guardarProyecto(p);
+    return true;
+  }
+  return false;
+}
+
+/** Vuelve a comprobar los mismos archivos; no los genera de nuevo. */
+export function pedirControl(id: string, tarea: TareaId) {
+  const p = leerProyecto(id);
+  if (p.estado === "en-curso") throw new Error("Espera a que termine el trabajo actual antes de volver a verificar.");
+  const e = leerEntrega(id,tarea);
+  if (!e || !p.plan.tareas.includes(tarea)) throw new Error("No hay una entrega para revisar.");
+  delete p.error;
+  p.controlPendiente = {tarea,version:e.version,proponer:!!e.datos?.direcciones};
+  p.faseActual=faseDe(tarea);
+  delete p.revision;
+  p.estado = "en-curso";
+  guardarProyecto(p);
+}
+
+function aprobarEntrega(p: Proyecto, t: TareaId, quien: string) {
+  const e = leerEntrega(p.pedido.id,t);
+  if (!e) throw new Error("Falta una entrega para aprobar.");
+  if (!puedeAprobar(p,e)) throw new Error("Esta versión todavía no está verificada. Revisa sus comprobaciones antes de aprobar.");
+  if (e.calidad && e.modo !== "simulado") {
+    e.calidad = {...e.calidad,estado:"aprobado",aprobadoPor:quien};
+    guardarEntrega(p.pedido.id,e);
+  }
+}
+
 /**
  * Ejecuta tareas pendientes en orden. Se detiene al cerrar una fase con pausa (modo fase),
  * después de cada entrega (modo paso) o al llegar a `op.max` tareas en esta vuelta (en línea: una por pedido).
@@ -93,6 +141,53 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
   if (p.estado === "parado") throw new Error("El proyecto está parado.");
   if (p.estado === "esperando" || p.estado === "plan") return p;
   p.estado = "en-curso";
+
+  if (p.controlPendiente) {
+    if (op.max === 0) return p;
+    const q = p.controlPendiente;
+    p.faseActual=faseDe(q.tarea);
+    const e = leerEntrega(id,q.tarea);
+    if (!e || e.version !== q.version) {
+      delete p.controlPendiente;
+      p.estado="esperando";
+      p.revision=e?{tarea:e.tarea,fecha:new Date().toISOString()}:undefined;
+      bitacora(id,"La versión cambió mientras esperaba revisión. Verifica la entrega actual.");
+      guardarProyecto(p);
+      return p;
+    }
+    delete p.error;
+    op.latido?.(e.tarea,{fase:"revisando",palabras:0});
+    e.calidad = await controlar(p,e,q.proponer,op.plazo);
+    guardarEntrega(id,e);
+    if(e.calidad.uso) p.costos={...p.costos,[e.tarea]:[...(p.costos?.[e.tarea]??[]),{...e.calidad.uso,busquedas:0,estimado:false,fecha:e.calidad.fecha}]};
+    Object.assign(p,fusionar(p,leerProyecto(id)));
+    delete p.controlPendiente;
+    if ((p.estado as string) === "parado" || p.papelera) { p.controlPendiente=q; guardarProyecto(p); return p; }
+    const intentos=p.controlIntentos?.[`${e.tarea}:${e.version}`]??0;
+    if(e.calidad.estado==="pendiente" && /otra vuelta|Faltó tiempo|Falta tiempo/.test(e.calidad.resumen) && intentos<6) {
+      p.controlIntentos={...p.controlIntentos,[`${e.tarea}:${e.version}`]:intentos+1};
+      p.controlPendiente=q;
+      guardarProyecto(p);
+      return p;
+    }
+    const claveRonda=`${e.tarea}:${q.proponer?"direcciones":"entrega"}`;
+    const rondas = p.controlRondas?.[claveRonda] ?? 0;
+    if (e.calidad.estado === "cambios" && rondas < 2) {
+      p.controlRondas = {...p.controlRondas,[claveRonda]:rondas+1};
+      p.tareas[e.tarea] = "rehacer";
+      p.cambios[faseDe(e.tarea)] = `Control de calidad, corrección ${rondas+1}: ${e.calidad.resumen}\n${e.calidad.comprobaciones.filter(c => c.estado !== "cumple").map(c => `${c.texto}: ${c.evidencia}`).join("\n")}`;
+      if (q.proponer && p.direcciones) p.direcciones.pedidas = true;
+      bitacora(id,`Revisión de ${e.titulo}: necesita cambios. Corrección automática ${rondas+1} de 2.`);
+    } else if (!puedeAprobar(p,e)) {
+      p.estado = "esperando";
+      p.revision = {tarea:e.tarea,fecha:new Date().toISOString(),calidad:e.calidad.estado==="cambios"?"cambios":"pendiente"};
+      bitacora(id,`Revisión de ${e.titulo}: ${e.calidad.resumen}`);
+    } else { await presentar(p,e,q.proponer); }
+    guardarProyecto(p);
+    // Cierra la fase y prepara el siguiente paso sin producir otra pieza en esta vuelta.
+    if(p.estado === "en-curso" && !p.controlPendiente) return avanzar(id,motor,aviso,{...op,max:0},cuenta);
+    return p;
+  }
 
   const { tareas } = p.plan;
   for (let i = 0; i < tareas.length; i++) {
@@ -131,7 +226,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
-        marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
+        condiciones: condicionesDe(p,t), marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
       const { uso, pendiente, sitio, ...resto } = r;
       // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
       Object.assign(p, fusionar(p, leerProyecto(id)));
@@ -157,9 +252,13 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
         await aviso(`  ⋯ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} (sigue)`);
         return p;
       }
-      guardarEntrega(id, { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto });
+      const entrega: Entrega = { tarea: t, agente: c.agente, titulo: c.entrega, estado: "lista", version, creado: new Date().toISOString(), ...resto, datos:{...resto.datos,...(herramientas.some(h=>!h.ok)?{herramientasPendientes:herramientas.filter(h=>!h.ok).map(h=>h.falta??h.resumen)}:{})} };
+      guardarEntrega(id, entrega);
       // La web como archivos de verdad, por versión (sistema/42).
       if (sitio && Object.keys(sitio).length) guardarSitio(id, version, sitio);
+      if(proponer)guardarImagenesDirecciones(id,version,JSON.stringify(r.datos?.direcciones??[]));
+      entrega.calidad = controlInicial(p,entrega);
+      guardarEntrega(id,entrega);
       // Costo: real si vino de la API; si no, lo que costaría con el motor real.
       const gasto = uso ?? estimar(textoEntrada(leidas, p.pedido.descripcion + (cambio ?? "")), 1800, c.herramientas?.includes("web") ? 4 : 0);
       p.costos = { ...p.costos, [t]: [...(p.costos?.[t] ?? []), { ...gasto, fecha: new Date().toISOString() }] };
@@ -185,32 +284,14 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       guardarProyecto(p);
       bitacora(id, `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} v${version} (${r.modo}).`);
       await aviso(`  ✓ ${agentePorId(c.agente)?.nombre?.padEnd(7)} ${c.entrega} v${version}`);
-      // Lo pausaron mientras trabajaba: entrega guardada y nadie sigue.
-      if ((p.estado as string) === "parado" || p.papelera) {
-        if (proponer) p.direcciones = { tarea: t, opciones: (r.datos?.direcciones as Direccion[] | undefined) ?? [], esperando: true };
+      if (proponer) p.direcciones = {tarea:t,version,opciones:(r.datos?.direcciones as Direccion[] | undefined) ?? [],esperando:false};
+      if (r.modo !== "simulado") {
+        p.controlPendiente = {tarea:t,version,proponer};
         guardarProyecto(p);
+        bitacora(id,`${c.entrega} generada: falta verificar la versión ${version}.`);
         return p;
       }
-      // Propuso direcciones: el proyecto espera que elijan una, en cualquier modo (incluso automático).
-      if (proponer) {
-        const opciones = (r.datos?.direcciones as Direccion[] | undefined) ?? [];
-        p.direcciones = { tarea: t, opciones, esperando: true };
-        p.estado = "esperando";
-        delete p.revision;
-        guardarProyecto(p);
-        bitacora(id, `${agentePorId(c.agente)?.nombre} propuso ${opciones.length} direcciones de diseño: ${opciones.map((d) => d.nombre).join(", ") || "sin formato"}. Esperan que elijan una.`);
-        await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `${agentePorId(c.agente)?.nombre} propone ${opciones.length || 3} direcciones de diseño`, texto: "Elige una (o pide otras) para que el equipo diseñe y construya la web con esa dirección." });
-        return p;
-      }
-      // Modo paso: cada entrega espera tu revisión antes de que trabaje el siguiente.
-      if (modoDe(p) === "paso") {
-        p.estado = "esperando";
-        p.revision = { tarea: t, fecha: new Date().toISOString() };
-        guardarProyecto(p);
-        const quien = responsable(p, fase);
-        await avisar({ proyecto: id, cliente: p.pedido.cliente, tipo: "espera", titulo: `${agentePorId(c.agente)?.nombre} entregó ${c.entrega} · le toca a ${NOMBRE_SOCIO[quien]}`, texto: `Revisa la entrega: apruébala para que siga el siguiente agente, o pide un cambio.` });
-        return p;
-      }
+      if (await presentar(p,entrega,proponer)) return p;
     }
 
     // ¿Se cerró la fase?
@@ -259,6 +340,14 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
     return p;
   }
 
+  const sinAprobar = p.plan.tareas.find(t => { const e = leerEntrega(id,t); return e && e.modo !== "simulado" && estadoEntrega(p,e) !== "aprobado"; });
+  if (sinAprobar) {
+    p.estado = "esperando";
+    p.faseActual=faseDe(sinAprobar);
+    p.revision = {tarea:sinAprobar,fecha:new Date().toISOString()};
+    guardarProyecto(p);
+    return p;
+  }
   p.estado = "listo";
   p.esperaJurado = false;
   p.cambios = {};
@@ -299,6 +388,7 @@ export async function aprobar(id: string, quien: Puerta["quien"], nota?: string,
     throw new Error(`Esta fase la aprueba ${NOMBRE_SOCIO[toca]}. Si igual quieres aprobarla, usa forzar (terminal: --forzar).`);
   // Modo paso: se aprueba una entrega y sigue el siguiente agente.
   if (p.revision && !p.esperaJurado) {
+    aprobarEntrega(p,p.revision.tarea,quien);
     const c = contratoPorId(p.revision.tarea);
     bitacora(id, `${quienNombre(quien)} aprobó ${c?.entrega ?? p.revision.tarea} de ${agentePorId(c?.agente ?? "")?.nombre ?? ""}${nota ? `: ${nota}` : ""}.`);
     delete p.revision;
@@ -306,6 +396,9 @@ export async function aprobar(id: string, quien: Puerta["quien"], nota?: string,
     guardarProyecto(p);
     return avanzar(id, motor, aviso, op);
   }
+  const lote=p.plan.tareas.filter(t=>faseDe(t)===p.faseActual && p.tareas[t]==="lista");
+  if(lote.some(t=>{const e=leerEntrega(id,t);return !e||!puedeAprobar(p,e);})) throw new Error("Faltan entregas verificadas en esta fase. Revisa sus comprobaciones antes de aprobar.");
+  for (const t of lote) aprobarEntrega(p,t,quien);
   delete p.revision;
   if (p.esperaJurado) {
     p.juradoAceptado = true;
@@ -365,6 +458,7 @@ export async function elegirDireccion(id: string, n: number, quien: Puerta["quie
   const d = p.direcciones;
   if (!d?.opciones[n]) throw new Error("Esa dirección no existe.");
   if (p.estado === "en-curso") throw new Error(`"${id}" no está esperando una decisión (estado: en-curso).`);
+  aprobarEntrega(p,d.tarea,quien);
   const t = d.tarea;
   const fase = faseDe(t);
   p.direcciones = { ...d, elegida: n, esperando: false, pedidas: false, quien, fecha: new Date().toISOString() };
@@ -400,6 +494,8 @@ export async function pedirDirecciones(id: string, quien: Puerta["quien"], nota?
 export function direccionDelCliente(id: string, n: number, nota?: string) {
   const p = leerProyecto(id);
   if (!p.direcciones?.esperando || !p.direcciones.opciones[n]) throw new Error("Ya no hay direcciones por elegir.");
+  const e=leerEntrega(id,p.direcciones.tarea);
+  if(!e || !puedeAprobar(p,e)) throw new Error("Las direcciones todavía necesitan una revisión vigente.");
   p.direcciones.cliente = { n, nota: nota?.slice(0, 600), fecha: new Date().toISOString() };
   guardarProyecto(p);
   bitacora(id, `El cliente prefiere la dirección «${p.direcciones.opciones[n].nombre}»${nota ? `: ${nota}` : ""}.`);
@@ -426,6 +522,9 @@ export function fusionar(vuelta: Proyecto, nube: Proyecto): Proyecto {
   return {
     ...nube,
     tareas: vuelta.tareas,
+    controlPendiente: vuelta.controlPendiente,
+    controlRondas: vuelta.controlRondas,
+    controlIntentos: vuelta.controlIntentos,
     costos: vuelta.costos,
     inicios: vuelta.inicios,
     vueltas: vuelta.vueltas,

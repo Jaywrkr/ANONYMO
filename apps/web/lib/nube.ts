@@ -74,14 +74,16 @@ export async function conNube<T>(ids: string[], fn: () => Promise<T> | T): Promi
  * Solo el estado de cada proyecto, sin tocar el disco (sistema/32): lo usa la barra lateral en cada página.
  * En línea lo lee directo de la nube; en tu máquina, de proyectos/. Incluye los de la papelera.
  */
-export async function resumenProyectos(): Promise<Proyecto[]> {
+export async function resumenProyectos(estricto=false): Promise<Proyecto[]> {
   if (!nubeActiva()) return [...listar(), ...listarPapelera().map((x) => x.p)];
   const ids = (await proyectosEnNube()).filter((id) => !id.startsWith("_"));
   const todos = await Promise.all(ids.map(async (id) => {
     try {
       const t = await leerRemoto(id, "estado.json");
+      if(!t && estricto)throw new Error("No se pudo leer el estado de un proyecto.");
       return t ? (JSON.parse(t) as Proyecto) : undefined;
-    } catch {
+    } catch(e) {
+      if(estricto)throw e;
       return undefined;
     }
   }));
