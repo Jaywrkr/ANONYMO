@@ -1,23 +1,8 @@
-// PostgreSQL real y efímero. Nunca usa URLs, credenciales ni bases de datos existentes.
+// SQL real en un clúster temporal privado.
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
-import {existsSync,mkdtempSync,readFileSync} from 'node:fs';
-import {join,resolve} from 'node:path';
-import {tmpdir} from 'node:os';
-import {createServer} from 'node:net';
 import {randomUUID} from 'node:crypto';
-import pg from 'pg';
-const bin=process.env.POSTGRES_BIN;
-if(!bin||!existsSync(join(bin,'initdb'))||!existsSync(join(bin,'pg_ctl')))throw new Error('Indica POSTGRES_BIN con los binarios de PostgreSQL para crear una base temporal propia. No se admite conectar a bases existentes.');
-const temporal=mkdtempSync(join(tmpdir(),'anonymo-cola-')),data=join(temporal,'datos');
-const comando=(nombre,args)=>{const r=spawnSync(join(resolve(bin),nombre),args,{encoding:'utf8',timeout:30000});if(r.status!==0)throw new Error(`${nombre} no terminó: ${(r.stderr||r.stdout||String(r.error)).slice(0,1500)}`);return r.stdout;};
-const puerto=await new Promise((ok,mal)=>{const s=createServer();s.on('error',mal);s.listen(0,'127.0.0.1',()=>{const n=s.address().port;s.close(()=>ok(n));});});
-comando('initdb',['-D',data,'-A','trust','--no-locale','-U','postgres']);
-let iniciado=false;const conexiones=[];
-const conectar=async()=>{const c=new pg.Client({host:'127.0.0.1',port:puerto,user:'postgres',database:'postgres',connectionTimeoutMillis:5000,options:'-c statement_timeout=3000 -c idle_in_transaction_session_timeout=10000'});await c.connect();conexiones.push(c);return c;};
-try{
- comando('pg_ctl',['-D',data,'-l',join(temporal,'servidor.log'),'-o',`-h 127.0.0.1 -p ${puerto} -k ${temporal}`,'-w','start']);iniciado=true;
- const admin=await conectar();await admin.query('create role anon;create role authenticated;create role service_role bypassrls;');await admin.query(readFileSync(new URL('../../infra/cola.sql',import.meta.url),'utf8'));
+import {conPostgresTemporal} from './postgres.mjs';
+await conPostgresTemporal(async({admin,conectar})=>{
  const a=await conectar(),b=await conectar();await a.query('set role service_role');await b.query('set role service_role');const propietarioA=randomUUID(),propietarioB=randomUUID();
  const insertar=async(proyecto,limite=3)=>{const id=randomUUID();await admin.query('insert into anonymo_trabajos(id,proyecto,entrada,limite) values($1,$2,$3,$4)',[id,proyecto,{caso:'ficticio'},limite]);return id;};
  const tomar=(c,p,quien)=>c.query('select * from anonymo_tomar_trabajo($1,$2,60)',[p,quien]);
@@ -39,5 +24,5 @@ try{
  const bloqueo=await conectar();const x=await insertar('bloqueada'),y=await insertar('bloqueada');await bloqueo.query('begin');await bloqueo.query('select * from anonymo_trabajos where id=$1 for update',[x]);
  const elegida=await tomar(a,'bloqueada',propietarioA);assert.equal(elegida.rows[0].id,y);await bloqueo.query('rollback');
  console.log('✓ La selección omite una fila bloqueada y toma el trabajo libre sin esperar su desbloqueo.');
- console.log('PostgreSQL real validado. Esto NO activa la cola ni protege todavía escrituras del ejecutor actual en Storage.');
-}finally{await Promise.allSettled(conexiones.map(c=>c.end()));if(iniciado)comando('pg_ctl',['-D',data,'-m','immediate','-w','stop']);}
+ console.log('PostgreSQL real validado. Esta prueba aislada no activa la cola de producción; el piloto integrado se comprueba en publicaciones.mjs.');
+});

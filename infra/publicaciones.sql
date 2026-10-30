@@ -1,0 +1,92 @@
+-- Publicación atómica de proyectos. Requiere cola.sql. Preparar en un entorno de ensayo antes de activar el modo versionado.
+create table if not exists public.anonymo_publicaciones (
+ proyecto text primary key check (proyecto ~ '^[a-z0-9_-]+$'),
+ revision bigint not null default 0,
+ archivos jsonb not null default '{}'::jsonb check (jsonb_typeof(archivos)='object' and octet_length(archivos::text)<=5242880),
+ actualizado timestamptz not null default now()
+);
+create table if not exists public.anonymo_guardados (
+ id uuid primary key, proyecto text not null, base bigint not null, huella text not null,
+ archivos jsonb not null check (jsonb_typeof(archivos)='object' and octet_length(archivos::text)<=5242880),
+ estado text not null check (estado in ('publicado','conflicto','reserva-perdida')),
+ revision bigint, trabajo uuid, propietario uuid, reserva bigint, correcto boolean not null, error text,
+ creado timestamptz not null default now()
+);
+alter table public.anonymo_publicaciones enable row level security;
+alter table public.anonymo_guardados enable row level security;
+revoke all on public.anonymo_publicaciones,public.anonymo_guardados from anon,authenticated;
+grant all on public.anonymo_publicaciones,public.anonymo_guardados to service_role;
+create index if not exists anonymo_guardados_proyecto on public.anonymo_guardados(proyecto,creado desc);
+
+create or replace function public.anonymo_leer_publicacion(p_proyecto text) returns jsonb language sql security invoker set search_path=public as $$
+ select jsonb_build_object('revision',revision,'archivos',archivos) from public.anonymo_publicaciones where proyecto=p_proyecto
+$$;
+create or replace function public.anonymo_listar_publicaciones() returns table(proyecto text) language sql security invoker set search_path=public as $$
+ select proyecto from public.anonymo_publicaciones order by proyecto
+$$;
+
+create or replace function public.anonymo_publicar(p_proyecto text,p_base bigint,p_id uuid,p_huella text,p_archivos jsonb,p_trabajo uuid default null,p_propietario uuid default null,p_reserva bigint default null,p_correcto boolean default true,p_error text default null)
+returns jsonb language plpgsql security invoker set search_path=public as $$
+declare anterior public.anonymo_guardados; actual bigint; vigente public.anonymo_trabajos; motivo text; nueva bigint;
+begin
+ if p_base is null or p_base<0 or p_id is null or p_proyecto is null or p_huella is null or p_correcto is null or p_proyecto !~ '^[a-z0-9_-]+$' or p_huella !~ '^[a-f0-9]{64}$' then raise exception 'Publicación no válida'; end if;
+ if p_archivos is null or jsonb_typeof(p_archivos)<>'object' or octet_length(p_archivos::text)>5242880 then raise exception 'Índice no válido'; end if;
+ if not(p_archivos ? 'estado.json') then raise exception 'Falta el estado del proyecto'; end if;
+ if exists(select 1 from jsonb_each(p_archivos) e where e.key !~ '^[a-zA-Z0-9_./-]+$' or e.key like '/%' or e.key ~ '(^|/)\.\.?(/|$)' or e.key like '%//%' or jsonb_typeof(e.value)<>'object' or not(e.value ?& array['sha256','objeto','bytes']) or coalesce(e.value->>'sha256','') !~ '^[a-f0-9]{64}$' or e.value->>'objeto' is distinct from '_anonymo/'||p_proyecto||'/'||(e.value->>'sha256') or case when jsonb_typeof(e.value->'bytes')='number' then (e.value->>'bytes')::numeric else -1 end not between 0 and 33554432) then raise exception 'Archivo no válido en el índice'; end if;
+ -- Mismo orden de candados que la cola para evitar inversiones al encolar y publicar.
+ perform pg_advisory_xact_lock(hashtextextended('anonymo-cola:'||p_proyecto,0));
+ select * into anterior from public.anonymo_guardados where id=p_id;
+ if found then
+  if anterior.proyecto<>p_proyecto or anterior.base<>p_base or anterior.huella<>p_huella or anterior.archivos<>p_archivos or anterior.trabajo is distinct from p_trabajo or anterior.propietario is distinct from p_propietario or anterior.reserva is distinct from p_reserva or anterior.correcto<>p_correcto or anterior.error is distinct from p_error then raise exception 'Identificador reutilizado con otros datos'; end if;
+  return jsonb_build_object('estado',anterior.estado,'revision',anterior.revision,'id',p_id);
+ end if;
+ if p_trabajo is not null then
+  select * into vigente from public.anonymo_trabajos where id=p_trabajo and proyecto=p_proyecto for update;
+  if not found or vigente.estado<>'ejecutando' or vigente.propietario is distinct from p_propietario or vigente.revision is distinct from p_reserva or vigente.vence<=clock_timestamp() then motivo='reserva-perdida'; end if;
+ elsif p_propietario is not null or p_reserva is not null then raise exception 'Reserva incompleta';
+ end if;
+ select revision into actual from public.anonymo_publicaciones where proyecto=p_proyecto for update;
+ actual=coalesce(actual,0);
+ if motivo is null and actual<>p_base then motivo='conflicto'; end if;
+ if motivo is not null then
+  insert into public.anonymo_guardados(id,proyecto,base,huella,archivos,estado,trabajo,propietario,reserva,correcto,error) values(p_id,p_proyecto,p_base,p_huella,p_archivos,motivo,p_trabajo,p_propietario,p_reserva,p_correcto,p_error);
+  if motivo='conflicto' and p_trabajo is not null then update public.anonymo_trabajos set estado='error',vence=null,actualizado=clock_timestamp(),resultado=jsonb_build_object('guardado',p_id,'motivo','El proyecto cambió mientras se trabajaba') where id=p_trabajo; end if;
+  return jsonb_build_object('estado',motivo,'revision',actual,'id',p_id);
+ end if;
+ nueva=actual+1;
+ insert into public.anonymo_publicaciones(proyecto,revision,archivos) values(p_proyecto,nueva,p_archivos)
+ on conflict(proyecto) do update set revision=excluded.revision,archivos=excluded.archivos,actualizado=clock_timestamp();
+ insert into public.anonymo_guardados(id,proyecto,base,huella,archivos,estado,revision,trabajo,propietario,reserva,correcto,error) values(p_id,p_proyecto,p_base,p_huella,p_archivos,'publicado',nueva,p_trabajo,p_propietario,p_reserva,p_correcto,p_error);
+ if p_trabajo is not null then update public.anonymo_trabajos set estado=case when p_correcto then 'terminado' else 'error' end,vence=null,actualizado=clock_timestamp(),resultado=jsonb_build_object('guardado',p_id,'revision',nueva,'motivo',left(p_error,500)) where id=p_trabajo; end if;
+ return jsonb_build_object('estado','publicado','revision',nueva,'id',p_id);
+end $$;
+
+create unique index if not exists anonymo_trabajo_por_base on public.anonymo_trabajos(proyecto,((entrada->>'base')::bigint)) where entrada ? 'base';
+create or replace function public.anonymo_encolar(p_proyecto text,p_id uuid) returns uuid language plpgsql security invoker set search_path=public as $$
+declare actual bigint; anterior uuid;
+begin
+ perform pg_advisory_xact_lock(hashtextextended('anonymo-cola:'||p_proyecto,0));
+ select coalesce(revision,0) into actual from public.anonymo_publicaciones where proyecto=p_proyecto;actual=coalesce(actual,0);
+ select id into anterior from public.anonymo_trabajos where proyecto=p_proyecto and entrada->>'base'=actual::text;
+ if anterior is not null then return anterior; end if;
+ select id into anterior from public.anonymo_trabajos where proyecto=p_proyecto and estado in ('cola','ejecutando') order by creado limit 1;
+ if anterior is not null then return anterior; end if;
+ insert into public.anonymo_trabajos(id,proyecto,entrada) values(p_id,p_proyecto,jsonb_build_object('base',actual));return p_id;
+end $$;
+create or replace function public.anonymo_pulso(p_id uuid,p_propietario uuid,p_revision bigint,p_vivo jsonb) returns boolean language plpgsql security invoker set search_path=public as $$
+declare cantidad integer;
+begin
+ if octet_length(p_vivo::text)>8192 then raise exception 'Señal demasiado grande'; end if;
+ update public.anonymo_trabajos set vence=clock_timestamp()+interval '90 seconds',actualizado=clock_timestamp(),entrada=entrada||jsonb_build_object('vivo',p_vivo)
+ where id=p_id and propietario=p_propietario and revision=p_revision and estado='ejecutando' and vence>clock_timestamp();
+ get diagnostics cantidad=row_count;return cantidad=1;
+end $$;
+create or replace function public.anonymo_estado_trabajo(p_proyecto text) returns jsonb language sql security invoker set search_path=public as $$
+ select jsonb_build_object('id',id,'estado',estado,'propietario',propietario,'revision',revision,'vence',vence,'actualizado',actualizado,'creado',creado,'vivo',entrada->'vivo','resultado',resultado)
+ from public.anonymo_trabajos where proyecto=p_proyecto order by creado desc,id desc limit 1
+$$;
+create or replace function public.anonymo_guardados_de(p_proyecto text) returns table(id uuid,estado text,creado timestamptz,archivos jsonb) language sql security invoker set search_path=public as $$
+ select id,estado,creado,archivos from public.anonymo_guardados where proyecto=p_proyecto and estado<>'publicado' order by creado desc limit 20
+$$;
+revoke all on function public.anonymo_leer_publicacion(text),public.anonymo_listar_publicaciones(),public.anonymo_publicar(text,bigint,uuid,text,jsonb,uuid,uuid,bigint,boolean,text),public.anonymo_encolar(text,uuid),public.anonymo_pulso(uuid,uuid,bigint,jsonb),public.anonymo_estado_trabajo(text),public.anonymo_guardados_de(text) from public,anon,authenticated;
+grant execute on function public.anonymo_leer_publicacion(text),public.anonymo_listar_publicaciones(),public.anonymo_publicar(text,bigint,uuid,text,jsonb,uuid,uuid,bigint,boolean,text),public.anonymo_encolar(text,uuid),public.anonymo_pulso(uuid,uuid,bigint,jsonb),public.anonymo_estado_trabajo(text),public.anonymo_guardados_de(text) to service_role;

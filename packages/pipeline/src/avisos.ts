@@ -1,3 +1,4 @@
+import {versionadoActivo} from "./versionado.ts";
 // Avisos: cuando un proyecto espera tu decisión, termina o el cliente comenta.
 // Siempre quedan en proyectos/<id>/avisos.md. Además, si están configurados:
 //   RESEND_API_KEY + AVISOS_CORREO (+ AVISOS_DE)  → correo vía Resend
@@ -46,6 +47,7 @@ export async function avisar(a: AvisoProyecto): Promise<string[]> {
     hechos[0] = "archivo no disponible";
   }
 
+  if(versionadoActivo(a.proyecto))return [...hechos,"avisos externos no enviados en el piloto; pendientes de una salida transaccional"];
   const c = canalesActivos();
   if (c.correo) {
     try {

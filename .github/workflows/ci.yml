@@ -33,4 +33,8 @@ jobs:
         run: node scripts/pruebas/cola.mjs
         env:
           POSTGRES_BIN: ${{ runner.temp }}/anonymo-postgres/node_modules/@embedded-postgres/linux-x64/native/bin
+      - name: Comprobar publicaciones y recuperación con PostgreSQL real
+        run: node --experimental-strip-types scripts/pruebas/publicaciones.mjs
+        env:
+          POSTGRES_BIN: ${{ runner.temp }}/anonymo-postgres/node_modules/@embedded-postgres/linux-x64/native/bin
       - run: npm run build

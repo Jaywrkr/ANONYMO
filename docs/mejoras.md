@@ -6,6 +6,7 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 
 | Rama | Qué hace | Cómo se usa |
 |---|---|---|
+| sistema/53-publicacion-atomica | Piloto de guardado completo por revisión y reservas del ejecutor; los trabajos antiguos no sobrescriben y sus avances se conservan | Desactivado por defecto. En proyectos del piloto: Ajustes → Revisar avances en conflicto. Preparación y límites en docs/publicacion-atomica.md; parte de main con 0.51 y 0.52 integrados |
 | sistema/52-estandar-creativo | Referencias visuales privadas con criterio y copia versionada para productor y revisor; diagnóstico que comprueba respuestas de IA y almacén privado | Proyecto → Requisitos y calidad → Referencias; Menú → Conexiones del estudio. Incluye 0.51 pendiente de integrar |
 | sistema/51-memoria-vigente | Chat flotante de Atlas en todo el estudio; distingue decisiones confirmadas, propuestas e históricas; reutiliza solo memoria vigente de las fuentes del agente | Proyecto → Hablar con Atlas → Decisiones registradas; cada decisión enlaza su versión. Los motivos mantienen el contexto del inicio de la producción |
 | sistema/50-web-comprobada | Comprueba enlaces, anclas y casos de interacción en las webs; los formularios sin recepción comprobada quedan pendientes | Proyecto → Requisitos y calidad: fallos concretos antes de aprobar. Vector entrega pruebas.json con el sitio |
