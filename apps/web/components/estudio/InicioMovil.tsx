@@ -1,4 +1,5 @@
 'use client';
+import {AbrirAtlas} from './AbrirAtlas';
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {SeguimientoMovil} from './SeguimientoMovil';
@@ -31,7 +32,7 @@ export function InicioMovil({proyectos,nombre,error,avisos=[],pendientes=0}:{pro
    <p className="mt-1 text-[12px] text-medio">{p.generadas} de {p.total} entregas generadas · la calidad se revisa por separado</p>
    <Link href={p.href} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] text-white">{p.accion} →</Link>
    {p.entregas.length>0&&<div className="mt-4 grid gap-3 border-t border-borde pt-4"><p className="text-[12px] text-medio">Últimos avances</p>{p.entregas.slice(0,2).map(e=><Link href={e.href} key={e.href} className="block min-w-0 rounded-xl bg-[#f6f3ee] p-3"><strong className="block text-[14px]">{e.titulo}</strong><span className="mt-1 block text-[12px] text-medio">{e.calidad}</span><span className="mt-1 line-clamp-2 block text-[13px]">{e.resumen}</span></Link>)}</div>}
-   <Link href={`/estudio/${p.id}/atlas`} className="mt-2 flex min-h-11 items-center text-[13px] underline">Preguntar a Atlas</Link>
+   <AbrirAtlas id={p.id} className="mt-2 flex min-h-11 items-center text-[13px] underline">Preguntar a Atlas</AbrirAtlas>
    <Link href={`/estudio/${p.id}/calidad`} className="mt-2 flex min-h-11 items-center text-[13px] underline">Requisitos y comprobaciones</Link>
   </article>)}</div>
   {!encontrados.length&&<p className="py-8 text-[14px] text-medio">{q?'No hay coincidencias en este resumen. Usa «Buscar todo» para buscar dentro de las entregas.':'No hay proyectos en este grupo.'}</p>}

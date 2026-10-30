@@ -18,6 +18,7 @@ export function ControlCalidad({p,e,detalle=false}: {p:Proyecto;e:Entrega;detall
         <span className="mt-1 block break-words">{c.pagina} · {c.ancho}px ↗</span>
       </a>)}</div>}
       <details className="mt-3"><summary className="min-h-11 cursor-pointer">{vigente?"Comprobaciones superadas":"Comprobaciones de la revisión anterior"} · {q.comprobaciones.filter(c=>c.estado==="cumple").length}</summary><ul className="mt-2 grid gap-3">{q.comprobaciones.filter(c=>c.estado==="cumple").map((c,i)=><li key={c.id+i}><strong>{c.texto}</strong><p className="mt-1 break-words opacity-80">{c.evidencia}</p></li>)}</ul></details>
+      {!!q.referencias?.length&&<details className="mt-3"><summary className="min-h-11 cursor-pointer">Referencias usadas · {q.referencias.length}</summary>{q.referencias.map(r=><a key={r.id} href={`/estudio/${p.pedido.id}/calidad/referencia/${r.revision}/${r.id}`} target="_blank" rel="noreferrer" className="mt-3 block min-h-11 underline">{r.titulo} · selección {r.revision} ↗</a>)}</details>}
       <details className="mt-3"><summary className="min-h-11 cursor-pointer">Identificación y revisiones anteriores</summary><p className="break-all">Versión {q.version} · {new Date(q.fecha).toLocaleString("es-EC",{timeZone:"America/Guayaquil"})}<br/>Archivo: {q.huella}<br/>Requisitos: {q.contexto}</p>{q.historial?.map((h,i)=><p key={i} className="mt-2">{h.fecha} · {TEXTO_CALIDAD[h.estado]} · {h.resumen}</p>)}</details>
     </>}
   </section>;

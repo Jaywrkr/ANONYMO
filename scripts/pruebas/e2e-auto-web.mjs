@@ -32,7 +32,7 @@ await paso("la web funcionando", async () => {
   const f = p.frameLocator("iframe[title='Vista previa de la web']"); console.log("   portada:", await f.locator("h1").first().innerText());
   await p.screenshot({ path: `${C}/01-web-escritorio.png`, fullPage: true });
   await p.click("button:has-text('Celular')"); await p.waitForTimeout(1200); await p.screenshot({ path: `${C}/02-web-celular.png`, fullPage: true });
-  await p.selectOption("select", "servicios.html"); await p.waitForTimeout(1000); console.log("   servicios:", await p.frameLocator("iframe[title='Vista previa de la web']").locator("h1").first().innerText());
+  await p.locator("main select:visible").selectOption("servicios.html"); await p.waitForTimeout(1000); console.log("   servicios:", await p.frameLocator("iframe[title='Vista previa de la web']").locator("h1").first().innerText());
   const z = await p.request.get(`${B}/estudio/dental-norte/web/zip`); console.log("   zip:", z.status(), (await z.body()).length, "bytes");
   const anon = await nav.newContext(); const q = await anon.newPage(); const r = await q.goto(`${B}/sitio/dental-norte/1/malafirma/index.html`); console.log("   sin firma:", r.status()); await anon.close();
 });

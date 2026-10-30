@@ -1,15 +1,15 @@
 # Plan de implementación de ANONYMO
 
-La rama 50 conserva las mejoras 47, 48 y 49 pendientes de integrar en main. Ninguna fase se considera operativa en producción solo por tener código o pruebas con IA falsa.
+main contiene 0.47–0.50 (PR #78). La rama 52 incluye 0.51 y añade referencias creativas y comprobación de conexiones. Ninguna fase se considera operativa en producción solo por tener código o pruebas con IA falsa.
 
 | Fase | Evidencia y trabajo preparado | Pendiente o bloqueo |
 |---|---|---|
-| 0 · Base en producción | 0.50 probada localmente; binario de servidor y empaquetado comprobados | main continúa en 0.46. API de GitHub responde Forbidden; no se puede integrar ni comprobar un despliegue nuevo con los accesos actuales |
-| 1 · Ejecución fiable | Identificador y recibo de encargos; rechazo de versiones antiguas; límites de corrección; estado del control sin señales no se presenta como trabajo vivo | Cola distribuida con reserva transaccional: esquema infra/cola.sql preparado, sin aplicar ni validar contra PostgreSQL. El ejecutor actual no se sustituye ni se declara exactamente-una-vez |
-| 2 · Experiencia de Jay | Inicio móvil, búsqueda, fase, pendientes, acceso al equipo y comprobaciones bajo demanda | Validación con uso real tras desplegar |
-| 3 · Memoria y servicios | Requisitos con fuente, decisiones con fuentes válidas, versiones, catálogo de archivos y condiciones por servicio | Jerarquía completa de decisiones sustituidas, memoria general de marca y políticas comerciales |
+| 0 · Base en producción | 0.50 en main; diagnóstico de conexiones preparado en 0.52 y binario comprobado localmente | main está en 0.50. El despliegue posterior al merge y los servicios reales siguen por comprobar. El acceso de API desde este entorno ha respondido Forbidden |
+| 1 · Ejecución fiable | Identificador y recibo de encargos; rechazo de versiones antiguas; límites de corrección; estado del control sin señales no se presenta como trabajo vivo | 0.52 prueba infra/cola.sql con PostgreSQL real: una reserva activa por proyecto, renovación, recuperación y límite de intentos. Falta integrar reservas y publicación condicional del estado en Storage y activar la migración; el ejecutor actual no ofrece esas garantías |
+| 2 · Experiencia de Jay | Inicio móvil, búsqueda, fase, pendientes, acceso al equipo y comprobaciones bajo demanda; chat flotante de Atlas en 0.51 | Validación con uso real tras desplegar |
+| 3 · Memoria y servicios | Requisitos con fuente, decisiones con fuentes válidas, versiones, catálogo de archivos y condiciones por servicio | 0.51 distingue decisiones confirmadas, históricas y desactualizadas y las reutiliza por contrato. Faltan memoria general de agencia, políticas comerciales y propagación transitiva completa de cambios |
 | 4 · Chat de consulta | Atlas y agentes del proyecto; respuestas con fuentes, historial privado y resumen factual sin IA | Conexión de IA real no disponible en esta máquina. Consulta global entre proyectos y calibración de respuestas |
-| 5 · Calidad ANONYMO | Controles por versión, capturas, mediciones y corrección limitada | Biblioteca visual de referencia y calibración con evaluación real; no hay evidencias para prometer calidad creativa de agencia líder |
+| 5 · Calidad ANONYMO | Controles por versión, capturas, mediciones y corrección limitada | 0.52 añade referencias visuales seleccionadas, copias compartidas y condiciones por referencia. Faltan calibración con casos reales y evidencia de calidad creativa de agencia líder |
 | 6 · Web y textos | Producción y revisión existentes; requisitos y decisiones en el contexto del productor; controles funcionales de web en 0.50 | 0.50 prueba enlaces/anclas y casos de interacción de las webs; faltan recepción real de formularios, cobertura adicional por servicio, idiomas y validación factual |
 | 7 · Identidad | Mira entrega SVG editables, rutas, variantes y revisión visual a tamaños pequeños | Calidad creativa, licencias y riesgos legales requieren evidencia real. Sin clave de IA no se valida producción real |
 | 8 · Acciones por chat | Encargos internos acotados: ajustar, verificar, pausar, reanudar y continuar, con recibo y versión objetivo | Ejecución distribuida transaccional y autorización por presupuesto; no hay publicación ni aprobación automática desde el chat |
@@ -19,7 +19,7 @@ La rama 50 conserva las mejoras 47, 48 y 49 pendientes de integrar en main. Ning
 | 12 · Mejora continua | Fallos y revisiones negativas generan incidencias agrupadas; seguimiento y prueba declarada al resolver | Investigación automática y cambios de código por PR requieren IA real y acceso GitHub; no se modifica software en producción sin validar |
 | 13 · Servicios recurrentes | Bases de catálogo y memoria listas para construir recorridos repetibles | Depende de calidad demostrada, publicación, métricas, límites y permisos de los servicios correspondientes |
 
-La evidencia de ejecución y los límites están en [validacion-49.md](validacion-49.md) y [validacion-50.md](validacion-50.md).
+La evidencia de ejecución y los límites están en [validacion-49.md](validacion-49.md), [validacion-50.md](validacion-50.md) y [validacion-51.md](validacion-51.md) y [validacion-52.md](validacion-52.md).
 
 ## Chat y decisiones
 

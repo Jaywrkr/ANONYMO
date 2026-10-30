@@ -14,5 +14,8 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "probar": "npm run probar -w @anonymo/pipeline && npm run probar -w @anonymo/web",
     "revisar": "npm run revisar -w @anonymo/pipeline"
+  },
+  "devDependencies": {
+    "pg": "8.16.3"
   }
 }

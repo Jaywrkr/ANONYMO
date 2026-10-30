@@ -1,0 +1,6 @@
+import {exigirEstudio,serif} from '@/lib/estudio';
+import {VERSION,horaBuild} from '@/lib/version';
+import {Conexiones} from '@/components/estudio/Conexiones';
+export const dynamic='force-dynamic';
+export const metadata={title:'Conexiones — Estudio',robots:{index:false}};
+export default async function Pagina(){await exigirEstudio();return <div className="px-5 py-7 md:px-10"><h1 className={`${serif} text-[40px]`}>Conexiones del estudio.</h1><p className="mt-3 max-w-2xl text-[14px] text-medio">Comprueba los servicios desde este despliegue. Tener una clave configurada no demuestra que el proveedor responda.</p><p className="mt-4 text-[13px]">Versión {VERSION} · build {horaBuild()||'sin fecha'}{process.env.NEXT_PUBLIC_COMMIT?' · '+process.env.NEXT_PUBLIC_COMMIT:''}</p><Conexiones/><details className="mt-6 rounded-2xl bg-white p-4 text-[13px]"><summary className="min-h-11 cursor-pointer">Alcance de esta comprobación</summary><p className="mt-2">Comprueba el modelo y que el almacén configurado sea privado. No certifica calidad creativa, permisos para publicar, escritura de proyectos ni recuperación entre servidores. La cola distribuida sigue pendiente de activar y validar.</p></details></div>;}

@@ -181,6 +181,7 @@ export interface Requisito { id: string; texto: string; fuente: string; tarea?: 
 export interface Comprobacion { id: string; texto: string; estado: "cumple" | "falla" | "pendiente"; evidencia: string }
 export interface CapturaCalidad { ruta: string; sha256: string; ancho: number; pagina: string }
 export interface ControlEntrega {
+  referencias?:{id:string;revision:number;sha256:string;titulo:string;aprender:string;evitar:string}[];
   estado: "generado" | "pendiente" | "cambios" | "verificado" | "aprobado" | "simulado";
   version: number;
   huella: string;

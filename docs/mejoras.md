@@ -6,6 +6,8 @@ Una rama por mejora, en cadena (cada una sale de la anterior). Estado y cómo se
 
 | Rama | Qué hace | Cómo se usa |
 |---|---|---|
+| sistema/52-estandar-creativo | Referencias visuales privadas con criterio y copia versionada para productor y revisor; diagnóstico que comprueba respuestas de IA y almacén privado | Proyecto → Requisitos y calidad → Referencias; Menú → Conexiones del estudio. Incluye 0.51 pendiente de integrar |
+| sistema/51-memoria-vigente | Chat flotante de Atlas en todo el estudio; distingue decisiones confirmadas, propuestas e históricas; reutiliza solo memoria vigente de las fuentes del agente | Proyecto → Hablar con Atlas → Decisiones registradas; cada decisión enlaza su versión. Los motivos mantienen el contexto del inicio de la producción |
 | sistema/50-web-comprobada | Comprueba enlaces, anclas y casos de interacción en las webs; los formularios sin recepción comprobada quedan pendientes | Proyecto → Requisitos y calidad: fallos concretos antes de aprobar. Vector entrega pruebas.json con el sitio |
 | sistema/49-atlas-operaciones | Chat con Atlas y agentes con fuentes, encargos internos con recibo, decisiones y problemas registrados; propuestas de logo como SVG editables | Proyecto → Hablar con Atlas; entrega de Mira → archivos vectoriales. Plan y límites en docs/plan-agencia.md |
 | sistema/48-calidad-movil | Separa generado, verificado y aprobado; requisitos por entrega, revisión visual y auditoría de la versión real; inicio móvil con búsqueda y avance | Estudio desde el teléfono → Proyectos / Buscar / Pendientes; proyecto → Requisitos y calidad |

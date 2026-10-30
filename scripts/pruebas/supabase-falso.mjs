@@ -5,6 +5,7 @@ http.createServer(async (req, res) => {
   res.setHeader("access-control-allow-origin", "*"); res.setHeader("access-control-allow-methods", "PUT, POST, OPTIONS"); res.setHeader("access-control-allow-headers", "*");
   if (req.method === "OPTIONS") { res.end(); return; }
   const cuerpo = await new Promise((r) => { const c = []; req.on("data", (d) => c.push(d)); req.on("end", () => r(Buffer.concat(c))); });
+  if(req.method==="GET"&&req.url==="/storage/v1/bucket/proyectos"){res.setHeader("content-type","application/json");res.end(JSON.stringify({id:"proyectos",public:false}));return;}
   const firma = req.url.match(/^\/storage\/v1\/object\/upload\/sign\/proyectos\/([^?]+)(\?token=(.+))?$/);
   if (firma) {
     const ruta = decodeURIComponent(firma[1]);

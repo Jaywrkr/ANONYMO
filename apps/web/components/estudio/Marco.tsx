@@ -178,6 +178,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
       <div className="mt-auto grid gap-0.5">
         <span className="px-2.5 text-[11px] text-medio lg:hidden"><Version/></span>
         <Link href="/estudio?vista=completa" onClick={alIr} className={`${fila(false)} lg:hidden`}>Vista completa del estudio</Link>
+        <Link href="/estudio/conexiones" onClick={alIr} className={fila(ruta === "/estudio/conexiones")}>Conexiones del estudio</Link>
         <Link href="/estudio/analitica" onClick={alIr} className={fila(ruta === "/estudio/analitica")}><Icono d={I.metricas} /> Métricas de la web</Link>
         <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")}><Icono d={I.papelera} /> Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>
         <a href="/" target="_blank" rel="noreferrer" className={fila(false)}><Icono d={I.web} /> Ver la web</a>

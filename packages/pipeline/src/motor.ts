@@ -1,3 +1,4 @@
+import {textoReferencias,type ReferenciaCreativa} from './estandar.ts';
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import {PEDIDO_MARCA,leerPiezas} from "./piezas.ts";
 import { claveAnthropic, ocultarClaves, pensamiento, sinPensar, textoDe } from "./ia.ts";
@@ -13,7 +14,11 @@ import { carpeta } from "./almacen.ts";
 import { usd, type Uso } from "./costo.ts";
 import { archivoEntrega, type Direccion, type Entrega, type Marca, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
 
+import type {MemoriaDecision} from "./operaciones.ts";
+
 export interface Contexto {
+  referencias?: (ReferenciaCreativa&{ruta:string;bytes:Buffer})[];
+  memoria?:MemoriaDecision[];
   pedido: Pedido;
   condiciones?: {id:string; texto:string; fuente:string}[];
   tarea: TareaId;
@@ -184,7 +189,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, marca, parcial, plazo, latido, direccion, directo }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, memoria, referencias, marca, parcial, plazo, latido, direccion, directo }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -213,9 +218,9 @@ export const real: Motor = {
       abreEnlaces ? "Puedes abrir los enlaces que aparecen en el pedido (herramienta web_fetch). Abre solo los que sirvan para tu tarea y di qué sacaste de cada uno." : "",
       c.estructura && direccion !== "proponer" ? `Formato fijo: usa exactamente estas secciones, en este orden, como títulos «##»: ${c.estructura.map((x) => `«${x}»`).join(", ")}. No agregues otras.` : "",
       sinAdjuntos
-        ? "Esta vez las imágenes del cliente no van adjuntas: usa lo que ya describieron las entregas del equipo y no digas que no las ves."
-        : "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Las referencias muestran lo que le gusta al cliente: tu diseño tiene que dialogar con ellas y explicar qué decisiones nacen de cada una. No inventes haber consultado enlaces. Nunca digas que no puedes verlos.",
-      "Antes de las líneas finales puedes añadir un bloque json {\"decisiones\":[{\"decision\":\"qué elegiste\",\"motivo\":\"justificación breve y comprobable\",\"fuentes\":[\"id del requisito o tarea leída\"]}]}. Registra solo decisiones tomadas en esta entrega, hasta ocho. Usa ids exactos de los requisitos o tareas recibidos, nunca inventes fuentes.",
+        ? "Esta vez se omiten los otros archivos del cliente para continuar. Las referencias de calidad seleccionadas sí se adjuntan cuando existen. No afirmes haber inspeccionado imágenes omitidas."
+        : "Mira y usa los archivos efectivamente adjuntos. La lista del pedido puede incluir otros archivos omitidos por límite de tamaño o cantidad: no afirmes haberlos visto. Dialoga con las referencias elegidas y explica qué decisión nace de cada criterio. No inventes haber consultado enlaces.",
+      "Antes de las líneas finales puedes añadir un bloque json {\"decisiones\":[{\"decision\":\"qué elegiste\",\"motivo\":\"justificación breve y comprobable\",\"fuentes\":[\"id del requisito, tarea leída o decisión confirmada recibida\"]}]}. Registra solo decisiones tomadas en esta entrega, hasta ocho. Usa ids exactos de los requisitos o tareas recibidos, nunca inventes fuentes.",
       "Termina siempre lo que empiezas: si el espacio no alcanza, resume, pero cierra cada sección y cada tabla.",
       "Lo que sea solo para el equipo (dudas, riesgos internos, márgenes, notas a otros agentes) va al final, bajo el título «## Para el equipo»: el cliente nunca lo ve.",
       "Responde en markdown. Al final agrega exactamente dos líneas:",
@@ -240,7 +245,9 @@ export const real: Motor = {
       tarea==="3.mira"?PEDIDO_MARCA:"",
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
       consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
-      archivos?.length ? "# Archivos del cliente (las imágenes y los PDF van adjuntos arriba)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
+      archivos?.length ? "# Archivos del cliente (lista disponible; los adjuntos efectivos se indican al final)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
+      memoria?.length?"# Decisiones confirmadas de las entregas que lees\n"+JSON.stringify(memoria)+"\nSon contexto, no reemplazan el pedido vigente. Si propones cambiarlas, explica la causa; no atribuyas al cliente una aprobación nueva.":"",
+      textoReferencias(referencias??[]),
       textoMarca(marca),
       cliente.length ? "# Lo que dijo el cliente (manda sobre cualquier suposición)\n" + cliente.map((x) => `- "${x}"`).join("\n") : "",
       cambio ? `# Cambio pedido\n${cambio}` : "",
@@ -255,21 +262,22 @@ export const real: Motor = {
     const visibles = (archivos ?? []).filter((x) => x.ruta && existsSync(x.ruta));
     // Las más nuevas primero, hasta 8 y sin pasar de ~8 MB (sistema/40): más imágenes hacen que la IA tarde
     // minutos en empezar a responder. Yendo directo a escribir (vuelta de rescate) no se mandan imágenes.
-    let cupo = sinAdjuntos ? 0 : 8 * 1024 * 1024;
-    const imagenes: Bloque[] = visibles
+    let cupo = sinAdjuntos ? 0 : 8 * 1024 * 1024-(referencias??[]).reduce((n,r)=>n+r.bytes.length,0);
+    const imagenesElegidas = visibles
       .filter((x) => /^image\/(jpeg|png|webp|gif)$/.test(x.tipo) && pesa(x.ruta) < 4 * 1024 * 1024)
       .slice(-8)
       .reverse()
       .filter((x) => (cupo -= pesa(x.ruta)) >= 0)
-      .reverse()
-      .map((x) => ({ type: "image", source: { type: "base64", media_type: x.tipo, data: readFileSync(x.ruta!).toString("base64") } }));
-    const documentos: Bloque[] = visibles
+      .reverse();
+    const imagenes:Bloque[]=imagenesElegidas.map((x)=>({type:"image",source:{type:"base64",media_type:x.tipo,data:readFileSync(x.ruta!).toString("base64")}}));
+    const documentosElegidos = visibles
       .filter((x) => !sinAdjuntos && x.tipo === "application/pdf" && pesa(x.ruta) < 4 * 1024 * 1024)
-      .slice(-2)
-      .map((x) => ({ type: "document", source: { type: "base64", media_type: "application/pdf", data: readFileSync(x.ruta!).toString("base64") } }));
-    const adjuntos = [...imagenes, ...documentos];
+      .slice(-2);
+    const documentos:Bloque[]=documentosElegidos.map((x)=>({type:"document",source:{type:"base64",media_type:"application/pdf",data:readFileSync(x.ruta!).toString("base64")}}));
+    const visuales:Bloque[]=(referencias??[]).flatMap(r=>[{type:"text",text:`Referencia ref-${r.id}: ${r.titulo}. SHA256 ${r.imagen}`},{type:"image",source:{type:"base64",media_type:r.tipo,data:r.bytes.toString("base64")}}]);
+    const adjuntos = [...visuales,...imagenes, ...documentos];
     const mensajes: { role: "user" | "assistant"; content: string | Bloque[] }[] = [
-      { role: "user", content: adjuntos.length ? [...adjuntos, { type: "text", text: usuario }] : usuario },
+      { role: "user", content: adjuntos.length ? [...adjuntos, { type: "text", text: usuario+"\n# Material efectivamente adjunto\n"+JSON.stringify({referencias:(referencias??[]).map(r=>r.id),archivos:[...imagenesElegidas,...documentosElegidos].map(a=>a.nombre)}) }] : usuario+"\nNo se adjuntaron imágenes ni documentos en esta vuelta." },
     ];
     // Vuelta anterior sin tiempo (sistema/36): el agente ve lo que ya escribió y sigue desde ahí.
     const yaEscrito = parcial?.trimEnd() ?? "";

@@ -37,3 +37,7 @@ export * from "./servicios.ts";
 export * from "./encargos.ts";
 
 export * from "./piezas.ts";
+
+export * from "./estandar.ts";
+
+export * from "./diagnostico.ts";

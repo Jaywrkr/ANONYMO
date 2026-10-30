@@ -1,7 +1,8 @@
-import {interpretarEncargo,aplicarEncargo,recordarEncargo,leerProyecto,consultarAtlas} from '@anonymo/pipeline';
+import {interpretarEncargo,aplicarEncargo,recordarEncargo,leerProyecto,consultarAtlas,conversacionesDe,existe} from '@anonymo/pipeline';
 import {quienEsta} from '@/lib/estudio';
 import {lanzar,trabajandoAhora} from '@/lib/trabajo';
-import {conNube} from '@/lib/nube';
+import {agentePorId} from '@anonymo/agentes';
+import {traer,conNube} from '@/lib/nube';
 export const dynamic='force-dynamic';
 export const maxDuration=120;
 const activas=new Map<string,{huella:string;promesa:Promise<unknown>}>();
@@ -34,4 +35,9 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
   activas.set(clave,{huella,promesa:accion});
  }
  try{return Response.json(await accion,{headers:{'cache-control':'no-store'}});}catch{return Response.json({error:'No pudimos completar la consulta. Lo que ya estaba guardado se conserva.'},{status:503});}finally{activas.delete(clave);}
+}
+
+export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
+ if(!await quienEsta())return new Response(null,{status:404});const {id}=await params;if(!/^[a-z0-9_-]+$/.test(id))return new Response(null,{status:404});
+ try{await traer(id);if(!existe(id))return new Response(null,{status:404});const p=leerProyecto(id);if(p.papelera)return new Response(null,{status:404});const agentes=[...new Set(['atlas',...p.plan.tareas.map(t=>t.split('.')[1])])].map(id=>({id,nombre:agentePorId(id)?.nombre??id}));return Response.json({id,cliente:p.pedido.cliente,mensajes:conversacionesDe(id).slice(-50),agentes},{headers:{'cache-control':'no-store'}});}catch{return Response.json({error:'No pudimos abrir la conversación.'},{status:503});}
 }
