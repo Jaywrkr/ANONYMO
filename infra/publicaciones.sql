@@ -90,3 +90,24 @@ create or replace function public.anonymo_guardados_de(p_proyecto text) returns 
 $$;
 revoke all on function public.anonymo_leer_publicacion(text),public.anonymo_listar_publicaciones(),public.anonymo_publicar(text,bigint,uuid,text,jsonb,uuid,uuid,bigint,boolean,text),public.anonymo_encolar(text,uuid),public.anonymo_pulso(uuid,uuid,bigint,jsonb),public.anonymo_estado_trabajo(text),public.anonymo_guardados_de(text) from public,anon,authenticated;
 grant execute on function public.anonymo_leer_publicacion(text),public.anonymo_listar_publicaciones(),public.anonymo_publicar(text,bigint,uuid,text,jsonb,uuid,uuid,bigint,boolean,text),public.anonymo_encolar(text,uuid),public.anonymo_pulso(uuid,uuid,bigint,jsonb),public.anonymo_estado_trabajo(text),public.anonymo_guardados_de(text) to service_role;
+
+-- Diagnóstico sin leer filas de proyectos ni crear reservas. No acredita ejecución ni restauración.
+create or replace function public.anonymo_preparacion() returns jsonb language sql security invoker set search_path=public as $$
+ with funciones as (
+  select p.oid,p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname in (
+   'anonymo_preparacion','anonymo_leer_publicacion','anonymo_listar_publicaciones',
+   'anonymo_publicar','anonymo_encolar','anonymo_pulso','anonymo_estado_trabajo',
+   'anonymo_guardados_de','anonymo_tomar_trabajo','anonymo_renovar_trabajo','anonymo_terminar_trabajo')
+ ), tablas(nombre) as (values ('public.anonymo_publicaciones'),('public.anonymo_guardados'),('public.anonymo_trabajos')),
+ roles(rol) as (values ('anon'),('authenticated'))
+ select jsonb_build_object('protocolo',1,'seguridad',
+  current_user='service_role'
+  and (select count(distinct proname) from funciones)=11
+  and not exists(select 1 from tablas t join pg_class c on c.oid=t.nombre::regclass where not c.relrowsecurity)
+  and not exists(select 1 from tablas cross join roles where has_table_privilege(rol,nombre,'select,insert,update,delete'))
+  and not exists(select 1 from tablas where not (has_table_privilege('service_role',nombre,'select') and has_table_privilege('service_role',nombre,'insert') and has_table_privilege('service_role',nombre,'update')))
+  and not exists(select 1 from funciones cross join roles where has_function_privilege(rol,oid,'execute') or not has_function_privilege('service_role',oid,'execute')))
+$$;
+revoke all on function public.anonymo_preparacion() from public,anon,authenticated;
+grant execute on function public.anonymo_preparacion() to service_role;
