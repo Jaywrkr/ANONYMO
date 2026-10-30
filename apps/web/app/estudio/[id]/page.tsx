@@ -537,7 +537,8 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* AJUSTES */}
         {ver === "ajustes" && (
           <div className="grid max-w-3xl gap-5">
-            {versionadoActivo(id) && <Link className={boton} href={`/estudio/${id}/guardados`}>Revisar avances en conflicto</Link>}
+            {versionadoActivo(id) && <Link className={boton} href={`/estudio/${id}/guardados`}>Revisar copias y avances</Link>}
+            {versionadoActivo(id) && <Link className={boton} href={`/estudio/${id}/avisos`}>Revisar avisos pendientes</Link>}
             <form action={accionModo} className={`${tarjeta} grid gap-3`}>
               {comunes}
               <p className={`${serif} text-[22px] leading-tight`}>¿Cómo trabaja el equipo?</p>

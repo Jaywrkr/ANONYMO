@@ -24,6 +24,7 @@ interface Base {
     legado: boolean;
 }
 interface Sesion {
+    restaurar?: string;
     bases: Map<string, Base>;
     reserva?: ReservaTrabajo;
     fallo?: string;
@@ -36,6 +37,7 @@ export const enPublicacion = <T>(fn: () => T) => sesiones.run({ bases: new Map()
 export const conReserva = <T>(r: ReservaTrabajo, fn: () => T) => { const s = sesiones.getStore(); if (!s)
     throw new Error('La reserva necesita una copia aislada.'); return sesiones.run({ ...s, reserva: r }, fn); };
 export const hayPublicacionSinConfirmar = () => !!sesiones.getStore()?.publicacion.pendiente;
+export const conRestauracion = <T>(origen:string,fn:()=>T) => {const s=sesiones.getStore();if(!s)throw new Error("Falta una operación aislada.");return sesiones.run({...s,restaurar:origen},fn);};
 export const reservaActual = () => sesiones.getStore()?.reserva;
 export const marcarFalloPublicacion = (mensaje?: string) => { const s = sesiones.getStore(); if (s)
     s.fallo = mensaje; };
@@ -181,7 +183,7 @@ export async function publicarVersionado(id: string, antes: Map<string, string>,
         estado: string;
         revision: number;
         id: string;
-    }>('anonymo_publicar', { p_proyecto: id, p_base: base.indice.revision, p_id: operacion, p_huella: huella, p_archivos: mapa, p_trabajo: reserva?.id ?? null, p_propietario: reserva?.propietario ?? null, p_reserva: reserva?.revision ?? null, p_correcto: !s.fallo, p_error: s.fallo ?? null }, f);
+    }>(s.restaurar?'anonymo_restaurar':'anonymo_publicar', { p_proyecto: id, p_base: base.indice.revision, p_id: operacion, p_huella: huella, p_archivos: mapa, ...(s.restaurar?{p_origen:s.restaurar}:{p_trabajo: reserva?.id ?? null, p_propietario: reserva?.propietario ?? null, p_reserva: reserva?.revision ?? null, p_correcto: !s.fallo, p_error: s.fallo ?? null}) }, f);
     const recibo = join(carpeta(), id, '.publicacion-no-confirmada.json');
     writeFileSync(recibo, JSON.stringify({ id: operacion, base: base.indice.revision, huella }));
     let r;
@@ -204,7 +206,7 @@ export async function publicarVersionado(id: string, antes: Map<string, string>,
     return { subidos, borrados };
 }
 export async function encolarVersionado(id: string, f: typeof fetch = fetch) { return rpcVersionado<string>('anonymo_encolar', { p_proyecto: seguro(id), p_id: randomUUID() }, f); }
-export async function tomarVersionado(id: string, f: typeof fetch = fetch): Promise<ReservaTrabajo | undefined> { const rs = await rpcVersionado<any[]>('anonymo_tomar_trabajo', { p_proyecto: seguro(id), p_propietario: randomUUID(), p_segundos: 90 }, f); const r = rs[0]; return r ? { id: r.id, proyecto: r.proyecto, propietario: r.propietario, revision: Number(r.revision) } : undefined; }
+export async function tomarVersionado(id: string, f: typeof fetch = fetch): Promise<ReservaTrabajo | undefined> { const propietario=randomUUID();const rs = await rpcVersionado<any[]>('anonymo_tomar_trabajo', { p_proyecto: seguro(id), p_propietario: propietario, p_segundos: 90 }, f); if(!Array.isArray(rs)||rs.length>1)throw new Error('No se confirmó una reserva válida.');const r=rs[0];if(!r)return undefined;const revision=Number(r.revision),uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;if(!uuid.test(r.id)||!uuid.test(r.propietario)||r.propietario!==propietario||r.proyecto!==id||!Number.isSafeInteger(revision)||revision<1)throw new Error('No se confirmó una reserva válida.');return {id:r.id,proyecto:r.proyecto,propietario:r.propietario,revision}; }
 export async function pulsoVersionado(id: string, vivo: unknown, f: typeof fetch = fetch) { const r = reservaActual(); if (!r || r.proyecto !== id)
     return false; return rpcVersionado<boolean>('anonymo_pulso', { p_id: r.id, p_propietario: r.propietario, p_revision: r.revision, p_vivo: vivo }, f); }
 export async function guardadosVersionados(id: string, f: typeof fetch = fetch) { return rpcVersionado<{
@@ -216,3 +218,8 @@ export async function guardadosVersionados(id: string, f: typeof fetch = fetch) 
 export async function terminarReserva(r: ReservaTrabajo, correcto: boolean, motivo: string, f: typeof fetch = fetch) { return rpcVersionado<boolean>('anonymo_terminar_trabajo', { p_id: r.id, p_propietario: r.propietario, p_revision: r.revision, p_resultado: { motivo }, p_correcto: correcto }, f); }
 export async function estadoConCola(id: string, contenido: string, f: typeof fetch = fetch) { const q = await estadoCola(id, f); if (q?.estado !== 'error')
     return contenido; const p = JSON.parse(contenido); p.error ??= { mensaje: q.resultado?.guardado ? 'El pedido cambió durante el trabajo. Hay un avance guardado para revisar antes de continuar.' : q.resultado?.motivo ?? 'La reserva agotó sus intentos.', fecha: q.actualizado }; return JSON.stringify(p); }
+
+export interface GuardadoProyecto {id:string;estado:string;revision:number|null;creado:string;archivos:Record<string,EntradaIndice>;}
+export async function historialVersionado(id:string,f:typeof fetch=fetch){return rpcVersionado<Omit<GuardadoProyecto,'archivos'>[]>('anonymo_historial',{p_proyecto:seguro(id)},f);}
+export async function guardadoVersionado(id:string,operacion:string,f:typeof fetch=fetch){if(!/^[a-f0-9-]{36}$/.test(operacion))throw new Error('Identificador de copia no válido.');const d=await rpcVersionado<GuardadoProyecto|null>('anonymo_guardado',{p_proyecto:seguro(id),p_id:operacion},f);if(d)validarIndice(id,{revision:1,archivos:d.archivos});return d;}
+export function compararIndices(actual:IndiceProyecto,copia:GuardadoProyecto){return [...new Set([...Object.keys(actual.archivos),...Object.keys(copia.archivos)])].sort().flatMap(r=>{const a=actual.archivos[r],b=copia.archivos[r];return a?.sha256===b?.sha256?[]:[{ruta:r,cambio:!a?'recuperar':!b?'retirar':'cambiar'}];});}

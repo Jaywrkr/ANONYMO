@@ -250,6 +250,8 @@ export type ModoTrabajo = "paso" | "fase" | "auto";
 export interface Proyecto {
   pedido: Pedido;
   requisitos?: Requisito[];
+  /** Copia recuperada: antes de seguir, revisar de nuevo las entregas reales. */
+  revisionRecuperada?: string;
   controlPendiente?: { tarea: TareaId; version: number; proponer: boolean };
   controlRondas?: Record<string, number>;
   controlIntentos?: Record<string, number>;

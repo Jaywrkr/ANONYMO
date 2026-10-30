@@ -98,12 +98,12 @@ create or replace function public.anonymo_preparacion() returns jsonb language s
   where n.nspname='public' and p.proname in (
    'anonymo_preparacion','anonymo_leer_publicacion','anonymo_listar_publicaciones',
    'anonymo_publicar','anonymo_encolar','anonymo_pulso','anonymo_estado_trabajo',
-   'anonymo_guardados_de','anonymo_tomar_trabajo','anonymo_renovar_trabajo','anonymo_terminar_trabajo')
- ), tablas(nombre) as (values ('public.anonymo_publicaciones'),('public.anonymo_guardados'),('public.anonymo_trabajos')),
+   'anonymo_avisos_estado','anonymo_reservar_aviso','anonymo_cerrar_aviso','anonymo_historial','anonymo_guardado','anonymo_restaurar','anonymo_guardados_de','anonymo_tomar_trabajo','anonymo_renovar_trabajo','anonymo_terminar_trabajo')
+ ), tablas(nombre) as (values ('public.anonymo_publicaciones'),('public.anonymo_guardados'),('public.anonymo_trabajos'),('public.anonymo_restauraciones'),('public.anonymo_salidas')),
  roles(rol) as (values ('anon'),('authenticated'))
- select jsonb_build_object('protocolo',1,'seguridad',
+ select jsonb_build_object('protocolo',2,'seguridad',
   current_user='service_role'
-  and (select count(distinct proname) from funciones)=11
+  and (select count(distinct proname) from funciones)=17
   and not exists(select 1 from tablas t join pg_class c on c.oid=t.nombre::regclass where not c.relrowsecurity)
   and not exists(select 1 from tablas cross join roles where has_table_privilege(rol,nombre,'select,insert,update,delete'))
   and not exists(select 1 from tablas where not (has_table_privilege('service_role',nombre,'select') and has_table_privilege('service_role',nombre,'insert') and has_table_privilege('service_role',nombre,'update')))
@@ -111,3 +111,88 @@ create or replace function public.anonymo_preparacion() returns jsonb language s
 $$;
 revoke all on function public.anonymo_preparacion() from public,anon,authenticated;
 grant execute on function public.anonymo_preparacion() to service_role;
+
+
+-- El historial conserva índices completos; restaurar publica una revisión nueva, sin eliminar las anteriores.
+create table if not exists public.anonymo_restauraciones (
+ id uuid primary key references public.anonymo_guardados(id),
+ proyecto text not null, origen uuid not null references public.anonymo_guardados(id), creado timestamptz not null default now()
+);
+alter table public.anonymo_restauraciones enable row level security;
+revoke all on public.anonymo_restauraciones from public,anon,authenticated;
+grant all on public.anonymo_restauraciones to service_role;
+create or replace function public.anonymo_historial(p_proyecto text) returns jsonb language sql security invoker set search_path=public as $$
+ select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from (
+ select id,estado,revision,base,creado from public.anonymo_guardados where proyecto=p_proyecto order by creado desc,id desc limit 50
+ ) t
+$$;
+create or replace function public.anonymo_guardado(p_proyecto text,p_id uuid) returns jsonb language sql security invoker set search_path=public as $$
+ select jsonb_build_object('id',id,'estado',estado,'revision',revision,'archivos',archivos,'creado',creado) from public.anonymo_guardados where proyecto=p_proyecto and id=p_id
+$$;
+create or replace function public.anonymo_restaurar(p_proyecto text,p_base bigint,p_id uuid,p_origen uuid,p_huella text,p_archivos jsonb)
+returns jsonb language plpgsql security invoker set search_path=public as $$
+declare anterior public.anonymo_restauraciones; resultado jsonb;
+begin
+ perform pg_advisory_xact_lock(hashtextextended('anonymo-cola:'||p_proyecto,0));
+ if not exists(select 1 from public.anonymo_guardados where id=p_origen and proyecto=p_proyecto) then raise exception 'Copia de origen no disponible'; end if;
+ select * into anterior from public.anonymo_restauraciones where id=p_id;
+ if found then
+  if anterior.proyecto<>p_proyecto or anterior.origen<>p_origen then raise exception 'Recibo reutilizado para otra restauración'; end if;
+  -- Revalida también base, huella y contenido, sin cancelar trabajos que empezaron después.
+  return public.anonymo_publicar(p_proyecto,p_base,p_id,p_huella,p_archivos);
+ end if;
+ if exists(select 1 from public.anonymo_guardados where id=p_id) then raise exception 'Recibo de otra operación'; end if;
+ resultado=public.anonymo_publicar(p_proyecto,p_base,p_id,p_huella,p_archivos);
+ insert into public.anonymo_restauraciones(id,proyecto,origen) values(p_id,p_proyecto,p_origen);
+ if resultado->>'estado'='publicado' then
+  update public.anonymo_trabajos set estado='terminado',vence=null,actualizado=clock_timestamp(),resultado=jsonb_build_object('motivo','Revisión restaurada. El proyecto queda en pausa.')
+  where proyecto=p_proyecto and estado in ('cola','ejecutando');
+ end if;
+ return resultado;
+end $$;
+revoke all on function public.anonymo_historial(text),public.anonymo_guardado(text,uuid),public.anonymo_restaurar(text,bigint,uuid,uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function public.anonymo_historial(text),public.anonymo_guardado(text,uuid),public.anonymo_restaurar(text,bigint,uuid,uuid,text,jsonb) to service_role;
+
+create table if not exists public.anonymo_salidas (
+ proyecto text not null, evento uuid not null, canal text not null check(canal in ('correo','webhook')), config text not null, quien text check(quien in ('jay','luna')),
+ estado text not null check(estado in ('enviando','enviado','pendiente','revisar')), propietario uuid, vence timestamptz,
+ intentos integer not null default 0, creado timestamptz not null default clock_timestamp(), actualizado timestamptz not null default clock_timestamp(),
+ primary key(proyecto,evento,canal)
+);
+alter table public.anonymo_salidas enable row level security;
+revoke all on public.anonymo_salidas from public,anon,authenticated;
+grant all on public.anonymo_salidas to service_role;
+create or replace function public.anonymo_avisos_estado(p_proyecto text) returns jsonb language sql security invoker set search_path=public as $$
+ select coalesce(jsonb_agg(jsonb_build_object('evento',evento,'canal',canal,'estado',case when estado='enviado' then 'enviado' when estado='enviando' and vence>clock_timestamp() then 'enviando' when estado='revisar' or intentos>=3 or creado<clock_timestamp()-interval '23 hours' then 'revisar' else 'pendiente' end,'intentos',intentos)),'[]'::jsonb) from public.anonymo_salidas where proyecto=p_proyecto
+$$;
+create or replace function public.anonymo_reservar_aviso(p_proyecto text,p_evento uuid,p_ruta text,p_huella text,p_canal text,p_config text,p_propietario uuid,p_quien text)
+returns boolean language plpgsql security invoker set search_path=public as $$
+declare salida public.anonymo_salidas;
+begin
+ if p_quien is null or p_quien not in ('jay','luna') then raise exception 'Falta quien envía';end if;
+ if p_evento is null or p_propietario is null or p_canal not in ('correo','webhook') or p_config is null or p_config !~ '^[a-f0-9]{64}$' or p_ruta !~ '^avisos-cola/[0-9]{17}_[a-f0-9-]{36}\.json$' or right(p_ruta,42)<>'_'||p_evento::text||'.json' then raise exception 'Aviso no válido';end if;
+ perform pg_advisory_xact_lock(hashtextextended('anonymo-cola:'||p_proyecto,0));
+ if not exists(select 1 from public.anonymo_publicaciones where proyecto=p_proyecto and archivos->p_ruta->>'sha256'=p_huella) then raise exception 'Aviso no confirmado';end if;
+ insert into public.anonymo_salidas(proyecto,evento,canal,config,estado) values(p_proyecto,p_evento,p_canal,p_config,'pendiente') on conflict do nothing;
+ select * into salida from public.anonymo_salidas where proyecto=p_proyecto and evento=p_evento and canal=p_canal for update;
+ if salida.config<>p_config then raise exception 'Cambió el destino del aviso';end if;
+ if salida.estado in ('enviado','revisar') or (salida.estado='enviando' and salida.vence>clock_timestamp()) then return false;end if;
+ -- El proveedor puede olvidar las claves de deduplicación: no se reintenta fuera de esta ventana.
+ if salida.intentos>=3 or salida.creado<clock_timestamp()-interval '23 hours' then update public.anonymo_salidas set estado='revisar',vence=null where proyecto=p_proyecto and evento=p_evento and canal=p_canal;return false;end if;
+ update public.anonymo_salidas set estado='enviando',quien=p_quien,propietario=p_propietario,vence=clock_timestamp()+interval '60 seconds',intentos=intentos+1,actualizado=clock_timestamp() where proyecto=p_proyecto and evento=p_evento and canal=p_canal;
+ return true;
+end $$;
+create or replace function public.anonymo_cerrar_aviso(p_proyecto text,p_evento uuid,p_canal text,p_propietario uuid,p_correcto boolean)
+returns boolean language plpgsql security invoker set search_path=public as $$
+declare cantidad integer;
+begin
+ if p_correcto is null then raise exception 'Falta el resultado';end if;
+ update public.anonymo_salidas set estado=case when p_correcto then 'enviado' when intentos>=3 then 'revisar' else 'pendiente' end,vence=null,actualizado=clock_timestamp()
+ where proyecto=p_proyecto and evento=p_evento and canal=p_canal and propietario=p_propietario and estado='enviando' and vence>clock_timestamp();
+ get diagnostics cantidad=row_count;return cantidad=1;
+end $$;
+revoke all on function public.anonymo_avisos_estado(text),public.anonymo_reservar_aviso(text,uuid,text,text,text,text,uuid,text),public.anonymo_cerrar_aviso(text,uuid,text,uuid,boolean) from public,anon,authenticated;
+grant execute on function public.anonymo_avisos_estado(text),public.anonymo_reservar_aviso(text,uuid,text,text,text,text,uuid,text),public.anonymo_cerrar_aviso(text,uuid,text,uuid,boolean) to service_role;
+
+-- Hace visibles los RPC nuevos en PostgREST después de aplicar la migración.
+notify pgrst, 'reload schema';

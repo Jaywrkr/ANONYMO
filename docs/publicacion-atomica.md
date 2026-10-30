@@ -8,7 +8,7 @@ Cada archivo se sube a una ruta privada con su SHA-256. El proyecto visible es u
 
 El ejecutor obtiene una reserva de la cola SQL, la renueva y publica con su propietario y número de reserva. El cambio de índice y el cierre del trabajo ocurren juntos. Un propietario anterior no puede confirmar resultados tras la recuperación de su reserva. Los reintentos de publicación usan el mismo identificador; perder la respuesta después del commit no genera otra revisión.
 
-Si otra acción cambió el proyecto, se rechaza el reemplazo y se guarda el índice propuesto en privado. Ajustes → Revisar avances en conflicto permite descargar los archivos de los últimos veinte avances rechazados, con sesión del estudio. Las descargas son adjuntos, sin ejecutar HTML. No hay adopción ni mezcla automática: deben revisarse contra el pedido vigente.
+Si otra acción cambió el proyecto, se rechaza el reemplazo y se guarda el índice propuesto en privado. Ajustes → Revisar avances en conflicto permite descargar los archivos de los últimos veinte avances rechazados, con sesión del estudio. Las descargas son adjuntos, sin ejecutar HTML. 0.55 añade comparación y recuperación explícita de una copia completa, con pausa y revalidación, sin mezcla automática. Ver [recuperacion-y-avisos.md](recuperacion-y-avisos.md).
 
 El pulso de la cola se presenta en el estudio y los errores de reserva/conflicto detienen el rescate automático. Un fallo de red que impide confirmar el recibo conserva la carpeta temporal privada y su identificador de publicación; el disco de Vercel sigue siendo temporal, no una copia durable garantizada. Una caída antes de registrar el índice puede dejar objetos sin índice: todavía falta reconciliación automática y limpieza segura.
 
@@ -24,13 +24,13 @@ El pulso de la cola se presenta en el estudio y los errores de reserva/conflicto
 
 ## Comprobación desde el despliegue · 0.54
 
-Conexiones del estudio añade una tarjeta para el piloto. Apagado no hace consultas SQL; habilitado exige una selección explícita y consulta `anonymo_preparacion()`. Solo admite protocolo 1 y permisos privados comprobados. La función inspecciona el catálogo, sin leer proyectos ni crear reservas. Reaplicar `infra/publicaciones.sql` en ensayo para actualizarla; esquema ausente, permisos abiertos o conexión fallida aparecen como pendientes de revisar. No equivale a haber ensayado escritura, restauración o producción. CI repite el recorrido móvil después del build con servicios ficticios; sus resultados efectivos se consultan en la ejecución de GitHub Actions.
+Conexiones del estudio añade una tarjeta para el piloto. Apagado no hace consultas SQL; habilitado exige una selección explícita y consulta `anonymo_preparacion()`. La versión 0.55 exige protocolo 2 y permisos privados comprobados; el esquema anterior no se presenta como preparado para las funciones nuevas. La función inspecciona el catálogo, sin leer proyectos ni crear reservas. Reaplicar `infra/publicaciones.sql` en ensayo para actualizarla; esquema ausente, permisos abiertos o conexión fallida aparecen como pendientes de revisar. No equivale a haber ensayado escritura, restauración o producción. CI repite el recorrido móvil después del build con servicios ficticios; sus resultados efectivos se consultan en la ejecución de GitHub Actions.
 
 ## Límites del piloto
 
-- Cualquier cambio concurrente puede rechazar el resultado del agente; no hay mezcla semántica ni recuperación asistida. Puede requerir repetir parte del trabajo.
+- Cualquier cambio concurrente puede rechazar el resultado del agente. La recuperación de 0.55 exige comparar y confirmar; no mezcla semánticamente resultados.
 - El propietario vencido puede seguir consumiendo IA hasta que termine su llamada; el control de reserva impide publicar, no cancela el proveedor.
-- Los avisos se conservan dentro del proyecto; no se envían correos ni webhooks en proyectos del piloto. Falta una bandeja transaccional que los envíe solo después del commit, con deduplicación externa.
+- 0.55 guarda eventos dentro del índice confirmado y añade recibos y reservas por canal. El envío externo está desactivado por defecto y exige una acción explícita y configuración adicional. Los webhooks requieren deduplicación en el receptor. No hay política ni envío automático activado.
 - La eliminación remota permanente está bloqueada para proyectos del piloto. El índice puede dejar de incluir archivos, pero sus objetos inmutables e historial siguen privados. Falta retención y purga verificable antes de utilizarlo con obligaciones de borrado reales.
 - El esquema SQL no comprueba existencia ni huella de los objetos: el cliente de servicio sube y verifica bytes; PostgreSQL valida forma, proyecto, base y reserva. No admite escritores de servicio ajenos a este protocolo.
 - Las acciones sobre varios proyectos no forman una única transacción. Solicitudes, analítica y subidas temporales usan el almacenamiento anterior.

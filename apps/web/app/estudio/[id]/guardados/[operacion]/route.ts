@@ -1,4 +1,4 @@
-import { bytesVersionados, guardadosVersionados, versionadoActivo } from '@anonymo/pipeline';
+import { bytesVersionados, guardadoVersionado, versionadoActivo } from '@anonymo/pipeline';
 import { quienEsta } from '@/lib/estudio';
 export const dynamic = 'force-dynamic';
 export async function GET(req: Request, { params }: {
@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: {
     if (!/^[a-z0-9][a-z0-9_-]{0,80}$/.test(id) || !versionadoActivo(id) || !/^[a-f0-9-]{36}$/.test(operacion))
         return new Response(null, { status: 404 });
     try {
-        const r = new URL(req.url).searchParams.get('archivo') ?? '', a = (await guardadosVersionados(id)).find(x => x.id === operacion);
+        const r = new URL(req.url).searchParams.get('archivo') ?? '', a = await guardadoVersionado(id,operacion);
         const entrada = a && Object.hasOwn(a.archivos, r) ? a.archivos[r] : undefined;
         if (!entrada)
             return new Response(null, { status: 404 });

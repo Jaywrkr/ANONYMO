@@ -30,7 +30,7 @@ async function comprobarPiloto(f:typeof fetch):Promise<ConexionProbada>{
  if(!seleccion?.length||seleccion.some(s=>!/^[a-z0-9][a-z0-9_-]{0,80}$/.test(s)))return {...base,estado:'fallo',detalle:'El piloto requiere una selección explícita de proyectos de ensayo. Revisa la configuración antes de utilizarlo.'};
  if(!process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_KEY)return {...base,estado:'falta',detalle:'Falta la conexión privada para consultar el esquema del piloto.'};
  try{const r=await rpcVersionado<{protocolo?:unknown;seguridad?:unknown}>('anonymo_preparacion',{},f);
- if(r?.protocolo!==1||r.seguridad!==true)return {...base,estado:'fallo',detalle:'No se confirmó la versión del esquema o sus permisos privados. No actives proyectos reales.'};
+ if(r?.protocolo!==2||r.seguridad!==true)return {...base,estado:'fallo',detalle:'No se confirmó la versión del esquema o sus permisos privados. No actives proyectos reales.'};
  return {...base,estado:'listo',detalle:'El esquema esperado respondió y sus permisos comprobados son privados. El piloto está limitado a la selección configurada. Esta consulta no prueba escrituras, recuperación, avisos ni calidad creativa: falta el ensayo completo.'};
  }catch{return {...base,estado:'fallo',detalle:'No se pudo comprobar el esquema del piloto. Revisa la conexión y aplica la versión correspondiente de ambos archivos SQL en el entorno de ensayo.'};}
 }
