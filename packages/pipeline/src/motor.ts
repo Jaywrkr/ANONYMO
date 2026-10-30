@@ -13,7 +13,10 @@ import { carpeta } from "./almacen.ts";
 import { usd, type Uso } from "./costo.ts";
 import { archivoEntrega, type Direccion, type Entrega, type Marca, type Pedido, type ResultadoHerramienta, type TareaId } from "./tipos.ts";
 
+import type {MemoriaDecision} from "./operaciones.ts";
+
 export interface Contexto {
+  memoria?:MemoriaDecision[];
   pedido: Pedido;
   condiciones?: {id:string; texto:string; fuente:string}[];
   tarea: TareaId;
@@ -184,7 +187,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, marca, parcial, plazo, latido, direccion, directo }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, memoria, marca, parcial, plazo, latido, direccion, directo }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     const c = contratoPorId(tarea)!;
@@ -215,7 +218,7 @@ export const real: Motor = {
       sinAdjuntos
         ? "Esta vez las imágenes del cliente no van adjuntas: usa lo que ya describieron las entregas del equipo y no digas que no las ves."
         : "Si el cliente mandó imágenes o PDF, los tienes adjuntos: míralos y úsalos. Las referencias muestran lo que le gusta al cliente: tu diseño tiene que dialogar con ellas y explicar qué decisiones nacen de cada una. No inventes haber consultado enlaces. Nunca digas que no puedes verlos.",
-      "Antes de las líneas finales puedes añadir un bloque json {\"decisiones\":[{\"decision\":\"qué elegiste\",\"motivo\":\"justificación breve y comprobable\",\"fuentes\":[\"id del requisito o tarea leída\"]}]}. Registra solo decisiones tomadas en esta entrega, hasta ocho. Usa ids exactos de los requisitos o tareas recibidos, nunca inventes fuentes.",
+      "Antes de las líneas finales puedes añadir un bloque json {\"decisiones\":[{\"decision\":\"qué elegiste\",\"motivo\":\"justificación breve y comprobable\",\"fuentes\":[\"id del requisito, tarea leída o decisión confirmada recibida\"]}]}. Registra solo decisiones tomadas en esta entrega, hasta ocho. Usa ids exactos de los requisitos o tareas recibidos, nunca inventes fuentes.",
       "Termina siempre lo que empiezas: si el espacio no alcanza, resume, pero cierra cada sección y cada tabla.",
       "Lo que sea solo para el equipo (dudas, riesgos internos, márgenes, notas a otros agentes) va al final, bajo el título «## Para el equipo»: el cliente nunca lo ve.",
       "Responde en markdown. Al final agrega exactamente dos líneas:",
@@ -241,6 +244,7 @@ export const real: Motor = {
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
       consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
       archivos?.length ? "# Archivos del cliente (las imágenes y los PDF van adjuntos arriba)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
+      memoria?.length?"# Decisiones confirmadas de las entregas que lees\n"+JSON.stringify(memoria)+"\nSon contexto, no reemplazan el pedido vigente. Si propones cambiarlas, explica la causa; no atribuyas al cliente una aprobación nueva.":"",
       textoMarca(marca),
       cliente.length ? "# Lo que dijo el cliente (manda sobre cualquier suposición)\n" + cliente.map((x) => `- "${x}"`).join("\n") : "",
       cambio ? `# Cambio pedido\n${cambio}` : "",

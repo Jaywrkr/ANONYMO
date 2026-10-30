@@ -1,3 +1,4 @@
+import {AtlasFlotante} from "@/components/estudio/AtlasFlotante";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { Suspense } from "react";
@@ -52,6 +53,7 @@ export default async function LayoutEstudio({ children }: { children: React.Reac
       </Suspense>
       <Suspense fallback={null}><Avisos /></Suspense>
       <Suspense fallback={null}><Trabajando /></Suspense>
+      <AtlasFlotante proyectos={vivos.filter(p=>!p.pedido.id.startsWith("_")).map(p=>({id:p.pedido.id,nombre:p.pedido.cliente}))}/>
       <Vigia inicial={avisos.map((a) => a.clave)} />
     </>
   );
