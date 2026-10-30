@@ -5,7 +5,7 @@ import { agentePorId } from "@anonymo/agentes";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
-import { prepararEncargo, aplicarEncargo, cambiarMejora, type AccionEncargo, pedirControl, anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { agregarReferencia, retirarReferencia, prepararEncargo, aplicarEncargo, cambiarMejora, type AccionEncargo, pedirControl, anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
@@ -452,4 +452,12 @@ export async function accionReintentarEncargo(f:FormData){
 export async function accionEstadoMejora(f:FormData){
  const {id}=await leer(f);
  await correr(id,()=>cambiarMejora(id,String(f.get("mejora")??""),String(f.get("estado")??"") as "detectada"|"investigando"|"propuesta"|"resuelta",String(f.get("prueba")??"")),"Mejora actualizada.",false,"/atlas");
+}
+
+export async function accionReferencia(f:FormData){
+ const {id,quien}=await leer(f);
+ await correr(id,()=>agregarReferencia(id,{titulo:String(f.get('titulo')??''),ambito:String(f.get('ambito')??'') as 'web'|'identidad',archivo:String(f.get('archivo')??''),aprender:String(f.get('aprender')??''),evitar:String(f.get('evitar')??''),origen:String(f.get('origen')??''),revision:Number(f.get('revision')),quien}), 'Referencia guardada. Las revisiones afectadas necesitan comprobarse de nuevo.',false,'/calidad');
+}
+export async function accionRetirarReferencia(f:FormData){
+ const {id,quien}=await leer(f);await correr(id,()=>retirarReferencia(id,String(f.get('referencia')??''),Number(f.get('revision')),quien),'Referencia retirada de la selección. Su historial se conserva.',false,'/calidad');
 }

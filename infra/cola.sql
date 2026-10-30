@@ -14,18 +14,28 @@ create table if not exists public.anonymo_trabajos (
  revision bigint not null default 0,
  intentos integer not null default 0,
  limite integer not null default 3 check (limite between 1 and 10),
- resultado jsonb
+ resultado jsonb,
+ check (estado<>'ejecutando' or (propietario is not null and vence is not null))
 );
 alter table public.anonymo_trabajos enable row level security;
 revoke all on public.anonymo_trabajos from anon, authenticated;
 grant all on public.anonymo_trabajos to service_role;
+create unique index if not exists anonymo_un_trabajo_activo on public.anonymo_trabajos(proyecto) where estado='ejecutando';
 create index if not exists anonymo_trabajos_pendientes on public.anonymo_trabajos(proyecto,estado,disponible);
 
 create or replace function public.anonymo_tomar_trabajo(p_proyecto text,p_propietario uuid,p_segundos integer default 60)
 returns setof public.anonymo_trabajos language plpgsql security invoker set search_path=public as $$
 declare elegido uuid;
 begin
- if p_segundos < 15 or p_segundos > 300 then raise exception 'Duración de reserva no válida'; end if;
+ if p_propietario is null then raise exception 'Propietario no válido'; end if;
+ if p_segundos is null or p_segundos < 15 or p_segundos > 300 then raise exception 'Duración de reserva no válida'; end if;
+ -- Una reserva activa por proyecto; dos transacciones no pueden decidir a la vez.
+ if not pg_try_advisory_xact_lock(hashtextextended('anonymo-cola:'||p_proyecto,0)) then return; end if;
+ update public.anonymo_trabajos set estado='error',actualizado=now(),resultado='{"motivo":"Reserva vencida y límite de intentos agotado"}'::jsonb
+ where proyecto=p_proyecto and estado='ejecutando' and vence<now() and intentos>=limite;
+ update public.anonymo_trabajos set estado='cola',actualizado=now()
+ where proyecto=p_proyecto and estado='ejecutando' and vence<now() and intentos<limite;
+ if exists(select 1 from public.anonymo_trabajos where proyecto=p_proyecto and estado='ejecutando' and vence>now()) then return; end if;
  select id into elegido from public.anonymo_trabajos
  where proyecto=p_proyecto and intentos<limite and disponible<=now()
  and (estado='cola' or (estado='ejecutando' and vence<now()))
@@ -50,3 +60,16 @@ revoke all on function public.anonymo_tomar_trabajo(text,uuid,integer) from publ
 revoke all on function public.anonymo_terminar_trabajo(uuid,uuid,bigint,jsonb,boolean) from public,anon,authenticated;
 grant execute on function public.anonymo_tomar_trabajo(text,uuid,integer) to service_role;
 grant execute on function public.anonymo_terminar_trabajo(uuid,uuid,bigint,jsonb,boolean) to service_role;
+
+-- Renovar no rescata una reserva vencida ni permite que un propietario anterior vuelva a escribir.
+create or replace function public.anonymo_renovar_trabajo(p_id uuid,p_propietario uuid,p_revision bigint,p_segundos integer default 60)
+returns boolean language plpgsql security invoker set search_path=public as $$
+declare cantidad integer;
+begin
+ if p_segundos is null or p_segundos<15 or p_segundos>300 then raise exception 'Duración de reserva no válida'; end if;
+ update public.anonymo_trabajos set vence=now()+make_interval(secs=>p_segundos),actualizado=now()
+ where id=p_id and propietario=p_propietario and revision=p_revision and estado='ejecutando' and vence>now();
+ get diagnostics cantidad=row_count;return cantidad=1;
+end $$;
+revoke all on function public.anonymo_renovar_trabajo(uuid,uuid,bigint,integer) from public,anon,authenticated;
+grant execute on function public.anonymo_renovar_trabajo(uuid,uuid,bigint,integer) to service_role;

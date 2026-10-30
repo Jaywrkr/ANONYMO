@@ -1,3 +1,4 @@
+import {referenciasDe,huellaReferencias} from './estandar.ts';
 // Requisitos con fuente: nunca se interpreta la respuesta del productor como prueba de cumplimiento.
 import { createHash } from 'node:crypto';
 import {listarArchivos} from './archivos.ts';
@@ -17,10 +18,12 @@ export function requisitosDe(p: Proyecto): Requisito[] {
 }
 export function condicionesDe(p: Proyecto, tarea: TareaId) {
   return [
+    ...referenciasDe(p.pedido.id,tarea).map(r=>({id:`ref-${r.id}`,texto:`Referencia «${r.titulo}»: resolver con una propuesta propia ${r.aprender}. Evitar ${r.evitar}. No copiar su composición ni recursos.`,fuente:'Referencia de calidad elegida'})),
     ...requisitosDe(p).filter(r => !r.tarea || r.tarea === tarea),
     ...(contratoPorId(tarea)?.criterios ?? []).map((texto, i) => ({ id: `c-${i}`, texto, fuente: 'Condición de la entrega' })),
   ];
 }
 export function contextoCalidad(p: Proyecto, tarea: TareaId): string {
-  return createHash('sha256').update(JSON.stringify({ requisitos: condicionesDe(p, tarea), materiales:listarArchivos(p.pedido.id), marca: p.marca, direccion: !tarea.startsWith("4.") || tarea === "4.orla" ? undefined : p.direcciones?.elegida === undefined ? undefined : p.direcciones.opciones[p.direcciones.elegida] })).digest('hex');
+  const referencias=huellaReferencias(p.pedido.id,tarea);
+  return createHash('sha256').update(JSON.stringify({ ...(referencias.length?{referencias}:{}),requisitos: condicionesDe(p, tarea), materiales:listarArchivos(p.pedido.id), marca: p.marca, direccion: !tarea.startsWith("4.") || tarea === "4.orla" ? undefined : p.direcciones?.elegida === undefined ? undefined : p.direcciones.opciones[p.direcciones.elegida] })).digest('hex');
 }

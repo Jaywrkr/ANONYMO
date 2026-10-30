@@ -1,3 +1,4 @@
+import {adjuntosReferencias} from './estandar.ts';
 // Corre un proyecto hasta la siguiente pausa y maneja las decisiones de Jay y Luna.
 import {guardarPiezas} from "./piezas.ts";
 import {registrarDecisiones,detectarMejora,capturarContextoDecision,contextoTrabajo,memoriaPara} from "./operaciones.ts";
@@ -231,7 +232,7 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
-        condiciones: condicionesDe(p,t), memoria, marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
+        condiciones: condicionesDe(p,t), referencias:adjuntosReferencias(id,t), memoria, marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });
       const { uso, pendiente, sitio, piezas, ...resto } = r;
       // Mientras trabajaba, Jay o Luna pudieron pausar, cambiar el modo o la marca: eso manda (sistema/36).
       Object.assign(p, fusionar(p, leerProyecto(id)));

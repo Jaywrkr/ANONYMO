@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
-import {condicionesDe, existe, leerProyecto, leerEntrega, requisitosDe, contratoPorId} from '@anonymo/pipeline';
+import {leerEstandar,listarArchivos,condicionesDe, existe, leerProyecto, leerEntrega, requisitosDe, contratoPorId} from '@anonymo/pipeline';
 import {exigirEstudio,serif,campo,boton} from '@/lib/estudio';
 import {traer} from '@/lib/nube';
 import {ControlCalidad} from '@/components/estudio/ControlCalidad';
 import {Enviar} from '../../nuevo/Enviar';
-import {accionCondiciones,accionVerificar} from '../../acciones';
+import {accionReferencia,accionRetirarReferencia,accionCondiciones,accionVerificar} from '../../acciones';
 import {SeguimientoMovil} from '@/components/estudio/SeguimientoMovil';
 
 export const dynamic='force-dynamic';
@@ -16,7 +16,7 @@ export default async function Calidad({params}:{params:Promise<{id:string}>}) {
   if(!/^[a-z0-9_-]+$/.test(id)) notFound();
   await traer(id);
   if(!existe(id)) notFound();
-  const p=leerProyecto(id);
+  const p=leerProyecto(id),estandar=leerEstandar(id),imagenes=listarArchivos(id).filter(a=>["image/png","image/jpeg","image/webp"].includes(a.tipo));
   return <div className="px-5 py-7 md:px-10">
     <SeguimientoMovil siempre />
     <Link href={`/estudio/${id}`} className="inline-flex min-h-11 items-center text-[14px]">← {p.pedido.cliente}</Link>
@@ -34,6 +34,13 @@ export default async function Calidad({params}:{params:Promise<{id:string}>}) {
         <label className="grid gap-2 text-[14px]">Condiciones para todo el proyecto<textarea name="condiciones" rows={4} defaultValue={(p.requisitos??[]).filter(r=>!r.tarea).map(r=>r.texto).join('\n')} className={campo}/></label>
         <Enviar texto="Guardar condiciones" trabajando="Guardando…" className={boton} proyecto={id}/>
       </form>
+    </details>
+    <details className="mt-4 rounded-2xl bg-white p-4"><summary className="min-h-11 cursor-pointer font-medium">Referencias de calidad · {estandar.referencias.length}</summary><p className="my-3 text-[13px] text-medio">Elige hasta cuatro imágenes y explica qué criterio aportan. El productor y el revisor reciben las mismas copias. Son referencias, no recursos para copiar ni una garantía de calidad.</p>
+     <div className="grid gap-4 sm:grid-cols-2">{estandar.referencias.map(r=><article key={r.id} className="min-w-0 rounded-xl border border-borde p-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/estudio/${id}/calidad/referencia/${estandar.revision}/${r.id}`} alt={r.titulo} className="h-40 w-full rounded-lg object-contain"/><strong className="mt-2 block text-[14px]">{r.titulo}</strong><p className="mt-1 break-words text-[13px]">Aprender: {r.aprender}</p><p className="mt-1 break-words text-[13px]">Evitar: {r.evitar}</p><p className="mt-1 break-words text-[12px] text-medio">Origen: {r.origen} · {r.ambito}</p><form action={accionRetirarReferencia}><input type="hidden" name="id" value={id}/><input type="hidden" name="revision" value={estandar.revision}/><input type="hidden" name="referencia" value={r.id}/><Enviar texto="Retirar de la selección" trabajando="Actualizando selección…" className="min-h-11 text-[12px] underline" proyecto={id}/></form>
+     </article>)}</div>
+     {imagenes.length>0&&estandar.referencias.length<4?<form action={accionReferencia} className="mt-4 grid gap-3 text-[14px]"><input type="hidden" name="id" value={id}/><input type="hidden" name="revision" value={estandar.revision}/><label className="grid gap-1">Nombre de la referencia<input name="titulo" required minLength={3} maxLength={100} className={campo}/></label><label className="grid gap-1">Servicio<select name="ambito" className={campo}><option value="web">Web</option><option value="identidad">Logo e identidad</option></select></label><label className="grid gap-1">Imagen del proyecto (hasta 1 MB)<select name="archivo" className={campo}>{imagenes.map(a=><option key={a.nombre} value={a.nombre}>{a.nombre}</option>)}</select></label><label className="grid gap-1">Qué debe aportar al diseño<textarea name="aprender" required minLength={15} maxLength={700} rows={2} className={campo}/></label><label className="grid gap-1">Qué debemos evitar<textarea name="evitar" required minLength={10} maxLength={700} rows={2} className={campo}/></label><label className="grid gap-1">Origen de la referencia<input name="origen" required minLength={3} maxLength={400} className={campo}/></label><Enviar texto="Guardar referencia" trabajando="Guardando su copia y criterio…" proyecto={id} className={boton}/></form>:!imagenes.length&&<p className="mt-3 text-[13px]">Sube una captura PNG, JPG o WebP de hasta 1 MB en los archivos del proyecto para seleccionarla aquí.</p>}
     </details>
     <div className="mt-7 grid gap-6">{p.plan.tareas.map(t=>{
       const e=leerEntrega(id,t);

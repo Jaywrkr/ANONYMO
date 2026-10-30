@@ -27,4 +27,10 @@ jobs:
         env:
           VERCEL: "1"
           TMPDIR: /tmp/anonymo-chromium-funciones
+      - name: Preparar PostgreSQL aislado para pruebas
+        run: npm install --prefix "$RUNNER_TEMP/anonymo-postgres" --no-audit --no-fund @embedded-postgres/linux-x64@17.10.0-beta.17
+      - name: Comprobar reservas SQL con PostgreSQL real
+        run: node scripts/pruebas/cola.mjs
+        env:
+          POSTGRES_BIN: ${{ runner.temp }}/anonymo-postgres/node_modules/@embedded-postgres/linux-x64/native/bin
       - run: npm run build

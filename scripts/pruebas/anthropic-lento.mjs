@@ -11,6 +11,7 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'To turn thinking off on this model, send "thinking": {"type": "between_tools"}.' } }));
       return;
     }
+    if(cuerpo.system?.startsWith('Comprobación de conexión ANONYMO.')){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({content:[{type:'text',text:'LISTO'}],usage:{input_tokens:10,output_tokens:2}}));return;}
     if (cuerpo.system?.startsWith('Revisor de calidad.')) {
       const texto=cuerpo.messages[0].content.find(c=>c.type==='text'&&c.text.includes('# Revisión de calidad'))?.text??'';
       const condiciones=JSON.parse(texto.match(/CONDICIONES: ([^\n]+)/)?.[1]??'[]');
