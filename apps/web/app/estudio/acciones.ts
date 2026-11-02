@@ -461,3 +461,17 @@ export async function accionReferencia(f:FormData){
 export async function accionRetirarReferencia(f:FormData){
  const {id,quien}=await leer(f);await correr(id,()=>retirarReferencia(id,String(f.get('referencia')??''),Number(f.get('revision')),quien),'Referencia retirada de la selección. Su historial se conserva.',false,'/calidad');
 }
+
+/** Criterio de la casa (sistema/54): lo que Jay y Luna consideran bien hecho. Lo leen todos los agentes y el revisor. */
+export async function accionCriterio(f: FormData) {
+  const yo = await exigirEstudio();
+  let destino = `/estudio/criterio?ok=${encodeURIComponent("Criterio guardado. Los agentes y el revisor lo usan desde su próxima entrega.")}`;
+  try {
+    const { guardarCriterio } = await import("@anonymo/pipeline");
+    await conNube(["_agencia"], () => guardarCriterio(String(f.get("texto") ?? ""), yo, Number(f.get("revision") ?? -1)));
+  } catch (e) {
+    destino = `/estudio/criterio?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+  }
+  revalidatePath("/estudio/criterio");
+  redirect(destino);
+}

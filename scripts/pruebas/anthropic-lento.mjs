@@ -5,6 +5,8 @@ let n = 0;
 http.createServer((req, res) => {
   let b = ""; req.on("data", (d) => (b += d)); req.on("end", async () => {
     const cuerpo = JSON.parse(b); n++;
+    // Con ANTHROPIC_REGISTRO, guarda cada pedido para comprobar qué le llegó a la IA (sistema/54).
+    if (process.env.ANTHROPIC_REGISTRO) (await import("node:fs")).appendFileSync(process.env.ANTHROPIC_REGISTRO, b + "\n");
     // Reproduce la restricción de Sonnet que antes pasaba inadvertida en las pruebas del estudio.
     if (/sonnet-5-5/.test(cuerpo.model ?? "") && cuerpo.thinking?.type === "disabled") {
       res.writeHead(400, { "content-type": "application/json" });

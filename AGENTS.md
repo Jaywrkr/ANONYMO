@@ -3,7 +3,7 @@
 Lee [HANDOFF.md](HANDOFF.md) antes de empezar: estado actual, prioridades de Jay y cómo probar. [README.md](README.md) explica el proyecto.
 
 ## Flujo
-- Trabaja en una rama nueva por mejora: `sistema/NN-nombre` (estudio, pipeline) o `web/NN-nombre` (web pública), saliendo de `main` actualizado. La última fue `sistema/45-handoff`.
+- Trabaja en una rama nueva por mejora: `sistema/NN-nombre` (estudio, pipeline) o `web/NN-nombre` (web pública), saliendo de `main` actualizado. La última fue `sistema/54-oficio`.
 - Haz commit y push a esa rama y dale a Jay el enlace para abrir el PR. **No hagas merge a `main`**: lo hace Jay.
 - En cada rama: sube `VERSION` en `apps/web/lib/version.ts` (0.45, 0.46…) y agrega una fila en `docs/mejoras.md` que diga qué cambia en palabras simples y dónde se ve.
 

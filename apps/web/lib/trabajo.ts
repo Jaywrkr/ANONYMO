@@ -114,7 +114,8 @@ export async function trabajarVuelta(id: string, origen: string) {
 async function vuelta(id: string, origen: string) {
   const inicioVuelta = Date.now();
   const plazo = inicioVuelta + PLAZO_MS;
-  await traer(id);
+  // El criterio de la casa (sistema/54) también baja: el agente y el revisor lo leen.
+  await traer(id, "_agencia");
   // Desde aquí, lo que cambie en disco es de esta vuelta: es lo único que se sube al final (por contenido, sistema/43).
   const antes = huellaProyecto(id);
   const nada = (por: string) => console.log(`[vuelta ${id}] no trabaja: ${por}`);

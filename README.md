@@ -72,6 +72,7 @@ Atlas decide en cada pedido qué tareas entran. Los contratos completos (qué le
 - **Biblioteca**: todas las entregas, más «Diseño y web» (direcciones y webs construidas de todos los proyectos).
 - **La oficina**: escritorios 3D de los agentes con su estado.
 - **Campana**: pendientes y avisos (también notificaciones del navegador).
+- **Criterio de la casa**: el estándar de Jay y Luna, que leen todos los agentes y el revisor, y lo que sabe cada disciplina (docs/oficio.md).
 - **Papelera**: restaurar o borrar para siempre (hay que escribir el nombre del cliente).
 - **Portal del cliente**: enlace privado para ver entregas (sin lo interno), contestar preguntas, elegir dirección y comentar.
 - Mientras una acción responde, la pantalla se bloquea con un aviso; no se puede tocar dos veces. Si un arranque se pierde, el proyecto arranca solo en unos 20 s.

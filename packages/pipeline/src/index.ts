@@ -43,3 +43,4 @@ export * from "./estandar.ts";
 export * from "./diagnostico.ts";
 
 export * from "./versionado.ts";
+export * from "./oficio.ts";
