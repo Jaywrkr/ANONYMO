@@ -7,7 +7,7 @@ unset RESEND_API_KEY AVISOS_CORREO AVISOS_WEBHOOK ANONYMO_AVISOS_VERSIONADOS ANO
 D="$(cd "$(dirname "$0")" && pwd)"; R="$(cd "$D/../.." && pwd)"; T="${PRUEBAS:-/tmp/anonymo-pruebas}"
 rm -rf "$T"; mkdir -p "$T/semilla" "$T/nube"
 (nohup node "$D/supabase-falso.mjs" > "$T/supabase.log" 2>&1 &)
-(PALABRAS=60 PAUSA=400 nohup node "$D/anthropic-lento.mjs" > "$T/anthropic.log" 2>&1 &)
+(ANTHROPIC_REGISTRO="$T/pedidos-ia.jsonl" PALABRAS=60 PAUSA=400 nohup node "$D/anthropic-lento.mjs" > "$T/anthropic.log" 2>&1 &)
 sleep 1
 cd "$R"
 ANONYMO_PROYECTOS="$T/semilla" node --experimental-strip-types "$D/semilla.ts"

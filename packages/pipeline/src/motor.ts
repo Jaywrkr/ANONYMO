@@ -1,3 +1,4 @@
+import { textoOficio } from "./oficio.ts";
 import {textoReferencias,type ReferenciaCreativa} from './estandar.ts';
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import {PEDIDO_MARCA,leerPiezas} from "./piezas.ts";
@@ -244,6 +245,7 @@ export const real: Motor = {
       c.sitio ? PEDIDO_SITIO : "",
       tarea==="3.mira"?PEDIDO_MARCA:"",
       "Se revisa con:\n" + c.criterios.map((k) => `- ${k}`).join("\n"),
+      textoOficio(tarea, pedido),
       consejos?.length ? "# Lo que el equipo ya sabe de este rubro (punto de partida, contrástalo)\n" + consejos.map((x) => `- ${x}`).join("\n") : "",
       archivos?.length ? "# Archivos del cliente (lista disponible; los adjuntos efectivos se indican al final)\n" + archivos.map((x) => `- ${x.nombre}${x.nota ? `: ${x.nota}` : ""}`).join("\n") : "",
       memoria?.length?"# Decisiones confirmadas de las entregas que lees\n"+JSON.stringify(memoria)+"\nSon contexto, no reemplazan el pedido vigente. Si propones cambiarlas, explica la causa; no atribuyas al cliente una aprobación nueva.":"",

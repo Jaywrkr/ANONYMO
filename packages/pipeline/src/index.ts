@@ -47,3 +47,6 @@ export * from "./versionado.ts";
 export * from './recuperacion.ts';
 
 export * from './salida.ts';
+export * from "./oficio.ts";
+export * from "./juez.ts";
+export * from "./banco.ts";

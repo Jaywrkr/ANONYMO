@@ -36,10 +36,10 @@ export async function aislado<T>(fn: () => Promise<T>): Promise<T> {
   finally {if(!conservar)rmSync(dir,{recursive:true,force:true});else console.error('[nube] copia temporal conservada: publicación sin confirmar');}
 }
 
-/** Baja todos los proyectos y las solicitudes (no la analítica: tiene su propia página). */
+/** Baja todos los proyectos y las solicitudes (no la analítica ni las capturas del banco: tienen su propia página). */
 export async function traerTodo() {
   if (!nubeActiva()) return;
-  await traer(...(await proyectosEnNube()).filter((id) => id !== "_analitica" && id !== "_subidas"), "_solicitudes");
+  await traer(...(await proyectosEnNube()).filter((id) => id !== "_analitica" && id !== "_subidas" && id !== "_banco"), "_solicitudes");
 }
 
 /** Sube estos proyectos tal como quedaron. */

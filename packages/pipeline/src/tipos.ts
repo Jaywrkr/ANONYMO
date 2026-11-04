@@ -192,6 +192,8 @@ export interface ControlEntrega {
   capturas: CapturaCalidad[];
   auditoria?: import("./herramientas/auditar.ts").Auditoria;
   nota?: number;
+  /** La nota del juez corregida con su última calibración contra el banco (sistema/55). */
+  notaCalibrada?: number;
   aprobadoPor?: string;
   uso?: {entrada:number;salida:number;usd:number};
   historial?: Omit<ControlEntrega, "historial">[];
@@ -212,6 +214,8 @@ export interface Entrega {
   nota?: number;
   /** Datos que otros agentes o herramientas usan: finalistas, resultados de dominios, puntajes. */
   datos?: Record<string, unknown>;
+  /** Comparación a ciegas contra referencias premiadas del banco de calibración (sistema/55). */
+  banco?: import("./banco.ts").ComparacionBanco;
   estado: EstadoTarea;
   /** simulado: estructura · real: API de Anthropic · manual: escrito a mano o en una sesión con Claude */
   modo: "simulado" | "real" | "manual";

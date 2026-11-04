@@ -4,6 +4,10 @@ Para quien siga el desarrollo (Codex u otro agente de código). Escrito el 29 de
 Primero lee [README.md](README.md) (qué hay y cómo correrlo) y [AGENTS.md](AGENTS.md) (reglas del repo).
 
 
+**Trabajo 0.56 para revisión (sistema/55-banco-calibracion, incluye sistema/54-oficio):** banco de calibración con 188 referencias (web 46, identidad 42, naming 50, redes 50) en `data/banco/*.json` (solo índice; capturas privadas en `_banco/capturas`). La rúbrica (pesos que suman 10) se deduce del banco y la lee el juez; la calibración a ciegas usa el mismo `textoJuez` de calidad.ts, mide diferencia, clasificación y consistencia, ajusta al juez por rondas y guarda la corrección de la nota (`_agencia/juez.json`). Comparación a ciegas por pares desde Requisitos y calidad. **Falta la calibración real**: en esta máquina no hubo clave de IA ni acceso a los sitios. Pasos en [docs/banco.md](docs/banco.md). Pruebas nuevas: `test/banco.test.ts`, `scripts/pruebas/banco.ts` + `e2e-banco.mjs`.
+
+**Trabajo 0.54 de oficio, va con 0.56 (sistema/54-oficio):** estándar de oficio por disciplina (web, identidad, naming, contenido, textos), cómo comunica cada uno de 11 rubros (reconocido solo por el pedido) y «Criterio de la casa» editable por Jay y Luna. Lo leen el agente antes de producir y el revisor al calificar, con una escala donde 8 = estudio líder y cualquier recurso de plantilla no pasa de 6. Ver [docs/oficio.md](docs/oficio.md). Siguiente: calibrar con entregas reales que Jay acepte o rechace.
+
 **Trabajo 0.55 para revisión:** historial privado de copias, comparación por archivo y recuperación con revisión base, pausa y confirmación escrita. Publica una revisión nueva y cierra las reservas anteriores en la misma transacción; retira aprobaciones y conserva gastos, comentarios, portal y cola actual de avisos. Los avisos del piloto se guardan con el proyecto, con envío manual habilitable, destinos fijados y recibos por canal; reintentos limitados y webhook sujeto a deduplicación del receptor. No se activó producción ni se enviaron mensajes reales. Incluye 0.54 pendiente de main. Ver [docs/recuperacion-y-avisos.md](docs/recuperacion-y-avisos.md).
 
 **Trabajo 0.54 para revisión:** el diagnóstico autenticado distingue piloto apagado, selección ausente, esquema incompatible y permisos inseguros. La nueva función `anonymo_preparacion` solo inspecciona el catálogo de PostgreSQL; no lee proyectos ni escribe reservas. Reaplicar `infra/publicaciones.sql` en ensayo para disponer de ella. CI incorpora el build real del estudio con navegador móvil y servicios ficticios, además de las carreras SQL. El acceso HTTP a Vercel sigue bloqueado con 403 desde este entorno; no se validó ni activó producción. 0.53 ya está integrado en main mediante el PR #80; despliegue por comprobar. Ver [docs/validacion-54.md](docs/validacion-54.md). El push de `sistema/54-ensayo-del-piloto` se restableció y la rama ya está publicada. La creación del PR por API sigue respondiendo Forbidden.
@@ -144,6 +148,13 @@ bash scripts/pruebas/nube.sh                 # de nuevo, limpio
 node scripts/pruebas/e2e-paso.mjs /tmp/anonymo-pruebas   # un agente a la vez con IA lenta: en vivo, revisión, pausa, celular
 bash scripts/pruebas/parar.sh
 ```
+
+Banco de calibración (0.56), con `nube.sh` levantado:
+```bash
+ANONYMO_NUBE=1 SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_KEY=x SUPABASE_BUCKET=proyectos ANONYMO_PROYECTOS=/tmp/anonymo-pruebas/banco node --experimental-strip-types scripts/pruebas/banco.ts
+node scripts/pruebas/e2e-banco.mjs
+```
+Si la máquina no tiene `/usr/bin/chromium`, exporta `CHROMIUM=/ruta/al/chromium` **antes** de `nube.sh`: el servidor de prueba lo usa para verificar webs (sin eso, la re-verificación de `e2e-calidad-movil` falla). `e2e-estandar.mjs` va justo después de `e2e-calidad-movil.mjs`, en el mismo estudio.
 
 Todas pasan en 0.44. Registro del servidor de prueba: `/tmp/anonymo-pruebas/next.log`. Si Chromium no está donde Playwright lo busca: `CHROMIUM=/ruta`.
 Cuidado: `parar.sh` mata procesos por patrón; si va en la misma línea que otros comandos puede matar tu propia terminal.

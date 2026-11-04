@@ -5,6 +5,8 @@ let n = 0;
 http.createServer((req, res) => {
   let b = ""; req.on("data", (d) => (b += d)); req.on("end", async () => {
     const cuerpo = JSON.parse(b); n++;
+    // Con ANTHROPIC_REGISTRO, guarda cada pedido para comprobar qué le llegó a la IA (sistema/54).
+    if (process.env.ANTHROPIC_REGISTRO) (await import("node:fs")).appendFileSync(process.env.ANTHROPIC_REGISTRO, b + "\n");
     // Reproduce la restricción de Sonnet que antes pasaba inadvertida en las pruebas del estudio.
     if (/sonnet-5-5/.test(cuerpo.model ?? "") && cuerpo.thinking?.type === "disabled") {
       res.writeHead(400, { "content-type": "application/json" });
@@ -12,6 +14,12 @@ http.createServer((req, res) => {
       return;
     }
     if(cuerpo.system?.startsWith('Comprobación de conexión ANONYMO.')){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({content:[{type:'text',text:'LISTO'}],usage:{input_tokens:10,output_tokens:2}}));return;}
+    // Comparación a ciegas contra el banco (sistema/55): la pieza B siempre gana, con arreglos para las dos.
+    if (cuerpo.system?.startsWith('Revisor de calidad.') && JSON.stringify(cuerpo.messages).includes('# Comparación a ciegas')) {
+      res.writeHead(200,{'content-type':'application/json'});
+      res.end(JSON.stringify({content:[{type:'text',text:JSON.stringify({ganador:'B',porque:'Comparación de prueba: B tiene una idea más clara.',arreglosA:['Arreglo de prueba A1','Arreglo de prueba A2','Arreglo de prueba A3'],arreglosB:['Arreglo de prueba B1','Arreglo de prueba B2','Arreglo de prueba B3']})}],usage:{input_tokens:100,output_tokens:60},stop_reason:'end_turn'}));
+      return;
+    }
     if (cuerpo.system?.startsWith('Revisor de calidad.')) {
       const texto=cuerpo.messages[0].content.find(c=>c.type==='text'&&c.text.includes('# Revisión de calidad'))?.text??'';
       const condiciones=JSON.parse(texto.match(/CONDICIONES: ([^\n]+)/)?.[1]??'[]');
