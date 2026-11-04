@@ -11,7 +11,13 @@
     "url": "https://www.lexiconbranding.com/tech-names-intel-pentium",
     "imagen": null,
     "nota": 10,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Resolvió un problema real (el número 586 no se podía registrar) con una palabra inventada que suena a ciencia y potencia. Abrió el camino de los nombres inventados en chips y se volvió marca de categoría.",
     "descripcion": "Nombre de la línea de procesadores de Intel lanzada en 1993. Es un nombre inventado de tres sílabas. Junta la raíz griega 'pent' (cinco) con la terminación '-ium' de los elementos químicos. Se pronuncia igual en casi todos los idiomas.",
@@ -29,7 +35,13 @@
     "url": "https://www.lexiconbranding.com/tech-names-research-in-motion-blackberry",
     "imagen": null,
     "nota": 10,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Una palabra común sacada de otra categoría que le quitó frialdad al aparato de correo y se conectó con su teclado. Fue tan fuerte que la empresa terminó llamándose como el producto.",
     "descripcion": "Nombre del aparato de correo móvil de Research In Motion, con teclado completo de botones pequeños. Es un nombre metafórico tomado de una fruta, la mora. Tiene dos sílabas cortas con 'b' repetida. En 2013 la empresa adoptó el mismo nombre.",
@@ -47,7 +59,12 @@
     "url": "https://www.lexiconbranding.com/case-studies/swiffer",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Evita la palabra 'trapeador' y construye un nombre con sonidos de rapidez y limpieza. Se registra fácil y se volvió verbo de uso diario. La historia detrás es más técnica que emotiva.",
     "descripcion": "Nombre de un sistema de limpieza de pisos de Procter & Gamble con paños desechables. Es un nombre inventado hecho con sonidos de palabras del inglés como 'sweep' (barrer), 'swipe' (pasar) y 'swift' (rápido). Tiene dos sílabas y termina en '-er', como si fuera alguien que hace la acción.",
@@ -65,8 +82,15 @@
     "url": "https://www.lexiconbranding.com/case-studies/tech-names-microsoft-azure/",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "evocador", "historia", "distintivo-nombre"],
-    "falla": ["criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "criterios-duros"
+    ],
     "porque": "Metáfora limpia y fácil de ver: el azul del cielo para una plataforma en la nube, lejos de los nombres técnicos de la competencia. Su punto débil es que se pronuncia distinto en cada idioma.",
     "descripcion": "Nombre de la plataforma de servicios en la nube de Microsoft. Es una palabra real, el nombre de un color: el azul del cielo despejado. Tiene dos sílabas y viene de una piedra azul, el lapislázuli.",
     "razon": "Se eligió para marcar una actitud nueva en Microsoft y sugerir una plataforma abierta y flexible. El color del cielo trae imágenes que encajan con un servicio que vive 'en la nube'."
@@ -83,11 +107,17 @@
     "url": "https://www.lexiconbranding.com/case-studies/tech-names-rebrand-sonos/",
     "imagen": null,
     "nota": 10,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Corto, se lee igual al derecho y al revés, suena a lo que vende y se pronuncia en cualquier idioma. Reemplazó un nombre de laboratorio por uno con presencia de marca de consumo.",
-    "descripcion": "Nombre de una marca de parlantes y sistemas de sonido inalámbricos para el hogar. Es un nombre inventado de dos sílabas que se lee igual en ambos sentidos (palíndromo). Se apoya en la raíz de 'sonido'. Reemplazó al nombre anterior de la empresa, Rincon.",
-    "razon": "El nombre tenía que traer la idea de 'sonido' y, a la vez, destacar. Las 's' le dan un aire musical y envolvente que encaja con productos de audio. Que se lea igual en ambos sentidos refuerza la idea de un sistema de sonido completo y sin cortes."
+    "descripcion": "Nombre de una marca de parlantes y sistemas de sonido inalámbricos para el hogar. Es un nombre inventado de dos sílabas, con la misma letra al inicio y al final. Se apoya en la raíz de 'sonido'. Reemplazó al nombre anterior de la empresa, Rincon.",
+    "razon": "El nombre tenía que traer la idea de 'sonido' y, a la vez, destacar. Las 's' al principio y al final le dan un aire musical y envolvente, y la forma simétrica de la palabra sugiere un sonido que rodea."
   },
   {
     "id": "naming-dasani",
@@ -101,8 +131,15 @@
     "url": "https://www.cbsnews.com/news/the-art-of-creating-brand-names/",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "distintivo-nombre"],
-    "falla": ["historia"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "historia"
+    ],
     "porque": "Un nombre sin significado que logra sonar a pureza y descanso, probado con gente real. Funciona en una categoría llena de nombres de manantiales. Detrás no hay una historia que contar, solo sonido.",
     "descripcion": "Nombre del agua embotellada de Coca-Cola en Estados Unidos. Es un nombre inventado de tres sílabas, sin significado literal. Suena suave, con vocales abiertas, parecido al nombre de un spa.",
     "razon": "Se construyó con sonidos que la gente asocia con salud y bienestar. Como sonaba a spa, se probó con visitantes de spas diciéndoles que era el nombre de un spa nuevo. En las pruebas de Coca-Cola el nombre se percibió relajante y con idea de pureza y recuperación."
@@ -119,8 +156,15 @@
     "url": "https://www.lexiconbranding.com/case-studies/startup-branding-rebrand-impossible-foods/",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "evocador", "historia", "distintivo-nombre"],
-    "falla": ["criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "criterios-duros"
+    ],
     "porque": "Una palabra común convertida en promesa audaz: dice que lo que hace la empresa parecía imposible. Muy recordable en su categoría. Al ser palabra de diccionario, cuesta más registrarla y encontrarla en buscadores.",
     "descripcion": "Nombre de una empresa de carne hecha de plantas y de su hamburguesa, Impossible Burger. Es una palabra real del inglés, un adjetivo: 'imposible'. Tiene cuatro sílabas y se usa como afirmación sobre el producto.",
     "razon": "La meta de la empresa, hacer carne totalmente vegetal que se sienta como carne, parecía casi imposible. El nombre tenía que ser tan atrevido como esa meta. La palabra salió en una lista de trabajo y se propuso porque coincidía con lo que la empresa intentaba lograr."
@@ -137,8 +181,15 @@
     "url": "https://www.lexiconbranding.com/case-studies/windsurf/",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "distintivo-nombre"],
-    "falla": ["historia"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "historia"
+    ],
     "porque": "Sale de otra categoría y se aleja de los nombres técnicos de herramientas de programación. Transmite fluidez y energía en una palabra que todos saben decir. Al ser palabra de diccionario, se apoya más en la sensación que en una historia propia.",
     "descripcion": "Nombre de un editor de código con inteligencia artificial de la empresa Codeium, que en 2025 pasó a llamarse igual. Es una palabra real del inglés, el deporte de tabla con vela. Tiene dos sílabas y une 'viento' y 'surfear'.",
     "razon": "El equipo trabajó con ideas de 'flujo', sin pensar en editores de código. Se buscó un nombre que transmitiera energía, precisión y la sensación de avanzar sin esfuerzo, como al programar con ayuda de la inteligencia artificial."
@@ -155,7 +206,12 @@
     "url": "https://www.lexiconbranding.com/case-studies/car-brand-names-subaru-outback/",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Lee bien la competencia: en vez de otro nombre del Lejano Oeste, se va a Australia y se queda con la misma idea de aventura. Corto, claro y fácil de recordar.",
     "descripcion": "Nombre de un modelo de auto familiar todoterreno de Subaru. Es una palabra real del inglés que nombra el interior despoblado de Australia. Tiene dos sílabas y evoca caminos de tierra y lugares lejanos.",
@@ -173,7 +229,13 @@
     "url": "https://en.wikipedia.org/wiki/Amazon_Kindle",
     "imagen": null,
     "nota": 10,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Metáfora con raíz literaria que convierte un aparato en algo cálido. Cumple el pedido de no sonar técnico y funciona en frases de uso diario. Corto y con una historia lista para contar.",
     "descripcion": "Nombre del lector de libros electrónicos de Amazon. Es una palabra real del inglés, un verbo: 'encender' o 'prender fuego'. Tiene dos sílabas y viene del nórdico antiguo 'kyndill', vela.",
@@ -191,7 +253,13 @@
     "url": "https://www.onvidahealth.org/yuma-regional-medical-center-changes-its-name-to-onvida-health/",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Deja un nombre geográfico que limitaba el crecimiento y toma una raíz en español que conecta con la comunidad de la frontera. Es positivo sin ser genérico y sirve para crecer fuera de la ciudad.",
     "descripcion": "Nombre de un sistema de salud sin fines de lucro en Arizona, antes llamado Yuma Regional Medical Center. Es un nombre inventado que junta 'on' con 'vida', en español. Tiene tres sílabas y se lee fácil en inglés y en español.",
@@ -209,7 +277,13 @@
     "url": "https://dnco.com/work/transport-for-london",
     "imagen": null,
     "nota": 10,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia", "distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
     "falla": [],
     "porque": "Un sistema de nombres que resuelve un problema práctico (seis rutas con un solo nombre) y a la vez cuenta la historia de cada barrio. Cada nombre es corto, distinto de los otros y fácil de decir en una estación.",
     "descripcion": "Nombres de las seis rutas del tren London Overground en Londres, que antes se mostraban todas como una sola línea naranja. Son palabras reales del inglés, cada una ligada a la historia del lugar por donde pasa la ruta. Cada línea tiene además su propio color en el mapa.",
@@ -227,8 +301,15 @@
     "url": "https://zemplerbank.com/new-name",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "evocador", "historia", "distintivo-nombre"],
-    "falla": ["criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "criterios-duros"
+    ],
     "porque": "Reemplaza un nombre que reducía al banco a 'efectivo' por uno propio y fácil de registrar, con una promesa escondida. La 'Z' inicial obliga a deletrearlo las primeras veces.",
     "descripcion": "Nombre de un banco digital británico para pequeñas empresas, antes llamado Cashplus. Es un nombre inventado que mezcla dos palabras del inglés: 'simple' y 'exemplary' (ejemplar). Tiene dos sílabas y empieza con 'Z'.",
     "razon": "Cashplus nació como tarjeta prepago y su nombre sugería servicios en efectivo, cuando ya era un banco digital con licencia completa. Se buscó un nombre a la altura de un banco del futuro. 'Zempler' resume la promesa de una banca simple y ejemplar para cada cliente."
@@ -245,8 +326,15 @@
     "url": "https://www.equinor.com/news/20250626-introducing-adura",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia"],
-    "falla": ["distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia"
+    ],
+    "falla": [
+      "distintivo-nombre"
+    ],
     "porque": "Une lugar y promesa en tres sílabas fáciles en cualquier idioma, y deja atrás los nombres de las dos empresas madre. El sonido es parecido a otras marcas existentes, lo que le quita algo de distinción.",
     "descripcion": "Nombre de la empresa conjunta de Equinor y Shell para el petróleo y el gas del Mar del Norte británico, con sede en Aberdeen. Es un nombre inventado de tres sílabas que junta la 'A' de Aberdeen con 'dura', de durabilidad. Suena suave y abierto.",
     "razon": "El nombre une la raíz geográfica de la empresa con un compromiso de largo plazo con la región. La 'A' es por Aberdeen y 'dura' por durabilidad. También se relacionó con el granito de la ciudad, que le da sus cimientos."
@@ -263,8 +351,15 @@
     "url": "https://coventry-warwickshire.co.uk/node/4096",
     "imagen": null,
     "nota": 9,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador", "historia"],
-    "falla": ["distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador",
+      "historia"
+    ],
+    "falla": [
+      "distintivo-nombre"
+    ],
     "porque": "Cambia un nombre largo de comité por dos palabras que son a la vez nombre y causa. Se vuelve frase de campaña y logo. Al usar palabras comunes cuesta más que sea único en buscadores.",
     "descripcion": "Nombre de una coalición británica de 29 organizaciones que hace campañas para que la salud no dependa de dónde vive o cuánto gana cada persona. Es un nombre descriptivo que se lee como frase: 'la salud iguala' o 'salud igual'. Tiene tres sílabas y el signo igual forma parte del logo.",
     "razon": "El nombre de trabajo anterior, The Collaboration for Health and Wellbeing, era largo y poco claro. Se fue directo al centro del tema: la desigualdad en salud. En las pruebas, 'Health Equals' provocó una reacción fuerte del público."
@@ -281,8 +376,15 @@
     "url": "https://en.wikipedia.org/wiki/Accenture",
     "imagen": null,
     "nota": 8,
-    "cumple": ["estrategia-nombre", "criterios-duros", "historia", "distintivo-nombre"],
-    "falla": ["evocador"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "historia",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "evocador"
+    ],
     "porque": "Resolvió con éxito un cambio forzado y en plazo corto, con un nombre registrable en todo el mundo y fácil de explicar. Es correcto pero frío: suena a corporación más que a una idea que se vea.",
     "descripcion": "Nombre de la consultora global antes llamada Andersen Consulting. Es un nombre inventado de tres sílabas que junta 'accent' (acento) y 'future' (futuro). Suena formal y corporativo.",
     "razon": "Un arbitraje obligó a la empresa a dejar el nombre Andersen antes del 1 de enero de 2001. La propuesta salió de un concurso interno de empleados y se eligió entre miles de opciones. Resume 'poner el acento en el futuro', da algo de familiaridad y era el único candidato que empezaba con 'AC'."
@@ -299,8 +401,14 @@
     "url": "https://www.businesswire.com/news/home/20140107005547/en/Agilent-Technologies-Reveals-Name-of-Electronic-Measurement-Spin-Off-Company",
     "imagen": null,
     "nota": 8,
-    "cumple": ["estrategia-nombre", "criterios-duros", "historia"],
-    "falla": ["distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "historia"
+    ],
+    "falla": [
+      "distintivo-nombre"
+    ],
     "porque": "Claro, fácil de decir y bien filtrado en otros idiomas, con un mensaje directo. La fórmula de unir dos palabras de 'visión' es común en tecnología y le resta carácter propio.",
     "descripcion": "Nombre de la empresa de equipos de medición electrónica que se separó de Agilent. Es un nombre compuesto con dos palabras del inglés: 'key' (llave, clave) e 'insight' (comprensión). Tiene dos sílabas con sonido seco y claro.",
     "razon": "Se buscaba un nombre muy distinto del latinizado 'Agilent', con sonido limpio y significado directo. 'Key' habla de algo indispensable y de acceso; 'sight', de ver lo que otros no ven. Se revisaron más de 5.000 opciones y se descartaron las que tenían malos sentidos en otros idiomas."
@@ -317,8 +425,15 @@
     "url": "https://www.designweek.co.uk/issues/6-november-1997/corporations-join-the-name-game/",
     "imagen": null,
     "nota": 7,
-    "cumple": ["estrategia-nombre", "historia", "distintivo-nombre"],
-    "falla": ["evocador", "criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "historia",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "evocador",
+      "criterios-duros"
+    ],
     "porque": "Nombre corporativo neutral que dejó libres a las marcas de bebidas y es único. Necesita explicación para entender su sentido y no queda claro cómo se pronuncia.",
     "descripcion": "Nombre del grupo de bebidas alcohólicas nacido de la fusión de Guinness y Grand Metropolitan. Es un nombre inventado que junta el latín 'dies' (día) y el griego 'geo' (tierra, mundo). Tiene tres o cuatro sílabas según quien lo diga.",
     "razon": "La empresa nueva necesitaba un nombre propio que no fuera de ninguna de las dos marcas que se unían. 'Dia' remite a todos los días y 'geo' a todo el mundo: marcas de placer para cada día, en todas partes."
@@ -335,8 +450,15 @@
     "url": "https://en.wikipedia.org/wiki/Verizon_Fios",
     "imagen": null,
     "nota": 7,
-    "cumple": ["estrategia-nombre", "criterios-duros", "distintivo-nombre"],
-    "falla": ["evocador", "historia"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "evocador",
+      "historia"
+    ],
     "porque": "Corto, registrable y con lógica clara para el servicio. Al ser casi una sigla, transmite lo técnico pero poca emoción, y la historia detrás es solo descriptiva.",
     "descripcion": "Nombre del servicio de internet, televisión y teléfono por fibra óptica de Verizon. Es una sigla convertida en palabra: 'Fiber Optic Service'. Tiene dos sílabas y empieza con 'fi', que recuerda a 'fiber' (fibra).",
     "razon": "Verizon fue de las primeras empresas grandes en ofrecer una red de fibra óptica completa hasta el hogar. El nombre usa 'fi' para sugerir fibra y resume 'servicio de fibra óptica' en una palabra corta, para mostrar algo mejor que la competencia."
@@ -353,8 +475,14 @@
     "url": "https://catchwordbranding.com/catchthis/johnson-blahson-name-review-of-kenvue/",
     "imagen": null,
     "nota": 7,
-    "cumple": ["criterios-duros", "estrategia-nombre"],
-    "falla": ["distintivo-nombre", "evocador"],
+    "cumple": [
+      "criterios-duros",
+      "estrategia-nombre"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador"
+    ],
     "porque": "Limpio, registrable y pensado para quedar detrás de marcas famosas como Tylenol o Band-Aid. La fórmula de unir 'saber' y 'ver' está muy usada, y 'vue' recuerda a productos para la vista.",
     "descripcion": "Nombre de la empresa de productos de consumo para la salud que se separó de Johnson & Johnson (Tylenol, Neutrogena, Listerine). Es un nombre inventado que junta 'ken' (saber, en inglés antiguo y escocés) y 'vue' (vista, en francés). Se pronuncia 'ken-viu'.",
     "razon": "Se revisaron miles de nombres durante nueve meses para la nueva empresa. 'Ken' habla de conocimiento y 'vue' de mirada o comprensión: una empresa que sabe y entiende de cuidado diario de la salud."
@@ -371,8 +499,14 @@
     "url": "https://catchwordbranding.com/catchthis/settling-the-debate-truist-name-review/",
     "imagen": null,
     "nota": 7,
-    "cumple": ["estrategia-nombre", "evocador"],
-    "falla": ["distintivo-nombre", "criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "evocador"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "criterios-duros"
+    ],
     "porque": "Resolvió una fusión entre iguales con un nombre neutral y con un mensaje claro de confianza. Fue muy criticado: suena a otros nombres 'tru-', la terminación '-ist' tiene ecos negativos y generó una demanda por parecido.",
     "descripcion": "Nombre del banco estadounidense nacido de la fusión de BB&T y SunTrust. Es un nombre inventado: la palabra 'trust' (confianza) con una 'i'. Tiene una sola sílaba larga.",
     "razon": "Como era una fusión entre iguales, hacía falta un nombre nuevo que no fuera de ninguno de los dos bancos. Los dos nacieron como bancos de 'trust' (fideicomiso), así que el nombre es fiel a esa herencia y pone la confianza al centro. Se recogieron ideas de los empleados en el proceso."
@@ -389,8 +523,14 @@
     "url": "https://igorinternational.com/blog/2012/03/21/kraft-names-separate-snack-business-mondelez/",
     "imagen": null,
     "nota": 7,
-    "cumple": ["estrategia-nombre", "distintivo-nombre"],
-    "falla": ["criterios-duros", "evocador"],
+    "cumple": [
+      "estrategia-nombre",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "criterios-duros",
+      "evocador"
+    ],
     "porque": "Único y registrable en todo el mundo, con una idea positiva detrás. Pero cuesta pronunciarlo y escribirlo, necesita explicación y lleva una tilde poco común.",
     "descripcion": "Nombre de la empresa de galletas y snacks que se separó de Kraft (Oreo, Milka, Cadbury). Es un nombre inventado que junta 'monde' (mundo) y una forma inventada de 'delicioso'. Se pronuncia 'mon-de-LIS' y se escribe con una 'e' con raya encima.",
     "razon": "La idea vino de dos empleados de Kraft. 'Monde' viene del latín para 'mundo' y 'delez' es una forma libre de 'delicioso', inspirada en 'délicieux' y 'delicioso'. Juntos quieren decir 'mundo delicioso'."
@@ -407,8 +547,15 @@
     "url": "https://www.underconsideration.com/speakup/archives/001350.html",
     "imagen": null,
     "nota": 7,
-    "cumple": ["criterios-duros", "distintivo-nombre", "estrategia-nombre"],
-    "falla": ["evocador", "historia"],
+    "cumple": [
+      "criterios-duros",
+      "distintivo-nombre",
+      "estrategia-nombre"
+    ],
+    "falla": [
+      "evocador",
+      "historia"
+    ],
     "porque": "Cumple bien lo técnico: corto, único, fácil de decir. Pero fue visto como un intento de esconder el tabaco detrás de una palabra vaga y elevada, y su sentido real no se nota.",
     "descripcion": "Nombre del grupo empresarial que antes se llamaba Philip Morris Companies, dueño de marcas de tabaco. Es un nombre inventado de tres sílabas que viene del latín 'altus' (alto). Su sonido recuerda a 'altruismo'.",
     "razon": "La empresa dijo que ya no era la misma en estructura, cultura y conducta. 'Altus', alto, apunta a subir hacia más solidez financiera y más responsabilidad."
@@ -425,8 +572,15 @@
     "url": "https://www.neowin.net/news/nintendo-revolution-officially-renamed-wii",
     "imagen": null,
     "nota": 8,
-    "cumple": ["estrategia-nombre", "historia", "distintivo-nombre", "evocador"],
-    "falla": ["criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "historia",
+      "distintivo-nombre",
+      "evocador"
+    ],
+    "falla": [
+      "criterios-duros"
+    ],
     "porque": "Muy corto, único y con una idea clara: una consola para todos. La grafía rara al principio generó burlas y no se deduce cómo se pronuncia al leerlo.",
     "descripcion": "Nombre de la consola de videojuegos de Nintendo con control de movimiento. Es un nombre inventado de una sílaba que suena como 'we' (nosotros) en inglés. Las dos 'i' recuerdan a dos personas juntas y a los dos controles.",
     "razon": "El nombre en clave 'Revolution' marcaba el rumbo; 'Wii' quería ser la respuesta. Suena a 'nosotros', para decir que la consola es para todos. Se eligió también porque es fácil de recordar, se pronuncia en cualquier idioma y no necesita abreviarse."
@@ -443,8 +597,14 @@
     "url": "https://en.wikipedia.org/wiki/Corteva",
     "imagen": null,
     "nota": 7,
-    "cumple": ["criterios-duros", "distintivo-nombre", "historia"],
-    "falla": ["evocador"],
+    "cumple": [
+      "criterios-duros",
+      "distintivo-nombre",
+      "historia"
+    ],
+    "falla": [
+      "evocador"
+    ],
     "porque": "Fácil de pronunciar, único y con una raíz que se puede contar. Su sentido no se percibe sin explicación y suena a muchos nombres corporativos de terminación latina.",
     "descripcion": "Nombre de la empresa agrícola de semillas y protección de cultivos que salió de DowDuPont. Es un nombre inventado de tres sílabas que junta 'cor' (corazón, en latín) y 'teva' (naturaleza, en hebreo). Se pronuncia 'cor-té-va'.",
     "razon": "El nombre une las palabras 'corazón' y 'naturaleza', para hablar del vínculo entre las personas y la tierra en la agricultura."
@@ -461,8 +621,15 @@
     "url": "https://en.wikipedia.org/wiki/Qnity_Electronics",
     "imagen": null,
     "nota": 8,
-    "cumple": ["estrategia-nombre", "evocador", "historia", "distintivo-nombre"],
-    "falla": ["criterios-duros"],
+    "cumple": [
+      "estrategia-nombre",
+      "evocador",
+      "historia",
+      "distintivo-nombre"
+    ],
+    "falla": [
+      "criterios-duros"
+    ],
     "porque": "Mezcla un símbolo técnico del sector con una idea humana y queda un nombre único. La 'Q' sin 'u' obliga a explicar cómo se dice y cómo se escribe.",
     "descripcion": "Nombre de la empresa de materiales para electrónica y semiconductores que se separó de DuPont. Es un nombre inventado que une la letra 'Q' con 'unity' (unidad). Se pronuncia 'kiú-ni-ti'.",
     "razon": "La 'Q' es el símbolo de la carga eléctrica, y 'unity' habla de la forma colaborativa en que la empresa trabaja con sus clientes."
@@ -479,8 +646,14 @@
     "url": "https://shareholders.onitygroup.com/news-releases/news-release-details/ocwen-financial-officially-rebrands-onitytm-group",
     "imagen": null,
     "nota": 7,
-    "cumple": ["estrategia-nombre", "criterios-duros", "evocador"],
-    "falla": ["distintivo-nombre"],
+    "cumple": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "evocador"
+    ],
+    "falla": [
+      "distintivo-nombre"
+    ],
     "porque": "Corto, fácil de decir y con una idea de acción ('on it') que se entiende rápido. Se parece a muchos nombres terminados en '-ity' y a otras marcas existentes, lo que lo hace menos propio.",
     "descripcion": "Nombre del grupo de servicios hipotecarios antes llamado Ocwen Financial. Es un nombre inventado de tres sílabas armado sobre la frase inglesa 'on it' (estamos en eso). Termina en '-ity', como 'unity' o 'quality'.",
     "razon": "La empresa quería un nombre nuevo tras un estudio de marca. 'On it' transmite acción y la promesa de ser confiables, rendir y dar apoyo, en línea con su frase 'we get it done' (lo resolvemos)."
@@ -497,8 +670,14 @@
     "url": null,
     "imagen": null,
     "nota": 6,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Se entiende y se dice fácil, pero describe la categoría y nada más. Hay cientos iguales, cuesta registrarlo y el 'Plus' no dice qué es lo extra.",
     "descripcion": "Nombre para una clínica dental de barrio. Es un nombre descriptivo en inglés de tres palabras: 'dental', 'cuidado' y 'plus'. Suena claro y directo.",
     "razon": "Queremos que se entienda de una vez qué hacemos: cuidado dental. El 'Plus' es porque damos algo más que una clínica normal, y en inglés suena más profesional e internacional."
@@ -516,7 +695,12 @@
     "imagen": null,
     "nota": 5,
     "cumple": [],
-    "falla": ["distintivo-nombre", "evocador", "criterios-duros", "historia"],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "criterios-duros",
+      "historia"
+    ],
     "porque": "No dice qué hace la empresa, es largo y la gente lo va a acortar a siglas. Es una fórmula muy repetida en empresas de servicios.",
     "descripcion": "Nombre para una empresa de consultoría y servicios a empresas en la región andina. Es un nombre descriptivo de tres palabras largas. Tiene once sílabas.",
     "razon": "Ofrecemos de todo para la empresa: asesoría, gestión y proyectos, por eso 'soluciones integrales'. 'Andinas' muestra que somos de la región y conocemos el mercado."
@@ -533,8 +717,14 @@
     "url": null,
     "imagen": null,
     "nota": 5,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Corto y fácil de decir, pero junta dos piezas muy usadas en tecnología. No hay idea propia y será difícil de registrar y de encontrar.",
     "descripcion": "Nombre para una empresa de servicios de tecnología y desarrollo de software. Es un nombre compuesto que junta 'tecno' y 'hub' (centro, en inglés). Tiene tres sílabas.",
     "razon": "Queremos ser el centro donde las empresas encuentran todo en tecnología. 'Hub' es la palabra que se usa hoy en el mundo digital y 'Tecno' deja claro el rubro."
@@ -551,8 +741,14 @@
     "url": null,
     "imagen": null,
     "nota": 6,
-    "cumple": ["criterios-duros", "evocador"],
-    "falla": ["distintivo-nombre", "historia"],
+    "cumple": [
+      "criterios-duros",
+      "evocador"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "historia"
+    ],
     "porque": "Cálido y claro, transmite la promesa. Pero es una frase que usan miles de restaurantes y no se puede proteger ni destacar.",
     "descripcion": "Nombre para un restaurante de almuerzos y comida tradicional. Es un nombre descriptivo de dos palabras comunes. Suena cálido y familiar.",
     "razon": "Cocinamos como en casa, con recetas de la familia. Queremos que la gente sepa al instante que aquí come rico y como en su hogar."
@@ -569,8 +765,14 @@
     "url": null,
     "imagen": null,
     "nota": 6,
-    "cumple": ["criterios-duros", "evocador"],
-    "falla": ["distintivo-nombre", "historia"],
+    "cumple": [
+      "criterios-duros",
+      "evocador"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "historia"
+    ],
     "porque": "Transmite calma y se entiende, pero 'zen' es la palabra más repetida del rubro. Junta tres palabras de categoría sin una idea propia.",
     "descripcion": "Nombre para un spa urbano con masajes y tratamientos faciales. Es un nombre descriptivo de tres palabras cortas. Suena tranquilo.",
     "razon": "Queremos que la gente sienta paz apenas lea el nombre. 'Zen' es relajación y 'Espacio' es el lugar donde te desconectas del estrés."
@@ -587,8 +789,14 @@
     "url": null,
     "imagen": null,
     "nota": 5,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Correcto y fácil, pero 'futuro' es la promesa por defecto en educación. No dice qué se enseña ni qué la hace distinta.",
     "descripcion": "Nombre para un instituto de cursos de preparación y refuerzo escolar. Es un nombre descriptivo de dos palabras. Suena formal.",
     "razon": "La educación es la base del futuro de los chicos. Queremos que los padres sientan que aquí preparamos a sus hijos para lo que viene."
@@ -605,8 +813,14 @@
     "url": null,
     "imagen": null,
     "nota": 6,
-    "cumple": ["criterios-duros", "evocador"],
-    "falla": ["distintivo-nombre", "historia"],
+    "cumple": [
+      "criterios-duros",
+      "evocador"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "historia"
+    ],
     "porque": "Deja claro el destino y el servicio, y sirve para extranjeros. Pero es una suma de palabras de categoría que usan muchas agencias de la región.",
     "descripcion": "Nombre para una agencia de viajes y excursiones en la montaña. Es un nombre descriptivo en inglés de tres palabras. Tiene siete sílabas.",
     "razon": "Nuestros clientes son turistas extranjeros, por eso en inglés. 'Andes' dice dónde estamos y 'Experience' dice que vendemos vivencias, no solo paquetes."
@@ -623,8 +837,14 @@
     "url": null,
     "imagen": null,
     "nota": 5,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Se entiende, pero 'pixel' es de los recursos más usados por estudios de diseño. No dice nada propio de este estudio.",
     "descripcion": "Nombre para un estudio de diseño gráfico y redes sociales. Es un nombre descriptivo de tres palabras. 'Pixel' es el punto más pequeño de una imagen digital.",
     "razon": "El pixel es la unidad básica de todo lo digital, como nuestro trabajo: cuidamos cada detalle. 'Estudio Creativo' deja claro que hacemos diseño."
@@ -641,8 +861,14 @@
     "url": null,
     "imagen": null,
     "nota": 5,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Es una frase de promesa, no un nombre. Cualquier organizador podría usarla y no se puede registrar.",
     "descripcion": "Nombre para una empresa que organiza bodas, quinceañeras y fiestas de empresa. Es un nombre descriptivo de dos palabras, un sustantivo y un adjetivo. Tiene ocho sílabas.",
     "razon": "Lo que buscan nuestros clientes es que su día no se olvide nunca. El nombre dice directamente lo que prometemos."
@@ -659,8 +885,14 @@
     "url": null,
     "imagen": null,
     "nota": 5,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Mezcla español e inglés sin motivo y suma palabras de categoría. Fácil de leer, pero no deja nada que recordar.",
     "descripcion": "Nombre para una tienda de ropa para mujer y hombre. Es un nombre descriptivo que mezcla dos palabras en español y una en inglés. Tiene cinco sílabas.",
     "razon": "Tenemos todo en moda, para toda la familia. 'Store' le da un aire más moderno, como las tiendas de afuera."
@@ -677,8 +909,14 @@
     "url": null,
     "imagen": null,
     "nota": 6,
-    "cumple": ["criterios-duros", "estrategia-nombre"],
-    "falla": ["distintivo-nombre", "historia"],
+    "cumple": [
+      "criterios-duros",
+      "estrategia-nombre"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "historia"
+    ],
     "porque": "Claro y útil para buscar en mapas, y dice su ventaja de ubicación. Pero es solo la categoría más un adjetivo, y habrá otros iguales en cada ciudad.",
     "descripcion": "Nombre para un espacio de oficinas compartidas en el centro de la ciudad. Es un nombre descriptivo que junta 'cowork' y 'central'. Tiene cuatro sílabas.",
     "razon": "Queremos que se sepa qué somos y dónde estamos: un coworking en pleno centro. Así nos encuentran rápido en Google."
@@ -695,8 +933,14 @@
     "url": null,
     "imagen": null,
     "nota": 6,
-    "cumple": ["criterios-duros", "evocador"],
-    "falla": ["distintivo-nombre", "historia"],
+    "cumple": [
+      "criterios-duros",
+      "evocador"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "historia"
+    ],
     "porque": "Amable y fácil de recordar en el barrio, pero es una frase común en veterinarias y tiendas de mascotas. No se distingue de la competencia.",
     "descripcion": "Nombre para una veterinaria con peluquería para perros y gatos. Es un nombre descriptivo de dos palabras comunes. Suena alegre.",
     "razon": "Lo que queremos es que las mascotas estén sanas y contentas. Un nombre alegre que a los dueños les dé confianza."
@@ -714,7 +958,13 @@
     "imagen": null,
     "nota": 4,
     "cumple": [],
-    "falla": ["distintivo-nombre", "evocador", "historia", "criterios-duros", "estrategia-nombre"],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia",
+      "criterios-duros",
+      "estrategia-nombre"
+    ],
     "porque": "Las siglas no dicen nada a quien no conoce a los socios y el resto es una descripción larga. Difícil de recordar y de dictar.",
     "descripcion": "Nombre para un despacho de contadores. Son tres siglas seguidas de una descripción de cuatro palabras. Las siglas son las iniciales de los socios.",
     "razon": "JRM son las iniciales de los tres socios fundadores. Y ponemos 'contables y tributarios' para que quede claro todo lo que hacemos."
@@ -732,7 +982,13 @@
     "imagen": null,
     "nota": 3,
     "cumple": [],
-    "falla": ["estrategia-nombre", "evocador", "distintivo-nombre", "criterios-duros", "historia"],
+    "falla": [
+      "estrategia-nombre",
+      "evocador",
+      "distintivo-nombre",
+      "criterios-duros",
+      "historia"
+    ],
     "porque": "Juego de palabras que asocia comida con enfermedad. El guion complica el dictado y el chiste se gasta rápido.",
     "descripcion": "Nombre para una panadería de barrio. Es un juego de palabras que parte 'pandemia' en 'pan' y 'demia', con guion. Tiene cuatro sílabas.",
     "razon": "Abrimos en la época de la pandemia y queríamos algo gracioso que la gente recordara. Además empieza con 'pan', que es lo que vendemos."
@@ -750,7 +1006,12 @@
     "imagen": null,
     "nota": 3,
     "cumple": [],
-    "falla": ["criterios-duros", "distintivo-nombre", "evocador", "historia"],
+    "falla": [
+      "criterios-duros",
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Las letras cambiadas obligan a deletrear cada vez y la gente lo escribirá mal al buscarlo. Debajo sigue siendo 'clínica dental'.",
     "descripcion": "Nombre para una clínica dental. Es la frase 'clínica dental' escrita con letras cambiadas a propósito: 'k' y 'q' en vez de 'c', y doble 'l' al final. Tiene cinco sílabas.",
     "razon": "Escrito así se ve moderno y diferente, y era más fácil encontrar el dominio y la cuenta en redes libres."
@@ -767,8 +1028,14 @@
     "url": null,
     "imagen": null,
     "nota": 4,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "La terminación '-ify' copia una moda de aplicaciones ya muy gastada. Fácil de decir, pero no se distingue y seguramente ya existe.",
     "descripcion": "Nombre para una agencia de tours y paseos de un día. Es un nombre inventado que junta 'tour' con la terminación '-ify'. Tiene tres sílabas.",
     "razon": "Suena como las apps más conocidas, moderno y tecnológico. Y deja claro que hacemos tours."
@@ -785,8 +1052,14 @@
     "url": null,
     "imagen": null,
     "nota": 4,
-    "cumple": ["criterios-duros"],
-    "falla": ["distintivo-nombre", "evocador", "historia"],
+    "cumple": [
+      "criterios-duros"
+    ],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Repite la fórmula '-ify' y le suma 'Gym', que ya dice lo mismo que 'fit'. Sin idea propia y con alto riesgo de chocar con marcas existentes.",
     "descripcion": "Nombre para un gimnasio de barrio. Es un nombre inventado que junta 'fit' con '-ify', más la palabra 'gym'. Tiene cuatro sílabas.",
     "razon": "'Fit' es estar en forma y '-ify' lo hace sonar moderno, como una app. Le pusimos 'Gym' para que no haya duda de qué es."
@@ -804,7 +1077,13 @@
     "imagen": null,
     "nota": 4,
     "cumple": [],
-    "falla": ["estrategia-nombre", "distintivo-nombre", "evocador", "historia", "criterios-duros"],
+    "falla": [
+      "estrategia-nombre",
+      "distintivo-nombre",
+      "evocador",
+      "historia",
+      "criterios-duros"
+    ],
     "porque": "Ata la tienda a un producto y a un barrio: si abre otra sucursal o vende otra cosa, el nombre ya no sirve. Es una descripción, no una marca.",
     "descripcion": "Nombre para una tienda de teléfonos móviles y accesorios. Es un nombre descriptivo de cinco palabras que incluye producto, ciudad y zona. Tiene doce sílabas.",
     "razon": "Así la gente sabe qué vendemos y dónde estamos. Nos encuentran fácil en el mapa si buscan celulares en el norte."
@@ -822,7 +1101,12 @@
     "imagen": null,
     "nota": 3,
     "cumple": [],
-    "falla": ["criterios-duros", "distintivo-nombre", "evocador", "historia"],
+    "falla": [
+      "criterios-duros",
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "La 'K' mayúscula en medio no se escucha al decirlo y obliga a explicar cómo se escribe. Para una marca educativa, la falta intencional juega en contra.",
     "descripcion": "Nombre para una plataforma de clases en línea para colegios. Es la palabra 'educativa' escrita con una 'K' mayúscula en vez de 'ca'. Tiene cuatro sílabas.",
     "razon": "La K le da un toque juvenil y diferente, y 'Edu' es educación. Así no nos confunden con otros y la cuenta en redes estaba libre."
@@ -840,7 +1124,12 @@
     "imagen": null,
     "nota": 3,
     "cumple": [],
-    "falla": ["criterios-duros", "distintivo-nombre", "evocador", "historia"],
+    "falla": [
+      "criterios-duros",
+      "distintivo-nombre",
+      "evocador",
+      "historia"
+    ],
     "porque": "Mezcla grafías de otros idiomas sin motivo; no se sabe cómo pronunciarlo ni escribirlo. Por debajo solo dice 'casa creativa'.",
     "descripcion": "Nombre para una agencia de diseño y publicidad pequeña. Es la frase 'creative house' escrita con letras cambiadas para que parezca alemán. Tiene tres sílabas.",
     "razon": "Queríamos algo que sonara a estudio europeo de diseño. 'Kreativ' es creatividad y 'Hauz' es casa: la casa de las ideas."
@@ -858,7 +1147,12 @@
     "imagen": null,
     "nota": 3,
     "cumple": [],
-    "falla": ["estrategia-nombre", "criterios-duros", "distintivo-nombre", "historia"],
+    "falla": [
+      "estrategia-nombre",
+      "criterios-duros",
+      "distintivo-nombre",
+      "historia"
+    ],
     "porque": "Juego de palabras infantil que limita a fiestas informales y aleja a clientes de empresa. Mezcla idiomas y tiene guion.",
     "descripcion": "Nombre para una empresa de organización de fiestas y eventos. Junta 'party' (fiesta, en inglés) con la palabra 'pum', unidas por guion, más 'Eventos'. Tiene cinco sílabas.",
     "razon": "Suena divertido y alegre, como una fiesta que explota. Le agregamos 'Eventos' para que también nos tomen en serio."
@@ -876,7 +1170,12 @@
     "imagen": null,
     "nota": 4,
     "cumple": [],
-    "falla": ["distintivo-nombre", "evocador", "historia", "criterios-duros"],
+    "falla": [
+      "distintivo-nombre",
+      "evocador",
+      "historia",
+      "criterios-duros"
+    ],
     "porque": "Amontona palabras de tecnología de hace veinte años y un '2.0' que ya suena viejo. Largo y fácil de confundir con muchas otras empresas.",
     "descripcion": "Nombre para una empresa que hace sitios web y sistemas para negocios. Es un nombre compuesto de cuatro partes en inglés que termina con '2.0'. Tiene seis sílabas más el número.",
     "razon": "'Net' es internet, 'Soft' es software y 'Web Solutions' es lo que hacemos. El '2.0' muestra que somos la versión mejorada y moderna."
@@ -893,8 +1192,15 @@
     "url": null,
     "imagen": null,
     "nota": 4,
-    "cumple": ["evocador"],
-    "falla": ["estrategia-nombre", "distintivo-nombre", "historia", "criterios-duros"],
+    "cumple": [
+      "evocador"
+    ],
+    "falla": [
+      "estrategia-nombre",
+      "distintivo-nombre",
+      "historia",
+      "criterios-duros"
+    ],
     "porque": "El 'Solo Bodas' cierra la puerta a cumpleaños, graduaciones o eventos de empresa, y 'Primavera' es de los nombres más usados en salones. Largo y limitante.",
     "descripcion": "Nombre para un salón de eventos con jardín. Es un nombre descriptivo de cuatro palabras que dice tipo de lugar, uso y una estación del año. Tiene nueve sílabas.",
     "razon": "Nos especializamos en bodas y queremos que las parejas lo sepan de una. 'Primavera' por el jardín y porque las bodas se asocian con flores."
