@@ -246,7 +246,13 @@ export const juezReal: Juez = async (mensaje, disponible) => { const r = await l
  * restaba por «nombre ya existente, es copia», «un solo nombre, sin alternativas» y «sin marca ni brief»,
  * y ponía 4 a Pentium o Sonos. Las instrucciones de calificación son las mismas; solo cambia el encuadre.
  */
-export const ENCUADRE_VERSION = 2;
+export const ENCUADRE_VERSION = 3; // 3: la escala del juez se alineó con la del banco (sistema/58)
+/** Lo aprendido con otro encuadre o escala (ajustes y corrección) se descarta: se calibra desde cero. */
+export function reiniciarSiCambioEncuadre() {
+  if ((leerJuez().encuadre ?? 1) === ENCUADRE_VERSION) return false;
+  guardarJuez((j) => { j.ajustes = {}; j.mapas = {}; delete j.huellaCalibrada; j.encuadre = ENCUADRE_VERSION; });
+  return true;
+}
 export const ENCUADRE_REFERENCIA = [
   "# Cómo leer esta pieza",
   "Es una pieza terminada y ya publicada, que se usa como referencia para medir tu criterio. No es un encargo de un cliente ni una propuesta del equipo.",
@@ -334,7 +340,7 @@ export function iniciarCalibracion(o: { disciplinas?: DisciplinaBanco[]; repetir
   const c: EnCurso = { id, ronda: 1, maxRondas: Math.max(1, Math.min(5, o.maxRondas ?? 3)), disciplinas, repetir: Math.max(0, Math.min(50, o.repetir ?? 8)), pendientes: pendientesDe(disciplinas, o.repetir ?? 8, id), resultados: [], inicio: new Date().toISOString(), pulso: new Date().toISOString(), quien: quien(o.quien ?? "jay"), huella: huellaBanco() };
   if (!c.pendientes.length) throw new Error("El banco no tiene referencias para calibrar.");
   recalcularRubrica();
-  if ((leerJuez().encuadre ?? 1) !== ENCUADRE_VERSION) guardarJuez((j) => { j.ajustes = {}; j.mapas = {}; delete j.huellaCalibrada; j.encuadre = ENCUADRE_VERSION; });
+  reiniciarSiCambioEncuadre();
   escribirAtomico(rutaEnCurso(), c);
   return c;
 }
@@ -347,6 +353,8 @@ export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?
   const juez = o.juez ?? juezReal;
   let c = calibracionEnCurso();
   if (!c) return { terminado: true, hechas: 0, total: 0 };
+  // Si el juez guardado viene de otro encuadre, lo aprendido con él no vale (también aquí: no depende de una sola escritura).
+  reiniciarSiCambioEncuadre();
   // Otro paso sigue trabajando: este no hace nada (nunca dos calificando lo mismo).
   if (c.ocupadoHasta && Date.parse(c.ocupadoHasta) > Date.now() && calibracionViva(c)) return { terminado: false, ocupado: true, hechas: c.resultados.length, total: c.resultados.length + c.pendientes.length };
   // El avance se guarda (y en línea, se sube) después de cada tanda: la página lo ve en vivo.

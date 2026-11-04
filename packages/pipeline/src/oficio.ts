@@ -278,8 +278,10 @@ export function calibracion(tarea: TareaId, pedido: Pedido): string {
   const o = OFICIO[d];
   return [
     `Calificas como ${o.revisor}.`,
-    "Escala: 9–10 = premiable, memorable y propio del cliente. 8 = nivel de estudio líder, se puede presentar ya. 6–7 = correcto pero genérico o con recursos de plantilla: necesita cambios. 5 o menos = de principiante.",
-    "Si aparece cualquiera de estos recursos genéricos, la nota no puede pasar de 6 y debes nombrarlo en la evidencia:",
+    // La misma escala del banco de calibración (sistema/58): antes decía «6–7 genérico, 5 o menos principiante» y el juez
+    // ponía 2–3 a lo genérico pero prolijo, que el banco califica 5–6.
+    "Escala: 9–10 = premiable, memorable y propio del cliente. 8 = nivel de estudio líder, se puede presentar ya. 7 = muy bien resuelto, con oficio, pero sin una idea memorable. 5–6 = correcto pero genérico o con recursos de plantilla: necesita cambios. 3–4 = de principiante: errores básicos (tipografía o colores sin criterio, textos de relleno, nombres que hay que deletrear). 0–2 = no sirve.",
+    "Si aparece cualquiera de estos recursos genéricos, la nota no puede pasar de 6 y debes nombrarlo en la evidencia. Que sea genérico no lo vuelve de principiante: si está bien ejecutado, queda en 5–6; el 3–4 es para errores básicos.",
     lista(o.evitar),
     textoRubro(pedido),
     "Criterio de la casa:", leerCriterio().texto,

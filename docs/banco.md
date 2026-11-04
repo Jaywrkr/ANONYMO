@@ -51,6 +51,8 @@ Dos rondas, US$ 3,35. El juez puso 6 o menos a las 23 genéricas y de principian
 
 **Causa (sistema/57):** las explicaciones del juez mostraron que no era tacaño: trataba cada referencia como una entrega de cliente y restaba por «nombre que ya existe, es copia», «un solo nombre sin alternativas» y «sin marca ni brief». Desde 0.58 se le dice que es una pieza terminada de referencia; sus instrucciones de calificación siguen iguales.
 
+**Segunda calibración (0.58, naming):** diferencia 1,65 (antes 2,98), la misma nota al repetir, premiadas −1,8 y genéricas −2,7: el juez ponía 2–3 a «Dental Care Plus» o «Sabor Casero». Su escala decía «6–7 genérico, 5 o menos principiante» y el banco usa 5–6 y 3–4: desde 0.59 la escala del juez es la del banco. Quedan casos de gusto para que decidan Jay y Luna, por ejemplo si Adura, Zempler o Health Equals (premios Transform recientes) valen 9 o 7.
+
 ## Comparación a ciegas de cada entrega
 En Proyecto → Requisitos y calidad, cada entrega de web, identidad, naming o redes tiene **Comparar con el banco**. El juez compara la entrega contra 3 a 5 piezas de 9 o más (primero las del mismo rubro y, si la nuestra tiene capturas, las que también tienen), con A y B al azar y sin saber cuál es la nuestra. Resultado: gana / empata / pierde contra piezas de 9, la nota calibrada y los 3 arreglos que más la acercan a un 10 (primero los de las comparaciones que perdió).
 

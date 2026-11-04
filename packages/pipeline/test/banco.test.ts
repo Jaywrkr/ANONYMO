@@ -207,3 +207,20 @@ test("el juez sabe que califica una pieza terminada (no una entrega) y lo aprend
   assert.match(t, /MARCA: "No aplica: pieza de referencia/);
   assert.match(t, /# Revisión de calidad/, "las instrucciones de calificación son las mismas");
 });
+
+test("si el juez guardado vuelve con otro encuadre (copia vieja), el paso igual descarta lo aprendido", async () => {
+  const { juez } = juezFalso(() => 0);
+  iniciarCalibracion({ disciplinas: ["naming"], repetir: 0, maxRondas: 1 });
+  // Simula que el paso bajó un juez.json de antes del cambio de encuadre.
+  guardarJuez((j) => { j.ajustes = { naming: ["Subestimas las piezas excepcionales: viejo"] }; j.encuadre = 1; });
+  await pasoCalibracion({ plazo: Date.now() + 60_000, juez, paralelo: 10 });
+  assert.equal(leerJuez().encuadre, ENCUADRE_VERSION);
+  assert.ok(!(leerJuez().ajustes.naming ?? []).some((x) => x.includes("viejo")), "no quedan ajustes del encuadre anterior");
+});
+
+test("la escala del juez es la misma del banco: genérico pero prolijo es 5–6, el 3–4 es para errores básicos", () => {
+  const t = calibracion("2.verba", { id: "x", cliente: "C", tipo: "marca", descripcion: "Café", creado: "" });
+  assert.match(t, /5–6 = correcto pero genérico/);
+  assert.match(t, /3–4 = de principiante/);
+  assert.match(t, /no lo vuelve de principiante/);
+});
