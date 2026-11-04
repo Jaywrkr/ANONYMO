@@ -57,7 +57,8 @@ ok(await p.getByText(/Lo que el juez aprendió de las rondas/).count() === 1, "e
 ok(await p.getByText(/✗/).count() > 0, "dice que no llega a la meta");
 ok(await p.getByText("Hacia dónde se equivoca").count() === 1, "muestra hacia dónde se equivoca en cada nivel");
 ok(await p.getByText(/Dónde más se equivocó en la ronda/).count() === 1, "muestra las referencias con más error");
-ok(await p.getByText(/0\.\d{5,}/).count() === 0, "sin números con decimales infinitos");
+const visible = await p.evaluate(() => { document.querySelectorAll("details").forEach((d) => (d.open = true)); return document.body.innerText; });
+ok(!/\d\.\d{5,}/.test(visible), "sin números con decimales infinitos");
 await p.screenshot({ path: `${T}/banco.png`, fullPage: true });
 
 // Comparación a ciegas de una entrega nuestra
