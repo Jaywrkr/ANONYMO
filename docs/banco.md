@@ -49,6 +49,8 @@ En el estudio corre en segundo plano, en pasos de menos de 5 minutos (`/trabajo/
 ## Primera calibración real (naming, 4 nov 2026)
 Dos rondas, US$ 3,35. El juez puso 6 o menos a las 23 genéricas y de principiante (bien), pero ninguna de las 15 premiadas llegó a 9: les pone unos 3 puntos menos. Es constante (varía 0,5 al repetir). La corrección `2,25 + 1,24 × nota` deja la diferencia en ≈ 1 punto. El ajuste automático («subestimas las piezas excepcionales») no alcanzó. Antes de tocar al juez, hay que mirar en el estudio «Dónde más se equivocó» para ver si el error es del juez o de la nota.
 
+**Causa (sistema/57):** las explicaciones del juez mostraron que no era tacaño: trataba cada referencia como una entrega de cliente y restaba por «nombre que ya existe, es copia», «un solo nombre sin alternativas» y «sin marca ni brief». Desde 0.58 se le dice que es una pieza terminada de referencia; sus instrucciones de calificación siguen iguales.
+
 ## Comparación a ciegas de cada entrega
 En Proyecto → Requisitos y calidad, cada entrega de web, identidad, naming o redes tiene **Comparar con el banco**. El juez compara la entrega contra 3 a 5 piezas de 9 o más (primero las del mismo rubro y, si la nuestra tiene capturas, las que también tienen), con A y B al azar y sin saber cuál es la nuestra. Resultado: gana / empata / pierde contra piezas de 9, la nota calibrada y los 3 arreglos que más la acercan a un 10 (primero los de las comparaciones que perdió).
 

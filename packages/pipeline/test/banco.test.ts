@@ -12,7 +12,8 @@ import {
   rondasCalibracion, ultimoInforme, type Juez, type Referencia,
 } from "../src/banco.ts";
 import { notaCalibrada } from "../src/calidad.ts";
-import { leerJuez } from "../src/juez.ts";
+import { guardarJuez, leerJuez } from "../src/juez.ts";
+import { ENCUADRE_REFERENCIA, ENCUADRE_VERSION } from "../src/banco.ts";
 import { calibracion, criteriosBanco } from "../src/oficio.ts";
 import type { Entrega } from "../src/tipos.ts";
 
@@ -189,4 +190,20 @@ test("un segundo paso no trabaja mientras otro tiene el candado, y el avance se 
   const m = ultimoInforme()!.porDisciplina.contenido!;
   assert.equal(m.bienClasificadasCalibrada, 1, "con un juez exacto, la nota calibrada clasifica todo bien");
   assert.equal(m.consistencia.maxDif, 0);
+});
+
+test("el juez sabe que califica una pieza terminada (no una entrega) y lo aprendido con otro encuadre se descarta", async () => {
+  guardarJuez((j) => { j.ajustes = { web: ["ajuste viejo"] }; j.mapas = { web: { a: 2, b: 1.2, n: 40 } }; j.encuadre = 1; });
+  const vistos: string[] = [];
+  const { juez } = juezFalso(() => 0);
+  const espia: Juez = async (m, d) => { vistos.push((m.at(-1) as { text: string }).text); return juez(m, d); };
+  iniciarCalibracion({ disciplinas: ["web"], repetir: 0, maxRondas: 1 });
+  assert.deepEqual(leerJuez().ajustes, {}, "los ajustes del encuadre anterior se descartan");
+  assert.equal(leerJuez().encuadre, ENCUADRE_VERSION);
+  await pasoCalibracion({ plazo: Date.now() + 60_000, juez: espia, paralelo: 10 });
+  const t = vistos[0];
+  assert.ok(t.includes(ENCUADRE_REFERENCIA.split("\n")[1]), "dice que es una pieza terminada");
+  assert.match(t, /no resta por existir ya/);
+  assert.match(t, /MARCA: "No aplica: pieza de referencia/);
+  assert.match(t, /# Revisión de calidad/, "las instrucciones de calificación son las mismas");
 });

@@ -25,6 +25,8 @@ export interface EstadoJuez {
   /** Huella del banco con la que se calcularon los pesos. */
   huellaPesos?: string;
   ronda?: number;
+  /** Con qué encuadre de referencias se calibró: si cambia, los ajustes y la corrección viejos no valen. */
+  encuadre?: number;
 }
 
 const ruta = () => join(carpeta(), "_agencia", "juez.json");
