@@ -62,7 +62,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
           </div>
         ) : null}
         {recalibrar && !enCurso && <p className="mt-2 rounded-xl bg-[#fff4d6] px-3 py-2 text-[13px]">El banco cambió desde la última calibración (o nunca se calibró): la rúbrica ya se recalculó, pero la nota calibrada de las entregas puede estar vieja. Vuelve a calibrar.</p>}
-        {m ? <Medidas m={m} /> : <p className="mt-2 text-[14px] text-medio">{informe ? `La última calibración no incluyó ${NOMBRE_DISCIPLINA[d]}.` : "Todavía no hay calibraciones. Necesita la conexión de IA; cuesta unos centavos por referencia."}</p>}
+        {m ? <><Medidas m={m} /><Sesgo m={m} /><Errores informe={informe!} d={d} /></> : <p className="mt-2 text-[14px] text-medio">{informe ? `La última calibración no incluyó ${NOMBRE_DISCIPLINA[d]}.` : "Todavía no hay calibraciones. Necesita la conexión de IA; cuesta unos centavos por referencia."}</p>}
         {informe && <p className="mt-2 text-[12px] text-suave">Último informe: ronda {informe.ronda} · {new Date(informe.fecha).toLocaleString("es-EC", { timeZone: "America/Guayaquil", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {informe.modelo} · US$ {informe.usd}</p>}
         {juez.mapas[d] && <p className="mt-1 text-[12px] text-suave">Corrección vigente: nota calibrada = {juez.mapas[d]!.a} + {juez.mapas[d]!.b} × nota del juez ({juez.mapas[d]!.n} referencias).</p>}
         {!!juez.ajustes[d]?.length && <details className="mt-3 text-[13px]"><summary className="min-h-11 cursor-pointer">Lo que el juez aprendió de las rondas · {juez.ajustes[d]!.length}</summary><ul className="mt-1 grid gap-1.5">{juez.ajustes[d]!.map((x) => <li key={x}>— {x}</li>)}</ul></details>}
@@ -118,12 +118,40 @@ function Medidas({ m }: { m: Medida }) {
   const fila = (t: string, v: string, ok: boolean | null, meta: string) => <div className="rounded-xl bg-[#f6f3ee] p-3"><p className="text-[12px] text-suave">{t}</p><p className="mt-1 text-[20px]">{v} {ok === null ? "" : ok ? "✓" : "✗"}</p><p className="text-[11px] text-suave">Meta: {meta}</p></div>;
   return (
     <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      {fila("Diferencia promedio con la nota de referencia", m.mae === null ? "—" : `${m.mae} pts`, m.mae === null ? null : m.mae <= META.mae, `≤ ${META.mae}`)}
+      {fila("Diferencia promedio con la nota de referencia", m.mae === null ? "—" : `${Math.round(m.mae * 100) / 100} pts`, m.mae === null ? null : m.mae <= META.mae, `≤ ${META.mae}`)}
       {fila("Bien clasificadas", pct(m.bienClasificadas), m.bienClasificadas === null ? null : m.bienClasificadas >= META.bienClasificadas, `≥ ${META.bienClasificadas * 100} %`)}
       {fila("Premiadas con 9 o más · genéricas con 6 o menos", `${m.premiadas.aciertos}/${m.premiadas.n} · ${m.bajas.aciertos}/${m.bajas.n}`, null, "todas")}
-      {fila("Variación al calificar dos veces", m.consistencia.maxDif === null ? "—" : `máx. ${m.consistencia.maxDif}`, m.consistencia.maxDif === null ? null : m.consistencia.maxDif <= META.consistencia, `≤ ${META.consistencia} punto`)}
-      <p className="text-[13px] sm:col-span-2 lg:col-span-4">{m.cumpleMeta ? "Llega a la meta: la nota del juez se puede leer como la de un jurado." : "No llega a la meta todavía: la nota calibrada corrige el sesgo, pero conviene revisar los ajustes o las notas del banco."} Con la corrección, la diferencia promedio queda en {m.maeCalibrada ?? "—"} pts. {m.errores ? `${m.errores} calificaciones fallaron y no cuentan.` : ""}</p>
+      {fila("Variación al calificar dos veces", m.consistencia.maxDif === null ? "—" : `máx. ${Math.round(m.consistencia.maxDif * 10) / 10}`, m.consistencia.maxDif === null ? null : m.consistencia.maxDif <= META.consistencia, `≤ ${META.consistencia} punto`)}
+      <p className="text-[13px] sm:col-span-2 lg:col-span-4">{m.cumpleMeta ? "Llega a la meta: la nota del juez se puede leer como la de un jurado." : "No llega a la meta todavía: la nota calibrada corrige el sesgo, pero conviene revisar los ajustes o las notas del banco."} Con la corrección (la «nota calibrada» que ves en cada entrega), la diferencia promedio queda en {m.maeCalibrada ?? "—"} pts{m.bienClasificadasCalibrada != null ? ` y quedan bien clasificadas el ${Math.round(m.bienClasificadasCalibrada * 100)} %` : ""}. {m.errores ? `${m.errores} calificaciones fallaron y no cuentan.` : ""}</p>
     </div>
+  );
+}
+
+const firmar = (x: number) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(1).replace(".", ",")}`;
+/** Hacia dónde se equivoca el juez en cada nivel: así se ve si es duro con lo excelente o blando con lo genérico. */
+function Sesgo({ m }: { m: Medida }) {
+  const partes = NIVELES.filter((n) => m.sesgo[n.id] !== null).map((n) => ({ n, x: m.sesgo[n.id]! }));
+  if (!partes.length) return null;
+  const peor = [...partes].sort((a, b) => Math.abs(b.x) - Math.abs(a.x))[0];
+  return (
+    <div className="mt-3 rounded-xl bg-[#f6f3ee] p-3 text-[13px]">
+      <p className="font-medium">Hacia dónde se equivoca (nota del juez menos la nota real)</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{partes.map(({ n, x }) => <p key={n.id}><span className="block text-[12px] text-suave">{n.nombre} · {n.rango}</span><span className="text-[18px]">{firmar(x)}</span></p>)}</div>
+      {Math.abs(peor.x) >= 0.75 && <p className="mt-2">{peor.x < 0 ? `Es duro con las ${peor.n.nombre.toLowerCase()}: les pone en promedio ${firmar(peor.x)} puntos.` : `Es blando con las ${peor.n.nombre.toLowerCase()}: les pone en promedio ${firmar(peor.x)} puntos de más.`}</p>}
+    </div>
+  );
+}
+
+/** Las referencias donde el juez más se alejó de la nota real, para revisar si el error es del juez o de la nota. */
+function Errores({ informe, d }: { informe: NonNullable<ReturnType<typeof ultimoInforme>>; d: DisciplinaBanco }) {
+  const nombres = new Map(leerBanco().map((r) => [r.id, r.nombre]));
+  const peores = informe.resultados.filter((r) => r.disciplina === d && r.pasada === 1 && r.nota !== undefined).map((r) => ({ ...r, dif: r.nota! - r.notaRef })).sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif)).slice(0, 10);
+  if (!peores.length) return null;
+  return (
+    <details className="mt-3 text-[13px]"><summary className="min-h-11 cursor-pointer">Dónde más se equivocó en la ronda {informe.ronda} · {peores.length}</summary>
+      <ul className="mt-1 grid gap-2">{peores.map((r) => <li key={r.ref}><strong>{nombres.get(r.ref) ?? r.ref}</strong> · nota real {r.notaRef} · el juez puso {r.nota} ({firmar(r.dif)}){r.resumen ? <span className="block text-medio">{r.resumen}</span> : null}</li>)}</ul>
+      <p className="mt-2 text-suave">Si el juez tiene razón y la nota real no, cambia la nota de esa referencia más abajo.</p>
+    </details>
   );
 }
 

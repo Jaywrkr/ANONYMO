@@ -273,10 +273,14 @@ export async function calificarCiega(r: Referencia, juez: Juez = juezReal, dispo
 
 // ——— Calibración por rondas, en pasos cortos (cada paso cabe en una función de 5 minutos) ———
 export interface ResultadoCalibracion { ref: string; pasada: 1 | 2; nota?: number; error?: string; resumen?: string; cumple?: string[]; conImagen?: boolean; usd?: number }
-export interface EnCurso { id: string; ronda: number; maxRondas: number; disciplinas: DisciplinaBanco[]; repetir: number; pendientes: { ref: string; pasada: 1 | 2 }[]; resultados: ResultadoCalibracion[]; inicio: string; pulso: string; quien: string; huella: string }
+export interface EnCurso { id: string; ronda: number; maxRondas: number; disciplinas: DisciplinaBanco[]; repetir: number; pendientes: { ref: string; pasada: 1 | 2 }[]; resultados: ResultadoCalibracion[]; inicio: string; pulso: string; quien: string; huella: string;
+  /** Un paso trabaja hasta esta hora: otro no empieza mientras tanto (candado simple, sistema/56). */
+  ocupadoHasta?: string }
 export interface Medida {
   n: number; errores: number; mae: number | null; maeCalibrada: number | null; sesgo: Record<NivelBanco, number | null>;
   premiadas: { n: number; aciertos: number }; bajas: { n: number; aciertos: number }; bienClasificadas: number | null;
+  /** Las mismas cuentas con la nota corregida por la recta: lo que de verdad se ve en cada entrega. */
+  bienClasificadasCalibrada?: number | null;
   consistencia: { n: number; maxDif: number | null; promedio: number | null }; mapa?: Mapa; cumpleMeta: boolean;
 }
 export interface InformeCalibracion {
@@ -325,10 +329,16 @@ export function iniciarCalibracion(o: { disciplinas?: DisciplinaBanco[]; repetir
  * Califica referencias pendientes hasta el plazo, de a varias a la vez, y guarda el avance después de cada tanda.
  * Al terminar la ronda la mide; si no llega a la meta, ajusta las instrucciones del juez y empieza otra.
  */
-export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?: number }): Promise<{ terminado: boolean; informe?: InformeCalibracion; hechas: number; total: number }> {
+export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?: number; alAvanzar?: () => Promise<void> }): Promise<{ terminado: boolean; ocupado?: boolean; informe?: InformeCalibracion; hechas: number; total: number }> {
   const juez = o.juez ?? juezReal;
   let c = calibracionEnCurso();
   if (!c) return { terminado: true, hechas: 0, total: 0 };
+  // Otro paso sigue trabajando: este no hace nada (nunca dos calificando lo mismo).
+  if (c.ocupadoHasta && Date.parse(c.ocupadoHasta) > Date.now() && calibracionViva(c)) return { terminado: false, ocupado: true, hechas: c.resultados.length, total: c.resultados.length + c.pendientes.length };
+  // El avance se guarda (y en línea, se sube) después de cada tanda: la página lo ve en vivo.
+  const guardar = async () => { c!.pulso = new Date().toISOString(); escribirAtomico(rutaEnCurso(), c); await o.alAvanzar?.().catch(() => {}); };
+  c.ocupadoHasta = new Date(o.plazo).toISOString();
+  await guardar();
   const porId = new Map(leerBanco().map((r) => [r.id, r]));
   while (c.pendientes.length && Date.now() < o.plazo - 15_000) {
     const tanda = c.pendientes.slice(0, o.paralelo ?? 4);
@@ -340,15 +350,15 @@ export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?
     }));
     c.pendientes = c.pendientes.slice(tanda.length);
     c.resultados.push(...hechos);
-    c.pulso = new Date().toISOString();
-    escribirAtomico(rutaEnCurso(), c);
+    await guardar();
   }
+  delete c.ocupadoHasta;
   const total = c.resultados.length + c.pendientes.length;
-  if (c.pendientes.length) return { terminado: false, hechas: c.resultados.length, total };
+  if (c.pendientes.length) { await guardar(); return { terminado: false, hechas: c.resultados.length, total }; }
   const informe = cerrarRonda(c);
   if (informe.sigue) {
     c = { ...c, ronda: c.ronda + 1, pendientes: pendientesDe(c.disciplinas, c.repetir, c.id + c.ronda), resultados: [], pulso: new Date().toISOString() };
-    escribirAtomico(rutaEnCurso(), c);
+    await guardar();
     return { terminado: false, informe, hechas: 0, total: c.pendientes.length };
   }
   rmSync(rutaEnCurso(), { force: true });
@@ -377,12 +387,14 @@ export function medir(resultados: ResultadoCalibracion[], refs: Map<string, Refe
   const prem = pares.filter(([, y]) => y >= 9), bajas = pares.filter(([, y]) => y <= 6);
   const premiadas = { n: prem.length, aciertos: prem.filter(([x]) => x >= 9).length }, bajasM = { n: bajas.length, aciertos: bajas.filter(([x]) => x <= 6).length };
   const clasif = premiadas.n + bajasM.n ? (premiadas.aciertos + bajasM.aciertos) / (premiadas.n + bajasM.n) : null;
-  const dobles = resultados.filter((r) => r.pasada === 2 && r.nota !== undefined).map((r) => { const p = primera.find((x) => x.ref === r.ref); return p ? Math.abs(p.nota! - r.nota!) : undefined; }).filter((x): x is number => x !== undefined);
+  const aciertosCal = prem.filter(([x]) => aplicar(mapa, x) >= 8.95).length + bajas.filter(([x]) => aplicar(mapa, x) < 6.05).length;
+  const clasifCal = premiadas.n + bajasM.n ? Math.round((aciertosCal / (premiadas.n + bajasM.n)) * 1000) / 1000 : null;
+  const dobles = resultados.filter((r) => r.pasada === 2 && r.nota !== undefined).map((r) => { const p = primera.find((x) => x.ref === r.ref); return p ? Math.round(Math.abs(p.nota! - r.nota!) * 100) / 100 : undefined; }).filter((x): x is number => x !== undefined);
   const mae = r2(media(pares.map(([x, y]) => Math.abs(x - y))));
   const maxDif = dobles.length ? Math.max(...dobles) : null;
   return {
     n: pares.length, errores: resultados.filter((r) => r.error).length, mae, maeCalibrada: r2(media(pares.map(([x, y]) => Math.abs(aplicar(mapa, x) - y)))), sesgo,
-    premiadas, bajas: bajasM, bienClasificadas: clasif === null ? null : Math.round(clasif * 1000) / 1000,
+    premiadas, bajas: bajasM, bienClasificadas: clasif === null ? null : Math.round(clasif * 1000) / 1000, bienClasificadasCalibrada: clasifCal,
     consistencia: { n: dobles.length, maxDif, promedio: r2(media(dobles)) }, mapa,
     cumpleMeta: pares.length > 0 && mae !== null && mae <= META.mae && clasif !== null && clasif >= META.bienClasificadas && (maxDif === null || maxDif <= META.consistencia),
   };

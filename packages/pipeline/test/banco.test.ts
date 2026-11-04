@@ -172,3 +172,21 @@ test("la comparación a ciegas no dice cuál es la nuestra y trae los 3 arreglos
   assert.ok(enA.includes(true) || enA.includes(false), "el orden A/B lo decide el azar");
   await assert.rejects(compararConBanco(ped.id, "1.ledger" as never, { juez }), /no existe|no tiene banco/);
 });
+
+test("un segundo paso no trabaja mientras otro tiene el candado, y el avance se publica en cada tanda", async () => {
+  const { juez } = juezFalso(() => 0);
+  iniciarCalibracion({ disciplinas: ["contenido"], repetir: 4, maxRondas: 1 });
+  let publicaciones = 0, segundo: Awaited<ReturnType<typeof pasoCalibracion>> | undefined;
+  const lento: Juez = async (m, d) => {
+    if (!segundo) segundo = await pasoCalibracion({ plazo: Date.now() + 60_000, juez });
+    return juez(m, d);
+  };
+  const r = await pasoCalibracion({ plazo: Date.now() + 60_000, juez: lento, paralelo: 10, alAvanzar: async () => { publicaciones++; } });
+  assert.equal(segundo!.ocupado, true, "el segundo paso ve el candado y no califica");
+  assert.equal(r.terminado, true);
+  assert.ok(publicaciones >= 6, `publica el avance en cada tanda (${publicaciones})`);
+  assert.equal(calibracionEnCurso(), undefined);
+  const m = ultimoInforme()!.porDisciplina.contenido!;
+  assert.equal(m.bienClasificadasCalibrada, 1, "con un juez exacto, la nota calibrada clasifica todo bien");
+  assert.equal(m.consistencia.maxDif, 0);
+});
