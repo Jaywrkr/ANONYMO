@@ -9,7 +9,7 @@ Para que las entregas tengan nivel de estudio líder y no de plantilla. Código:
 - **La rúbrica con la que lo van a calificar**, para que se revise antes de entregar.
 
 ## Cómo califica el revisor
-A quien produce la pieza principal (Orla, Vector, Mira, Verba, Faro, Chispa, Corte, Rhea en tono) se le suman las condiciones `oficio-*` de su disciplina. El revisor toma el rol de su disciplina (por ejemplo, director de arte de un estudio que gana Awwwards) y usa esta escala: 9–10 premiable, 8 estudio líder, 6–7 correcto pero genérico, 5 o menos principiante. Si aparece un recurso de plantilla de la lista, la nota no pasa de 6. Menos de 8 vuelve a hacerse con los arreglos concretos (hasta dos correcciones, como ya estaba).
+A quien produce la pieza principal (Orla, Vector, Mira, Verba, Faro, Chispa, Corte, Rhea en tono) se le suman las condiciones `oficio-*` de su disciplina. El revisor toma el rol de su disciplina (por ejemplo, director de arte de un estudio que gana Awwwards) y usa esta escala (la misma del banco de calibración desde 0.59): 9–10 premiable, 8 estudio líder, 7 muy bien resuelto sin idea memorable, 5–6 correcto pero genérico, 3–4 principiante (errores básicos). Si aparece un recurso de plantilla de la lista, la nota no pasa de 6; ser genérico no lo vuelve de principiante. Menos de 8 vuelve a hacerse con los arreglos concretos (hasta dos correcciones, como ya estaba).
 
 Las condiciones de oficio se agregan en la revisión y no cambian la huella de contexto: las entregas ya verificadas no se invalidan. Lo nuevo se aplica desde la próxima entrega o al pedir otra revisión.
 
