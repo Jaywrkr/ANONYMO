@@ -179,6 +179,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
         <span className="px-2.5 text-[11px] text-medio lg:hidden"><Version/></span>
         <Link href="/estudio?vista=completa" onClick={alIr} className={`${fila(false)} lg:hidden`}>Vista completa del estudio</Link>
         <Link href="/estudio/criterio" onClick={alIr} className={fila(ruta === "/estudio/criterio")} aria-current={ruta === "/estudio/criterio" ? "page" : undefined}>Criterio de la casa</Link>
+        <Link href="/estudio/banco" onClick={alIr} className={fila(ruta === "/estudio/banco")} aria-current={ruta === "/estudio/banco" ? "page" : undefined}>Banco de calibración</Link>
         <Link href="/estudio/conexiones" onClick={alIr} className={fila(ruta === "/estudio/conexiones")}>Conexiones del estudio</Link>
         <Link href="/estudio/analitica" onClick={alIr} className={fila(ruta === "/estudio/analitica")}><Icono d={I.metricas} /> Métricas de la web</Link>
         <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")}><Icono d={I.papelera} /> Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>

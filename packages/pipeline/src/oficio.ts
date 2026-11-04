@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { carpeta } from "./almacen.ts";
 import { plantillaPorId, rubroDe } from "./plantillas.ts";
 import type { Pedido, TareaId } from "./tipos.ts";
+import { DISCIPLINAS_BANCO, textoCalibrado, type DisciplinaBanco } from "./juez.ts";
 
 export type Disciplina = "web" | "identidad" | "naming" | "contenido" | "textos";
 
@@ -18,6 +19,14 @@ const POR_TAREA: Partial<Record<TareaId, Disciplina>> = {
   "3.rhea": "textos",
 };
 export const disciplinaDe = (t: TareaId): Disciplina | undefined => POR_TAREA[t];
+/** Las disciplinas que tienen banco de calibración (textos no: se juzga junto con identidad y web). */
+export const disciplinaBanco = (d: Disciplina | undefined): DisciplinaBanco | undefined => (DISCIPLINAS_BANCO as string[]).includes(d ?? "") ? d as DisciplinaBanco : undefined;
+/** Criterios del oficio que solo aplican a una propuesta con varias opciones, no a una pieza terminada del banco. */
+export const SOLO_PROPUESTA = new Set(["rutas-distintas", "variedad", "disponibilidad"]);
+/** Los criterios del banco salen del oficio (no se duplican): la rúbrica de la disciplina menos lo que solo aplica a propuestas. */
+export const criteriosBanco = (d: DisciplinaBanco): [string, string][] => OFICIO[d].rubrica.filter(([id]) => !SOLO_PROPUESTA.has(id));
+/** La tarea que produce la pieza principal de cada disciplina del banco: con su revisión se califica una referencia. */
+export const TAREA_BANCO: Record<DisciplinaBanco, TareaId> = { web: "4.vector", identidad: "3.mira", naming: "2.verba", contenido: "5.faro" };
 /** Las tareas que producen la pieza principal de su disciplina: a estas el revisor les aplica la rúbrica completa. */
 const PRODUCEN = new Set<TareaId>(["4.orla", "4.vector", "3.mira", "2.verba", "5.faro", "5.chispa", "5.corte", "3.rhea"]);
 
@@ -71,6 +80,7 @@ export const OFICIO: Record<Disciplina, Oficio> = {
       ["tipografia-oficio", "La tipografía tiene carácter y una escala con contraste real; jerarquía clara a 1440 y 390 px."],
       ["direccion-arte", "Imagen y color con dirección de arte: tratamiento propio y coherente, no decoración."],
       ["ritmo", "La página tiene ritmo: secciones con densidades y composiciones distintas dentro del mismo sistema."],
+      ["movimiento", "El movimiento y la interacción tienen intención: sostienen la idea, guían la lectura y no se repiten igual en todo."],
       ["copy-especifico", "Los textos dicen cosas concretas de este cliente; los botones tienen verbo claro."],
       ["accion", "La acción principal está visible en el primer pantallazo y a mano en celular."],
       ["nivel", "El resultado se puede mostrar junto a webs premiadas del mismo rubro sin desentonar."],
@@ -106,6 +116,7 @@ export const OFICIO: Record<Disciplina, Oficio> = {
       ["distintivo", "Se diferencia del código obvio del rubro y no usa el ícono literal del negocio."],
       ["construccion", "Formas construidas con criterio: consistentes, simples, legibles a 16 y 32 px y en una tinta."],
       ["sistema", "Paleta con roles, tipografías y aplicaciones forman un sistema coherente."],
+      ["memorable", "Se recuerda y se reconoce de un vistazo: alguien podría dibujarlo de memoria después de verlo una vez."],
       ["rutas-distintas", "Las rutas son realmente distintas entre sí, no variaciones de la misma idea."],
     ],
   },
@@ -132,6 +143,9 @@ export const OFICIO: Record<Disciplina, Oficio> = {
       ["estrategia-nombre", "Hay una estrategia explícita y los nombres responden a ella."],
       ["variedad", "Hay nombres de tipos distintos (evocativo, metafórico, inventado…), no variaciones de uno."],
       ["criterios-duros", "Los finalistas son cortos, pronunciables en español e inglés y sin connotaciones negativas evidentes."],
+      ["evocador", "Evoca la promesa o el carácter de la marca sin describir literalmente lo que vende."],
+      ["historia", "Cada nombre tiene una historia que se cuenta en una línea y hace que la gente lo repita."],
+      ["distintivo-nombre", "Se distingue de los nombres de su categoría: no suena a otro competidor ni a plantilla."],
       ["disponibilidad", "Se revisó o se marcó para verificar dominio, redes y choque de marca de cada finalista."],
     ],
   },
@@ -160,6 +174,7 @@ export const OFICIO: Record<Disciplina, Oficio> = {
       ["ganchos", "Cada pieza propuesta tiene un gancho concreto en el primer segundo o primera línea."],
       ["formatos-actuales", "Usa los formatos actuales de cada plataforma con duraciones y especificaciones correctas."],
       ["sin-generico", "Evita plantillas, stock y frases genéricas; la marca es reconocible sin el logo."],
+      ["idea", "Hay una idea creativa que se cuenta en una frase y que la gente quiere comentar o compartir."],
     ],
   },
   textos: {
@@ -269,5 +284,6 @@ export function calibracion(tarea: TareaId, pedido: Pedido): string {
     textoRubro(pedido),
     "Criterio de la casa:", leerCriterio().texto,
     "En cada condición que falla, escribe el arreglo concreto (qué cambiar y cómo), no solo el problema.",
+    textoCalibrado(disciplinaBanco(d), Object.fromEntries(o.rubrica)),
   ].filter(Boolean).join("\n");
 }

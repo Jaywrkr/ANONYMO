@@ -4,6 +4,8 @@ Para quien siga el desarrollo (Codex u otro agente de código). Escrito el 29 de
 Primero lee [README.md](README.md) (qué hay y cómo correrlo) y [AGENTS.md](AGENTS.md) (reglas del repo).
 
 
+**Trabajo 0.55 para revisión (sistema/55-banco-calibracion, sale de 54):** banco de calibración con 188 referencias (web 46, identidad 42, naming 50, redes 50) en `data/banco/*.json` (solo índice; capturas privadas en `_banco/capturas`). La rúbrica (pesos que suman 10) se deduce del banco y la lee el juez; la calibración a ciegas usa el mismo `textoJuez` de calidad.ts, mide diferencia, clasificación y consistencia, ajusta al juez por rondas y guarda la corrección de la nota (`_agencia/juez.json`). Comparación a ciegas por pares desde Requisitos y calidad. **Falta la calibración real**: en esta máquina no hubo clave de IA ni acceso a los sitios. Pasos en [docs/banco.md](docs/banco.md). Pruebas nuevas: `test/banco.test.ts`, `scripts/pruebas/banco.ts` + `e2e-banco.mjs`.
+
 **Trabajo 0.54 para revisión (sistema/54-oficio):** estándar de oficio por disciplina (web, identidad, naming, contenido, textos), cómo comunica cada uno de 11 rubros (reconocido solo por el pedido) y «Criterio de la casa» editable por Jay y Luna. Lo leen el agente antes de producir y el revisor al calificar, con una escala donde 8 = estudio líder y cualquier recurso de plantilla no pasa de 6. Ver [docs/oficio.md](docs/oficio.md). Siguiente: calibrar con entregas reales que Jay acepte o rechace.
 
 **Trabajo 0.53 para revisión:** integra las reservas SQL con el ejecutor y el guardado del proyecto mediante archivos inmutables y un índice confirmado junto con el cierre del trabajo. Piloto desactivado por defecto; requiere aplicar ambos esquemas SQL en ensayo y seleccionar proyectos explícitamente. Las copias desactualizadas se archivan y pueden descargarse desde Ajustes → Revisar avances en conflicto. Correos/webhooks y eliminación remota quedan bloqueados en el piloto hasta contar con salida transaccional y purga segura. No se ha activado ni migrado producción. 0.51 y 0.52 ya están en main mediante el PR #79; despliegue por comprobar. Ver [docs/publicacion-atomica.md](docs/publicacion-atomica.md).
@@ -142,6 +144,13 @@ bash scripts/pruebas/nube.sh                 # de nuevo, limpio
 node scripts/pruebas/e2e-paso.mjs /tmp/anonymo-pruebas   # un agente a la vez con IA lenta: en vivo, revisión, pausa, celular
 bash scripts/pruebas/parar.sh
 ```
+
+Banco de calibración (0.55), con `nube.sh` levantado:
+```bash
+ANONYMO_NUBE=1 SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_KEY=x SUPABASE_BUCKET=proyectos ANONYMO_PROYECTOS=/tmp/anonymo-pruebas/banco node --experimental-strip-types scripts/pruebas/banco.ts
+node scripts/pruebas/e2e-banco.mjs
+```
+Si la máquina no tiene `/usr/bin/chromium`, exporta `CHROMIUM=/ruta/al/chromium` **antes** de `nube.sh`: el servidor de prueba lo usa para verificar webs (sin eso, la re-verificación de `e2e-calidad-movil` falla). `e2e-estandar.mjs` va justo después de `e2e-calidad-movil.mjs`, en el mismo estudio.
 
 Todas pasan en 0.44. Registro del servidor de prueba: `/tmp/anonymo-pruebas/next.log`. Si Chromium no está donde Playwright lo busca: `CHROMIUM=/ruta`.
 Cuidado: `parar.sh` mata procesos por patrón; si va en la misma línea que otros comandos puede matar tu propia terminal.

@@ -475,3 +475,68 @@ export async function accionCriterio(f: FormData) {
   revalidatePath("/estudio/criterio");
   redirect(destino);
 }
+
+/** Banco de calibración (sistema/55): cambios de Jay y Luna. Cada cambio recalcula la rúbrica y pide recalibrar. */
+async function enBanco(fn: (yo: Quien) => Promise<unknown> | unknown, ok: string, volver = "/estudio/banco", ids = ["_agencia"]) {
+  const yo = await exigirEstudio();
+  const [ruta, q] = volver.split("?");
+  let destino = `${ruta}?${q ? q + "&" : ""}ok=${encodeURIComponent(ok)}`;
+  try {
+    await conNube(ids, () => fn(yo));
+  } catch (e) {
+    destino = `${ruta}?${q ? q + "&" : ""}error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+  }
+  revalidatePath(ruta);
+  redirect(destino);
+}
+const volverBanco = (f: FormData) => { const v = String(f.get("volver") ?? ""); return v.startsWith("/estudio/banco") ? v : "/estudio/banco"; };
+export async function accionNotaBanco(f: FormData) {
+  const { cambiarNotaBanco } = await import("@anonymo/pipeline");
+  await enBanco((yo) => cambiarNotaBanco(String(f.get("ref")), Number(String(f.get("nota")).replace(",", ".")), yo, Number(f.get("revision"))), "Nota cambiada. La rúbrica se recalculó: vuelve a calibrar al juez cuando termines los cambios.", volverBanco(f));
+}
+export async function accionQuitarBanco(f: FormData) {
+  const { quitarDelBanco } = await import("@anonymo/pipeline");
+  await enBanco((yo) => quitarDelBanco(String(f.get("ref")), yo, Number(f.get("revision"))), "Referencia quitada del banco (se puede volver a poner). La rúbrica se recalculó.", volverBanco(f));
+}
+export async function accionDevolverBanco(f: FormData) {
+  const { devolverAlBanco } = await import("@anonymo/pipeline");
+  await enBanco(() => devolverAlBanco(String(f.get("ref")), Number(f.get("revision"))), "Referencia de vuelta en el banco. La rúbrica se recalculó.", volverBanco(f));
+}
+export async function accionAgregarBanco(f: FormData) {
+  const { agregarAlBanco } = await import("@anonymo/pipeline");
+  const datos = Object.fromEntries(["disciplina", "rubro", "nombre", "autor", "anio", "premio", "fuente", "url", "imagen", "nota", "porque", "descripcion", "razon"].map((k) => [k, f.get(k)]));
+  await enBanco((yo) => agregarAlBanco({ ...datos, cumple: f.getAll("cumple").map(String), falla: f.getAll("falla").map(String) }, yo, Number(f.get("revision"))), "Referencia agregada. La rúbrica se recalculó: vuelve a calibrar al juez.", `/estudio/banco?d=${String(f.get("disciplina") ?? "web")}`);
+}
+export async function accionCalibrar(f: FormData) {
+  const yo = await exigirEstudio();
+  const { iniciarCalibracion, DISCIPLINAS_BANCO } = await import("@anonymo/pipeline");
+  const { lanzarCalibracion } = await import("@/lib/banco");
+  const d = String(f.get("disciplina") ?? "");
+  let destino = `/estudio/banco?ok=${encodeURIComponent("Calibración empezada. El juez califica a ciegas en segundo plano: esta página muestra el avance.")}`;
+  try {
+    // Primero queda guardada en la nube; recién después se pide el primer paso (que la baja de ahí).
+    await conNube(["_agencia"], () => iniciarCalibracion({ disciplinas: (DISCIPLINAS_BANCO as string[]).includes(d) ? [d as "web"] : undefined, repetir: Number(f.get("repetir") ?? 8), quien: yo }));
+    await lanzarCalibracion();
+  } catch (e) {
+    destino = `/estudio/banco?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+  }
+  revalidatePath("/estudio/banco");
+  redirect(destino);
+}
+export async function accionSeguirCalibracion() {
+  const { lanzarCalibracion } = await import("@/lib/banco");
+  await enBanco(() => lanzarCalibracion(), "Le pedimos que siga calibrando.");
+}
+export async function accionReiniciarJuez() {
+  const { reiniciarJuez } = await import("@anonymo/pipeline");
+  await enBanco(() => reiniciarJuez(), "El juez volvió a sus instrucciones sin ajustes ni corrección. Calibra de nuevo cuando quieras.");
+}
+export async function accionCompararBanco(f: FormData) {
+  const { compararConBanco } = await import("@anonymo/pipeline");
+  const id = String(f.get("id") ?? ""), tarea = String(f.get("tarea") ?? "") as TareaId;
+  await correr(id, async () => {
+    await traer("_agencia");
+    const c = await compararConBanco(id, tarea);
+    return c;
+  }, "Comparación a ciegas lista: mira el resultado debajo de la revisión.", false, "/calidad");
+}
