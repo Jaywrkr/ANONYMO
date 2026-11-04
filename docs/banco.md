@@ -46,6 +46,9 @@ El juez recibe estos pesos y la escala en sus instrucciones (`calibracion()` →
 
 En el estudio corre en segundo plano, en pasos de menos de 5 minutos (`/trabajo/calibrar`), y la página muestra el avance. Calibrar todo son unas 230 llamadas por ronda (≈ US$ 3–6 con Sonnet; el informe da el costo real).
 
+## Primera calibración real (naming, 4 nov 2026)
+Dos rondas, US$ 3,35. El juez puso 6 o menos a las 23 genéricas y de principiante (bien), pero ninguna de las 15 premiadas llegó a 9: les pone unos 3 puntos menos. Es constante (varía 0,5 al repetir). La corrección `2,25 + 1,24 × nota` deja la diferencia en ≈ 1 punto. El ajuste automático («subestimas las piezas excepcionales») no alcanzó. Antes de tocar al juez, hay que mirar en el estudio «Dónde más se equivocó» para ver si el error es del juez o de la nota.
+
 ## Comparación a ciegas de cada entrega
 En Proyecto → Requisitos y calidad, cada entrega de web, identidad, naming o redes tiene **Comparar con el banco**. El juez compara la entrega contra 3 a 5 piezas de 9 o más (primero las del mismo rubro y, si la nuestra tiene capturas, las que también tienen), con A y B al azar y sin saber cuál es la nuestra. Resultado: gana / empata / pierde contra piezas de 9, la nota calibrada y los 3 arreglos que más la acercan a un 10 (primero los de las comparaciones que perdió).
 
