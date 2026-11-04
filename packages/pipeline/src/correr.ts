@@ -39,7 +39,7 @@ export interface OpcionesAvanzar {
 }
 
 /** ¿Queda trabajo por hacer sin esperar a nadie? */
-export const hayPendientes = (p: Proyecto) => !!p.controlPendiente || p.plan.tareas.some((t) => p.tareas[t] !== "lista");
+export const hayPendientes = (p: Proyecto) => !!p.revisionRecuperada || !!p.controlPendiente || p.plan.tareas.some((t) => p.tareas[t] !== "lista");
 
 export async function nuevo(pedido: Pedido, motor: Motor = elegirMotor(), aviso: Aviso = console.log) {
   const plan = planificar(pedido);
@@ -145,6 +145,12 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
   if (p.estado === "esperando" || p.estado === "plan") return p;
   p.estado = "en-curso";
 
+  if(p.revisionRecuperada&&!p.controlPendiente){
+    const pendiente=p.plan.tareas.map(t=>leerEntrega(id,t)).find(e=>e&&e.modo!=="simulado"&&estadoEntrega(p,e)!=="aprobado");
+    if(pendiente){p.faseActual=faseDe(pendiente.tarea);p.controlPendiente={tarea:pendiente.tarea,version:pendiente.version,proponer:!!pendiente.datos?.direcciones};}
+    else delete p.revisionRecuperada;
+    guardarProyecto(p);
+  }
   if (p.controlPendiente) {
     if (op.max === 0) return p;
     const q = p.controlPendiente;

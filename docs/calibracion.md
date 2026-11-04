@@ -1,6 +1,6 @@
 # Calibración del juez
 
-**Estado (0.55, 4 nov 2026): todavía sin calibración real.** En la máquina donde se armó el banco no había `ANTHROPIC_API_KEY` y la red no dejaba abrir los sitios premiados, así que no hay capturas de terceros ni notas del juez de verdad. Las cifras de abajo salen solo de pruebas con una IA falsa y **no dicen nada de la calidad del juez**.
+**Estado (0.56, 4 nov 2026): todavía sin calibración real.** En la máquina donde se armó el banco no había `ANTHROPIC_API_KEY` y la red no dejaba abrir los sitios premiados, así que no hay capturas de terceros ni notas del juez de verdad. Las cifras de abajo salen solo de pruebas con una IA falsa y **no dicen nada de la calidad del juez**.
 
 ## Paso que falta (una vez, en una máquina con internet y `.env.local` con la clave de IA y Supabase)
 

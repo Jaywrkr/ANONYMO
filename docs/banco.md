@@ -1,4 +1,4 @@
-# Banco de calibración · 0.55
+# Banco de calibración · 0.56
 
 Para saber si lo que produce ANONYMO tiene nivel de las mejores agencias, sin confiar solo en la opinión de la IA. Nos comparamos con trabajo premiado, con notas y criterios escritos.
 

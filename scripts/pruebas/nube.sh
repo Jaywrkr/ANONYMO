@@ -2,6 +2,8 @@
 # Levanta el estudio «en línea» de prueba: Supabase falso (54321), IA falsa y lenta (45888) y la web en 3100.
 # Antes: cd apps/web && npx next build. Para detener: bash scripts/pruebas/parar.sh (en otro comando).
 set -e
+# Ningún servicio externo de avisos se hereda en el servidor ficticio.
+unset RESEND_API_KEY AVISOS_CORREO AVISOS_WEBHOOK ANONYMO_AVISOS_VERSIONADOS ANONYMO_WEBHOOK_IDEMPOTENTE
 D="$(cd "$(dirname "$0")" && pwd)"; R="$(cd "$D/../.." && pwd)"; T="${PRUEBAS:-/tmp/anonymo-pruebas}"
 rm -rf "$T"; mkdir -p "$T/semilla" "$T/nube"
 (nohup node "$D/supabase-falso.mjs" > "$T/supabase.log" 2>&1 &)
