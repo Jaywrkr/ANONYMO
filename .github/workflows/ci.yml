@@ -38,3 +38,10 @@ jobs:
         env:
           POSTGRES_BIN: ${{ runner.temp }}/anonymo-postgres/node_modules/@embedded-postgres/linux-x64/native/bin
       - run: npm run build
+      - name: Instalar navegador para ensayo del estudio
+        run: npx playwright install --with-deps chromium
+      - name: Ensayar estudio móvil y piloto con servicios ficticios
+        run: node --experimental-strip-types scripts/pruebas/publicaciones.mjs
+        env:
+          PROBAR_ESTUDIO_VERSIONADO: "1"
+          POSTGRES_BIN: ${{ runner.temp }}/anonymo-postgres/node_modules/@embedded-postgres/linux-x64/native/bin
