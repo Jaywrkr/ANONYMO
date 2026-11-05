@@ -512,24 +512,29 @@ export async function accionCalibrar(f: FormData) {
   const { iniciarCalibracion, DISCIPLINAS_BANCO } = await import("@anonymo/pipeline");
   const { lanzarCalibracion } = await import("@/lib/banco");
   const d = String(f.get("disciplina") ?? "");
-  let destino = `/estudio/banco?ok=${encodeURIComponent("Calibración empezada. El juez califica a ciegas en segundo plano: esta página muestra el avance.")}`;
+  const volver = volverBanco(f);
+  const sep = volver.includes("?") ? "&" : "?";
+  const cual = (DISCIPLINAS_BANCO as string[]).includes(d) ? d : undefined;
+  let destino = `${volver}${sep}ok=${encodeURIComponent(`Calibración empezada${cual ? "" : " (las cuatro disciplinas)"}. El juez califica a ciegas en segundo plano: aquí ves el avance.`)}`;
   try {
     // Primero queda guardada en la nube; recién después se pide el primer paso (que la baja de ahí).
-    await conNube(["_agencia"], () => iniciarCalibracion({ disciplinas: (DISCIPLINAS_BANCO as string[]).includes(d) ? [d as "web"] : undefined, repetir: Number(f.get("repetir") ?? 8), quien: yo }));
+    await conNube(["_agencia"], () => iniciarCalibracion({ disciplinas: cual ? [cual as "web"] : undefined, repetir: Number(f.get("repetir") ?? 8), quien: yo }));
     await lanzarCalibracion();
   } catch (e) {
-    destino = `/estudio/banco?error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+    destino = `${volver}${sep}error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
   }
   revalidatePath("/estudio/banco");
   redirect(destino);
 }
-export async function accionSeguirCalibracion() {
+export async function accionSeguirCalibracion(f: FormData) {
   const { lanzarCalibracion } = await import("@/lib/banco");
-  await enBanco(() => lanzarCalibracion(), "Le pedimos que siga calibrando.");
+  await enBanco(() => lanzarCalibracion(), "Le pedimos que siga calibrando.", volverBanco(f));
 }
-export async function accionReiniciarJuez() {
-  const { reiniciarJuez } = await import("@anonymo/pipeline");
-  await enBanco(() => reiniciarJuez(), "El juez volvió a sus instrucciones sin ajustes ni corrección. Calibra de nuevo cuando quieras.");
+export async function accionReiniciarJuez(f: FormData) {
+  const { reiniciarJuez, DISCIPLINAS_BANCO, NOMBRE_DISCIPLINA } = await import("@anonymo/pipeline");
+  const d = String(f.get("disciplina") ?? "");
+  const cual = (DISCIPLINAS_BANCO as string[]).includes(d) ? (d as "web") : undefined;
+  await enBanco(() => reiniciarJuez(cual), `El juez volvió a sus instrucciones sin ajustes ni corrección${cual ? ` en ${NOMBRE_DISCIPLINA[cual]}` : ""}. Calibra de nuevo cuando quieras.`, volverBanco(f));
 }
 export async function accionCompararBanco(f: FormData) {
   const { compararConBanco } = await import("@anonymo/pipeline");

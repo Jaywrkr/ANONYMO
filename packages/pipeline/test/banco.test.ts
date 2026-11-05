@@ -13,7 +13,7 @@ import {
 } from "../src/banco.ts";
 import { notaCalibrada } from "../src/calidad.ts";
 import { guardarJuez, leerJuez } from "../src/juez.ts";
-import { ENCUADRE_REFERENCIA, ENCUADRE_VERSION } from "../src/banco.ts";
+import { ENCUADRE_REFERENCIA, ENCUADRE_VERSION, reiniciarJuez } from "../src/banco.ts";
 import { calibracion, criteriosBanco } from "../src/oficio.ts";
 import type { Entrega } from "../src/tipos.ts";
 
@@ -223,4 +223,28 @@ test("la escala del juez es la misma del banco: genérico pero prolijo es 5–6,
   assert.match(t, /5–6 = correcto pero genérico/);
   assert.match(t, /3–4 = de principiante/);
   assert.match(t, /no lo vuelve de principiante/);
+});
+
+test("relevo: un paso que baja una copia más vieja que la del paso anterior no toca nada", async () => {
+  const { juez } = juezFalso(() => 0);
+  iniciarCalibracion({ disciplinas: ["naming"], repetir: 0, maxRondas: 1 });
+  const lento: Juez = async (m, d) => { await new Promise((x) => setTimeout(x, 300)); return juez(m, d); };
+  const a = await pasoCalibracion({ plazo: Date.now() + 16_000, juez: lento, paralelo: 4 }); // corta pronto: queda a medias
+  assert.equal(a.terminado, false);
+  assert.ok(a.paso, "el paso deja su identidad para el siguiente");
+  const antes = calibracionEnCurso()!.resultados.length;
+  const viejo = await pasoCalibracion({ plazo: Date.now() + 60_000, juez, despuesDe: "00000000-0000-0000-0000-000000000000" });
+  assert.equal(viejo.viejo, true, "otra identidad = copia vieja");
+  assert.equal(calibracionEnCurso()!.resultados.length, antes, "no calificó nada");
+  const b = await pasoCalibracion({ plazo: Date.now() + 60_000, juez, paralelo: 10, despuesDe: a.paso });
+  assert.equal(b.terminado, true, "con la identidad correcta sigue y termina");
+});
+
+test("cada pestaña tiene sus informes y su reinicio", () => {
+  assert.ok(ultimoInforme("naming")!.porDisciplina.naming);
+  assert.ok(rondasCalibracion("contenido").every((r) => r.disciplinas.includes("contenido")));
+  guardarJuez((j) => { j.ajustes = { naming: ["x"], web: ["y"] }; });
+  reiniciarJuez("naming");
+  assert.equal(leerJuez().ajustes.naming, undefined);
+  assert.deepEqual(leerJuez().ajustes.web, ["y"], "las demás disciplinas no se tocan");
 });

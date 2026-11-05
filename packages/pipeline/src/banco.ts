@@ -294,7 +294,9 @@ export async function calificarCiega(r: Referencia, juez: Juez = juezReal, dispo
 export interface ResultadoCalibracion { ref: string; pasada: 1 | 2; nota?: number; error?: string; resumen?: string; cumple?: string[]; conImagen?: boolean; usd?: number }
 export interface EnCurso { id: string; ronda: number; maxRondas: number; disciplinas: DisciplinaBanco[]; repetir: number; pendientes: { ref: string; pasada: 1 | 2 }[]; resultados: ResultadoCalibracion[]; inicio: string; pulso: string; quien: string; huella: string;
   /** Un paso trabaja hasta esta hora: otro no empieza mientras tanto (candado simple, sistema/56). */
-  ocupadoHasta?: string }
+  ocupadoHasta?: string;
+  /** Qué paso dejó este estado (sistema/59): el siguiente paso lo exige para no trabajar sobre una copia vieja. */
+  paso?: string }
 export interface Medida {
   n: number; errores: number; mae: number | null; maeCalibrada: number | null; sesgo: Record<NivelBanco, number | null>;
   premiadas: { n: number; aciertos: number }; bajas: { n: number; aciertos: number }; bienClasificadas: number | null;
@@ -349,10 +351,12 @@ export function iniciarCalibracion(o: { disciplinas?: DisciplinaBanco[]; repetir
  * Califica referencias pendientes hasta el plazo, de a varias a la vez, y guarda el avance después de cada tanda.
  * Al terminar la ronda la mide; si no llega a la meta, ajusta las instrucciones del juez y empieza otra.
  */
-export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?: number; alAvanzar?: () => Promise<void> }): Promise<{ terminado: boolean; ocupado?: boolean; informe?: InformeCalibracion; hechas: number; total: number }> {
+export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?: number; alAvanzar?: () => Promise<void>; despuesDe?: string }): Promise<{ terminado: boolean; ocupado?: boolean; viejo?: boolean; paso?: string; informe?: InformeCalibracion; hechas: number; total: number }> {
   const juez = o.juez ?? juezReal;
   let c = calibracionEnCurso();
   if (!c) return { terminado: true, hechas: 0, total: 0 };
+  // Relevo (sistema/59): el paso anterior dijo con qué estado terminó. Si llegó una copia más vieja, no se toca nada.
+  if (o.despuesDe && c.paso !== o.despuesDe) return { terminado: false, viejo: true, hechas: c.resultados.length, total: c.resultados.length + c.pendientes.length };
   // Si el juez guardado viene de otro encuadre, lo aprendido con él no vale (también aquí: no depende de una sola escritura).
   reiniciarSiCambioEncuadre();
   // Otro paso sigue trabajando: este no hace nada (nunca dos calificando lo mismo).
@@ -360,6 +364,8 @@ export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?
   // El avance se guarda (y en línea, se sube) después de cada tanda: la página lo ve en vivo.
   const guardar = async () => { c!.pulso = new Date().toISOString(); escribirAtomico(rutaEnCurso(), c); await o.alAvanzar?.().catch(() => {}); };
   c.ocupadoHasta = new Date(o.plazo).toISOString();
+  const paso = randomUUID();
+  c.paso = paso;
   await guardar();
   const porId = new Map(leerBanco().map((r) => [r.id, r]));
   while (c.pendientes.length && Date.now() < o.plazo - 15_000) {
@@ -376,12 +382,12 @@ export async function pasoCalibracion(o: { plazo: number; juez?: Juez; paralelo?
   }
   delete c.ocupadoHasta;
   const total = c.resultados.length + c.pendientes.length;
-  if (c.pendientes.length) { await guardar(); return { terminado: false, hechas: c.resultados.length, total }; }
+  if (c.pendientes.length) { await guardar(); return { terminado: false, paso, hechas: c.resultados.length, total }; }
   const informe = cerrarRonda(c);
   if (informe.sigue) {
-    c = { ...c, ronda: c.ronda + 1, pendientes: pendientesDe(c.disciplinas, c.repetir, c.id + c.ronda), resultados: [], pulso: new Date().toISOString() };
+    c = { ...c, ronda: c.ronda + 1, pendientes: pendientesDe(c.disciplinas, c.repetir, c.id + c.ronda), resultados: [], pulso: new Date().toISOString(), paso };
     await guardar();
-    return { terminado: false, informe, hechas: 0, total: c.pendientes.length };
+    return { terminado: false, paso, informe, hechas: 0, total: c.pendientes.length };
   }
   rmSync(rutaEnCurso(), { force: true });
   return { terminado: true, informe, hechas: total, total };
@@ -467,20 +473,35 @@ function cerrarRonda(c: EnCurso): InformeCalibracion {
   return informe;
 }
 
-export function ultimoInforme(): InformeCalibracion | undefined {
+/** El último informe; con disciplina, el último que la incluyó (sistema/59: cada pestaña muestra lo suyo). */
+export function ultimoInforme(d?: DisciplinaBanco): InformeCalibracion | undefined {
+  if (d) {
+    const f = archivosRondas().find((x) => leerRonda(x)?.porDisciplina[d]);
+    return f ? leerRonda(f) : undefined;
+  }
   const r = join(dirCal(), "ultima.json");
   try { return existsSync(r) ? JSON.parse(readFileSync(r, "utf8")) : undefined; } catch { return undefined; }
 }
-/** Las rondas guardadas (la más nueva primero), sin los resultados uno por uno. */
-export function rondasCalibracion() {
-  if (!existsSync(dirCal())) return [];
-  return readdirSync(dirCal()).filter((f) => /-ronda-\d+\.json$/.test(f)).sort().reverse().map((f) => {
-    const i = JSON.parse(readFileSync(join(dirCal(), f), "utf8")) as InformeCalibracion;
-    return { archivo: f, id: i.id, ronda: i.ronda, fecha: i.fecha, global: i.global, sigue: i.sigue, usd: i.usd };
+const archivosRondas = () => (existsSync(dirCal()) ? readdirSync(dirCal()).filter((f) => /-ronda-\d+\.json$/.test(f)).sort().reverse() : []);
+function leerRonda(f: string): InformeCalibracion | undefined {
+  try { return JSON.parse(readFileSync(join(dirCal(), f), "utf8")) as InformeCalibracion; } catch { return undefined; }
+}
+/** Las rondas guardadas (la más nueva primero), sin los resultados uno por uno. Con disciplina, solo las que la incluyeron, con sus cifras. */
+export function rondasCalibracion(d?: DisciplinaBanco) {
+  return archivosRondas().map((f) => ({ f, i: leerRonda(f) })).filter((x): x is { f: string; i: InformeCalibracion } => !!x.i && (!d || !!x.i.porDisciplina[d])).map(({ f, i }) => {
+    const m = d ? i.porDisciplina[d]! : i.global;
+    return { archivo: f, id: i.id, ronda: i.ronda, fecha: i.fecha, global: m, sigue: i.sigue, usd: i.usd, disciplinas: Object.keys(i.porDisciplina) as DisciplinaBanco[] };
   });
 }
+/** Cuántas calificaciones haría una calibración de estas disciplinas (por ronda), para avisar el costo antes. */
+export const calificacionesPorRonda = (ds: DisciplinaBanco[], repetir: number) => ds.length ? pendientesDe(ds, repetir, "cuenta").length : 0;
 /** Vuelve a poner el juez como venía (sin ajustes ni corrección), por si una calibración salió mal. */
-export function reiniciarJuez() { return guardarJuez((j) => { j.ajustes = {}; j.mapas = {}; delete j.huellaCalibrada; }); }
+export function reiniciarJuez(d?: DisciplinaBanco) {
+  return guardarJuez((j) => {
+    if (d) { delete j.ajustes[d]; delete j.mapas[d]; } else { j.ajustes = {}; j.mapas = {}; }
+    delete j.huellaCalibrada;
+  });
+}
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} %`);
 const num = (x: number | null | undefined) => (x === null || x === undefined ? "—" : String(x));
