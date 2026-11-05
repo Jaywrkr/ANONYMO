@@ -29,10 +29,11 @@ Criterios por disciplina (ids; salen del oficio, `packages/pipeline/src/oficio.t
 - web: concepto, sin-plantilla, tipografia-oficio, direccion-arte, ritmo, movimiento, copy-especifico, accion, nivel
 - identidad: concepto-marca, distintivo, construccion, sistema, memorable
 - naming: estrategia-nombre, criterios-duros, evocador, historia, distintivo-nombre
-- contenido: estrategia-contenido, ganchos, formatos-actuales, sin-generico, idea
+- contenido: estrategia-contenido, ganchos, formatos-actuales, sin-generico, idea, visual
 
 Plantillas de arquetipo:
 - web: corporativa-azul, landing-degradado, builder-generica (5–6); principiante, principiante-recargada (3–4)
 - identidad: icono-literal, iniciales-circulo, swoosh-degradado (5–6); clipart, tipografia-sistema (3–4)
+- contenido: frase-canva, carrusel-tips, producto-plano, foto-banco (5–6 y 3–4); oferta-recargada, logo-gigante, texto-largo (3–4 sobre todo)
 
 Escala: 9–10 premiadas (premio mayor) · 7–8 muy buenas sin premio mayor (mención, shortlist, caso reconocido) · 5–6 correctas pero genéricas o de plantilla · 3–4 de principiante.

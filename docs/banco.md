@@ -53,10 +53,16 @@ Dos rondas, US$ 3,35. El juez puso 6 o menos a las 23 genéricas y de principian
 
 **Segunda calibración (0.58, naming):** diferencia 1,65 (antes 2,98), la misma nota al repetir, premiadas −1,8 y genéricas −2,7: el juez ponía 2–3 a «Dental Care Plus» o «Sabor Casero». Su escala decía «6–7 genérico, 5 o menos principiante» y el banco usa 5–6 y 3–4: desde 0.59 la escala del juez es la del banco. Quedan casos de gusto para que decidan Jay y Luna, por ejemplo si Adura, Zempler o Health Equals (premios Transform recientes) valen 9 o 7.
 
+## Redes también se ve (0.61)
+La rúbrica de redes no tenía criterio visual; ahora tiene «visual». El juez recibe imágenes: los genéricos se dibujan como un feed (Canva, ofertas, logo gigante, foto de banco) y las campañas reales se capturan de su página de caso (22 de 28 tienen `url`) o de una imagen de la pieza (campo `imagen`). Si la página del caso muestra premios, el juez tiene orden de ignorarlos; aun así, lo ideal es una imagen de la pieza. Las campañas reales no tienen marcado «visual»: lo marcan Jay y Luna al ver las capturas («Detalle y criterios» en cada tarjeta). No conviene calibrar Redes antes de eso.
+
 ## Comparación a ciegas de cada entrega
 En Proyecto → Requisitos y calidad, cada entrega de web, identidad, naming o redes tiene **Comparar con el banco**. El juez compara la entrega contra 3 a 5 piezas de 9 o más (primero las del mismo rubro y, si la nuestra tiene capturas, las que también tienen), con A y B al azar y sin saber cuál es la nuestra. Resultado: gana / empata / pierde contra piezas de 9, la nota calibrada y los 3 arreglos que más la acercan a un 10 (primero los de las comparaciones que perdió).
 
 Límites: en naming se compara nuestra lista con un solo nombre premiado; y en web el juez puede reconocer una marca famosa en la captura. Por eso cuenta más la tendencia (cuántas pierde) que una comparación suelta.
+
+## Capturas desde el estudio (0.62)
+En cada pestaña (web, identidad, redes), la caja «Capturas para el juez» dice cuántas referencias tienen captura y el botón «Sacar las que faltan» las saca en segundo plano (unos 30 s por referencia, sin costo de IA). Al terminar lista las que no se pudieron y por qué; en «Detalle y criterios» de cada tarjeta se cambia el enlace o se pone una imagen de la pieza, y se vuelve a intentar. El script de la terminal sigue sirviendo para lo mismo.
 
 ## Lo que falta (necesita la máquina de Jay o un despliegue con clave)
 En esta máquina no hubo `ANTHROPIC_API_KEY` ni acceso a los sitios de premios, así que **no hay capturas reales ni calibración real todavía**. Paso exacto, en una máquina con internet y el `.env.local` (clave de IA y Supabase):

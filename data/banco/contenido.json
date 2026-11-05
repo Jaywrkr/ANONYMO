@@ -678,10 +678,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Está ordenado y es constante, pero cualquier clínica podría publicar lo mismo. No hay una voz propia ni una razón para detenerse a mirar.",
-    "descripcion": "Un plan de 30 publicaciones al mes para Instagram y Facebook de una clínica. La mitad son fechas del calendario: «Día Mundial de la Salud», «Día del Corazón», «Día de la Madre», cada una con una foto de banco de un médico sonriente y el logo en una esquina. El resto son consejos tipo «Toma 8 vasos de agua al día» sobre un fondo celeste. Todo en formato cuadrado fijo, sin video."
+    "descripcion": "Un plan de 30 publicaciones al mes para Instagram y Facebook de una clínica. La mitad son fechas del calendario: «Día Mundial de la Salud», «Día del Corazón», «Día de la Madre», cada una con una foto de banco de un médico sonriente y el logo en una esquina. El resto son consejos tipo «Toma 8 vasos de agua al día» sobre un fondo celeste. Todo en formato cuadrado fijo, sin video.",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-plantillas-canva-cafeteria",
@@ -702,10 +704,12 @@
     "falla": [
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Tiene ritmo y usa reels, pero la estética es de plantilla y los textos no dan motivo para quedarse ni volver.",
-    "descripcion": "Cada lunes se publica en Instagram el menú de la semana en una plantilla de Canva de tonos crema, con tipografía script y dibujos de granos de café. Los miércoles, un reel de 10 segundos de una taza humeando con una canción en tendencia y el texto «El mejor café de la ciudad ☕». Los viernes, una frase como «Primero café, después el mundo». Las fotos del producto son reales pero todas con el mismo ángulo cenital."
+    "descripcion": "Cada lunes se publica en Instagram el menú de la semana en una plantilla de Canva de tonos crema, con tipografía script y dibujos de granos de café. Los miércoles, un reel de 10 segundos de una taza humeando con una canción en tendencia y el texto «El mejor café de la ciudad ☕». Los viernes, una frase como «Primero café, después el mundo». Las fotos del producto son reales pero todas con el mismo ángulo cenital.",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-frases-motivacionales-gimnasio",
@@ -726,10 +730,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Publica seguido y mantiene una línea gráfica, pero el contenido es intercambiable con miles de gimnasios y no muestra a la comunidad real del lugar.",
-    "descripcion": "Tres publicaciones por semana en Instagram: frases como «No pain, no gain» o «Tu única competencia eres tú» en letras blancas grandes sobre fotos de banco de personas musculosas en blanco y negro. Una vez por semana, un carrusel de «5 ejercicios para glúteos» con ilustraciones de stock. El texto termina siempre con «¡Inscríbete hoy!» y el número de WhatsApp."
+    "descripcion": "Tres publicaciones por semana en Instagram: frases como «No pain, no gain» o «Tu única competencia eres tú» en letras blancas grandes sobre fotos de banco de personas musculosas en blanco y negro. Una vez por semana, un carrusel de «5 ejercicios para glúteos» con ilustraciones de stock. El texto termina siempre con «¡Inscríbete hoy!» y el número de WhatsApp.",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-tips-estudio-contable",
@@ -750,10 +756,12 @@
     "falla": [
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "La información es útil y está bien organizada, pero se presenta como un folleto: sin un caso, una pregunta real o una cara que le dé interés.",
-    "descripcion": "Carruseles semanales en LinkedIn e Instagram con títulos como «5 tips para tu declaración anual» o «¿Qué es el IVA?». Cada lámina tiene fondo azul marino, un ícono de calculadora y un párrafo de definición. Al final, una lámina con el logo y «Contáctanos». Una vez al mes se publica un video corto de un contador leyendo los mismos tips frente a la cámara."
+    "descripcion": "Carruseles semanales en LinkedIn e Instagram con títulos como «5 tips para tu declaración anual» o «¿Qué es el IVA?». Cada lámina tiene fondo azul marino, un ícono de calculadora y un párrafo de definición. Al final, una lámina con el logo y «Contáctanos». Una vez al mes se publica un video corto de un contador leyendo los mismos tips frente a la cámara.",
+    "plantilla": "carrusel-tips"
   },
   {
     "id": "contenido-arquetipo-catalogo-tienda-ropa",
@@ -774,10 +782,12 @@
       "estrategia-contenido",
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Muestra producto y usa reels, pero la cuenta es un catálogo: no hay historia, ni personas, ni una razón para seguirla además de comprar.",
-    "descripcion": "Todos los días se suben a Instagram fotos de prendas colgadas en un perchero o sobre un maniquí, con el texto «Nuevo ingreso 🔥 Tallas S a XL. Precio por DM». Los fines de semana se publica un reel con transiciones de prendas al ritmo de una canción en tendencia. Las historias repiten las mismas fotos con stickers de «Disponible»."
+    "descripcion": "Todos los días se suben a Instagram fotos de prendas colgadas en un perchero o sobre un maniquí, con el texto «Nuevo ingreso 🔥 Tallas S a XL. Precio por DM». Los fines de semana se publica un reel con transiciones de prendas al ritmo de una canción en tendencia. Las historias repiten las mismas fotos con stickers de «Disponible».",
+    "plantilla": "producto-plano"
   },
   {
     "id": "contenido-arquetipo-inmobiliaria-propiedades",
@@ -798,10 +808,12 @@
     "falla": [
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Es ordenado y útil para quien ya busca casa, pero la presentación es igual a la de cualquier portal y no genera conversación.",
-    "descripcion": "Cada propiedad se publica en Instagram y Facebook como carrusel de 8 fotos tomadas con gran angular, con una franja roja que dice «EN VENTA», precio, metros y número de habitaciones. Una vez por semana, un reel recorriendo la casa con música instrumental de stock. Entre medio, posts como «¿Sabías que comprar es mejor que arrendar?» con un ícono de casa."
+    "descripcion": "Cada propiedad se publica en Instagram y Facebook como carrusel de 8 fotos tomadas con gran angular, con una franja roja que dice «EN VENTA», precio, metros y número de habitaciones. Una vez por semana, un reel recorriendo la casa con música instrumental de stock. Entre medio, posts como «¿Sabías que comprar es mejor que arrendar?» con un ícono de casa.",
+    "plantilla": "producto-plano"
   },
   {
     "id": "contenido-arquetipo-app-tecnologia-features",
@@ -822,10 +834,12 @@
     "falla": [
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Explica bien el producto y es constante, pero suena a cualquier software y no parte de un problema real del usuario contado con gracia.",
-    "descripcion": "Plan mensual para LinkedIn e Instagram de una app de gestión para pymes. Cada semana un post anuncia una función con un mockup de la pantalla sobre fondo degradado violeta y el texto «¡Nueva función! Ahora puedes exportar tus reportes en un clic 🚀». Se suman frases de productividad como «Trabaja inteligente, no duro» y un video tutorial grabado de pantalla, sin voz, de dos minutos."
+    "descripcion": "Plan mensual para LinkedIn e Instagram de una app de gestión para pymes. Cada semana un post anuncia una función con un mockup de la pantalla sobre fondo degradado violeta y el texto «¡Nueva función! Ahora puedes exportar tus reportes en un clic 🚀». Se suman frases de productividad como «Trabaja inteligente, no duro» y un video tutorial grabado de pantalla, sin voz, de dos minutos.",
+    "plantilla": "carrusel-tips"
   },
   {
     "id": "contenido-arquetipo-academia-idiomas-frases",
@@ -846,10 +860,12 @@
     "falla": [
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Tiene una sección fija y útil, pero el formato «palabra del día» es de los más repetidos y no muestra a los profesores ni a los alumnos.",
-    "descripcion": "Cada día se publica en Instagram una lámina «Word of the day» con una palabra en inglés, su traducción y un ejemplo, sobre un fondo amarillo con la bandera de Reino Unido. Los viernes hay un reel con una voz generada que pronuncia cinco palabras. El texto siempre invita a «comentar una oración con la palabra» y termina con las fechas de inicio de cursos."
+    "descripcion": "Cada día se publica en Instagram una lámina «Word of the day» con una palabra en inglés, su traducción y un ejemplo, sobre un fondo amarillo con la bandera de Reino Unido. Los viernes hay un reel con una voz generada que pronuncia cinco palabras. El texto siempre invita a «comentar una oración con la palabra» y termina con las fechas de inicio de cursos.",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-agencia-viajes-destinos",
@@ -870,10 +886,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Las imágenes son bonitas pero son de banco y las usa toda la competencia; nada muestra experiencias reales de clientes ni el criterio de la agencia.",
-    "descripcion": "Cuatro posts por semana en Instagram con fotos de banco de playas turquesa, la Torre Eiffel o Machu Picchu, con frases como «Viajar es la única cosa que compras que te hace más rico». Sobre la foto va una franja con el precio del paquete «desde $899» y el logo. Los lunes se publica «¿A dónde te gustaría ir? Comenta 👇»."
+    "descripcion": "Cuatro posts por semana en Instagram con fotos de banco de playas turquesa, la Torre Eiffel o Machu Picchu, con frases como «Viajar es la única cosa que compras que te hace más rico». Sobre la foto va una franja con el precio del paquete «desde $899» y el logo. Los lunes se publica «¿A dónde te gustaría ir? Comenta 👇».",
+    "plantilla": "foto-banco"
   },
   {
     "id": "contenido-arquetipo-fotografo-portafolio",
@@ -918,10 +936,12 @@
     "falla": [
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "La estructura es correcta para vender entradas, pero repite el molde de cualquier evento y no le da a la gente algo propio que compartir.",
-    "descripcion": "Un mes antes de un festival de música, se publica cada día una lámina «Faltan 30 días», «Faltan 29 días»… con el mismo afiche de fondo. Se anuncian los artistas uno por uno con su foto de prensa y el texto «¡Confirmado!». Hay reels con fragmentos del año anterior y el texto «¿Ya tienes tu entrada? Link en bio». Los últimos días se repite «¡Últimas entradas!»."
+    "descripcion": "Un mes antes de un festival de música, se publica cada día una lámina «Faltan 30 días», «Faltan 29 días»… con el mismo afiche de fondo. Se anuncian los artistas uno por uno con su foto de prensa y el texto «¡Confirmado!». Hay reels con fragmentos del año anterior y el texto «¿Ya tienes tu entrada? Link en bio». Los últimos días se repite «¡Últimas entradas!».",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-ferreteria-ofertas",
@@ -942,10 +962,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Cumple con informar precios a tiempo, pero es un volante digital: no enseña a usar nada ni aprovecha el saber del dueño, que es lo que haría seguir la cuenta.",
-    "descripcion": "Cada martes se publica en Facebook un afiche con 12 productos recortados (taladro, pintura, tornillos) sobre fondo amarillo, con estallidos rojos de «¡OFERTA!» y precios tachados. Los jueves, un post con un tip copiado de internet como «Cómo elegir la pintura correcta» en texto plano. Las historias repiten el afiche."
+    "descripcion": "Cada martes se publica en Facebook un afiche con 12 productos recortados (taladro, pintura, tornillos) sobre fondo amarillo, con estallidos rojos de «¡OFERTA!» y precios tachados. Los jueves, un post con un tip copiado de internet como «Cómo elegir la pintura correcta» en texto plano. Las historias repiten el afiche.",
+    "plantilla": "oferta-recargada"
   },
   {
     "id": "contenido-arquetipo-logo-gigante-dentista",
@@ -965,10 +987,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "La marca ocupa todo el espacio y no deja lugar a ningún mensaje. No hay plan, ni gancho, ni formatos de hoy.",
-    "descripcion": "Las publicaciones de Facebook son casi siempre el logo del consultorio ocupando media imagen, con un diente sonriente de clipart y el texto «Clínica Dental» en letras con sombra. Debajo, la dirección, dos teléfonos y el horario. Se publica de forma irregular, a veces una vez al mes. El texto del post dice «Llámanos para tu cita!!!»."
+    "descripcion": "Las publicaciones de Facebook son casi siempre el logo del consultorio ocupando media imagen, con un diente sonriente de clipart y el texto «Clínica Dental» en letras con sombra. Debajo, la dirección, dos teléfonos y el horario. Se publica de forma irregular, a veces una vez al mes. El texto del post dice «Llámanos para tu cita!!!».",
+    "plantilla": "logo-gigante"
   },
   {
     "id": "contenido-arquetipo-feliz-lunes-restaurante",
@@ -989,10 +1013,12 @@
       "estrategia-contenido",
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Saludos vacíos que no dicen nada del restaurante y fotos oscuras que no antojan. Lo único que se salva es que a veces sube historias.",
-    "descripcion": "Los lunes se publica una imagen de una taza de café con el texto «¡Feliz lunes! Que tengas una linda semana 😊», y los viernes «¡Feliz viernes!». Entre medio, fotos de platos tomadas con flash en la cocina, sin descripción. Algunas historias muestran el local vacío. No hay precios ni horarios en las publicaciones."
+    "descripcion": "Los lunes se publica una imagen de una taza de café con el texto «¡Feliz lunes! Que tengas una linda semana 😊», y los viernes «¡Feliz viernes!». Entre medio, fotos de platos tomadas con flash en la cocina, sin descripción. Algunas historias muestran el local vacío. No hay precios ni horarios en las publicaciones.",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-hashtags-masa-spa",
@@ -1012,10 +1038,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Confía en los hashtags para conseguir alcance en vez de en el contenido. La imagen no es propia y el texto no dice nada del lugar.",
-    "descripcion": "Cada foto de Instagram es una imagen de banco de piedras calientes o velas, y el texto es una sola línea («Relájate con nosotros») seguida de 30 hashtags: #spa #relax #masajes #love #instagood #photooftheday #beauty #selfcare… Algunos hashtags no tienen relación con el negocio. No hay videos ni fotos del lugar real."
+    "descripcion": "Cada foto de Instagram es una imagen de banco de piedras calientes o velas, y el texto es una sola línea («Relájate con nosotros») seguida de 30 hashtags: #spa #relax #masajes #love #instagood #photooftheday #beauty #selfcare… Algunos hashtags no tienen relación con el negocio. No hay videos ni fotos del lugar real.",
+    "plantilla": "foto-banco"
   },
   {
     "id": "contenido-arquetipo-texto-largo-imagen-abogado",
@@ -1036,10 +1064,12 @@
       "estrategia-contenido",
       "ganchos",
       "formatos-actuales",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "El contenido tiene información propia, pero puesto como un bloque de texto ilegible en el teléfono nadie lo lee. Falta todo lo que lo haría consumible.",
-    "descripcion": "Un abogado publica en Facebook imágenes con un párrafo de 150 palabras en letra pequeña sobre fondo blanco, copiado de un artículo de ley, con su foto de carnet en una esquina. El título es «IMPORTANTE: Lea esto» en rojo. El texto del post repite lo mismo de la imagen. Se publica cuando hay tiempo, sin fechas fijas."
+    "descripcion": "Un abogado publica en Facebook imágenes con un párrafo de 150 palabras en letra pequeña sobre fondo blanco, copiado de un artículo de ley, con su foto de carnet en una esquina. El título es «IMPORTANTE: Lea esto» en rojo. El texto del post repite lo mismo de la imagen. Se publica cuando hay tiempo, sin fechas fijas.",
+    "plantilla": "texto-largo"
   },
   {
     "id": "contenido-arquetipo-promo-sin-estrategia-tienda",
@@ -1059,10 +1089,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Solo empuja precios sin orden ni contexto; con tantas «últimas unidades» el mensaje pierde valor. Nada da razón para seguir la cuenta.",
-    "descripcion": "La tienda sube varias veces al día imágenes con fotos oficiales de teléfonos recortadas, estrellas amarillas y textos como «¡¡¡SUPER PROMO!!! 2x1 SOLO HOY» o «ÚLTIMAS UNIDADES». La misma promoción «solo hoy» se repite toda la semana. Las imágenes usan cinco tipografías distintas y colores neón. El texto pide «Escríbenos al inbox»."
+    "descripcion": "La tienda sube varias veces al día imágenes con fotos oficiales de teléfonos recortadas, estrellas amarillas y textos como «¡¡¡SUPER PROMO!!! 2x1 SOLO HOY» o «ÚLTIMAS UNIDADES». La misma promoción «solo hoy» se repite toda la semana. Las imágenes usan cinco tipografías distintas y colores neón. El texto pide «Escríbenos al inbox».",
+    "plantilla": "oferta-recargada"
   },
   {
     "id": "contenido-arquetipo-flyer-escaneado-colegio",
@@ -1083,10 +1115,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Al menos anuncia matrículas en las fechas correctas, pero lleva el papel a la red sin adaptarlo y no muestra la vida del instituto.",
-    "descripcion": "El instituto publica en Facebook fotos de sus volantes impresos, a veces torcidas o con reflejo, con el texto «MATRÍCULAS ABIERTAS» y la lista de 12 carreras en letra pequeña. Se publica solo en época de inscripciones. Los comentarios con preguntas quedan sin responder durante días."
+    "descripcion": "El instituto publica en Facebook fotos de sus volantes impresos, a veces torcidas o con reflejo, con el texto «MATRÍCULAS ABIERTAS» y la lista de 12 carreras en letra pequeña. Se publica solo en época de inscripciones. Los comentarios con preguntas quedan sin responder durante días.",
+    "plantilla": "texto-largo"
   },
   {
     "id": "contenido-arquetipo-hotel-memes-ajenos",
@@ -1107,10 +1141,12 @@
       "estrategia-contenido",
       "ganchos",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Busca reacciones con contenido ajeno que no tiene que ver con el hostal; consigue algún «me gusta» pero no muestra el lugar ni trae reservas.",
-    "descripcion": "La cuenta de Instagram de un hostal comparte memes de otras páginas, con la marca de agua original, sobre «cuando llega el viernes» o «yo en vacaciones». Entre medio, una foto de la habitación con poca luz y el texto «Reserva ya». Los reels son videos virales de otras personas descargados y vueltos a subir."
+    "descripcion": "La cuenta de Instagram de un hostal comparte memes de otras páginas, con la marca de agua original, sobre «cuando llega el viernes» o «yo en vacaciones». Entre medio, una foto de la habitación con poca luz y el texto «Reserva ya». Los reels son videos virales de otras personas descargados y vueltos a subir.",
+    "plantilla": "foto-banco"
   },
   {
     "id": "contenido-arquetipo-artesano-fotos-borrosas",
@@ -1131,10 +1167,12 @@
       "estrategia-contenido",
       "ganchos",
       "formatos-actuales",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Las piezas son propias y tienen valor, pero se muestran mal y sin contar nada del proceso, que es justo lo que más interesa en este rubro.",
-    "descripcion": "Un taller de cerámica sube a Instagram fotos de sus tazas y platos sobre la mesa de la cocina, con poca luz y algo desenfocadas. El texto dice solo «Disponible 😊 precio por interno». No hay videos del torno, del horneado ni de las personas que hacen las piezas. Se publica en rachas de cinco fotos el mismo día y luego nada por semanas."
+    "descripcion": "Un taller de cerámica sube a Instagram fotos de sus tazas y platos sobre la mesa de la cocina, con poca luz y algo desenfocadas. El texto dice solo «Disponible 😊 precio por interno». No hay videos del torno, del horneado ni de las personas que hacen las piezas. Se publica en rachas de cinco fotos el mismo día y luego nada por semanas.",
+    "plantilla": "producto-plano"
   },
   {
     "id": "contenido-arquetipo-cadena-oracion-eventos",
@@ -1154,10 +1192,12 @@
       "ganchos",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "Pide interacción con trucos que no tienen nada que ver con el negocio y no muestra ni un solo evento real.",
-    "descripcion": "Un salón de fiestas publica en Facebook imágenes con textos como «Comparte si amas a tu familia ❤️» o «Dale like si es tu mes de cumpleaños», con fondos de flores y brillos. Cada tanto, un afiche con el logo grande, la foto del salón vacío y «Reserva tu fecha!!! Precios increíbles». No hay fotos ni videos de fiestas hechas ahí."
+    "descripcion": "Un salón de fiestas publica en Facebook imágenes con textos como «Comparte si amas a tu familia ❤️» o «Dale like si es tu mes de cumpleaños», con fondos de flores y brillos. Cada tanto, un afiche con el logo grande, la foto del salón vacío y «Reserva tu fecha!!! Precios increíbles». No hay fotos ni videos de fiestas hechas ahí.",
+    "plantilla": "frase-canva"
   },
   {
     "id": "contenido-arquetipo-sorteo-sin-plan-cowork",
@@ -1178,9 +1218,11 @@
       "estrategia-contenido",
       "formatos-actuales",
       "sin-generico",
-      "idea"
+      "idea",
+      "visual"
     ],
     "porque": "El sorteo atrae seguidores de paso, pero no hay nada después que los retenga ni que muestre el espacio o su comunidad.",
-    "descripcion": "Un cowork publica en Instagram un sorteo de «un mes gratis» con la condición de seguir la cuenta, dar like y etiquetar a tres amigos. La imagen es el logo grande sobre fondo negro con confeti y la palabra «SORTEO» en dorado. Después del sorteo la cuenta queda sin publicaciones durante semanas, salvo una foto del escritorio vacío con el texto «Espacios disponibles»."
+    "descripcion": "Un cowork publica en Instagram un sorteo de «un mes gratis» con la condición de seguir la cuenta, dar like y etiquetar a tres amigos. La imagen es el logo grande sobre fondo negro con confeti y la palabra «SORTEO» en dorado. Después del sorteo la cuenta queda sin publicaciones durante semanas, salvo una foto del escritorio vacío con el texto «Espacios disponibles».",
+    "plantilla": "oferta-recargada"
   }
 ]

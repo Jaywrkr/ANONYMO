@@ -3,14 +3,14 @@
 import Link from "next/link";
 import {
   DISCIPLINAS_BANCO, META, NIVELES, NOMBRE_DISCIPLINA, RUBROS, calibracionEnCurso, calibracionViva, criteriosBanco, deducirRubrica,
-  calificacionesPorRonda, leerBanco, leerCambiosBanco, leerCapturas, leerJuez, nivelDe, notaPorRubrica, pideCalibrar, rondasCalibracion, ultimoInforme,
+  capturasEnCurso, capturasVivas, estadoCapturas, ultimasCapturas, calificacionesPorRonda, leerBanco, leerCambiosBanco, leerCapturas, leerJuez, nivelDe, notaPorRubrica, pideCalibrar, rondasCalibracion, ultimoInforme,
   type DisciplinaBanco, type Medida, type Referencia,
 } from "@anonymo/pipeline";
 import { boton, botonSuave, campo, exigirEstudio, serif } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { Refrescar } from "@/components/estudio/Refrescar";
-import { accionAgregarBanco, accionCalibrar, accionDevolverBanco, accionNotaBanco, accionQuitarBanco, accionReiniciarJuez, accionSeguirCalibracion } from "@/app/estudio/acciones";
+import { accionEnlacesBanco, accionSacarCapturas, accionSeguirCapturas, accionAgregarBanco, accionCalibrar, accionCriteriosBanco, accionDevolverBanco, accionNotaBanco, accionQuitarBanco, accionReiniciarJuez, accionSeguirCalibracion } from "@/app/estudio/acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Banco de calibración — Estudio", robots: { index: false } };
@@ -41,7 +41,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
 
   return (
     <div className="px-5 py-7 md:px-10">
-      {enCurso && <Refrescar />}
+      {(enCurso || capturasEnCurso()) && <Refrescar />}
       <h1 className={`${serif} text-[40px] leading-none`}>Banco de calibración.</h1>
       <p className="mt-3 max-w-2xl text-[14px] text-medio">Trabajos premiados, muy buenos, genéricos y de principiante, con su nota. Sirven para saber si el juez califica como un jurado de verdad y para comparar lo nuestro, a ciegas, con lo mejor del mundo. Las capturas son privadas y solo sirven para medir: nunca se usan para clientes.</p>
 
@@ -84,6 +84,8 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
           {(juez.ajustes[d]?.length || juez.mapas[d]) ? <form action={accionReiniciarJuez} className="mt-3"><input type="hidden" name="disciplina" value={d} /><input type="hidden" name="volver" value={volver} /><p className="mb-2 text-medio">Borra lo aprendido y la corrección de {NOMBRE_DISCIPLINA[d].toLowerCase()}. Los informes se conservan.</p><Enviar texto={`Volver al juez sin ajustes en ${NOMBRE_DISCIPLINA[d].toLowerCase()}`} trabajando="Quitando…" className={botonSuave} /></form> : null}
         </details>}
       </section>
+
+      <Capturas d={d} volver={volver} />
 
       {/* Rúbrica */}
       <section className={`${tarjeta} mt-6 max-w-4xl`} aria-label="Rúbrica">
@@ -189,10 +191,27 @@ function Tarjeta({ r, capturas, revision, volver, rubrica }: { r: Referencia; ca
       <details><summary className="min-h-11 cursor-pointer">Detalle y criterios</summary>
         <p className="mt-1 text-medio">{r.descripcion}</p>
         {r.razon && <p className="mt-1"><span className="text-suave">Razón del nombre:</span> {r.razon}</p>}
-        <p className="mt-2"><span className="text-suave">Cumple:</span> {r.cumple.join(", ") || "—"}</p>
-        <p><span className="text-suave">No cumple:</span> {r.falla.join(", ") || "—"}</p>
+        {/* Jay y Luna marcan qué cumple (sistema/60): lo no marcado cuenta como no cumplido y la rúbrica se recalcula. */}
+        <form action={accionCriteriosBanco} className="mt-2 grid gap-1">
+          <input type="hidden" name="ref" value={r.id} /><input type="hidden" name="revision" value={revision} /><input type="hidden" name="volver" value={volver} />
+          <p className="text-suave">Qué cumple{r.criteriosPor ? ` · marcado por ${r.criteriosPor.quien === "luna" ? "Luna" : "Jay"}` : ""}:</p>
+          {criteriosBanco(r.disciplina).map(([id, t]) => {
+            const sinMarcar = !r.cumple.includes(id) && !r.falla.includes(id);
+            return <label key={id} className="flex min-h-11 items-start gap-2"><input type="checkbox" name="cumple" value={id} defaultChecked={r.cumple.includes(id)} className="mt-1" /><span>{t}{sinMarcar ? <em className="text-suave"> (sin marcar)</em> : null}</span></label>;
+          })}
+          <div><Enviar texto="Guardar criterios" trabajando="Guardando y recalculando…" className={botonSuave} /></div>
+        </form>
         <p className="mt-1 text-suave">Por la rúbrica le tocaría {rubrica}.</p>
         {r.url && <a href={r.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex min-h-11 items-center underline">Ver el original ↗</a>}
+        {r.disciplina !== "naming" && !r.plantilla && (
+          <form action={accionEnlacesBanco} className="mt-2 grid gap-2 border-t border-black/5 pt-2">
+            <input type="hidden" name="ref" value={r.id} /><input type="hidden" name="revision" value={revision} /><input type="hidden" name="volver" value={volver} />
+            <p className="text-suave">De dónde sale la captura</p>
+            <label className="grid gap-1">{r.disciplina === "web" ? "Dirección del sitio" : "Página del caso"}<input name="url" type="url" defaultValue={r.url ?? ""} placeholder="https://" className={campo} /></label>
+            {r.disciplina !== "web" && <label className="grid gap-1">{r.disciplina === "identidad" ? "Imagen del logo (mejor que la página)" : "Imagen de una pieza (mejor que la página del caso)"}<input name="imagen" type="url" defaultValue={r.imagen ?? ""} placeholder="https://" className={campo} /></label>}
+            <div><Enviar texto="Guardar enlaces" trabajando="Guardando…" className={botonSuave} /></div>
+          </form>
+        )}
       </details>
       <div className="mt-auto flex flex-wrap items-end gap-2 border-t border-black/5 pt-2">
         <form action={accionNotaBanco} className="flex items-end gap-2"><input type="hidden" name="ref" value={r.id} /><input type="hidden" name="revision" value={revision} /><input type="hidden" name="volver" value={volver} /><label className="grid gap-1 text-[12px]">Nota<input name="nota" type="number" min={0} max={10} step={0.5} defaultValue={r.nota} className={`${campo} w-20`} aria-label={`Nota de ${r.nombre}`} /></label><Enviar texto="Cambiar" trabajando="Guardando…" className={botonSuave} /></form>
@@ -217,7 +236,7 @@ function Agregar({ d, revision }: { d: DisciplinaBanco; revision: number }) {
         <label className="grid gap-1">Premio (si tiene)<input name="premio" maxLength={200} className={campo} /></label>
         <label className="grid gap-1">Enlace a la fuente del premio<input name="fuente" type="url" placeholder="https://" className={campo} /></label>
         <label className="grid gap-1">{d === "web" ? "Dirección del sitio (para capturarlo)" : "Página del caso"}<input name="url" type="url" placeholder="https://" className={campo} /></label>
-        {d === "identidad" && <label className="grid gap-1 sm:col-span-2">Enlace a la imagen del logo<input name="imagen" type="url" placeholder="https://" className={campo} /></label>}
+        {(d === "identidad" || d === "contenido") && <label className="grid gap-1 sm:col-span-2">{d === "identidad" ? "Enlace a la imagen del logo" : "Enlace a una imagen de la pieza (un post o un cuadro del video)"}<input name="imagen" type="url" placeholder="https://" className={campo} /></label>}
         <label className="grid gap-1 sm:col-span-2">Cómo es (sin juicios: el juez lo lee a ciegas)<textarea name="descripcion" required minLength={20} maxLength={1200} rows={3} className={campo} /></label>
         {d === "naming" && <label className="grid gap-1 sm:col-span-2">Razón del nombre<textarea name="razon" required minLength={5} maxLength={600} rows={2} className={campo} /></label>}
         <label className="grid gap-1 sm:col-span-2">Por qué tiene esa nota<textarea name="porque" required minLength={10} maxLength={600} rows={2} className={campo} /></label>
@@ -226,5 +245,42 @@ function Agregar({ d, revision }: { d: DisciplinaBanco; revision: number }) {
       </form>
       <p className="mt-3 text-[12px] text-suave">La captura se saca aparte, con internet, con <code>scripts/banco/capturar.ts --faltan</code>. Lo que no marques como cumplido cuenta como no cumplido para la rúbrica.</p>
     </details>
+  );
+}
+
+/** Capturas para el juez (sistema/61): se sacan desde aquí, en segundo plano, y solo sirven para medir. */
+function Capturas({ d, volver }: { d: DisciplinaBanco; volver: string }) {
+  if (d === "naming") return <section className={`${tarjeta} mt-6 max-w-4xl text-[14px]`} aria-label="Capturas"><h2 className="text-[18px] font-medium">Capturas</h2><p className="mt-1 text-medio">Naming es texto: el juez lee el nombre y su razón, no necesita imágenes.</p></section>;
+  const e = estadoCapturas(d);
+  const c = capturasEnCurso();
+  const aqui = c && c.disciplinas.includes(d);
+  const ultima = ultimasCapturas();
+  const ult = ultima && ultima.disciplinas.includes(d) ? ultima : undefined;
+  const fallas = (aqui ? c!.hechas : ult?.hechas ?? []).filter((h) => !h.ok);
+  const nombre = NOMBRE_DISCIPLINA[d].toLowerCase();
+  const faltan = e.posibles - e.con;
+  return (
+    <section className={`${tarjeta} mt-6 max-w-4xl text-[14px]`} aria-label="Capturas">
+      <h2 className="text-[18px] font-medium">Capturas para el juez</h2>
+      <p className="mt-1 text-medio">Para que el juez vea las piezas y no solo las lea. Son privadas, solo sirven para medir y nunca se usan para clientes.</p>
+      <p className="mt-3"><strong>{e.con} de {e.posibles}</strong> referencias de {nombre} tienen captura.{e.sinFuente ? ` ${e.sinFuente} no tienen sitio, imagen ni página del caso: agrégales un enlace para poder capturarlas.` : ""}</p>
+      {c ? (aqui ? (
+        <div className="mt-3">
+          <p><strong>Sacando capturas</strong> · {c.hechas.length} de {c.hechas.length + c.pendientes.length}{c.hechas.length ? ` · ${c.hechas.filter((h) => h.ok).length} bien, ${c.hechas.filter((h) => !h.ok).length} no se pudieron` : ""}.</p>
+          <div className="mt-2 h-2 max-w-md overflow-hidden rounded-full bg-[#eee8df]"><div className="h-full bg-tinta transition-all" style={{ width: `${Math.round((c.hechas.length / Math.max(1, c.hechas.length + c.pendientes.length)) * 100)}%` }} /></div>
+          <p className="mt-2 text-[12px] text-suave">Unos 30 segundos por referencia. La página se actualiza sola y puedes cerrarla: sigue trabajando.</p>
+          {!capturasVivas(c) && <form action={accionSeguirCapturas} className="mt-3"><input type="hidden" name="volver" value={volver} /><p className="mb-2 text-[13px] text-medio">Hace más de dos minutos que no avanza.</p><Enviar texto="Seguir sacando capturas" trabajando="Pidiendo que siga…" className={boton} /></form>}
+        </div>
+      ) : <p className="mt-3 rounded-xl bg-[#f6f3ee] px-3 py-2 text-[13px]">Ahora se están sacando capturas de {c.disciplinas.map((x) => NOMBRE_DISCIPLINA[x].toLowerCase()).join(", ")}. Cuando termine, podrás sacar las de {nombre}.</p>) : (
+        <>
+          {ult && <p className="mt-2 text-[13px] text-medio">Última vez: {new Date(ult.fin).toLocaleString("es-EC", { timeZone: "America/Guayaquil", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {ult.hechas.filter((h) => h.ok).length} bien, {fallas.length} no se pudieron.</p>}
+          {faltan > 0 ? (
+            <form action={accionSacarCapturas} className="mt-3 flex flex-wrap items-center gap-3"><input type="hidden" name="disciplina" value={d} /><input type="hidden" name="volver" value={volver} /><Enviar texto={`Sacar las ${faltan} que faltan`} trabajando="Preparando las capturas…" className={boton} /><span className="text-[12px] text-suave">Sin costo de IA. Unos {Math.max(1, Math.round((faltan * 30) / 60))} minutos.</span></form>
+          ) : <p className="mt-3 text-[13px]">Ya están todas. Revisa las miniaturas abajo y marca en cada tarjeta qué criterios cumple.</p>}
+          <details className="mt-2 text-[13px]"><summary className="min-h-11 cursor-pointer">Más opciones</summary><form action={accionSacarCapturas} className="mt-2"><input type="hidden" name="disciplina" value={d} /><input type="hidden" name="todas" value="1" /><input type="hidden" name="volver" value={volver} /><p className="mb-2 text-medio">Vuelve a sacar las {e.posibles} capturas de {nombre} (por ejemplo, si un sitio cambió). Reemplaza las anteriores.</p><Enviar texto="Volver a sacar todas" trabajando="Preparando las capturas…" className={botonSuave} /></form></details>
+        </>
+      )}
+      {fallas.length > 0 && <details className="mt-2 text-[13px]"><summary className="min-h-11 cursor-pointer">No se pudieron capturar · {fallas.length}</summary><ul className="mt-1 grid gap-1.5">{fallas.map((h) => <li key={h.ref}><strong>{h.nombre}</strong> · {h.error}</li>)}</ul><p className="mt-2 text-suave">Puedes cambiar su enlace o agregar una imagen de la pieza, y volver a intentarlo con «Sacar las que faltan».</p></details>}
+    </section>
   );
 }

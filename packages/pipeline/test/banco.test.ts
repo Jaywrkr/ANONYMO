@@ -13,7 +13,7 @@ import {
 } from "../src/banco.ts";
 import { notaCalibrada } from "../src/calidad.ts";
 import { guardarJuez, leerJuez } from "../src/juez.ts";
-import { ENCUADRE_REFERENCIA, ENCUADRE_VERSION, reiniciarJuez } from "../src/banco.ts";
+import { ENCUADRE_REFERENCIA, ENCUADRE_VERSION, cambiarCriteriosBanco, reiniciarJuez } from "../src/banco.ts";
 import { calibracion, criteriosBanco } from "../src/oficio.ts";
 import type { Entrega } from "../src/tipos.ts";
 
@@ -125,12 +125,12 @@ test("medir y la recta de corrección", () => {
 test("Jay y Luna cambian notas, quitan y agregan: la rúbrica se recalcula y pide recalibrar", () => {
   const c0 = leerCambiosBanco();
   const r = leerBanco().find((x) => x.disciplina === "naming" && x.nota >= 9)!;
-  const pesos0 = JSON.stringify(leerJuez().pesos.naming);
+  const prop0 = JSON.stringify(deducirRubrica("naming").criterios.map((c) => c.genericas));
   cambiarNotaBanco(r.id, 5, "jay", c0.revision);
   assert.equal(leerBanco().find((x) => x.id === r.id)!.nota, 5);
   assert.equal(leerBanco().find((x) => x.id === r.id)!.notaIndice, r.nota);
   assert.equal(pideCalibrar(), true);
-  assert.notEqual(JSON.stringify(leerJuez().pesos.naming), pesos0, "los pesos se recalcularon");
+  assert.notEqual(JSON.stringify(deducirRubrica("naming").criterios.map((c) => c.genericas)), prop0, "la rúbrica se recalculó con la nota nueva");
   assert.throws(() => cambiarNotaBanco(r.id, 6, "luna", c0.revision), /cambió el banco/);
   assert.throws(() => cambiarNotaBanco(r.id, 11, "luna", c0.revision + 1), /0 a 10/);
   quitarDelBanco(r.id, "luna", c0.revision + 1);
@@ -247,4 +247,28 @@ test("cada pestaña tiene sus informes y su reinicio", () => {
   reiniciarJuez("naming");
   assert.equal(leerJuez().ajustes.naming, undefined);
   assert.deepEqual(leerJuez().ajustes.web, ["y"], "las demás disciplinas no se tocan");
+});
+
+test("redes: hay criterio visual, los arquetipos tienen feed dibujado y el juez sabe ignorar premios en la imagen", () => {
+  assert.ok(criteriosBanco("contenido").some(([id]) => id === "visual"));
+  const gen = leerBanco().filter((r) => r.disciplina === "contenido" && r.autor === "Arquetipo genérico");
+  assert.ok(gen.filter((r) => r.plantilla).length >= 20, "casi todos los genéricos tienen feed dibujado");
+  assert.ok(gen.filter((r) => r.falla.includes("visual")).length >= 20);
+  const real = leerBanco().find((r) => r.disciplina === "contenido" && r.nota >= 9)!;
+  assert.match(piezaCiega(real), /ignóralos/);
+});
+
+test("Jay y Luna marcan criterios; los que nadie marcó no cuentan para la rúbrica", () => {
+  const antes = deducirRubrica("contenido").criterios.find((c) => c.id === "visual")!;
+  assert.equal(antes.premiadas, 0, "sin opinión en las premiadas");
+  const prem = leerBanco().filter((r) => r.disciplina === "contenido" && r.nota >= 9);
+  let rev = leerCambiosBanco().revision;
+  for (const r of prem.slice(0, 4)) cambiarCriteriosBanco(r.id, [...r.cumple, "visual"], "luna", rev++);
+  const despues = deducirRubrica("contenido").criterios.find((c) => c.id === "visual")!;
+  assert.equal(despues.premiadas, 1, "las 4 marcadas cumplen; las demás no cuentan");
+  assert.ok(despues.peso > antes.peso, "ahora separa a las premiadas de las genéricas y pesa más");
+  const una = leerBanco().find((r) => r.id === prem[0].id)!;
+  assert.equal(una.criteriosPor!.quien, "luna");
+  assert.ok(!una.falla.includes("visual") && una.cumple.includes("visual"));
+  assert.throws(() => cambiarCriteriosBanco(prem[0].id, [], "jay", rev - 1), /cambió el banco/);
 });
