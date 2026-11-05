@@ -22,7 +22,20 @@ const sin = await (await nav.newContext()).newPage();
 const r0 = await sin.goto(`${B}/estudio/banco/imagen/web-arq-clinica-dental-corporativa-1440.jpg`);
 ok(!(r0.headers()["content-type"] ?? "").startsWith("image/"), "sin sesión las capturas no se ven");
 
+// Redes (sistema/60): feeds genéricos dibujados y criterios que se marcan desde la tarjeta
+await p.goto(`${B}/estudio/banco?d=contenido`); await p.waitForLoadState("networkidle");
+const feeds = await p.locator('img[src^="/estudio/banco/imagen/contenido-"]').count();
+ok(feeds >= 20, `redes muestra los feeds genéricos (${feeds} miniaturas)`);
+const tarjetaRedes = p.locator("article", { hasText: "Arquetipo genérico" }).first();
+await tarjetaRedes.getByText("Detalle y criterios").click();
+await tarjetaRedes.locator('input[name="cumple"][value="visual"]').check();
+await tarjetaRedes.locator("button:has-text('Guardar criterios')").click();
+ok(await aviso("Criterios guardados"), "marca criterios desde la tarjeta");
+ok(/d=contenido/.test(p.url()), "se queda en la pestaña de redes");
+ok(await p.getByText(/marcado por Jay/).count() > 0, "la tarjeta dice quién marcó los criterios");
+
 // Filtro por rubro
+await p.goto(`${B}/estudio/banco`); await p.waitForLoadState("networkidle");
 await p.selectOption('select[name="rubro"]', "salud"); await p.click("button:has-text('Filtrar')"); await p.waitForURL(/rubro=salud/);
 const tarjetas = await p.locator("article").count();
 ok(tarjetas > 0 && tarjetas < 46, `filtro por rubro: ${tarjetas} tarjetas`);

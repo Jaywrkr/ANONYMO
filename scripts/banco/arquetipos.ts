@@ -68,3 +68,35 @@ export function logoArquetipo(plantilla: string, rubro: string): string {
       return lienzo(`<g transform="translate(152 70)" fill="none" stroke="#1e88e5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="${d.simbolo}"/></g><text x="200" y="250" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="40" fill="#1e88e5">${d.negocio}</text><text x="200" y="285" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-size="18" fill="#7a8a99">${d.servicio}</text>`);
   }
 }
+
+/**
+ * Feed de redes genérico (sistema/60): un perfil con 9 publicaciones al estilo de la plantilla.
+ * Se ve como en el celular (390 px, 3 columnas) y como perfil de escritorio (1440 px).
+ */
+export function contenidoArquetipo(plantilla: string, rubro: string): string {
+  const d = datosRubro(rubro);
+  const n = d.negocio;
+  const frases = ["¡Feliz lunes!", "Tu única competencia eres tú", "Primero café, después el mundo", "Faltan 7 días", "Word of the day: Grateful", "Día Mundial de la Salud", "Nunca te rindas", "Calidad y calidez", "¡Buen fin de semana!"];
+  const pasteles = ["#f7d6d0", "#d8e8e0", "#f3e3c3", "#dcd6f0", "#cfe3f2", "#f4d9e7", "#e6eccf", "#fbe2c8", "#d9ecee"];
+  const post = (i: number): string => {
+    switch (plantilla) {
+      case "carrusel-tips":
+        return `<div class="p" style="background:${pasteles[i % 9]}"><b class="t">${i + 3} tips para ${d.servicio.toLowerCase()}</b><span class="s">Desliza →</span><span class="mini">${d.icono} ${n}</span></div>`;
+      case "producto-plano":
+        return `<div class="p" style="background:#e9e6e1"><div class="obj" style="background:linear-gradient(160deg,#cfcac2,#9c968c)"></div><span class="mini">${n} · Disponible</span></div>`;
+      case "foto-banco":
+        return `<div class="p" style="background:linear-gradient(${30 * i}deg,#5fb7d4,#f4d58d)"><b class="t" style="color:#fff;text-shadow:0 2px 6px #0006">${["Vive la experiencia", "Relájate", "Tu destino soñado"][i % 3]}</b><span class="mini" style="color:#fff">#${n.replace(/ /g, "")} #love #instagood</span></div>`;
+      case "oferta-recargada":
+        return `<div class="p" style="background:#ffe600;border:6px solid #e10600"><b class="t" style="color:#e10600;font-family:Impact,sans-serif;font-size:28px">¡OFERTA ${10 + i * 5}%!</b><span class="s" style="background:#e10600;color:#fff;padding:2px 6px">SOLO HOY · ${n.toUpperCase()}</span><span class="mini">📞 099 000 0000 · ${d.icono}${d.icono}${d.icono}</span></div>`;
+      case "logo-gigante":
+        return `<div class="p" style="background:#fff"><b class="t" style="font-size:64px">${d.icono}</b><span class="s" style="font-family:Arial;font-weight:bold;color:#1e63c6">${n.toUpperCase()}</span><span class="mini">Llámanos · Escríbenos · Visítanos</span></div>`;
+      case "texto-largo":
+        return `<div class="p" style="background:#f5f5f0;align-items:stretch;text-align:left"><span class="mini" style="font-size:7px;line-height:1.25;color:#333">${"Estimados clientes, les informamos que en nuestro establecimiento contamos con los mejores profesionales para atender todas sus necesidades con responsabilidad y compromiso. ".repeat(4)}</span></div>`;
+      case "frase-canva":
+      default:
+        return `<div class="p" style="background:${pasteles[i % 9]}"><b class="t" style="font-family:'Brush Script MT','Segoe Script',cursive;font-size:24px;color:#6b4f4f">${frases[i % 9]}</b><span class="mini">✿ ${n} ✿</span></div>`;
+    }
+  };
+  return pagina(`<header><div class="av">${d.icono}</div><div><b>${n.toLowerCase().replace(/ /g, "_")}</b><p>${d.servicio} · Bienvenidos a nuestra página oficial ✨ · 📍 Ciudad</p></div></header><main>${Array.from({ length: 9 }, (_, i) => post(i)).join("")}</main>`,
+    `body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#fff;color:#111}header{display:flex;gap:14px;align-items:center;padding:16px;max-width:935px;margin:0 auto;border-bottom:1px solid #eee}.av{width:64px;height:64px;border-radius:50%;background:#f1f1f1;display:grid;place-items:center;font-size:30px;flex:none}header p{margin:4px 0 0;font-size:13px;color:#555}main{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;max-width:935px;margin:3px auto}.p{aspect-ratio:4/5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:10px;overflow:hidden}.t{font-size:18px;line-height:1.15}.s{font-size:11px}.mini{font-size:10px;color:#555}.obj{width:60%;height:55%;border-radius:8px}@media(min-width:800px){.t{font-size:26px}.s{font-size:14px}.mini{font-size:12px}}`);
+}

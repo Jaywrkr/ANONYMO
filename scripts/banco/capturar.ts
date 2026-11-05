@@ -10,7 +10,7 @@ import { chromium, type Browser } from "playwright";
 import { carpeta } from "../../packages/pipeline/src/almacen.ts";
 import { leerBanco, leerCapturas, registrarCaptura, type Referencia } from "../../packages/pipeline/src/banco.ts";
 import { bajarProyecto, nubeConfigurada, subirRuta } from "../../packages/pipeline/src/nube.ts";
-import { logoArquetipo, webArquetipo } from "./arquetipos.ts";
+import { contenidoArquetipo, logoArquetipo, webArquetipo } from "./arquetipos.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const tiene = (k: string) => process.argv.includes(`--${k}`);
@@ -20,7 +20,7 @@ if (nube) await bajarProyecto("_agencia", fetch, false).catch(() => 0);
 const dir = join(carpeta(), "_banco", "capturas");
 mkdirSync(dir, { recursive: true });
 const ya = leerCapturas();
-let refs = leerBanco().filter((r) => r.disciplina === "web" || r.disciplina === "identidad");
+let refs = leerBanco().filter((r) => r.disciplina !== "naming"); // naming es texto: no tiene imagen
 if (arg("disciplina")) refs = refs.filter((r) => r.disciplina === arg("disciplina"));
 if (arg("id")) refs = refs.filter((r) => r.id === arg("id"));
 if (tiene("faltan")) refs = refs.filter((r) => !ya[r.id]?.length);
@@ -58,7 +58,8 @@ async function logo(r: Referencia) {
       const src = `data:${tipo.includes("svg") ? "image/svg+xml" : tipo || "image/png"};base64,${bytes.toString("base64")}`;
       await p.setContent(`<body style="margin:0;display:grid;place-items:center;width:800px;height:800px;background:#fff"><img src="${src}" style="max-width:640px;max-height:640px"></body>`);
     }
-    await guardar(r, `${r.id}-logo.png`, undefined, "image/png", await p.screenshot({ type: "png" }));
+    // En redes la imagen es una pieza; en identidad, el logo.
+    await guardar(r, `${r.id}-${r.disciplina === "contenido" ? "pieza" : "logo"}.png`, undefined, "image/png", await p.screenshot({ type: "png" }));
   } finally { await ctx.close(); }
 }
 
@@ -66,6 +67,12 @@ for (const r of refs) {
   try {
     if (r.disciplina === "web") {
       if (r.plantilla) { const h = webArquetipo(r.plantilla, r.rubro); await sacar(r, 1440, h); await sacar(r, 390, h); }
+      else if (r.url) { await sacar(r, 1440); await sacar(r, 390); }
+      else continue;
+    } else if (r.disciplina === "contenido") {
+      // Redes (sistema/60): feed genérico dibujado, o la pieza si hay imagen, o la página del caso.
+      if (r.plantilla) { const h = contenidoArquetipo(r.plantilla, r.rubro); await sacar(r, 1440, h); await sacar(r, 390, h); }
+      else if (r.imagen) await logo(r);
       else if (r.url) { await sacar(r, 1440); await sacar(r, 390); }
       else continue;
     } else if (r.plantilla || r.imagen) await logo(r);

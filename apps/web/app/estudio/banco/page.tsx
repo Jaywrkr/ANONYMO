@@ -10,7 +10,7 @@ import { boton, botonSuave, campo, exigirEstudio, serif } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { Refrescar } from "@/components/estudio/Refrescar";
-import { accionAgregarBanco, accionCalibrar, accionDevolverBanco, accionNotaBanco, accionQuitarBanco, accionReiniciarJuez, accionSeguirCalibracion } from "@/app/estudio/acciones";
+import { accionAgregarBanco, accionCalibrar, accionCriteriosBanco, accionDevolverBanco, accionNotaBanco, accionQuitarBanco, accionReiniciarJuez, accionSeguirCalibracion } from "@/app/estudio/acciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Banco de calibración — Estudio", robots: { index: false } };
@@ -189,8 +189,16 @@ function Tarjeta({ r, capturas, revision, volver, rubrica }: { r: Referencia; ca
       <details><summary className="min-h-11 cursor-pointer">Detalle y criterios</summary>
         <p className="mt-1 text-medio">{r.descripcion}</p>
         {r.razon && <p className="mt-1"><span className="text-suave">Razón del nombre:</span> {r.razon}</p>}
-        <p className="mt-2"><span className="text-suave">Cumple:</span> {r.cumple.join(", ") || "—"}</p>
-        <p><span className="text-suave">No cumple:</span> {r.falla.join(", ") || "—"}</p>
+        {/* Jay y Luna marcan qué cumple (sistema/60): lo no marcado cuenta como no cumplido y la rúbrica se recalcula. */}
+        <form action={accionCriteriosBanco} className="mt-2 grid gap-1">
+          <input type="hidden" name="ref" value={r.id} /><input type="hidden" name="revision" value={revision} /><input type="hidden" name="volver" value={volver} />
+          <p className="text-suave">Qué cumple{r.criteriosPor ? ` · marcado por ${r.criteriosPor.quien === "luna" ? "Luna" : "Jay"}` : ""}:</p>
+          {criteriosBanco(r.disciplina).map(([id, t]) => {
+            const sinMarcar = !r.cumple.includes(id) && !r.falla.includes(id);
+            return <label key={id} className="flex min-h-11 items-start gap-2"><input type="checkbox" name="cumple" value={id} defaultChecked={r.cumple.includes(id)} className="mt-1" /><span>{t}{sinMarcar ? <em className="text-suave"> (sin marcar)</em> : null}</span></label>;
+          })}
+          <div><Enviar texto="Guardar criterios" trabajando="Guardando y recalculando…" className={botonSuave} /></div>
+        </form>
         <p className="mt-1 text-suave">Por la rúbrica le tocaría {rubrica}.</p>
         {r.url && <a href={r.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex min-h-11 items-center underline">Ver el original ↗</a>}
       </details>
@@ -217,7 +225,7 @@ function Agregar({ d, revision }: { d: DisciplinaBanco; revision: number }) {
         <label className="grid gap-1">Premio (si tiene)<input name="premio" maxLength={200} className={campo} /></label>
         <label className="grid gap-1">Enlace a la fuente del premio<input name="fuente" type="url" placeholder="https://" className={campo} /></label>
         <label className="grid gap-1">{d === "web" ? "Dirección del sitio (para capturarlo)" : "Página del caso"}<input name="url" type="url" placeholder="https://" className={campo} /></label>
-        {d === "identidad" && <label className="grid gap-1 sm:col-span-2">Enlace a la imagen del logo<input name="imagen" type="url" placeholder="https://" className={campo} /></label>}
+        {(d === "identidad" || d === "contenido") && <label className="grid gap-1 sm:col-span-2">{d === "identidad" ? "Enlace a la imagen del logo" : "Enlace a una imagen de la pieza (un post o un cuadro del video)"}<input name="imagen" type="url" placeholder="https://" className={campo} /></label>}
         <label className="grid gap-1 sm:col-span-2">Cómo es (sin juicios: el juez lo lee a ciegas)<textarea name="descripcion" required minLength={20} maxLength={1200} rows={3} className={campo} /></label>
         {d === "naming" && <label className="grid gap-1 sm:col-span-2">Razón del nombre<textarea name="razon" required minLength={5} maxLength={600} rows={2} className={campo} /></label>}
         <label className="grid gap-1 sm:col-span-2">Por qué tiene esa nota<textarea name="porque" required minLength={10} maxLength={600} rows={2} className={campo} /></label>

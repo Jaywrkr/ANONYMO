@@ -174,6 +174,8 @@ export const OFICIO: Record<Disciplina, Oficio> = {
       ["ganchos", "Cada pieza propuesta tiene un gancho concreto en el primer segundo o primera línea."],
       ["formatos-actuales", "Usa los formatos actuales de cada plataforma con duraciones y especificaciones correctas."],
       ["sin-generico", "Evita plantillas, stock y frases genéricas; la marca es reconocible sin el logo."],
+      // Sistema/60: en redes la imagen pesa tanto como la idea. Vale para piezas mostradas o descritas con precisión.
+      ["visual", "Las piezas tienen dirección visual propia, mostrada o descrita con precisión: el primer cuadro detiene el scroll, el sistema (tipografía, color, encuadre) se reconoce sin el logo y el texto se lee en celular."],
       ["idea", "Hay una idea creativa que se cuenta en una frase y que la gente quiere comentar o compartir."],
     ],
   },

@@ -494,6 +494,10 @@ export async function accionNotaBanco(f: FormData) {
   const { cambiarNotaBanco } = await import("@anonymo/pipeline");
   await enBanco((yo) => cambiarNotaBanco(String(f.get("ref")), Number(String(f.get("nota")).replace(",", ".")), yo, Number(f.get("revision"))), "Nota cambiada. La rúbrica se recalculó: vuelve a calibrar al juez cuando termines los cambios.", volverBanco(f));
 }
+export async function accionCriteriosBanco(f: FormData) {
+  const { cambiarCriteriosBanco } = await import("@anonymo/pipeline");
+  await enBanco((yo) => cambiarCriteriosBanco(String(f.get("ref")), f.getAll("cumple").map(String), yo, Number(f.get("revision"))), "Criterios guardados. La rúbrica se recalculó: vuelve a calibrar cuando termines los cambios.", volverBanco(f));
+}
 export async function accionQuitarBanco(f: FormData) {
   const { quitarDelBanco } = await import("@anonymo/pipeline");
   await enBanco((yo) => quitarDelBanco(String(f.get("ref")), yo, Number(f.get("revision"))), "Referencia quitada del banco (se puede volver a poner). La rúbrica se recalculó.", volverBanco(f));

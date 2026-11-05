@@ -41,6 +41,8 @@ export interface Referencia {
   agregada?: { quien: string; fecha: string };
   /** Nota del índice si Jay o Luna la cambiaron. */
   notaIndice?: number;
+  /** Quién marcó los criterios desde el estudio. */
+  criteriosPor?: { quien: string; fecha: string };
   cambio?: { quien: string; fecha: string };
 }
 
@@ -59,7 +61,9 @@ const nombreRubro = (r: string) => RUBROS.find((x) => x.id === r)?.nombre ?? "Ot
 const INDICE: Referencia[] = ([...web, ...identidad, ...naming, ...contenido] as unknown as Referencia[]);
 
 // ——— Cambios del estudio sobre el índice: _agencia/banco.json (pequeño, con revisión para no pisar cambios) ———
-interface Cambios { revision: number; notas: Record<string, { nota: number; quien: string; fecha: string }>; agregadas: Referencia[]; quitadas: string[] }
+interface Cambios { revision: number; notas: Record<string, { nota: number; quien: string; fecha: string }>; agregadas: Referencia[]; quitadas: string[];
+  /** Criterios marcados por Jay o Luna (sistema/60): reemplazan los del índice para esa referencia. */
+  criterios?: Record<string, { cumple: string[]; falla: string[]; quien: string; fecha: string }> }
 const rutaCambios = () => join(carpeta(), "_agencia", "banco.json");
 export function leerCambiosBanco(): Cambios {
   try { if (existsSync(rutaCambios())) return JSON.parse(readFileSync(rutaCambios(), "utf8")) as Cambios; } catch {}
@@ -85,8 +89,9 @@ function cambiarBanco(revision: number, fn: (c: Cambios) => void) {
 export function leerBanco(opciones: { quitadas?: boolean } = {}): Referencia[] {
   const c = leerCambiosBanco();
   const todas = [...INDICE, ...c.agregadas].map((r) => {
-    const n = c.notas[r.id];
-    return n && n.nota !== r.nota ? { ...r, nota: n.nota, notaIndice: r.nota, cambio: { quien: n.quien, fecha: n.fecha } } : r;
+    const n = c.notas[r.id], k = c.criterios?.[r.id];
+    const conCriterios = k ? { ...r, cumple: k.cumple, falla: k.falla, criteriosPor: { quien: k.quien, fecha: k.fecha } } : r;
+    return n && n.nota !== r.nota ? { ...conCriterios, nota: n.nota, notaIndice: r.nota, cambio: { quien: n.quien, fecha: n.fecha } } : conCriterios;
   });
   return opciones.quitadas ? todas.filter((r) => c.quitadas.includes(r.id)) : todas.filter((r) => !c.quitadas.includes(r.id));
 }
@@ -107,6 +112,16 @@ export function cambiarNotaBanco(id: string, nota: number, q: string, revision: 
     const original = INDICE.find((r) => r.id === id)?.nota ?? c.agregadas.find((r) => r.id === id)?.nota;
     if (original === nota) delete c.notas[id];
     else c.notas[id] = { nota: Math.round(nota * 2) / 2, quien: quien(q), fecha: new Date().toISOString() };
+  });
+}
+/** Marca qué criterios cumple una referencia (lo no marcado cuenta como no cumplido). Recalcula la rúbrica. */
+export function cambiarCriteriosBanco(id: string, cumple: string[], q: string, revision: number) {
+  const ref = leerBanco().find((r) => r.id === id);
+  if (!ref) throw new Error("No encontramos esa referencia en el banco.");
+  const validos = criteriosBanco(ref.disciplina).map(([c]) => c);
+  const si = validos.filter((c) => cumple.includes(c));
+  return cambiarBanco(revision, (c) => {
+    c.criterios = { ...(c.criterios ?? {}), [id]: { cumple: si, falla: validos.filter((x) => !si.includes(x)), quien: quien(q), fecha: new Date().toISOString() } };
   });
 }
 export function quitarDelBanco(id: string, q: string, revision: number) {
@@ -155,7 +170,11 @@ export function agregarAlBanco(entrada: Record<string, unknown>, q: string, revi
 // ——— Rúbrica deducida del banco ———
 export interface CriterioDeducido { id: string; texto: string; peso: number; premiadas: number; genericas: number; principiantes: number }
 export interface RubricaDeducida { disciplina: DisciplinaBanco; criterios: CriterioDeducido[]; comparten: string[]; faltan: string[]; n: Record<NivelBanco, number>; huella: string; escala?: Mapa; difEscala: number | null }
-const proporcion = (refs: Referencia[], id: string) => (refs.length ? refs.filter((r) => r.cumple.includes(id)).length / refs.length : 0);
+/** Qué parte de las referencias que opinan sobre el criterio lo cumple. Las que no dicen nada no cuentan (sistema/60). */
+const proporcion = (refs: Referencia[], id: string) => {
+  const opinan = refs.filter((r) => r.cumple.includes(id) || r.falla.includes(id));
+  return opinan.length ? opinan.filter((r) => r.cumple.includes(id)).length / opinan.length : 0;
+};
 
 /**
  * Qué comparten las de 9–10 y qué les falta a las de 5–6. El peso de cada criterio es cuánto separa a las premiadas
@@ -225,7 +244,7 @@ export function registrarCaptura(id: string, c: Captura) {
   todas[id] = [...(todas[id] ?? []).filter((x) => x.archivo !== c.archivo), c];
   escribirAtomico(rutaCapturas(), todas);
 }
-export const ARCHIVO_CAPTURA = /^[a-z0-9-]+-(1440|390|logo)\.(jpg|png)$/;
+export const ARCHIVO_CAPTURA = /^[a-z0-9-]+-(1440|390|logo|pieza)\.(jpg|png)$/;
 /** Bytes de una captura: del disco o, en línea, directo del almacén privado (sin bajar todo el banco). */
 export async function bytesCaptura(archivo: string): Promise<Buffer | undefined> {
   if (!ARCHIVO_CAPTURA.test(archivo)) return undefined;
@@ -265,7 +284,8 @@ const pedidoCiego = (r: Referencia): Pedido => ({ id: "banco", cliente: "Pieza d
 export function piezaCiega(r: Referencia): string {
   if (r.disciplina === "naming") return `Nombre: «${r.nombre}».\nPara qué es: ${r.descripcion}\nRazón del nombre: ${r.razon ?? ""}`;
   const que = { web: "Sitio web", identidad: "Identidad de marca y logo", contenido: "Estrategia y piezas de redes sociales" }[r.disciplina];
-  return `${que} de un negocio del rubro ${nombreRubro(r.rubro)}.\nDescripción de la pieza: ${r.descripcion}`;
+  const vista = r.disciplina === "contenido" ? "\nSi hay imágenes, muestran cómo se vieron las piezas (el feed, una pieza o la página del caso). Si en la imagen aparecen premios, logos de festivales o textos de agencia, ignóralos: califica las piezas." : "";
+  return `${que} de un negocio del rubro ${nombreRubro(r.rubro)}.\nDescripción de la pieza: ${r.descripcion}${vista}`;
 }
 async function adjuntos(r: Referencia, max = 2): Promise<unknown[]> {
   const caps = (leerCapturas()[r.id] ?? []).sort((a, b) => (b.ancho ?? 0) - (a.ancho ?? 0)).slice(0, max);
@@ -273,7 +293,7 @@ async function adjuntos(r: Referencia, max = 2): Promise<unknown[]> {
   for (const c of caps) {
     const b = await bytesCaptura(c.archivo);
     if (!b || createHash("sha256").update(b).digest("hex") !== c.sha256) continue;
-    out.push({ type: "text", text: c.ancho ? `Captura a ${c.ancho} px` : "Imagen del logo" }, { type: "image", source: { type: "base64", media_type: c.tipo, data: b.toString("base64") } });
+    out.push({ type: "text", text: c.ancho ? `Captura a ${c.ancho} px` : r.disciplina === "contenido" ? "Imagen de una pieza" : "Imagen del logo" }, { type: "image", source: { type: "base64", media_type: c.tipo, data: b.toString("base64") } });
   }
   return out;
 }
