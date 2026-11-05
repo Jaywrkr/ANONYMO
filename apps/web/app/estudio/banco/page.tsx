@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   DISCIPLINAS_BANCO, META, NIVELES, NOMBRE_DISCIPLINA, RUBROS, calibracionEnCurso, calibracionViva, criteriosBanco, deducirRubrica,
-  leerBanco, leerCambiosBanco, leerCapturas, leerJuez, nivelDe, notaPorRubrica, pideCalibrar, rondasCalibracion, ultimoInforme,
+  calificacionesPorRonda, leerBanco, leerCambiosBanco, leerCapturas, leerJuez, nivelDe, notaPorRubrica, pideCalibrar, rondasCalibracion, ultimoInforme,
   type DisciplinaBanco, type Medida, type Referencia,
 } from "@anonymo/pipeline";
 import { boton, botonSuave, campo, exigirEstudio, serif } from "@/lib/estudio";
@@ -31,7 +31,8 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
   const capturas = leerCapturas();
   const rub = deducirRubrica(d, todas);
   const juez = leerJuez();
-  const informe = ultimoInforme();
+  // Cada pestaña muestra su propia calibración (sistema/59), no la última de cualquier disciplina.
+  const informe = ultimoInforme(d);
   const enCurso = calibracionEnCurso();
   const viva = calibracionViva(enCurso);
   const recalibrar = pideCalibrar();
@@ -51,30 +52,37 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
         })}
       </div>
 
-      {/* Estado del juez */}
-      <section className={`${tarjeta} mt-6 max-w-4xl`} aria-label="Calibración del juez">
-        <h2 className="text-[18px] font-medium">Qué tan bien coincide el juez</h2>
-        {enCurso ? (
+      {/* Estado del juez: todo lo de esta caja es de la disciplina de la pestaña (sistema/59). */}
+      <section className={`${tarjeta} mt-6 max-w-4xl`} aria-label={`Calibración del juez en ${NOMBRE_DISCIPLINA[d]}`}>
+        <h2 className="text-[18px] font-medium">Qué tan bien coincide el juez en {NOMBRE_DISCIPLINA[d].toLowerCase()}</h2>
+        {enCurso && (enCurso.disciplinas.includes(d) ? (
           <div className="mt-2 text-[14px]">
-            <p><strong>Calibrando · ronda {enCurso.ronda} de hasta {enCurso.maxRondas}</strong> · {enCurso.resultados.length} de {enCurso.resultados.length + enCurso.pendientes.length} calificaciones a ciegas.</p>
-            <div className="mt-2 h-2 max-w-md overflow-hidden rounded-full bg-[#eee8df]"><div className="h-full bg-tinta" style={{ width: `${Math.round((enCurso.resultados.length / Math.max(1, enCurso.resultados.length + enCurso.pendientes.length)) * 100)}%` }} /></div>
-            {!viva && <form action={accionSeguirCalibracion} className="mt-3"><p className="mb-2 text-[13px] text-medio">Hace más de dos minutos que no avanza.</p><Enviar texto="Seguir calibrando" trabajando="Pidiendo que siga…" className={boton} /></form>}
+            <p><strong>Calibrando {enCurso.disciplinas.length > 1 ? "las cuatro disciplinas" : NOMBRE_DISCIPLINA[d].toLowerCase()} · ronda {enCurso.ronda} de hasta {enCurso.maxRondas}</strong> · {enCurso.resultados.length} de {enCurso.resultados.length + enCurso.pendientes.length} calificaciones a ciegas.</p>
+            <div className="mt-2 h-2 max-w-md overflow-hidden rounded-full bg-[#eee8df]"><div className="h-full bg-tinta transition-all" style={{ width: `${Math.round((enCurso.resultados.length / Math.max(1, enCurso.resultados.length + enCurso.pendientes.length)) * 100)}%` }} /></div>
+            <p className="mt-2 text-[12px] text-suave">La página se actualiza sola. Puedes cerrarla: sigue trabajando.</p>
+            {!viva && <form action={accionSeguirCalibracion} className="mt-3"><input type="hidden" name="volver" value={volver} /><p className="mb-2 text-[13px] text-medio">Hace más de dos minutos que no avanza.</p><Enviar texto="Seguir calibrando" trabajando="Pidiendo que siga…" className={boton} /></form>}
           </div>
-        ) : null}
+        ) : (
+          <p className="mt-2 rounded-xl bg-[#f6f3ee] px-3 py-2 text-[13px]">Ahora se está calibrando {enCurso.disciplinas.map((x) => NOMBRE_DISCIPLINA[x].toLowerCase()).join(", ")} ({enCurso.resultados.length} de {enCurso.resultados.length + enCurso.pendientes.length}). Cuando termine, podrás calibrar {NOMBRE_DISCIPLINA[d].toLowerCase()}.</p>
+        ))}
         {recalibrar && !enCurso && <p className="mt-2 rounded-xl bg-[#fff4d6] px-3 py-2 text-[13px]">El banco cambió desde la última calibración (o nunca se calibró): la rúbrica ya se recalculó, pero la nota calibrada de las entregas puede estar vieja. Vuelve a calibrar.</p>}
-        {m ? <><Medidas m={m} /><Sesgo m={m} /><Errores informe={informe!} d={d} /></> : <p className="mt-2 text-[14px] text-medio">{informe ? `La última calibración no incluyó ${NOMBRE_DISCIPLINA[d]}.` : "Todavía no hay calibraciones. Necesita la conexión de IA; cuesta unos centavos por referencia."}</p>}
-        {informe && <p className="mt-2 text-[12px] text-suave">Último informe: ronda {informe.ronda} · {new Date(informe.fecha).toLocaleString("es-EC", { timeZone: "America/Guayaquil", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {informe.modelo} · US$ {informe.usd}</p>}
+        {m ? <><Medidas m={m} /><Sesgo m={m} /><Errores informe={informe!} d={d} /></> : <p className="mt-2 text-[14px] text-medio">Todavía no se calibró {NOMBRE_DISCIPLINA[d].toLowerCase()}. Necesita la conexión de IA; cuesta unos centavos por referencia.</p>}
+        {informe && <p className="mt-2 text-[12px] text-suave">Último informe de {NOMBRE_DISCIPLINA[d].toLowerCase()}: ronda {informe.ronda} · {new Date(informe.fecha).toLocaleString("es-EC", { timeZone: "America/Guayaquil", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {informe.modelo}</p>}
         {juez.mapas[d] && <p className="mt-1 text-[12px] text-suave">Corrección vigente: nota calibrada = {juez.mapas[d]!.a} + {juez.mapas[d]!.b} × nota del juez ({juez.mapas[d]!.n} referencias).</p>}
-        {!!juez.ajustes[d]?.length && <details className="mt-3 text-[13px]"><summary className="min-h-11 cursor-pointer">Lo que el juez aprendió de las rondas · {juez.ajustes[d]!.length}</summary><ul className="mt-1 grid gap-1.5">{juez.ajustes[d]!.map((x) => <li key={x}>— {x}</li>)}</ul></details>}
+        {!!juez.ajustes[d]?.length && <details className="mt-3 text-[13px]"><summary className="min-h-11 cursor-pointer">Lo que el juez aprendió en las rondas · {juez.ajustes[d]!.length}</summary><ul className="mt-1 grid gap-1.5">{juez.ajustes[d]!.map((x) => <li key={x}>— {x}</li>)}</ul></details>}
         {!enCurso && (
           <form action={accionCalibrar} className="mt-4 flex flex-wrap items-end gap-3 text-[13px]">
-            <label className="grid gap-1">Qué calibrar<select name="disciplina" defaultValue="" className={campo}><option value="">Todas las disciplinas</option>{DISCIPLINAS_BANCO.map((x) => <option key={x} value={x}>{NOMBRE_DISCIPLINA[x]}</option>)}</select></label>
-            <label className="grid gap-1">Repetir para medir consistencia<select name="repetir" defaultValue="8" className={campo}><option value="4">4 por disciplina</option><option value="8">8 por disciplina</option><option value="16">16 por disciplina</option></select></label>
-            <Enviar texto="Volver a calibrar" trabajando="Preparando la calibración…" className={boton} />
+            <input type="hidden" name="disciplina" value={d} /><input type="hidden" name="volver" value={volver} />
+            <label className="grid gap-1">Repetir para medir consistencia<select name="repetir" defaultValue="4" className={campo}><option value="4">4 piezas</option><option value="8">8 piezas</option><option value="16">16 piezas</option></select></label>
+            <Enviar texto={`Calibrar ${NOMBRE_DISCIPLINA[d].toLowerCase()}`} trabajando="Preparando la calibración…" className={boton} />
+            <p className="w-full text-[12px] text-suave">Unas {calificacionesPorRonda([d], 4)} calificaciones por ronda (≈ US$ {(calificacionesPorRonda([d], 4) * 0.032).toFixed(2)}), hasta 3 rondas si no llega a la meta.</p>
           </form>
         )}
-        <RondasLista />
-        {(juez.ajustes[d]?.length || juez.mapas[d]) && !enCurso ? <details className="mt-2 text-[13px]"><summary className="min-h-11 cursor-pointer">Volver al juez sin ajustes</summary><form action={accionReiniciarJuez} className="mt-2"><p className="mb-2 text-medio">Borra lo aprendido y la corrección de todas las disciplinas. Los informes se conservan.</p><Enviar texto="Quitar ajustes y corrección" trabajando="Quitando…" className={botonSuave} /></form></details> : null}
+        <RondasLista d={d} />
+        {!enCurso && <details className="mt-2 text-[13px]"><summary className="min-h-11 cursor-pointer">Más opciones</summary>
+          <form action={accionCalibrar} className="mt-2"><input type="hidden" name="disciplina" value="" /><input type="hidden" name="volver" value={volver} /><input type="hidden" name="repetir" value="8" /><p className="mb-2 text-medio">Calibrar las cuatro disciplinas de una vez: unas {calificacionesPorRonda(DISCIPLINAS_BANCO, 8)} calificaciones por ronda (≈ US$ {(calificacionesPorRonda(DISCIPLINAS_BANCO, 8) * 0.032).toFixed(2)}).</p><Enviar texto="Calibrar las cuatro" trabajando="Preparando la calibración…" className={botonSuave} /></form>
+          {(juez.ajustes[d]?.length || juez.mapas[d]) ? <form action={accionReiniciarJuez} className="mt-3"><input type="hidden" name="disciplina" value={d} /><input type="hidden" name="volver" value={volver} /><p className="mb-2 text-medio">Borra lo aprendido y la corrección de {NOMBRE_DISCIPLINA[d].toLowerCase()}. Los informes se conservan.</p><Enviar texto={`Volver al juez sin ajustes en ${NOMBRE_DISCIPLINA[d].toLowerCase()}`} trabajando="Quitando…" className={botonSuave} /></form> : null}
+        </details>}
       </section>
 
       {/* Rúbrica */}
@@ -155,10 +163,10 @@ function Errores({ informe, d }: { informe: NonNullable<ReturnType<typeof ultimo
   );
 }
 
-function RondasLista() {
-  const rondas = rondasCalibracion();
+function RondasLista({ d }: { d: DisciplinaBanco }) {
+  const rondas = rondasCalibracion(d);
   if (!rondas.length) return null;
-  return <details className="mt-3 text-[13px]"><summary className="min-h-11 cursor-pointer">Informes de cada ronda · {rondas.length}</summary><ul className="mt-1 grid gap-1">{rondas.slice(0, 30).map((r) => <li key={r.archivo}>{r.fecha.slice(0, 16).replace("T", " ")} · ronda {r.ronda} · diferencia {r.global.mae ?? "—"} · bien clasificadas {pct(r.global.bienClasificadas)} · {r.global.cumpleMeta ? "meta cumplida" : r.sigue ? "ajustó al juez y repitió" : "sin llegar a la meta"} · US$ {r.usd}</li>)}</ul></details>;
+  return <details className="mt-3 text-[13px]"><summary className="min-h-11 cursor-pointer">Informes de {NOMBRE_DISCIPLINA[d].toLowerCase()} · {rondas.length}</summary><ul className="mt-1 grid gap-1">{rondas.slice(0, 30).map((r) => <li key={r.archivo}>{r.fecha.slice(0, 16).replace("T", " ")} · ronda {r.ronda} · diferencia {r.global.mae ?? "—"} · bien clasificadas {pct(r.global.bienClasificadas)} · {r.global.cumpleMeta ? "meta cumplida" : r.sigue ? "ajustó al juez y repitió" : "sin llegar a la meta"} {r.disciplinas.length > 1 ? " · con las cuatro disciplinas" : ""} · US$ {r.usd}</li>)}</ul></details>;
 }
 
 function Tarjeta({ r, capturas, revision, volver, rubrica }: { r: Referencia; capturas: { archivo: string; ancho?: number }[]; revision: number; volver: string; rubrica: number }) {

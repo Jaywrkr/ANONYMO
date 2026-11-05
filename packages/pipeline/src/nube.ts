@@ -47,7 +47,7 @@ export async function subirProyecto(id: string, f: typeof fetch = fetch): Promis
     const destino = `${id}/${relative(base, ruta).split("\\").join("/")}`;
     const r = await f(`${url}/storage/v1/object/${bucket}/${destino}`, {
       method: "POST",
-      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
+      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream", "cache-control": "no-cache" }),
       body: new Uint8Array(readFileSync(ruta)),
     });
     if (!r.ok) throw new Error(`No se pudo subir ${destino}: ${r.status} ${(await r.text()).slice(0, 120)}`);
@@ -83,7 +83,8 @@ export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo 
   const final = join(carpeta(), id);
   const temporal = espejo ? join(carpeta(), `.bajando-${id}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`) : final;
   for (const ruta of rutas) {
-    const r = await f(`${url}/storage/v1/object/${bucket}/${ruta}`, { headers: cabeceras(key) });
+    // Siempre la versión vigente (sistema/59): sin esto, un archivo que se sobrescribe seguido podía bajar viejo.
+    const r = await f(`${url}/storage/v1/object/${bucket}/${ruta}`, { headers: cabeceras(key, { "cache-control": "no-cache" }), cache: "no-store" } as RequestInit);
     if (!r.ok) throw new Error(`No se pudo bajar ${ruta}: ${r.status}`);
     const local = join(temporal, relative(id, ruta));
     mkdirSync(dirname(local), { recursive: true });
@@ -111,7 +112,7 @@ export async function subirRuta(rel: string, f: typeof fetch = fetch) {
   const { url, key, bucket } = cfg();
   const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, {
     method: "POST",
-    headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
+    headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream", "cache-control": "no-cache" }),
     body: new Uint8Array(readFileSync(join(carpeta(), rel))),
   });
   if (!r.ok) throw new Error(`No se pudo subir ${rel}: ${r.status}`);
@@ -230,7 +231,7 @@ export async function subirCambiados(id: string, desde: number, f: typeof fetch 
     const destino = `${id}/${relative(base, ruta).split("\\").join("/")}`;
     const r = await f(`${url}/storage/v1/object/${bucket}/${destino}`, {
       method: "POST",
-      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
+      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream", "cache-control": "no-cache" }),
       body: new Uint8Array(readFileSync(ruta)),
     });
     if (!r.ok) throw new Error(`No se pudo subir ${destino}: ${r.status}`);
@@ -302,7 +303,7 @@ export async function subirDistintos(id: string, antes: Huella, espejo = true, f
     if (antes.get(rel) === hash) continue;
     const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, {
       method: "POST",
-      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream" }),
+      headers: cabeceras(key, { "x-upsert": "true", "content-type": "application/octet-stream", "cache-control": "no-cache" }),
       body: new Uint8Array(readFileSync(join(carpeta(), rel))),
     });
     if (!r.ok) throw new Error(`No se pudo subir ${rel}: ${r.status} ${(await r.text()).slice(0, 120)}`);

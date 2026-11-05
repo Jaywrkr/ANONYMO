@@ -45,21 +45,30 @@ await p.locator("button:has-text('Volver a poner')").click();
 ok(await aviso("Referencia de vuelta"), "la vuelve a poner");
 
 // Calibrar (IA falsa: siempre da 9, así que no llega a la meta y ajusta al juez)
-await p.selectOption('select[name="disciplina"]', "naming"); await p.selectOption('select[name="repetir"]', "4");
-await p.click("button:has-text('Volver a calibrar')");
+// Se calibra desde la pestaña de la disciplina y se queda en ella (sistema/59).
+await p.goto(`${B}/estudio/banco?d=naming`); await p.waitForLoadState("networkidle");
+ok(await p.getByRole("button", { name: "Calibrar naming", exact: true }).count() === 1, "el botón dice qué disciplina calibra");
+ok(await p.getByText(/calificaciones por ronda \(≈ US\$/).count() > 0, "avisa el costo antes de calibrar");
+await p.selectOption('select[name="repetir"]', "4");
+await p.click("button:has-text('Calibrar naming')");
 ok(await bloquea(), "al calibrar bloquea mientras prepara");
 ok(await aviso("Calibración empezada"), "avisa que empezó");
+ok(/d=naming/.test(p.url()), "se queda en la pestaña de naming: " + p.url());
+ok(await p.getByText(/Calibrando naming · ronda/).count() === 1 || (await p.getByText("Diferencia promedio con la nota de referencia").count()) > 0, "dice que calibra naming");
 let listo = false;
-for (let i = 0; i < 60 && !listo; i++) { await p.waitForTimeout(3000); if (i % 3 === 2) await p.goto(`${B}/estudio/banco?d=naming`); listo = (await p.getByText("Diferencia promedio con la nota de referencia").count()) > 0 && (await p.getByText(/Calibrando · ronda/).count()) === 0; }
+for (let i = 0; i < 60 && !listo; i++) { await p.waitForTimeout(3000); if (i % 3 === 2) await p.goto(`${B}/estudio/banco?d=naming`); listo = (await p.getByText("Diferencia promedio con la nota de referencia").count()) > 0 && (await p.getByText(/Calibrando .* · ronda/).count()) === 0; }
 ok(listo, "termina y muestra el informe");
-ok(await p.getByText(/Informes de cada ronda · [1-9]/).count() === 1, "guarda el informe de cada ronda");
-ok(await p.getByText(/Lo que el juez aprendió de las rondas/).count() === 1, "el juez quedó ajustado (no llegó a la meta con un juez que da 9 a todo)");
+ok(await p.getByText(/Informes de naming · [1-9]/).count() === 1, "guarda el informe de cada ronda");
+ok(await p.getByText(/Lo que el juez aprendió en las rondas/).count() === 1, "el juez quedó ajustado (no llegó a la meta con un juez que da 9 a todo)");
 ok(await p.getByText(/✗/).count() > 0, "dice que no llega a la meta");
 ok(await p.getByText("Hacia dónde se equivoca").count() === 1, "muestra hacia dónde se equivoca en cada nivel");
 ok(await p.getByText(/Dónde más se equivocó en la ronda/).count() === 1, "muestra las referencias con más error");
 const visible = await p.evaluate(() => { document.querySelectorAll("details").forEach((d) => (d.open = true)); return document.body.innerText; });
 ok(!/\d\.\d{5,}/.test(visible), "sin números con decimales infinitos");
 await p.screenshot({ path: `${T}/banco.png`, fullPage: true });
+await p.goto(`${B}/estudio/banco?d=web`); await p.waitForLoadState("networkidle");
+ok(await p.getByText("Todavía no se calibró web").count() === 1, "la pestaña web no muestra el informe de naming");
+ok(await p.getByRole("button", { name: "Calibrar web", exact: true }).count() === 1, "en web, el botón calibra web");
 
 // Comparación a ciegas de una entrega nuestra
 await p.goto(`${B}/estudio/banco-pan/calidad`); await p.waitForLoadState("networkidle");
