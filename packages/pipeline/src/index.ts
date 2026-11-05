@@ -50,3 +50,5 @@ export * from './salida.ts';
 export * from "./oficio.ts";
 export * from "./juez.ts";
 export * from "./banco.ts";
+export * from "./arquetipos.ts";
+export * from "./capturas-banco.ts";

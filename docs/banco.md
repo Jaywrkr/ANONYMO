@@ -61,6 +61,9 @@ En Proyecto → Requisitos y calidad, cada entrega de web, identidad, naming o r
 
 Límites: en naming se compara nuestra lista con un solo nombre premiado; y en web el juez puede reconocer una marca famosa en la captura. Por eso cuenta más la tendencia (cuántas pierde) que una comparación suelta.
 
+## Capturas desde el estudio (0.62)
+En cada pestaña (web, identidad, redes), la caja «Capturas para el juez» dice cuántas referencias tienen captura y el botón «Sacar las que faltan» las saca en segundo plano (unos 30 s por referencia, sin costo de IA). Al terminar lista las que no se pudieron y por qué; en «Detalle y criterios» de cada tarjeta se cambia el enlace o se pone una imagen de la pieza, y se vuelve a intentar. El script de la terminal sigue sirviendo para lo mismo.
+
 ## Lo que falta (necesita la máquina de Jay o un despliegue con clave)
 En esta máquina no hubo `ANTHROPIC_API_KEY` ni acceso a los sitios de premios, así que **no hay capturas reales ni calibración real todavía**. Paso exacto, en una máquina con internet y el `.env.local` (clave de IA y Supabase):
 

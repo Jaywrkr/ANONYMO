@@ -498,6 +498,10 @@ export async function accionCriteriosBanco(f: FormData) {
   const { cambiarCriteriosBanco } = await import("@anonymo/pipeline");
   await enBanco((yo) => cambiarCriteriosBanco(String(f.get("ref")), f.getAll("cumple").map(String), yo, Number(f.get("revision"))), "Criterios guardados. La rúbrica se recalculó: vuelve a calibrar cuando termines los cambios.", volverBanco(f));
 }
+export async function accionEnlacesBanco(f: FormData) {
+  const { cambiarEnlacesBanco } = await import("@anonymo/pipeline");
+  await enBanco((yo) => cambiarEnlacesBanco(String(f.get("ref")), String(f.get("url") ?? ""), String(f.get("imagen") ?? ""), yo, Number(f.get("revision"))), "Enlaces guardados. Para la captura nueva, usa «Sacar las que faltan» o «Volver a sacar todas».", volverBanco(f));
+}
 export async function accionQuitarBanco(f: FormData) {
   const { quitarDelBanco } = await import("@anonymo/pipeline");
   await enBanco((yo) => quitarDelBanco(String(f.get("ref")), yo, Number(f.get("revision"))), "Referencia quitada del banco (se puede volver a poner). La rúbrica se recalculó.", volverBanco(f));
@@ -529,6 +533,28 @@ export async function accionCalibrar(f: FormData) {
   }
   revalidatePath("/estudio/banco");
   redirect(destino);
+}
+/** Capturas del banco desde el estudio (sistema/61). Solo para medir: van al almacén privado. */
+export async function accionSacarCapturas(f: FormData) {
+  const yo = await exigirEstudio();
+  const { iniciarCapturas, DISCIPLINAS_BANCO } = await import("@anonymo/pipeline");
+  const { lanzarCapturas } = await import("@/lib/banco");
+  const d = String(f.get("disciplina") ?? "");
+  const volver = volverBanco(f);
+  const sep = volver.includes("?") ? "&" : "?";
+  let destino = `${volver}${sep}ok=${encodeURIComponent("Sacando capturas en segundo plano: aquí ves el avance. Puedes cerrar la página.")}`;
+  try {
+    await conNube(["_agencia"], () => iniciarCapturas({ disciplina: (DISCIPLINAS_BANCO as string[]).includes(d) ? (d as "web") : undefined, todas: f.get("todas") === "1", quien: yo }));
+    await lanzarCapturas();
+  } catch (e) {
+    destino = `${volver}${sep}error=${encodeURIComponent(ocultarClaves((e as Error).message))}`;
+  }
+  revalidatePath("/estudio/banco");
+  redirect(destino);
+}
+export async function accionSeguirCapturas(f: FormData) {
+  const { lanzarCapturas } = await import("@/lib/banco");
+  await enBanco(() => lanzarCapturas(), "Le pedimos que siga sacando capturas.", volverBanco(f));
 }
 export async function accionSeguirCalibracion(f: FormData) {
   const { lanzarCalibracion } = await import("@/lib/banco");

@@ -34,6 +34,20 @@ ok(await aviso("Criterios guardados"), "marca criterios desde la tarjeta");
 ok(/d=contenido/.test(p.url()), "se queda en la pestaña de redes");
 ok(await p.getByText(/marcado por Jay/).count() > 0, "la tarjeta dice quién marcó los criterios");
 
+// Capturas desde el estudio (sistema/61): en Identidad, con el botón; se queda en la pestaña y dice qué no se pudo
+await p.goto(`${B}/estudio/banco?d=identidad`); await p.waitForLoadState("networkidle");
+ok(await p.getByText(/^0 de \d+$/).count() === 1, "dice cuántas tienen captura (ninguna)");
+await p.getByRole("button", { name: /^Sacar las \d+ que faltan$/ }).click();
+ok(await bloquea(), "al sacar capturas bloquea mientras prepara");
+ok(await aviso("Sacando capturas en segundo plano"), "avisa que empezó");
+ok(/d=identidad/.test(p.url()), "se queda en la pestaña de identidad");
+let capturadas = false;
+for (let i = 0; i < 80 && !capturadas; i++) { await p.waitForTimeout(3000); if (i % 3 === 2) await p.goto(`${B}/estudio/banco?d=identidad`); capturadas = (await p.getByText(/Última vez:/).count()) > 0; }
+ok(capturadas, "termina y dice cómo le fue");
+const logos = await p.locator('img[src^="/estudio/banco/imagen/identidad-"]').count();
+ok(logos >= 20, `identidad muestra los logos capturados (${logos})`);
+ok(await p.getByText(/No se pudieron capturar · \d+/).count() === 1, "lista las que no se pudieron (sin internet en la prueba)");
+
 // Filtro por rubro
 await p.goto(`${B}/estudio/banco`); await p.waitForLoadState("networkidle");
 await p.selectOption('select[name="rubro"]', "salud"); await p.click("button:has-text('Filtrar')"); await p.waitForURL(/rubro=salud/);

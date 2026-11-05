@@ -63,7 +63,9 @@ const INDICE: Referencia[] = ([...web, ...identidad, ...naming, ...contenido] as
 // ——— Cambios del estudio sobre el índice: _agencia/banco.json (pequeño, con revisión para no pisar cambios) ———
 interface Cambios { revision: number; notas: Record<string, { nota: number; quien: string; fecha: string }>; agregadas: Referencia[]; quitadas: string[];
   /** Criterios marcados por Jay o Luna (sistema/60): reemplazan los del índice para esa referencia. */
-  criterios?: Record<string, { cumple: string[]; falla: string[]; quien: string; fecha: string }> }
+  criterios?: Record<string, { cumple: string[]; falla: string[]; quien: string; fecha: string }>;
+  /** Enlaces corregidos desde el estudio (sistema/61): sitio o página del caso, e imagen de la pieza o del logo. */
+  enlaces?: Record<string, { url: string | null; imagen: string | null; quien: string; fecha: string }> }
 const rutaCambios = () => join(carpeta(), "_agencia", "banco.json");
 export function leerCambiosBanco(): Cambios {
   try { if (existsSync(rutaCambios())) return JSON.parse(readFileSync(rutaCambios(), "utf8")) as Cambios; } catch {}
@@ -89,8 +91,9 @@ function cambiarBanco(revision: number, fn: (c: Cambios) => void) {
 export function leerBanco(opciones: { quitadas?: boolean } = {}): Referencia[] {
   const c = leerCambiosBanco();
   const todas = [...INDICE, ...c.agregadas].map((r) => {
-    const n = c.notas[r.id], k = c.criterios?.[r.id];
-    const conCriterios = k ? { ...r, cumple: k.cumple, falla: k.falla, criteriosPor: { quien: k.quien, fecha: k.fecha } } : r;
+    const n = c.notas[r.id], k = c.criterios?.[r.id], en = c.enlaces?.[r.id];
+    const conEnlaces = en ? { ...r, url: en.url, imagen: en.imagen } : r;
+    const conCriterios = k ? { ...conEnlaces, cumple: k.cumple, falla: k.falla, criteriosPor: { quien: k.quien, fecha: k.fecha } } : conEnlaces;
     return n && n.nota !== r.nota ? { ...conCriterios, nota: n.nota, notaIndice: r.nota, cambio: { quien: n.quien, fecha: n.fecha } } : conCriterios;
   });
   return opciones.quitadas ? todas.filter((r) => c.quitadas.includes(r.id)) : todas.filter((r) => !c.quitadas.includes(r.id));
@@ -123,6 +126,13 @@ export function cambiarCriteriosBanco(id: string, cumple: string[], q: string, r
   return cambiarBanco(revision, (c) => {
     c.criterios = { ...(c.criterios ?? {}), [id]: { cumple: si, falla: validos.filter((x) => !si.includes(x)), quien: quien(q), fecha: new Date().toISOString() } };
   });
+}
+/** Cambia los enlaces de los que sale la captura. Vacío = sin enlace. */
+export function cambiarEnlacesBanco(id: string, url: string, imagen: string, q: string, revision: number) {
+  const ref = leerBanco().find((r) => r.id === id);
+  if (!ref) throw new Error("No encontramos esa referencia en el banco.");
+  const u = enlace(url), i = enlace(imagen);
+  return cambiarBanco(revision, (c) => { c.enlaces = { ...(c.enlaces ?? {}), [id]: { url: u, imagen: i, quien: quien(q), fecha: new Date().toISOString() } }; });
 }
 export function quitarDelBanco(id: string, q: string, revision: number) {
   if (!leerBanco().some((r) => r.id === id)) throw new Error("Esa referencia ya no está en el banco.");
