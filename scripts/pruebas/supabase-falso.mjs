@@ -14,6 +14,18 @@ export function crearStorageFalso(rpc){return http.createServer(async (req, res)
     if (req.method === "PUT" && firma[3] === `tk-${ruta.length}`) { datos.set(ruta, cuerpo); res.end(JSON.stringify({ Key: ruta })); return; }
     res.writeHead(400).end("firma mala"); return;
   }
+  // Lectura firmada (sistema/62): el navegador reproduce los videos directo de la nube, con saltos (Range).
+  const lectura = req.url.match(/^\/storage\/v1\/object\/sign\/proyectos\/([^?]+)(\?token=([^&]+)(&download=(.*))?)?$/);
+  if (lectura) {
+    const ruta = decodeURIComponent(lectura[1]);
+    if (req.method === "POST") { if (!datos.has(ruta)) { res.writeHead(404).end("no"); return; } res.end(JSON.stringify({ signedURL: `/object/sign/proyectos/${lectura[1]}?token=tl-${ruta.length}` })); return; }
+    if (lectura[3] !== `tl-${ruta.length}` || !datos.has(ruta)) { res.writeHead(400).end("firma mala"); return; }
+    const b = datos.get(ruta), r = /bytes=(\d*)-(\d*)/.exec(req.headers.range ?? "");
+    res.setHeader("accept-ranges", "bytes"); res.setHeader("content-type", ruta.endsWith(".mp4") ? "video/mp4" : "application/octet-stream");
+    if (lectura[5]) res.setHeader("content-disposition", `attachment; filename="${decodeURIComponent(lectura[5])}"`);
+    if (r) { const a = r[1] ? Number(r[1]) : 0, z = r[2] ? Math.min(b.length - 1, Number(r[2])) : b.length - 1; res.writeHead(206, { "content-range": `bytes ${a}-${z}/${b.length}`, "content-length": z - a + 1 }); res.end(b.subarray(a, z + 1)); return; }
+    res.setHeader("content-length", b.length); res.end(b); return;
+  }
   const m = req.url.match(/^\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/);
   if (!m) { res.writeHead(404).end(); return; }
   const ruta = decodeURIComponent(m[2]);

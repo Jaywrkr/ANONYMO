@@ -2,10 +2,13 @@ import {versionadoActivo,vivoVersionado,bajarVersionado,leerArchivoVersionado,in
 // Almacén privado: copia de cada proyecto en un bucket privado de Supabase Storage.
 // El repo es público: los proyectos de clientes viven en tu máquina (proyectos/, ignorado por git) y en la nube privada.
 // Variables: SUPABASE_URL, SUPABASE_SERVICE_KEY (clave de servicio, nunca en el navegador), SUPABASE_BUCKET (por defecto "proyectos").
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createWriteStream, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { createHash } from "node:crypto";
 import {tmpdir} from "node:os";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as FlujoWeb } from "node:stream/web";
 import { carpeta, enCarpeta } from "./almacen.ts";
 
 /** Hay nube configurada (Supabase). */
@@ -337,4 +340,65 @@ export async function importarProyectoVersionado(id:string,f:typeof fetch=fetch)
   for(const ruta of rutas){const b=await leerRemotoBytes(id,ruta.slice(id.length+1),f);if(!b||!Buffer.from(b).equals(readFileSync(join(base,ruta.slice(id.length+1)))))throw new Error('Un archivo cambió durante la importación. No se publicó.');}
   try{return await publicarVersionado(id,new Map(),false,f,true);}catch(e){conservar=hayPublicacionSinConfirmar();throw e;}
  }));}finally{if(!conservar)rmSync(temporal,{recursive:true,force:true});}
+}
+
+// ——— Archivos grandes fuera de los proyectos (sistema/62: videos) ———
+/** Ruta dentro del almacén para archivos sueltos grandes: «_videos/<id>/<archivo>». */
+const rutaSuelta = (rel: string) => {
+  if (!/^_[a-z0-9_-]{1,40}\/[a-z0-9][a-z0-9-]{2,80}\/[a-z0-9][a-z0-9._-]{0,90}$/.test(rel) || rel.includes("..")) throw new Error("Ruta no válida.");
+  return rel;
+};
+
+/** URL firmada para que el navegador suba un archivo directo a esa ruta (sin pasar por Vercel). */
+export async function firmarSubidaEn(rel: string, f: typeof fetch = fetch): Promise<string> {
+  rutaSuelta(rel);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/upload/sign/${bucket}/${rel}`, { method: "POST", headers: cabeceras(key, { "content-type": "application/json", "x-upsert": "true" }), body: "{}" });
+  if (!r.ok) throw new Error(`No se pudo preparar la subida: ${r.status} ${(await r.text()).slice(0, 120)}`);
+  const { url: ruta } = (await r.json()) as { url: string };
+  return `${url}/storage/v1${ruta.startsWith("/") ? "" : "/"}${ruta}`;
+}
+
+/** URL firmada de lectura (el navegador reproduce el video directo de la nube, con saltos). */
+export async function firmarLectura(rel: string, segundos = 3600, f: typeof fetch = fetch): Promise<string> {
+  rutaSuelta(rel);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/sign/${bucket}/${rel}`, { method: "POST", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ expiresIn: segundos }) });
+  if (!r.ok) throw new Error(`No se pudo abrir el archivo: ${r.status}`);
+  const j = (await r.json()) as { signedURL?: string; signedUrl?: string };
+  const ruta = j.signedURL ?? j.signedUrl ?? "";
+  return `${url}/storage/v1${ruta.startsWith("/") ? "" : "/"}${ruta}`;
+}
+
+/** Sube bytes a una ruta suelta (reemplaza si ya existe). */
+export async function subirSuelto(rel: string, datos: Uint8Array, tipo = "application/octet-stream", f: typeof fetch = fetch) {
+  rutaSuelta(rel);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, { method: "POST", headers: cabeceras(key, { "x-upsert": "true", "content-type": tipo, "cache-control": "no-cache" }), body: datos as unknown as BodyInit });
+  if (!r.ok) throw new Error(`No se pudo guardar ${rel.split("/").pop()}: ${r.status} ${(await r.text()).slice(0, 120)}`);
+}
+
+/** Lee una ruta suelta (o undefined si no existe). */
+export async function leerSuelto(rel: string, f: typeof fetch = fetch): Promise<Uint8Array | undefined> {
+  rutaSuelta(rel);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  if (r.status === 404 || r.status === 400) return undefined;
+  if (!r.ok) throw new Error(`No se pudo leer ${rel.split("/").pop()}: ${r.status}`);
+  return new Uint8Array(await r.arrayBuffer());
+}
+
+/** Baja una ruta suelta a un archivo del disco sin cargarla entera en memoria. */
+export async function bajarSuelto(rel: string, destino: string, f: typeof fetch = fetch) {
+  rutaSuelta(rel);
+  const { url, key, bucket } = cfg();
+  const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  if (!r.ok || !r.body) throw new Error(`No llegó ${rel.split("/").pop()} (${r.status}).`);
+  mkdirSync(dirname(destino), { recursive: true });
+  await pipeline(Readable.fromWeb(r.body as FlujoWeb), createWriteStream(destino));
+}
+
+/** Las carpetas de primer nivel bajo un prefijo («_videos» → ids). */
+export async function carpetasEn(prefijo: string, f: typeof fetch = fetch): Promise<string[]> {
+  return (await listarNivel(prefijo, f)).filter((x) => x.id === null && x.name && !x.name.includes("/")).map((x) => x.name);
 }

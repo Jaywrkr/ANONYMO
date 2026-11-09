@@ -76,6 +76,7 @@ const I = {
   web: "M7 17 17 7M9 7h8v8",
   buscar: "M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM20 20l-3.5-3.5",
   biblioteca: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z",
+  video: "M3 6h12v12H3zM15 10l6-3v10l-6-3",
 };
 
 /** Pide permiso para avisar con notificaciones del navegador (una vez). */
@@ -148,6 +149,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
           {tetoca > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] font-medium text-white" title="Cosas que esperan tu decisión">{tetoca}</span>}
         </Link>
         <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
+        <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
         <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
       </div>
 
