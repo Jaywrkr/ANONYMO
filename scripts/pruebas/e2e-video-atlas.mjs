@@ -1,5 +1,5 @@
-// Fase 2 del departamento de video (sistema/63), con nube.sh levantado (Supabase, Whisper y Anthropic falsos).
-// Luna sube el video con el pedido escrito; Atlas lo aplica solo al terminar la transcripción y arma el 9:16.
+// Atlas en el departamento de video (sistema/63–64), con nube.sh levantado (Supabase y Anthropic falsos).
+// Luna sube el video con el pedido escrito; Atlas lo aplica solo apenas termina de escucharse y arma el 9:16.
 // Después pide un cambio por chat, lo deshace y comprueba que la conversación queda guardada.
 // Uso: node scripts/pruebas/e2e-video-atlas.mjs [carpeta-capturas]
 import { execFileSync } from "node:child_process";
@@ -19,7 +19,8 @@ const espera = (loc, ms = 20000) => loc.waitFor({ timeout: ms }).then(() => true
 
 const dir = mkdtempSync(join(tmpdir(), "e2e-video-atlas-"));
 const entrada = join(dir, "Testimonio clinica.mp4");
-execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=720x1280:r=30:d=9", "-f", "lavfi", "-i", "sine=f=330:d=9", "-shortest", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", entrada]);
+// «Voz» (un tono) en 0,9–2,4 · 4,0–5,2 · 5,6–7,9 s: tres partes.
+execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=720x1280:r=30:d=9", "-f", "lavfi", "-i", "aevalsrc='if(between(t,0.9,2.4)+between(t,4.0,5.2)+between(t,5.6,7.9),0.4*sin(2*PI*330*t),0.003*sin(2*PI*50*t))':s=44100:d=9", "-shortest", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", entrada]);
 
 const nav = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await nav.newContext({ viewport: { width: 1360, height: 900 }, deviceScaleFactor: 1 });
@@ -36,40 +37,41 @@ await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="luna"]', 
 // 1. Subir con el pedido escrito (el ejemplo del documento del módulo).
 await p.goto(`${B}/estudio/video`);
 await p.setInputFiles('input[type="file"]', entrada);
-await p.fill("textarea", "Corta los silencios, pon subtítulos estilo marca, zoom en la frase clave y el logo al final, y expórtalo vertical");
+await p.fill("textarea", "Corta los silencios, quita el arranque, ponle subtítulos, zoom en la frase clave y el logo al final, y expórtalo vertical");
 await p.screenshot({ path: join(capturas, "1-subir-con-pedido.png") });
-await p.click("button:has-text('Subir y transcribir')");
+await p.click("button:has-text('Subir video')");
 await p.waitForURL(/estudio\/video\/v-testimonio-clinica-/, { timeout: 60000 });
 
-// 2. Transcribe, Atlas aplica el pedido solo y arma el 9:16.
+// 2. Se escucha, Atlas aplica el pedido solo y arma el 9:16.
 exigir(await espera(p.locator("[role=status]:has-text('armado')"), 120000), "avisa que el 9:16 está listo");
 const orden = await vistas();
 console.log("   esperas:", orden.join(" → "));
 const i = orden.indexOf("Atlas está leyendo tu pedido"), j = orden.indexOf("Armando el vertical 9:16");
-exigir(i >= 0, "Atlas lee el pedido apenas termina la transcripción");
+exigir(orden.indexOf("Escuchando el video") >= 0 && i > orden.indexOf("Escuchando el video"), "Atlas lee el pedido apenas termina de escuchar el video");
 exigir(j > i, "después arma el 9:16 que pidió, sin tocar nada");
 await p.screenshot({ path: join(capturas, "2-listo.png") });
 const chat = p.locator("ol[aria-label='Conversación con Atlas']");
 const textoChat = await chat.innerText();
 exigir(/Corta los silencios/.test(textoChat), "el pedido de Luna queda en la conversación");
-exigir(/✓ Quitar pausas de más de 0,6 s/.test(textoChat), "Atlas dice qué cambió (pausas)");
-exigir(/Todavía no: Zoom/.test(textoChat) && /Todavía no: Logo/.test(textoChat), "Atlas dice con claridad que el zoom y el logo todavía no se pueden");
-exigir(await p.locator("button[aria-pressed=true] span", { hasText: /^Marca$/ }).count() === 1, "la plantilla Marca quedó elegida en el editor");
+exigir(/✓ Quitar la parte 1/.test(textoChat), "Atlas dice qué cambió (quitó la parte 1)");
+exigir(/donde todavía no empieza/.test(textoChat), "Atlas recibió la hoja de miniaturas");
+exigir((await p.locator("section[aria-labelledby=titulo-partes] li > button[aria-pressed=true]").count()) === 1, "la parte 1 quedó quitada en el editor");
+exigir(/Todavía no: Subtítulos/.test(textoChat) && /Todavía no: Zoom/.test(textoChat) && /Todavía no: Logo/.test(textoChat), "Atlas dice con claridad que subtítulos, zoom y logo no se pueden");
 const fila = p.locator("li", { hasText: "Vertical 9:16" });
 exigir(await fila.locator("a:has-text('Descargar')").isVisible(), "el 9:16 se puede descargar");
 await p.screenshot({ path: join(capturas, "3-pedido-aplicado.png") });
 
 // 3. Un cambio con una frase.
-await p.fill("#pedido-atlas", "Subtítulos más grandes");
+await p.fill("#pedido-atlas", "Más dinámico");
 await p.keyboard.press("Enter");
-exigir(await espera(chat.locator("li", { hasText: "agrandé el texto" })), "Atlas responde al cambio por chat");
+exigir(await espera(chat.locator("li", { hasText: "ritmo más rápido" })), "Atlas responde al cambio por chat");
 exigir((await vistas()).filter((x) => x === "Atlas está leyendo tu pedido").length === 2, "al pedir por chat, la espera aparece");
-exigir(await p.locator("button[aria-pressed=true]", { hasText: /^Grande$/ }).count() === 1, "el tamaño pasó a Grande");
+exigir(/Pausas de más de 0,3 s/.test(await p.locator("section[aria-labelledby=titulo-cortes]").innerText()), "las pausas pasaron a 0,3 s");
 exigir(await espera(fila.locator("button:has-text('Volver a armar')"), 5000), "el 9:16 armado queda marcado como viejo");
 
 // 4. Deshacer lo de Atlas vuelve a la edición de antes (y el 9:16 vuelve a estar al día).
 await p.click("button:has-text('Deshacer lo de Atlas')");
-exigir(await espera(p.locator("button[aria-pressed=true]", { hasText: /^Normal$/ }), 5000), "deshacer devuelve el tamaño Normal");
+exigir(await espera(p.locator("section[aria-labelledby=titulo-cortes]", { hasText: "Pausas de más de 0,6 s" }), 5000), "deshacer devuelve las pausas de 0,6 s");
 exigir(await espera(fila.locator("a:has-text('Descargar')"), 10000), "el 9:16 vuelve a estar al día");
 await p.locator("text=Guardado").waitFor({ timeout: 10000 });
 
@@ -90,7 +92,9 @@ await p.screenshot({ path: join(capturas, "4-conversacion.png"), fullPage: true 
 const pedidos = readFileSync(registro, "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((x) => x.system?.startsWith("Atlas, departamento de video"));
 exigir(pedidos.length === 3, `3 pedidos a Atlas (${pedidos.length})`);
 exigir(pedidos.every((x) => x.tool_choice?.type === "auto"), "la herramienta va sin forzar");
-exigir(/\[3\]ANONYMO\.@2\.2/.test(pedidos[0].messages[0].content), "Atlas lee el texto con índices y tiempos");
+const bloques = pedidos[0].messages[0].content;
+exigir(bloques[0]?.type === "image" && bloques[0].source?.media_type === "image/jpeg", "Atlas recibe la hoja de miniaturas como imagen");
+exigir(/## Partes \(3\)\n1\. 0\.9–2\.4 s/.test(bloques[1]?.text ?? ""), "Atlas lee las partes numeradas con sus tiempos");
 
 // Celular.
 const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });

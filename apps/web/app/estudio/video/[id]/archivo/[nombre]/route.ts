@@ -25,7 +25,7 @@ export async function GET(req: Request, { params }: Params) {
   const ruta = rutaLocal(id, nombre);
   if (!existsSync(ruta)) return mal("No encontramos el archivo.", 404);
   const total = statSync(ruta).size;
-  const tipo = TIPOS_VIDEO[nombre.slice(nombre.lastIndexOf("."))] ?? "application/octet-stream";
+  const tipo = nombre.endsWith(".jpg") ? "image/jpeg" : TIPOS_VIDEO[nombre.slice(nombre.lastIndexOf("."))] ?? "application/octet-stream";
   const base: Record<string, string> = { "content-type": tipo, "accept-ranges": "bytes", "cache-control": "private, no-store" };
   if (nombreDescarga) base["content-disposition"] = `attachment; filename="${nombreDescarga}"`;
   const rango = req.headers.get("range")?.match(/^bytes=(\d*)-(\d*)$/);

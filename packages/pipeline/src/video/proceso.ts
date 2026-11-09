@@ -1,15 +1,13 @@
-// Los pasos pesados del departamento de video (sistema/62): transcribir y armar cada formato.
+// Los pasos pesados del departamento de video (sistema/62): analizar el audio (sistema/64) y armar cada formato.
 // Cada paso marca el video como ocupado (para bloquear otro igual y decir qué pasa) y guarda su avance aparte.
 // Al terminar se vuelve a leer el video y solo se cambia lo que el paso produjo: si Luna movió la edición
 // mientras tanto, no se pierde.
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { planEdicion, textoHuella } from "./edicion.ts";
-import { archivoAss } from "./subtitulos.ts";
-import { medirVideo, renderizar, sacarAudio } from "./ffmpeg.ts";
-import { transcribir } from "./transcribir.ts";
+import { partesDesdeSilencios, planEdicion, textoHuella } from "./edicion.ts";
+import { detectarSilencios, hojaDeCuadros, medirVideo, renderizar, umbralSilencio, volumenMedio } from "./ffmpeg.ts";
 import { cambiarVideo, guardarArchivoVideo, guardarAvance, traerArchivo } from "./almacen-video.ts";
 import type { FormatoVideo, Ocupado, TrabajoVideo } from "./tipos.ts";
 
@@ -21,13 +19,13 @@ export const MAX_SEGUNDOS = Number(process.env.ANONYMO_VIDEO_MAX_SEG ?? 180);
 export const estaOcupado = (t: TrabajoVideo, ahora = Date.now()) => !!t.ocupado && ahora - Date.parse(t.ocupado.desde) < VENCE_MS;
 
 /** La huella de lo que se pidió: si cambia la edición, el resultado anterior queda viejo. */
-export function huellaEdicion(t: Pick<TrabajoVideo, "edicion" | "transcripcion" | "duracion">, formato: FormatoVideo) {
+export function huellaEdicion(t: Pick<TrabajoVideo, "edicion" | "analisis" | "duracion">, formato: FormatoVideo) {
   return createHash("sha256").update(textoHuella(t, formato)).digest("hex").slice(0, 16);
 }
 
 async function ocupar(id: string, o: Omit<Ocupado, "desde">) {
   const t = await cambiarVideo(id, (t) => {
-    if (estaOcupado(t)) throw new Error(t.ocupado!.paso === "transcribir" ? "Ya se está transcribiendo este video." : "Ya se está armando un video. Espera a que termine.");
+    if (estaOcupado(t)) throw new Error(t.ocupado!.paso === "analizar" ? "Ya se está escuchando este video." : "Ya se está armando un video. Espera a que termine.");
     t.ocupado = { ...o, desde: new Date().toISOString() };
     t.error = undefined;
   });
@@ -62,25 +60,35 @@ async function fallar(id: string, e: unknown): Promise<never> {
   throw e;
 }
 
-/** Mide el video, saca el audio y lo transcribe con tiempos por palabra. */
-export async function transcribirVideo(id: string, o: { idioma?: string } = {}) {
-  const t = await ocupar(id, { paso: "transcribir", avance: 0.05, texto: "Abriendo el video" });
+/**
+ * Escucha el video sin transcribirlo (sistema/64): mide el volumen, encuentra los silencios, divide el video en
+ * partes (cada tramo con voz o sonido) y saca una hoja con la miniatura de cada parte.
+ */
+export async function analizarVideo(id: string) {
+  const t = await ocupar(id, { paso: "analizar", avance: 0.05, texto: "Abriendo el video" });
   const avisar = avisador(id);
   try {
     return await conCarpeta(async (dir) => {
       const video = await traerArchivo(id, t.original!, join(dir, t.original!));
       const m = await medirVideo(video);
-      if (!m.audio) throw new Error("Este video no tiene sonido: no hay voz que transcribir.");
       if (m.duracion > MAX_SEGUNDOS) throw new Error(`El video dura ${Math.round(m.duracion)} s. Por ahora el máximo es ${MAX_SEGUNDOS} s (${Math.round(MAX_SEGUNDOS / 60)} min).`);
       const bytes = statSync(video).size;
-      await avisar(0.25, "Separando la voz", true);
-      const audio = await sacarAudio(video, join(dir, "voz.mp3"));
-      await avisar(0.4, "Escuchando cada palabra", true);
-      const tr = await transcribir(audio, o);
-      if (!tr.palabras.length) throw new Error("No se escuchó ninguna palabra en el video.");
+      let partes = [{ inicio: 0, fin: m.duracion }];
+      let umbralDb = 0;
+      if (m.audio) {
+        await avisar(0.2, "Escuchando dónde se habla y dónde hay silencio", true);
+        umbralDb = umbralSilencio(await volumenMedio(video));
+        partes = partesDesdeSilencios(await detectarSilencios(video, umbralDb), m.duracion);
+        if (!partes.length) throw new Error("No se escucha nada en el video: no hay voz ni sonido que cortar.");
+      }
+      await avisar(0.6, "Sacando una imagen de cada parte", true);
+      const archivo = "cuadros.jpg";
+      const hoja = await hojaDeCuadros(video, partes, dir, join(dir, archivo), { ancho: m.ancho, alto: m.alto });
+      await guardarArchivoVideo(id, archivo, join(dir, archivo), "image/jpeg");
       return cambiarVideo(id, (x) => {
-        Object.assign(x, { duracion: m.duracion, ancho: m.ancho, alto: m.alto, bytes, transcripcion: tr, estado: "transcrito" as const, ocupado: undefined, error: undefined });
-        // Con otra transcripción, los cortes a mano de antes ya no apuntan a las mismas palabras.
+        Object.assign(x, { duracion: m.duracion, ancho: m.ancho, alto: m.alto, bytes, estado: "analizado" as const, ocupado: undefined, error: undefined });
+        x.analisis = { partes, umbralDb, cuadros: { archivo, ...hoja } };
+        // Con otro análisis, las partes quitadas de antes ya no son las mismas.
         x.edicion.quitadas = [];
         x.resultados = [];
       });
@@ -95,18 +103,16 @@ export async function renderVideo(id: string, formato: FormatoVideo) {
   const t = await ocupar(id, { paso: "render", formato, avance: 0.02, texto: "Preparando" });
   const avisar = avisador(id);
   try {
-    if (!t.transcripcion || !t.duracion) throw new Error("Primero hay que transcribir el video.");
+    if (!t.analisis || !t.duracion) throw new Error("Primero hay que escuchar el video.");
     return await conCarpeta(async (dir) => {
       const video = await traerArchivo(id, t.original!, join(dir, t.original!));
       const m = await medirVideo(video);
-      const plan = planEdicion(t.transcripcion, t.edicion, t.duracion!, formato === "9:16");
-      const ass = plan.grupos.length ? join(dir, "subtitulos.ass") : undefined;
-      if (ass) writeFileSync(ass, archivoAss(plan.grupos, t.edicion.subtitulos, formato));
-      await avisar(0.05, "Cortando y poniendo subtítulos", true);
+      const plan = planEdicion(t.analisis, t.edicion, t.duracion!);
+      await avisar(0.05, "Cortando y encuadrando", true);
       const archivo = `final-${formato.replace(":", "x")}.mp4`;
       const salida = join(dir, archivo);
       const inicio = Date.now();
-      await renderizar({ entrada: video, salida, tramos: plan.tramos, formato, edicion: t.edicion, ass, audio: m.audio, carpeta: dir, alAvanzar: (s) => { void avisar(0.05 + 0.85 * Math.min(1, s / Math.max(0.1, plan.duracion))); } });
+      await renderizar({ entrada: video, salida, tramos: plan.tramos, formato, edicion: t.edicion, audio: m.audio, carpeta: dir, alAvanzar: (s) => { void avisar(0.05 + 0.85 * Math.min(1, s / Math.max(0.1, plan.duracion))); } });
       await avisar(0.92, "Guardando el resultado", true);
       await guardarArchivoVideo(id, archivo, salida);
       const listo = { formato, archivo, listo: new Date().toISOString(), segundos: Math.round((Date.now() - inicio) / 1000), bytes: statSync(salida).size, huella: huellaEdicion(t, formato) };

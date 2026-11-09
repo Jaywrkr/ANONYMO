@@ -1,6 +1,6 @@
 "use client";
 
-// Subir un video (sistema/62): se elige, sube con su avance a la vista y abre el editor, que empieza a transcribir solo.
+// Subir un video (sistema/62): se elige, sube con su avance a la vista y abre el editor, que empieza a escucharlo solo.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Espera } from "./Espera";
@@ -84,13 +84,13 @@ export function SubirVideo({ maxMb }: { maxMb: number }) {
       </label>
       <label className="mt-4 block text-[12px] text-suave">
         ¿Qué quieres? (opcional: Atlas lo hace apenas termine de escuchar el video)
-        <textarea value={pedido} onChange={(e) => setPedido(e.target.value)} maxLength={2000} rows={3} placeholder="Por ejemplo: corta los silencios, pon subtítulos estilo marca y expórtalo vertical" className="mt-1 w-full resize-y rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]" />
+        <textarea value={pedido} onChange={(e) => setPedido(e.target.value)} maxLength={2000} rows={3} placeholder="Por ejemplo: corta los silencios, quita el arranque donde se acomoda y expórtalo vertical" className="mt-1 w-full resize-y rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]" />
       </label>
       {error && <p role="alert" className="mt-3 rounded-xl bg-[#fff1ea] px-3 py-2 text-[14px] text-[#a33a0b]">{error}</p>}
       <button type="button" disabled={!listo || !archivo || !!subiendo} onClick={empezar} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-tinta px-6 text-[14px] font-medium text-white transition hover:bg-black disabled:opacity-40 md:w-auto">
-        {!listo ? "Cargando…" : subiendo ? "Subiendo…" : "Subir y transcribir"}
+        {!listo ? "Cargando…" : subiendo ? "Subiendo…" : "Subir video"}
       </button>
-      <p className="mt-2 text-[12px] text-suave">Después de subir, el video se transcribe solo, se quitan las pausas largas y Atlas hace lo que pediste. Nada se publica.</p>
+      <p className="mt-2 text-[12px] text-suave">Después de subir, escuchamos el video, quitamos las pausas largas y Atlas hace lo que pediste. Nada se publica.</p>
       {subiendo && <Espera titulo="Subiendo el video" texto={subiendo.texto} avance={subiendo.avance} desde={subiendo.desde} aviso="No cierres esta pestaña hasta que termine de subir." />}
     </div>
   );

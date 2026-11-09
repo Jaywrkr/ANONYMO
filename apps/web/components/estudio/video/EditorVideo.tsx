@@ -1,16 +1,14 @@
 "use client";
 
-// El editor de video (sistema/62). Sin línea de tiempo: el video se edita tocando el texto.
-// La vista previa es instantánea: reproduce el original saltando los cortes y dibuja los subtítulos encima,
-// con las mismas cuentas y medidas que el render final.
+// El editor de video (sistema/62; por partes y sin transcripción desde sistema/64). Sin línea de tiempo:
+// el video se divide en partes (cada tramo con voz o sonido) y se edita tocándolas o pidiéndoselo a Atlas.
+// La vista previa es instantánea: reproduce el original saltando los cortes, con las mismas cuentas que el render.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { aEditado, aOriginal, edicionSegura, motivoPalabra, planEdicion, textoHuella } from "@anonymo/pipeline/src/video/edicion.ts";
-import { estiloSub, PLANTILLAS_SUB } from "@anonymo/pipeline/src/video/subtitulos.ts";
+import { aEditado, aOriginal, edicionSegura, planEdicion, textoHuella } from "@anonymo/pipeline/src/video/edicion.ts";
 import { FORMATOS_VIDEO, type Edicion, type FormatoVideo, type MensajeVideo, type Ocupado, type ResultadoVideo, type TrabajoVideo } from "@anonymo/pipeline/src/video/tipos.ts";
 import { Espera, mmss } from "./Espera";
 
-const ACENTOS = ["#ffd43b", "#ffffff", "#2bb673", "#ff5a1f", "#4f8cff", "#ff6fb1"];
 const NOMBRE_FORMATO: Record<FormatoVideo, string> = { "9:16": "Vertical 9:16", "1:1": "Cuadrado 1:1", "16:9": "Horizontal 16:9" };
 const USO_FORMATO: Record<FormatoVideo, string> = { "9:16": "Reels, TikTok, Shorts, historias", "1:1": "Feed de Instagram y LinkedIn", "16:9": "YouTube y web" };
 const tarjeta = "rounded-[18px] bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-5";
@@ -21,12 +19,12 @@ async function sha(texto: string) {
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
 
-/** Un aviso que sobrevive a la recarga del editor (al terminar de transcribir, la página trae el texto nuevo). */
+/** Un aviso que sobrevive a la recarga del editor (al terminar de escuchar, la página trae las partes). */
 const avisoPendiente = new Map<string, { tipo: "ok" | "error"; texto: string }>();
 
 type Paso = { titulo: string; texto?: string; avance?: number; desde: number; estimado?: number };
 
-export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisper: boolean }) {
+export function EditorVideo({ inicial, atlas }: { inicial: TrabajoVideo; atlas: boolean }) {
   const router = useRouter();
   const t = inicial;
   const [ed, setEd] = useState<Edicion>(() => edicionSegura(t.edicion, t.edicion));
@@ -44,11 +42,11 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
   const [resultados, setResultados] = useState<ResultadoVideo[]>(t.resultados);
   const [huellas, setHuellas] = useState<Partial<Record<FormatoVideo, string>>>({});
   const [listo, setListo] = useState(false);
-  const [desdeTexto, setDesdeTexto] = useState<number | null>(null);
+  const [desdeParte, setDesdeParte] = useState<number | null>(null);
   useEffect(() => { setListo(true); avisoPendiente.delete(t.id); }, [t.id]);
 
   const duracion = t.duracion ?? 0;
-  const plan = useMemo(() => planEdicion(t.transcripcion, ed, duracion, formato === "9:16"), [t.transcripcion, ed, duracion, formato]);
+  const plan = useMemo(() => planEdicion(t.analisis, ed, duracion), [t.analisis, ed, duracion]);
   const quitadas = useMemo(() => new Set(ed.quitadas), [ed.quitadas]);
 
   // ——— Guardar la edición (al rato de cada cambio) ———
@@ -83,9 +81,9 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
   // ¿Cada resultado corresponde a la edición de ahora?
   useEffect(() => {
     let vivo = true;
-    Promise.all(FORMATOS_VIDEO.map(async (f) => [f, await sha(textoHuella({ edicion: ed, transcripcion: t.transcripcion, duracion: t.duracion }, f))] as const)).then((xs) => vivo && setHuellas(Object.fromEntries(xs)));
+    Promise.all(FORMATOS_VIDEO.map(async (f) => [f, await sha(textoHuella({ edicion: ed, analisis: t.analisis, duracion: t.duracion }, f))] as const)).then((xs) => vivo && setHuellas(Object.fromEntries(xs)));
     return () => { vivo = false; };
-  }, [ed, t.transcripcion, t.duracion]);
+  }, [ed, t.analisis, t.duracion]);
 
   // ——— Pasos pesados: se piden y se sigue su avance ———
   const seguir = useCallback((desde: number, titulo: string, estimado?: number) => {
@@ -105,10 +103,10 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
     return () => { sigue = false; };
   }, [t.id]);
 
-  const correr = useCallback(async (cuerpo: { paso: "transcribir" | "render"; formato?: FormatoVideo }): Promise<boolean> => {
+  const correr = useCallback(async (cuerpo: { paso: "analizar" | "render"; formato?: FormatoVideo }): Promise<boolean> => {
     const desde = Date.now();
-    const titulo = cuerpo.paso === "transcribir" ? "Transcribiendo el video" : `Armando el ${NOMBRE_FORMATO[cuerpo.formato!].toLowerCase()}`;
-    const estimado = Math.round(cuerpo.paso === "transcribir" ? 12 + duracion * 0.35 : 8 + duracion * 1.1);
+    const titulo = cuerpo.paso === "analizar" ? "Escuchando el video" : `Armando el ${NOMBRE_FORMATO[cuerpo.formato!].toLowerCase()}`;
+    const estimado = Math.round(cuerpo.paso === "analizar" ? 8 + (t.bytes ?? 0) / 20e6 : 8 + duracion * 1.1);
     setAviso(null);
     setPaso({ titulo, texto: "Empezando", desde, estimado });
     if (cuerpo.paso === "render") {
@@ -122,8 +120,8 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
       const j = (await r.json().catch(() => ({}))) as { error?: string; resultado?: ResultadoVideo };
       if (!r.ok) throw new Error(j.error ?? `No se pudo terminar (${r.status}).`);
       const s = Math.round((Date.now() - desde) / 1000);
-      if (cuerpo.paso === "transcribir") {
-        const listo = { tipo: "ok" as const, texto: `Listo: transcrito en ${mmss(s)}. Ya quitamos las pausas largas; revisa la vista previa.` };
+      if (cuerpo.paso === "analizar") {
+        const listo = { tipo: "ok" as const, texto: `Listo en ${mmss(s)}: dividimos el video en partes y quitamos las pausas largas. Revisa la vista previa.` };
         avisoPendiente.set(t.id, listo);
         setAviso(listo);
         router.refresh();
@@ -139,13 +137,13 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
       parar();
       setPaso(null);
     }
-  }, [duracion, guardar, router, seguir, t.id]);
+  }, [duracion, guardar, router, seguir, t.bytes, t.id]);
 
   // Si al abrir la página ya había un paso trabajando (otra pestaña, o recargaste), se espera a que termine.
   useEffect(() => {
     if (!t.ocupado) return;
     const desde = Date.parse(t.ocupado.desde) || Date.now();
-    const titulo = t.ocupado.paso === "transcribir" ? "Transcribiendo el video" : `Armando el ${NOMBRE_FORMATO[t.ocupado.formato ?? "9:16"].toLowerCase()}`;
+    const titulo = t.ocupado.paso === "analizar" ? "Escuchando el video" : `Armando el ${NOMBRE_FORMATO[t.ocupado.formato ?? "9:16"].toLowerCase()}`;
     setPaso({ titulo, texto: t.ocupado.texto, avance: t.ocupado.avance, desde });
     let sigue = true;
     (async () => {
@@ -161,13 +159,13 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
     return () => { sigue = false; };
   }, [router, t.id, t.ocupado]);
 
-  // Recién subido: se transcribe solo (una vez).
+  // Recién subido: se escucha solo (una vez).
   const arrancado = useRef(false);
   useEffect(() => {
-    if (arrancado.current || t.ocupado || t.transcripcion || t.estado !== "subido" || t.error || !whisper) return;
+    if (arrancado.current || t.ocupado || t.analisis || t.estado !== "subido" || t.error) return;
     arrancado.current = true;
-    void correr({ paso: "transcribir" });
-  }, [correr, t.estado, t.error, t.ocupado, t.transcripcion, whisper]);
+    void correr({ paso: "analizar" });
+  }, [correr, t.analisis, t.estado, t.error, t.ocupado]);
 
   // ——— Atlas (sistema/63): Luna escribe lo que quiere y Atlas cambia la edición ———
   const [charla, setCharla] = useState<MensajeVideo[]>(t.conversacion ?? []);
@@ -181,7 +179,7 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
     if (!limpio || paso) return;
     const desde = Date.now();
     setAviso(null);
-    setPaso({ titulo: "Atlas está leyendo tu pedido", texto: "Revisando el texto del video y la edición de ahora", desde, estimado: 15 });
+    setPaso({ titulo: "Atlas está leyendo tu pedido", texto: "Mirando las partes del video y la edición de ahora", desde, estimado: 15 });
     // Atlas parte de lo último que hizo Luna: primero se guarda.
     if (reloj.current) clearTimeout(reloj.current);
     if (!(await guardar(edRef.current))) { setPaso(null); setAviso({ tipo: "error", texto: "No se pudo guardar la edición. Revisa la conexión y vuelve a intentarlo." }); return; }
@@ -221,14 +219,14 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
   const pedirAtlasRef = useRef(pedirAtlas);
   pedirAtlasRef.current = pedirAtlas;
   useEffect(() => {
-    if (!t.transcripcion || !t.pedido || t.pedidoAplicado || t.ocupado) return;
+    if (!t.analisis || !t.pedido || t.pedidoAplicado || t.ocupado) return;
     const id = setTimeout(() => {
       if (pedidoInicial.current) return;
       pedidoInicial.current = true;
       void pedirAtlasRef.current(t.pedido!, true);
     }, 300);
     return () => clearTimeout(id);
-  }, [t.ocupado, t.pedido, t.pedidoAplicado, t.transcripcion]);
+  }, [t.analisis, t.ocupado, t.pedido, t.pedidoAplicado]);
 
   // ——— Vista previa ———
   const video = useRef<HTMLVideoElement>(null);
@@ -256,31 +254,37 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
   const ir = (tEditado: number) => { const v = video.current; if (!v) return; v.currentTime = aOriginal(Math.max(0, Math.min(plan.duracion, tEditado)), plan.tramos); setTe(tEditado); };
   const tocar = () => { const v = video.current; if (!v) return; if (v.paused) { if (te >= plan.duracion - 0.05) ir(0); void v.play(); } else v.pause(); };
 
-  const grupo = plan.grupos.find((g) => te >= g.inicio && te < g.fin);
-  const estilo = estiloSub(ed.subtitulos, formato);
-  const pl = estilo.plantilla;
   const tOriginal = aOriginal(te, plan.tramos);
-  const palabraViva = t.transcripcion?.palabras.findIndex((p) => tOriginal >= p.inicio && tOriginal < p.fin) ?? -1;
+  const partes = t.analisis?.partes ?? [];
+  const parteViva = partes.findIndex((p) => tOriginal >= p.inicio - 0.05 && tOriginal < p.fin + 0.05);
 
-  // ——— Texto: tocar una palabra la quita o la devuelve; con Mayús se toma un tramo ———
-  const tocarPalabra = (i: number, mayus: boolean) => {
-    const p = t.transcripcion!.palabras[i];
-    if (!quitadas.has(i) && motivoPalabra(i, p, { ...ed, quitadas: [] }) === "muletilla") {
-      setAviso({ tipo: "ok", texto: "Esa muletilla se quita sola. Si quieres dejarla, apaga «Quitar muletillas»." });
-      return;
-    }
+  // ——— Partes: tocar una la quita o la devuelve; con Mayús se toma un tramo ———
+  const tocarParte = (i: number, mayus: boolean) => {
     setHistorial((h) => [...h.slice(-30), ed.quitadas]);
-    if (mayus && desdeTexto !== null) {
-      const [a, b] = [Math.min(desdeTexto, i), Math.max(desdeTexto, i)];
+    if (mayus && desdeParte !== null) {
+      const [a, b] = [Math.min(desdeParte, i), Math.max(desdeParte, i)];
       const rango = Array.from({ length: b - a + 1 }, (_, k) => a + k);
       const quitar = !quitadas.has(i);
       cambiar((e) => ({ ...e, quitadas: quitar ? [...e.quitadas, ...rango] : e.quitadas.filter((n) => n < a || n > b) }));
     } else {
       cambiar((e) => ({ ...e, quitadas: quitadas.has(i) ? e.quitadas.filter((n) => n !== i) : [...e.quitadas, i] }));
     }
-    setDesdeTexto(i);
+    setDesdeParte(i);
   };
   const deshacer = () => setHistorial((h) => { const u = h[h.length - 1]; if (u) cambiar((e) => ({ ...e, quitadas: u })); return h.slice(0, -1); });
+  /** Ver una parte en la vista previa (aunque esté quitada, se muestra dónde estaba). */
+  const verParte = (i: number) => { const v = video.current; if (!v) return; ir(aEditado(partes[i].inicio, plan.tramos)); };
+  // Miniatura de cada parte, recortada de la hoja.
+  const cuadros = t.analisis?.cuadros;
+  const urlHoja = cuadros ? `/estudio/video/${t.id}/archivo/${cuadros.archivo}` : "";
+  const miniAncho = cuadros && cuadros.alto > cuadros.ancho ? 64 : 96;
+  const miniatura = (i: number): React.CSSProperties | undefined => {
+    if (!cuadros || i >= cuadros.total) return undefined;
+    const k = miniAncho / cuadros.ancho, hueco = 4;
+    const col = i % cuadros.columnas, fila = Math.floor(i / cuadros.columnas);
+    const W = cuadros.columnas * cuadros.ancho + (cuadros.columnas - 1) * hueco, H = Math.ceil(cuadros.total / cuadros.columnas) * (cuadros.alto + hueco) - hueco;
+    return { backgroundImage: `url(${urlHoja})`, backgroundSize: `${W * k}px ${H * k}px`, backgroundPosition: `-${col * (cuadros.ancho + hueco) * k}px -${fila * (cuadros.alto + hueco) * k}px`, width: miniAncho, height: Math.round(cuadros.alto * k) };
+  };
 
   const fuente = t.original ? `/estudio/video/${t.id}/archivo/${t.original}` : "";
   const r = plan.resumen;
@@ -303,28 +307,18 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
             ) : (
               <div className="absolute inset-0 grid place-items-center p-6 text-center text-[13px] text-white/70">El video no terminó de subir.</div>
             )}
-            {grupo && (
-              <div aria-hidden className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2 text-center leading-[1.15]" style={{ top: `${estilo.y * 100}%`, width: `${(1 - 2 * estilo.margen) * 100}%`, fontSize: `${estilo.tamano * 100}cqh`, fontWeight: pl.peso, fontFamily: "var(--font-geist-sans), sans-serif", letterSpacing: pl.id === "marca" ? "-0.01em" : 0 }}>
-                <span style={pl.caja ? { background: "rgba(0,0,0,.78)", padding: "0.12em 0.35em", borderRadius: "0.12em", WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone", color: "#fff" } : { color: "#fff", WebkitTextStroke: `${pl.id === "marca" ? 0.16 : 0.12}em #000`, paintOrder: "stroke fill", textShadow: "0 0.06em 0.1em rgba(0,0,0,.45)" }}>
-                  {grupo.palabras.map((w, k) => {
-                    const activa = pl.resalta && (te >= w.inicio || k === 0) && (k + 1 >= grupo.palabras.length || te < grupo.palabras[k + 1].inicio);
-                    return <span key={k} style={activa ? { color: ed.subtitulos.acento } : undefined}>{k ? " " : ""}{pl.mayusculas ? w.texto.toLocaleUpperCase("es") : w.texto}</span>;
-                  })}
-                </span>
-              </div>
-            )}
           </div>
           <div className="mt-3 flex items-center gap-3">
-            <button onClick={tocar} disabled={!listo || !t.transcripcion} aria-label={sonando ? "Pausar" : "Reproducir"} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tinta text-white disabled:opacity-40">
+            <button onClick={tocar} disabled={!listo || !t.analisis} aria-label={sonando ? "Pausar" : "Reproducir"} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tinta text-white disabled:opacity-40">
               {sonando ? <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><rect x="2" y="1" width="3.5" height="12" fill="currentColor" /><rect x="8.5" y="1" width="3.5" height="12" fill="currentColor" /></svg> : <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 1l10 6-10 6z" fill="currentColor" /></svg>}
             </button>
-            <input type="range" min={0} max={Math.max(0.1, plan.duracion)} step={0.05} value={Math.min(te, plan.duracion)} onChange={(e) => ir(Number(e.target.value))} disabled={!t.transcripcion} aria-label="Avanzar en el video editado" className="min-w-0 flex-1 accent-[var(--color-tinta)]" />
+            <input type="range" min={0} max={Math.max(0.1, plan.duracion)} step={0.05} value={Math.min(te, plan.duracion)} onChange={(e) => ir(Number(e.target.value))} disabled={!t.analisis} aria-label="Avanzar en el video editado" className="min-w-0 flex-1 accent-[var(--color-tinta)]" />
             <span className="shrink-0 font-mono text-[12px] text-medio">{mmss(te)} / {mmss(plan.duracion)}</span>
           </div>
-          {t.transcripcion && (
+          {t.analisis && (
             <p className="mt-2 text-[13px] text-medio">
               Queda <b className="font-medium text-tinta">{mmss(r.queda)}</b> de {mmss(duracion)}.
-              {r.quitado > 0 ? ` Quitamos ${Math.round(r.quitado)} s: ${[r.por.silencio + r.por.inicio + r.por.final > 0.5 ? `${Math.round(r.por.silencio + r.por.inicio + r.por.final)} s de pausas` : "", r.por.muletilla > 0.05 ? `${(Math.round(r.por.muletilla * 10) / 10).toLocaleString("es")} s de muletillas` : "", r.por.texto > 0.05 ? `${Math.round(r.por.texto)} s de texto que quitaste` : ""].filter(Boolean).join(", ")}.` : " Todavía no se quita nada."}
+              {r.quitado > 0 ? ` Quitamos ${Math.round(r.quitado)} s: ${[r.por.silencio + r.por.inicio + r.por.final > 0.5 ? `${Math.round(r.por.silencio + r.por.inicio + r.por.final)} s de pausas` : "", r.por.parte > 0.05 ? `${Math.round(r.por.parte)} s de partes que quitaste` : ""].filter(Boolean).join(", ")}.` : " Todavía no se quita nada."}
             </p>
           )}
           <p className="mt-1 text-[12px] text-suave">Vista previa rápida: se ve al instante. El video final sale con la misma edición en alta calidad.</p>
@@ -339,31 +333,30 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
           </p>
         )}
 
-        {/* Sin transcripción: qué falta */}
-        {!t.transcripcion && !paso && (
+        {/* Sin analizar: qué falta */}
+        {!t.analisis && !paso && (
           <section className={tarjeta}>
-            <h2 className="text-[16px] font-medium">Transcripción</h2>
-            {!whisper ? (
-              <p className="mt-2 text-[14px] text-medio">Falta la clave de transcripción (OPENAI_API_KEY). Jay la pone en Vercel; después vuelve a esta página y toca «Transcribir».</p>
-            ) : t.estado === "subiendo" ? (
+            <h2 className="text-[16px] font-medium">Escuchar el video</h2>
+            {t.estado === "subiendo" ? (
               <p className="mt-2 text-[14px] text-medio">El video no terminó de subir. Vuelve a la lista y súbelo de nuevo.</p>
             ) : (
-              <p className="mt-2 text-[14px] text-medio">Para cortar y poner subtítulos primero hay que escuchar el video.</p>
+              <p className="mt-2 text-[14px] text-medio">Para cortar primero hay que escuchar dónde se habla y dónde hay silencio.</p>
             )}
-            <button disabled={!listo || !whisper || t.estado === "subiendo"} onClick={() => void correr({ paso: "transcribir" })} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white disabled:opacity-40">
-              {t.error ? "Intentar de nuevo" : "Transcribir"}
+            <button disabled={!listo || t.estado === "subiendo"} onClick={() => void correr({ paso: "analizar" })} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white disabled:opacity-40">
+              {t.error ? "Intentar de nuevo" : "Escuchar el video"}
             </button>
           </section>
         )}
 
-        {t.transcripcion && (
+        {t.analisis && (
           <>
             <section className={tarjeta} aria-labelledby="titulo-atlas">
               <div className="flex items-center gap-2">
                 <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta font-serif text-[17px] text-white">A</span>
                 <h2 id="titulo-atlas" className="text-[16px] font-medium">Pídeselo a Atlas</h2>
               </div>
-              <p className="mt-1 text-[13px] text-medio">Escribe lo que quieres como se lo dirías a alguien del equipo. Atlas cambia la edición y tú lo ves al instante en la vista previa.</p>
+              <p className="mt-1 text-[13px] text-medio">Escribe lo que quieres como se lo dirías a alguien del equipo. Atlas mira las partes del video, cambia la edición y tú lo ves al instante en la vista previa.</p>
+              {!atlas && <p className="mt-2 rounded-xl bg-[#fff1ea] px-3 py-2 text-[13px] text-[#a33a0b]">Falta la clave de Anthropic (ANTHROPIC_API_KEY): Atlas no puede leer pedidos. Puedes editar a mano.</p>}
               {charla.length > 0 && (
                 <ol ref={listaChat} aria-label="Conversación con Atlas" aria-live="polite" className="mt-3 grid max-h-[38vh] gap-2 overflow-y-auto rounded-xl bg-carta p-3">
                   {charla.map((m, i) => (
@@ -394,7 +387,7 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
                   rows={2}
                   maxLength={2000}
                   disabled={!listo || !!paso}
-                  placeholder="Por ejemplo: corta los silencios, subtítulos estilo marca más grandes y expórtalo vertical"
+                  placeholder="Por ejemplo: quita el arranque donde se acomoda, más dinámico y expórtalo vertical"
                   className="w-full resize-y rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)] disabled:opacity-60"
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -402,43 +395,51 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
                   {deshacerAtlas && <button type="button" onClick={deshacerLoDeAtlas} disabled={!!paso} className="inline-flex min-h-11 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Deshacer lo de Atlas</button>}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Ideas rápidas">
-                  {["Más dinámico", "Subtítulos más grandes", "Quita la parte del inicio", "Sin subtítulos", "Expórtalo en los tres formatos"].map((x) => (
+                  {["Más dinámico", "Quita la parte del inicio", "Quita las partes donde no se ve la cara", "Limpia el ruido", "Expórtalo en los tres formatos"].map((x) => (
                     <button key={x} type="button" disabled={!listo || !!paso} onClick={() => setPedido(x)} className="inline-flex min-h-9 items-center rounded-full bg-hueso px-3 text-[12px] text-medio hover:text-tinta disabled:opacity-40">{x}</button>
                   ))}
                 </div>
               </form>
             </section>
 
-            <section className={tarjeta} aria-labelledby="titulo-texto">
+            <section className={tarjeta} aria-labelledby="titulo-partes">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 id="titulo-texto" className="text-[16px] font-medium">Texto del video</h2>
+                <h2 id="titulo-partes" className="text-[16px] font-medium">Partes del video · {partes.length}</h2>
                 <span className="text-[12px] text-suave" aria-live="polite">{guardado === "guardando" ? "Guardando…" : guardado === "error" ? "No se guardó: revisa la conexión" : "Guardado"}</span>
               </div>
-              <p className="mt-1 text-[13px] text-medio">Toca una palabra para quitarla del video; tócala otra vez para devolverla. Con Mayús quitas desde la última que tocaste hasta esta.</p>
-              <p className="mt-3 max-h-[46vh] overflow-y-auto rounded-xl bg-carta p-3 text-[16px] leading-[1.9]">
-                {t.transcripcion.palabras.map((p, i) => {
-                  const m = motivoPalabra(i, p, ed, quitadas);
+              <p className="mt-1 text-[13px] text-medio">Cada parte es un tramo donde se habla o suena algo. Toca una para quitarla del video; tócala otra vez para devolverla. Con Mayús quitas desde la última que tocaste hasta esta.</p>
+              <ul className="mt-3 flex max-h-[46vh] flex-wrap gap-2 overflow-y-auto rounded-xl bg-carta p-2">
+                {partes.map((p, i) => {
+                  const fuera = quitadas.has(i);
+                  const mini = miniatura(i);
                   return (
-                    <button
-                      key={i}
-                      disabled={!listo}
-                      onClick={(e) => tocarPalabra(i, e.shiftKey)}
-                      title={m === "muletilla" ? "Muletilla: se quita sola" : m ? "Quitada: toca para devolverla" : `${mmss(p.inicio)} · toca para quitarla`}
-                      className={`mr-[0.28em] rounded px-[2px] transition ${m === "texto" ? "text-[#c2410c] line-through decoration-2" : m === "muletilla" ? "text-suave line-through" : "hover:bg-hueso"} ${i === palabraViva ? "bg-[#fff3bf]" : ""}`}
-                    >
-                      {p.texto}
-                    </button>
+                    <li key={i} className="flex flex-col items-center gap-1">
+                      <button
+                        disabled={!listo}
+                        onClick={(e) => tocarParte(i, e.shiftKey)}
+                        aria-pressed={fuera}
+                        aria-label={`Parte ${i + 1}, ${mmss(p.inicio)}, dura ${Math.max(1, Math.round(p.fin - p.inicio))} s${fuera ? ", quitada: toca para devolverla" : ": toca para quitarla"}`}
+                        className={`relative overflow-hidden rounded-lg bg-noche transition ${i === parteViva && !fuera ? "outline outline-2 outline-offset-2 outline-[#ffd43b]" : ""} ${fuera ? "opacity-35 grayscale" : "hover:brightness-110"}`}
+                        style={mini ?? { width: miniAncho, height: miniAncho > 64 ? 54 : 114 }}
+                      >
+                        {!mini && <span className="text-[13px] text-white">{i + 1}</span>}
+                        {fuera && <span aria-hidden className="absolute inset-0 grid place-items-center bg-[rgba(194,65,12,.35)] text-[22px] text-white">✕</span>}
+                      </button>
+                      <button type="button" disabled={!listo || !t.original} onClick={() => verParte(i)} className="min-h-8 rounded-full px-2 font-mono text-[11px] text-medio hover:bg-hueso hover:text-tinta" aria-label={`Ver la parte ${i + 1}`}>
+                        ▶ {(Math.round((p.fin - p.inicio) * 10) / 10).toLocaleString("es")} s
+                      </button>
+                    </li>
                   );
                 })}
-              </p>
+              </ul>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button disabled={!historial.length} onClick={deshacer} className="inline-flex min-h-10 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Deshacer</button>
-                <button disabled={!ed.quitadas.length} onClick={() => { setHistorial((h) => [...h, ed.quitadas]); cambiar((e) => ({ ...e, quitadas: [] })); }} className="inline-flex min-h-10 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Devolver todo el texto</button>
+                <button disabled={!ed.quitadas.length} onClick={() => { setHistorial((h) => [...h, ed.quitadas]); cambiar((e) => ({ ...e, quitadas: [] })); }} className="inline-flex min-h-10 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Devolver todas las partes</button>
               </div>
             </section>
 
             <section className={tarjeta} aria-labelledby="titulo-cortes">
-              <h2 id="titulo-cortes" className="text-[16px] font-medium">Cortes</h2>
+              <h2 id="titulo-cortes" className="text-[16px] font-medium">Pausas</h2>
               <label className="mt-3 flex min-h-11 items-center gap-3 text-[14px]">
                 <input type="checkbox" checked={ed.silencios} onChange={(e) => cambiar((x) => ({ ...x, silencios: e.target.checked }))} className="h-5 w-5 accent-[var(--color-tinta)]" />
                 Quitar pausas largas
@@ -448,64 +449,6 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
                   Pausas de más de <b className="font-medium text-tinta">{ed.pausaMax.toLocaleString("es", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s</b> {ed.pausaMax <= 0.4 ? "(ritmo muy rápido)" : ed.pausaMax >= 1.2 ? "(ritmo pausado)" : "(ritmo de redes)"}
                   <input type="range" min={0.3} max={2} step={0.1} value={ed.pausaMax} onChange={(e) => cambiar((x) => ({ ...x, pausaMax: Number(e.target.value) }))} className="mt-1 block w-full max-w-xs accent-[var(--color-tinta)]" />
                 </label>
-              )}
-              <label className="mt-2 flex min-h-11 items-center gap-3 text-[14px]">
-                <input type="checkbox" checked={ed.muletillas} onChange={(e) => cambiar((x) => ({ ...x, muletillas: e.target.checked }))} className="h-5 w-5 accent-[var(--color-tinta)]" />
-                Quitar muletillas («eh», «mmm»…)
-              </label>
-            </section>
-
-            <section className={tarjeta} aria-labelledby="titulo-subs">
-              <div className="flex items-center justify-between gap-3">
-                <h2 id="titulo-subs" className="text-[16px] font-medium">Subtítulos</h2>
-                <label className="flex min-h-11 items-center gap-2 text-[14px]">
-                  <input type="checkbox" checked={ed.subtitulos.activos} onChange={(e) => cambiar((x) => ({ ...x, subtitulos: { ...x.subtitulos, activos: e.target.checked } }))} className="h-5 w-5 accent-[var(--color-tinta)]" />
-                  Poner subtítulos
-                </label>
-              </div>
-              {ed.subtitulos.activos && (
-                <>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    {PLANTILLAS_SUB.map((p) => (
-                      <button key={p.id} onClick={() => cambiar((x) => ({ ...x, subtitulos: { ...x.subtitulos, plantilla: p.id } }))} aria-pressed={ed.subtitulos.plantilla === p.id} className={`min-h-24 rounded-2xl p-3 text-left transition ${ed.subtitulos.plantilla === p.id ? "bg-tinta text-white" : "bg-hueso hover:bg-[#e4e1da]"}`}>
-                        <span className="block text-[15px]" style={{ fontWeight: p.peso, textTransform: p.mayusculas ? "uppercase" : undefined }}>{p.nombre}</span>
-                        <span className={`mt-1 block text-[12px] ${ed.subtitulos.plantilla === p.id ? "text-white/75" : "text-medio"}`}>{p.uso}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {pl.resalta && (
-                    <div className="mt-4">
-                      <p className="text-[13px] text-medio">Color de la palabra que se dice</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {ACENTOS.map((c) => (
-                          <button key={c} onClick={() => cambiar((x) => ({ ...x, subtitulos: { ...x.subtitulos, acento: c } }))} aria-label={`Color ${c}`} aria-pressed={ed.subtitulos.acento === c} className={`h-10 w-10 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,.15)] ${ed.subtitulos.acento === c ? "outline outline-2 outline-offset-2 outline-tinta" : ""}`} style={{ background: c }} />
-                        ))}
-                        <label className="ml-1 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full bg-hueso px-3 text-[13px]">
-                          Otro
-                          <input type="color" value={ed.subtitulos.acento} onChange={(e) => cambiar((x) => ({ ...x, subtitulos: { ...x.subtitulos, acento: e.target.value } }))} className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0" />
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
-                    <div>
-                      <p className="text-[13px] text-medio">Tamaño</p>
-                      <div className="mt-2 flex gap-2">
-                        {([["Chico", 0.8], ["Normal", 1], ["Grande", 1.25]] as const).map(([n, v]) => (
-                          <button key={n} onClick={() => cambiar((x) => ({ ...x, subtitulos: { ...x.subtitulos, tamano: v } }))} aria-pressed={ed.subtitulos.tamano === v} className={chip(ed.subtitulos.tamano === v)}>{n}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[13px] text-medio">Lugar</p>
-                      <div className="mt-2 flex gap-2">
-                        {([["Arriba", "arriba"], ["Centro", "centro"], ["Abajo", "abajo"]] as const).map(([n, v]) => (
-                          <button key={v} onClick={() => cambiar((x) => ({ ...x, subtitulos: { ...x.subtitulos, posicion: v } }))} aria-pressed={ed.subtitulos.posicion === v} className={chip(ed.subtitulos.posicion === v)}>{n}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
               )}
             </section>
 

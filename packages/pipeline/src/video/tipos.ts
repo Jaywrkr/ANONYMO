@@ -1,58 +1,52 @@
-// Departamento de video (sistema/62): lo que se guarda de cada video.
+// Departamento de video (sistema/62, sin transcripción desde sistema/64): lo que se guarda de cada video.
 // Un video no es un proyecto de la agencia: vive aparte (`_videos/<id>/`) para no bajar megas en cada página.
-
-/** Una palabra con su tiempo en el video original (segundos). */
-export interface Palabra { texto: string; inicio: number; fin: number }
-
-export interface Transcripcion {
-  idioma?: string;
-  texto: string;
-  palabras: Palabra[];
-  /** Quién la hizo (modelo), para saber de dónde salió. */
-  modelo?: string;
-}
 
 /** Un tramo de tiempo del original, en segundos. */
 export interface TramoVideo { inicio: number; fin: number }
 
+/**
+ * Lo que sale de escuchar el video (sistema/64): dónde hay sonido. Cada «parte» es un tramo con voz o sonido
+ * entre dos silencios. No se transcribe nada: se mide el audio con FFmpeg.
+ */
+export interface Analisis {
+  partes: TramoVideo[];
+  /** Volumen por debajo del cual se consideró silencio (dB). */
+  umbralDb: number;
+  /** Hoja con una miniatura numerada por parte (la ven Luna y Atlas). */
+  cuadros?: { archivo: string; columnas: number; ancho: number; alto: number; total: number };
+}
+
 /** Por qué se quitó un tramo: lo muestra la interfaz. */
-export type MotivoCorte = "silencio" | "muletilla" | "texto" | "inicio" | "final";
+export type MotivoCorte = "silencio" | "parte" | "inicio" | "final";
 export interface Corte extends TramoVideo { motivo: MotivoCorte }
 
 export type FormatoVideo = "9:16" | "1:1" | "16:9";
 export const FORMATOS_VIDEO: FormatoVideo[] = ["9:16", "1:1", "16:9"];
 
-export type IdPlantilla = "marca" | "limpio" | "caja";
-
 /**
- * El JSON de edición: lo que el editor (y luego Atlas) cambia. El video original nunca se toca:
- * los cortes y los subtítulos se calculan a partir de esto y de la transcripción.
+ * El JSON de edición: lo que el editor (y Atlas) cambia. El video original nunca se toca:
+ * los cortes se calculan a partir de esto y del análisis del audio.
  */
 export interface Edicion {
   /** Quitar pausas más largas que `pausaMax` segundos. */
   silencios: boolean;
   pausaMax: number;
-  /** Quitar «eh», «mmm», «este»… */
-  muletillas: boolean;
-  /** Índices de palabras que se quitaron a mano (editar el video editando el texto). */
+  /** Índices de partes que se quitaron (tocándolas o pidiéndoselo a Atlas). */
   quitadas: number[];
-  subtitulos: { activos: boolean; plantilla: IdPlantilla; acento: string; tamano: number; posicion: "abajo" | "centro" | "arriba" };
   audio: { normalizar: boolean; limpiarRuido: boolean };
 }
 
 export const EDICION_INICIAL: Edicion = {
   silencios: true,
   pausaMax: 0.6,
-  muletillas: true,
   quitadas: [],
-  subtitulos: { activos: true, plantilla: "marca", acento: "#ffd43b", tamano: 1, posicion: "centro" },
   audio: { normalizar: true, limpiarRuido: false },
 };
 
-export type EstadoVideo = "subiendo" | "subido" | "transcrito" | "error";
+export type EstadoVideo = "subiendo" | "subido" | "analizado" | "error";
 
 /** Un paso pesado en curso: lo ve la interfaz para decir qué pasa y bloquear otro igual. */
-export interface Ocupado { paso: "transcribir" | "render"; formato?: FormatoVideo; desde: string; avance?: number; texto?: string }
+export interface Ocupado { paso: "analizar" | "render"; formato?: FormatoVideo; desde: string; avance?: number; texto?: string }
 
 export interface ResultadoVideo { formato: FormatoVideo; archivo: string; listo: string; segundos: number; bytes: number; huella: string }
 
@@ -74,12 +68,12 @@ export interface TrabajoVideo {
   duracion?: number;
   ancho?: number;
   alto?: number;
-  transcripcion?: Transcripcion;
+  analisis?: Analisis;
   edicion: Edicion;
   ocupado?: Ocupado;
   resultados: ResultadoVideo[];
   error?: string;
-  /** Lo que Luna pidió al subir: Atlas lo aplica apenas termina la transcripción (sistema/63). */
+  /** Lo que Luna pidió al subir: Atlas lo aplica apenas termina el análisis (sistema/63). */
   pedido?: string;
   /** Ya se aplicó el pedido inicial (para no aplicarlo dos veces). */
   pedidoAplicado?: boolean;

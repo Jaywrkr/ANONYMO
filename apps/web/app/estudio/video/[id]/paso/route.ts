@@ -1,6 +1,6 @@
 // Los pasos del departamento de video (sistema/62). La respuesta llega cuando el paso termina;
 // mientras tanto la página consulta /estado para mostrar el avance.
-import { cambiarVideo, FORMATOS_VIDEO, renderVideo, transcribirVideo, type FormatoVideo } from "@anonymo/pipeline";
+import { analizarVideo, cambiarVideo, FORMATOS_VIDEO, renderVideo, type FormatoVideo } from "@anonymo/pipeline";
 import { mal, permiso } from "@/lib/video";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +18,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       await cambiarVideo(id, (t) => { if (t.estado === "subiendo" || t.estado === "error") { t.estado = "subido"; t.error = undefined; } });
       return Response.json({ ok: true });
     }
-    if (c.paso === "transcribir") {
-      const t = await transcribirVideo(id);
-      return Response.json({ ok: true, palabras: t.transcripcion?.palabras.length ?? 0 });
+    if (c.paso === "analizar") {
+      const t = await analizarVideo(id);
+      return Response.json({ ok: true, partes: t.analisis?.partes.length ?? 0 });
     }
     if (c.paso === "render") {
       if (!FORMATOS_VIDEO.includes(c.formato as FormatoVideo)) return mal("Formato no válido.");

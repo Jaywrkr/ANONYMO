@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const ext = validarVideo(archivo, Number(c.bytes));
     const id = nuevoIdVideo(nombre);
     const t = trabajoNuevo(id, nombre, p.yo!, ext, Number(c.bytes), typeof c.cliente === "string" ? c.cliente.trim() : undefined);
-    // Lo que Luna pidió al subir: Atlas lo aplica cuando termine la transcripción (sistema/63).
+    // Lo que Luna pidió al subir: Atlas lo aplica cuando termine de escuchar el video (sistema/63).
     if (typeof c.pedido === "string" && c.pedido.trim()) t.pedido = c.pedido.trim().slice(0, 2000);
     await guardarVideo(t);
     const url = await urlSubida(id, t.original!);

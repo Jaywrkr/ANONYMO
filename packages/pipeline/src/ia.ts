@@ -86,7 +86,8 @@ export function json<T>(texto: string | undefined): T | undefined {
  */
 export async function pedirEstructura<T>(
   sistema: string,
-  usuario: string,
+  /** Texto, o bloques de contenido de la API (por ejemplo, una imagen y un texto: sistema/64). */
+  usuario: string | unknown[],
   h: { nombre: string; descripcion: string; esquema: Record<string, unknown> },
   maxTokens = 4000,
 ): Promise<T | undefined> {

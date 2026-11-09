@@ -1,13 +1,13 @@
 // Departamento de video (sistema/62): Luna sube un video y recibe el resultado. Aquí está la lista y la subida.
 import Link from "next/link";
-import { listarVideos, MAX_VIDEO, whisperConfigurado, type TrabajoVideo } from "@anonymo/pipeline";
+import { listarVideos, MAX_VIDEO, type TrabajoVideo } from "@anonymo/pipeline";
 import { exigirEstudio, serif } from "@/lib/estudio";
 import { SubirVideo } from "@/components/estudio/video/SubirVideo";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Video — Estudio", robots: { index: false } };
 
-const ESTADO: Record<TrabajoVideo["estado"], string> = { subiendo: "Sin terminar de subir", subido: "Por transcribir", transcrito: "Listo para editar", error: "Con un problema" };
+const ESTADO: Record<TrabajoVideo["estado"], string> = { subiendo: "Sin terminar de subir", subido: "Por escuchar", analizado: "Listo para editar", error: "Con un problema" };
 const fecha = (iso: string) => new Date(iso).toLocaleString("es-EC", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guayaquil" });
 
 export default async function Pagina() {
@@ -18,10 +18,7 @@ export default async function Pagina() {
   return (
     <div className="px-5 py-7 md:px-10">
       <h1 className={`${serif} text-[40px] leading-none`}>Video.</h1>
-      <p className="mt-3 max-w-2xl text-[15px] text-medio">Sube un video de alguien hablando. Lo transcribimos, quitamos pausas y muletillas, ponemos subtítulos con la plantilla de la casa y lo entregamos en 9:16, 1:1 o 16:9.</p>
-      {!whisperConfigurado() && (
-        <p className="mt-4 max-w-2xl rounded-xl bg-[#fff1ea] px-4 py-3 text-[14px] text-[#a33a0b]">Falta la clave de transcripción (OPENAI_API_KEY). Puedes subir videos, pero no se van a transcribir hasta que Jay la ponga en Vercel.</p>
-      )}
+      <p className="mt-3 max-w-2xl text-[15px] text-medio">Sube un video de alguien hablando o haciendo algo. Lo escuchamos para quitar los silencios, lo dividimos en partes que puedes quitar con un toque, Atlas hace lo que le pidas y lo entregamos en 9:16, 1:1 o 16:9.</p>
       <SubirVideo maxMb={Math.round(MAX_VIDEO / 1024 / 1024)} />
       <h2 className="mt-10 text-[13px] text-suave">Videos</h2>
       {falla && <p role="alert" className="mt-2 text-[14px] text-[#a33a0b]">No se pudo leer la lista: {falla}</p>}

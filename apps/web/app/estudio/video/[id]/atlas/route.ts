@@ -1,6 +1,6 @@
 // Atlas en el video (sistema/63): lee el pedido de Luna, lo convierte en cambios de edición y los guarda.
 // Devuelve la edición de antes para poder deshacer, y los formatos que pidió armar.
-import { cambiarVideo, interpretarPedidoVideo, leerVideo, type MensajeVideo } from "@anonymo/pipeline";
+import { cambiarVideo, interpretarPedidoVideo, leerArchivoVideo, leerVideo, type MensajeVideo } from "@anonymo/pipeline";
 import { mal, permiso } from "@/lib/video";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const ahora = () => new Date().toISOString();
   const deLuna: MensajeVideo = { quien: p.yo!, texto, cuando: ahora() };
   try {
-    const r = await interpretarPedidoVideo(texto, t);
+    // Atlas ve la hoja con una miniatura por parte (sistema/64): así entiende el video sin transcribirlo.
+    const hoja = t.analisis?.cuadros ? await leerArchivoVideo(id, t.analisis.cuadros.archivo).catch(() => undefined) : undefined;
+    const r = await interpretarPedidoVideo(texto, t, hoja);
     const deAtlas: MensajeVideo = { quien: "atlas", texto: r.respuesta, cuando: ahora(), cambios: r.cambios, noSePuede: r.noSePuede };
     await cambiarVideo(id, (x) => {
       x.edicion = r.edicion;

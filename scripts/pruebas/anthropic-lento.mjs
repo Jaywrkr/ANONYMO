@@ -19,17 +19,20 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
       return;
     }
-    // Atlas del departamento de video (sistema/63): lee el pedido con reglas simples y responde con la herramienta.
+    // Atlas del departamento de video (sistema/63–64): lee el pedido con reglas simples y responde con la herramienta.
+    // Recibe la hoja de miniaturas como imagen y las partes numeradas en el texto.
     if (cuerpo.system?.startsWith("Atlas, departamento de video")) {
-      const texto = String(cuerpo.messages?.[0]?.content ?? "");
+      const bloques = Array.isArray(cuerpo.messages?.[0]?.content) ? cuerpo.messages[0].content : [{ type: "text", text: String(cuerpo.messages?.[0]?.content ?? "") }];
+      const conImagen = bloques.some((b) => b.type === "image" && b.source?.media_type === "image/jpeg" && b.source.data?.length > 100);
+      const texto = bloques.find((b) => b.type === "text")?.text ?? "";
       const pedido = (texto.split("## Pedido\n")[1] ?? "").toLowerCase();
-      const ed = JSON.parse(texto.match(/## Edición actual\n(\{[^\n]+\})/)?.[1] ?? "{}");
       const acciones = [], hecho = [], noSePuede = [];
-      if (/silencio|dinámico|pausa/.test(pedido)) { acciones.push({ tipo: "silencios", activo: true, pausaMax: /dinámico/.test(pedido) ? 0.4 : 0.6 }); hecho.push("corté los silencios"); }
-      if (/marca/.test(pedido)) { acciones.push({ tipo: "subtitulos", activo: true, plantilla: "marca" }); hecho.push("puse los subtítulos de marca"); }
-      if (/más grande/.test(pedido)) { acciones.push({ tipo: "subtitulos", tamano: Math.round((ed.subtitulos?.tamano ?? 1) * 125) / 100 }); hecho.push("agrandé el texto"); }
-      if (/sin subtítulos/.test(pedido)) { acciones.push({ tipo: "subtitulos", activo: false }); hecho.push("quité los subtítulos"); }
-      if (/inicio/.test(pedido)) { acciones.push({ tipo: "quitar", unidad: "palabra", desde: 0, hasta: 1 }); hecho.push("quité el saludo del inicio"); }
+      if (/silencio|pausa/.test(pedido)) { acciones.push({ tipo: "silencios", activo: true, pausaMax: 0.6 }); hecho.push("corté los silencios"); }
+      if (/dinámico/.test(pedido)) { acciones.push({ tipo: "silencios", activo: true, pausaMax: 0.3 }); hecho.push("dejé el ritmo más rápido"); }
+      if (/inicio|arranque/.test(pedido)) { acciones.push({ tipo: "quitar", unidad: "parte", desde: 1, hasta: 1 }); hecho.push(conImagen ? "quité la parte 1, donde todavía no empieza" : "quité la parte 1"); }
+      if (/devuelve/.test(pedido)) { acciones.push({ tipo: "devolver", unidad: "parte", desde: 1, hasta: 99 }); hecho.push("devolví todas las partes"); }
+      if (/ruido/.test(pedido)) { acciones.push({ tipo: "audio", limpiarRuido: true }); hecho.push("limpié el ruido"); }
+      if (/subtítulo/.test(pedido)) noSePuede.push("Subtítulos: sin transcripción no hay texto que poner.");
       if (/zoom/.test(pedido)) noSePuede.push("Zoom en la frase clave: llega con la parte de motion.");
       if (/logo/.test(pedido)) noSePuede.push("Logo al final: llega con los kits de marca.");
       const formatos = [...(/vertical|9:16/.test(pedido) ? ["9:16"] : []), ...(/tres formatos/.test(pedido) ? ["9:16", "1:1", "16:9"] : [])];

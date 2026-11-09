@@ -1,4 +1,4 @@
-// Guarda la edición (sistema/62): cortes a mano, silencios, muletillas, subtítulos y audio.
+// Guarda la edición (sistema/62): partes quitadas, pausas y audio.
 import { cambiarVideo, edicionSegura } from "@anonymo/pipeline";
 import { mal, permiso } from "@/lib/video";
 

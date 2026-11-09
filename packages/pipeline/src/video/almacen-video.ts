@@ -1,5 +1,5 @@
 // Dónde viven los videos (sistema/62). En tu máquina: proyectos/_videos/<id>/. En línea: la misma ruta en la nube privada.
-// Cada video tiene su trabajo.json (estado, transcripción, edición) y sus archivos (original y resultados).
+// Cada video tiene su trabajo.json (estado, partes, edición, charla con Atlas) y sus archivos (original y resultados).
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
@@ -95,6 +95,13 @@ export async function listarVideos(): Promise<TrabajoVideo[]> {
 export function rutaLocal(id: string, archivo: string) {
   rel(id, archivo);
   return join(dirVideo(id), archivo);
+}
+
+/** Los bytes de un archivo del video (por ejemplo, la hoja de miniaturas para Atlas). */
+export async function leerArchivoVideo(id: string, archivo: string): Promise<Uint8Array | undefined> {
+  if (nubeActiva()) return leerSuelto(rel(id, archivo));
+  const r = rutaLocal(id, archivo);
+  return existsSync(r) ? new Uint8Array(readFileSync(r)) : undefined;
 }
 
 /** Dónde subir el original desde el navegador. En tu máquina: undefined (sube por el estudio). */
