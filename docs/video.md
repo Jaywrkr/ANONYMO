@@ -34,8 +34,26 @@ Para que Luna edite videos filmados (personas hablando o haciendo algo) sin lín
 - `packages/pipeline/test/video.test.ts`: cortes, muletillas, tiempos, subtítulos, Whisper, filtros y un render real con FFmpeg.
 - `scripts/pruebas/e2e-video.mjs` (con `nube.sh`, que ahora levanta también un Whisper falso en 45889): sube, transcribe, quita una palabra, cambia plantilla, arma el 9:16, lo descarga (1080×1920 y más corto que el original), pide volver a armar al cambiar, lista, celular y acceso sin sesión. Capturas en `/tmp/anonymo-pruebas/capturas-video`.
 
+## Fase 2 (0.64): Atlas
+
+**Qué hace**
+- Al subir, Luna puede escribir **qué quiere** («corta los silencios, pon subtítulos estilo marca, zoom en la frase clave y el logo al final»). Cuando termina la transcripción, Atlas lo aplica solo y, si pidió el video final, lo arma.
+- En el editor, **«Pídeselo a Atlas»**: cambios con una frase («el texto más grande», «quita la parte del inicio», «más dinámico», «expórtalo en los tres formatos»). Enter manda; Mayús+Enter es salto de línea. Hay ideas rápidas para tocar.
+- Atlas responde corto, lista lo que cambió («✓ Subtítulos: plantilla Marca, letra más grande») y dice con claridad lo que **todavía no** se puede (zoom, logo, música, transiciones), sin inventar.
+- **«Deshacer lo de Atlas»** vuelve a la edición de antes del último pedido. La conversación queda guardada con el video.
+
+**Cómo funciona**
+- `packages/pipeline/src/video/atlas-video.ts`. La IA (API de Anthropic, con la clave y el modelo que ya usa el estudio: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL_RAPIDO` o `ANTHROPIC_MODEL`) recibe el pedido, la edición actual y el texto numerado con tiempos, y responde con la herramienta `editar_video`: una lista de **acciones** (`silencios`, `muletillas`, `quitar`/`devolver` por palabras o segundos, `subtitulos`, `audio`, `armar`) y lo que no se puede.
+- Las acciones se aplican **sin IA** (`aplicarAcciones`) y pasan por `edicionSegura`: lo que no encaja se descarta. Lo que se ve en la vista previa es exactamente lo pedido, y se puede deshacer.
+- Ruta `apps/web/app/estudio/video/[id]/atlas`. El pedido inicial se guarda en `trabajo.json` (`pedido`, `pedidoAplicado`) y la charla en `conversacion` (últimos 60 mensajes).
+- `pedirEstructura` (`ia.ts`) ya no fuerza la herramienta en Sonnet 5.5, Opus 5.5 ni Fable/Mythos 5.1–5.2: esos modelos lo rechazan con 400 y antes se gastaba un pedido de más en cada llamada (afecta a todo el estudio, para bien).
+
+**Sin clave de Anthropic** Atlas avisa y se puede seguir editando a mano.
+
+**Pruebas**: 4 nuevas en `test/video.test.ts` (acciones, descarte, mensaje, llamada a la API) y `scripts/pruebas/e2e-video-atlas.mjs`: sube con el pedido del ejemplo, Atlas lo aplica y arma el 9:16 solo, dice que el zoom y el logo todavía no, cambio por chat, deshacer, pedido que no entiende, conversación guardada, celular. La IA falsa (`anthropic-lento.mjs`) ahora responde como Atlas de video y rechaza la herramienta forzada en Sonnet 5.5, como la API real.
+
 ## Fases que siguen (cada una en su rama)
 
-2. **Atlas**: Luna escribe el pedido en el chat («corta los silencios, subtítulos estilo marca, zoom en la frase clave y el logo al final») y Atlas lo convierte en el JSON de edición. Cambios con una frase («el texto más grande», «quita la parte del inicio»). La base ya está: todo lo que hace el editor es un cambio a `Edicion` (validado por `edicionSegura`).
+2. **Atlas**: hecha en 0.64 (ver abajo).
 3. **Motion y marca**: zooms, textos animados, transiciones, logo al cierre, música con ducking bajo la voz; kit de marca por cliente (tipografías, colores, logo, estilo de subtítulos). Remotion para el motion.
 4. **Criterio de calidad**: investigación de piezas premiadas (Cannes Lions: Social & Creator, Film, Craft) y cuentas de marcas top convertida en reglas (gancho en los primeros segundos, ritmo de cortes, texto en pantalla, cierre) y la revisión del director creativo antes de mostrarle el video a Luna.

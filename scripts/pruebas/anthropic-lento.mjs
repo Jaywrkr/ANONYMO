@@ -13,6 +13,32 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'To turn thinking off on this model, send "thinking": {"type": "between_tools"}.' } }));
       return;
     }
+    // Como la API real: Sonnet 5.5 no acepta forzar una herramienta (sistema/63).
+    if (/sonnet-5-5/.test(cuerpo.model ?? "") && (cuerpo.tool_choice?.type === "tool" || cuerpo.tool_choice?.type === "any")) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
+      return;
+    }
+    // Atlas del departamento de video (sistema/63): lee el pedido con reglas simples y responde con la herramienta.
+    if (cuerpo.system?.startsWith("Atlas, departamento de video")) {
+      const texto = String(cuerpo.messages?.[0]?.content ?? "");
+      const pedido = (texto.split("## Pedido\n")[1] ?? "").toLowerCase();
+      const ed = JSON.parse(texto.match(/## Edición actual\n(\{[^\n]+\})/)?.[1] ?? "{}");
+      const acciones = [], hecho = [], noSePuede = [];
+      if (/silencio|dinámico|pausa/.test(pedido)) { acciones.push({ tipo: "silencios", activo: true, pausaMax: /dinámico/.test(pedido) ? 0.4 : 0.6 }); hecho.push("corté los silencios"); }
+      if (/marca/.test(pedido)) { acciones.push({ tipo: "subtitulos", activo: true, plantilla: "marca" }); hecho.push("puse los subtítulos de marca"); }
+      if (/más grande/.test(pedido)) { acciones.push({ tipo: "subtitulos", tamano: Math.round((ed.subtitulos?.tamano ?? 1) * 125) / 100 }); hecho.push("agrandé el texto"); }
+      if (/sin subtítulos/.test(pedido)) { acciones.push({ tipo: "subtitulos", activo: false }); hecho.push("quité los subtítulos"); }
+      if (/inicio/.test(pedido)) { acciones.push({ tipo: "quitar", unidad: "palabra", desde: 0, hasta: 1 }); hecho.push("quité el saludo del inicio"); }
+      if (/zoom/.test(pedido)) noSePuede.push("Zoom en la frase clave: llega con la parte de motion.");
+      if (/logo/.test(pedido)) noSePuede.push("Logo al final: llega con los kits de marca.");
+      const formatos = [...(/vertical|9:16/.test(pedido) ? ["9:16"] : []), ...(/tres formatos/.test(pedido) ? ["9:16", "1:1", "16:9"] : [])];
+      if (formatos.length) { acciones.push({ tipo: "armar", formatos: [...new Set(formatos)] }); hecho.push("armo el video final"); }
+      const respuesta = hecho.length ? `Listo: ${hecho.join(", ")}.` : "No entendí qué cambiar. ¿Me lo dices de otra forma?";
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_1", name: "editar_video", input: { respuesta, acciones, noSePuede } }], usage: { input_tokens: 900, output_tokens: 120 } }));
+      return;
+    }
     if(cuerpo.system?.startsWith('Comprobación de conexión ANONYMO.')){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({content:[{type:'text',text:'LISTO'}],usage:{input_tokens:10,output_tokens:2}}));return;}
     // Comparación a ciegas contra el banco (sistema/55): la pieza B siempre gana, con arreglos para las dos.
     if (cuerpo.system?.startsWith('Revisor de calidad.') && JSON.stringify(cuerpo.messages).includes('# Comparación a ciegas')) {

@@ -131,3 +131,74 @@ test("arma de verdad un video vertical con cortes y subtítulos", { skip: !(awai
 async function hayFfmpeg() {
   try { execFileSync(await rutaFfmpeg(), ["-hide_banner", "-version"], { stdio: "ignore" }); return true; } catch { return false; }
 }
+
+// ——— Fase 2: Atlas (sistema/63) ———
+const { aplicarAcciones, interpretarPedidoVideo, leerRespuestaAtlas, mensajeAtlasVideo } = await import("../src/video/atlas-video.ts");
+
+test("Atlas: las acciones cambian la edición sin IA y dicen qué cambió", () => {
+  const base = ed();
+  const r = aplicarAcciones(base, [
+    { tipo: "silencios", activo: true, pausaMax: 0.4 },
+    { tipo: "subtitulos", plantilla: "caja", tamano: base.subtitulos.tamano * 1.25, posicion: "abajo" },
+    { tipo: "quitar", unidad: "palabra", desde: 0, hasta: 1 },
+    { tipo: "quitar", unidad: "segundo", desde: 3.9, hasta: 4.3 },
+    { tipo: "audio", limpiarRuido: true },
+    { tipo: "armar", formatos: ["9:16", "1:1", "4:3" as never] },
+  ], tr);
+  assert.equal(r.edicion.pausaMax, 0.4);
+  assert.equal(r.edicion.subtitulos.plantilla, "caja");
+  assert.equal(r.edicion.subtitulos.tamano, 1.25);
+  assert.deepEqual(r.edicion.quitadas, [0, 1, 3]);
+  assert.equal(r.edicion.audio.limpiarRuido, true);
+  assert.deepEqual(r.armar, ["9:16", "1:1"]);
+  assert.ok(r.cambios.some((c) => /pausas de más de 0,4 s/.test(c)));
+  assert.ok(r.cambios.some((c) => /Subtítulos: plantilla Caja, letra más grande, abajo/.test(c)));
+  assert.ok(r.cambios.some((c) => /Quitar «Hola, eh,» \(2 palabras\)/.test(c)));
+  // La edición de antes no se toca (se puede deshacer).
+  assert.deepEqual(base.quitadas, []);
+});
+
+test("Atlas: lo que no tiene sentido se ignora", () => {
+  const r = aplicarAcciones(ed(), [{ tipo: "quitar", desde: 50, hasta: 90 }, { tipo: "subtitulos", acento: "rojo", tamano: 9 }, { tipo: "nada" as never }, null as never], tr);
+  assert.deepEqual(r.edicion.quitadas, []);
+  assert.equal(r.edicion.subtitulos.acento, EDICION_INICIAL.subtitulos.acento);
+  assert.equal(r.edicion.subtitulos.tamano, 1.6);
+  assert.equal(r.cambios.length, 1);
+  const leida = leerRespuestaAtlas({ respuesta: "", acciones: "x", noSePuede: ["zoom", 3] });
+  assert.equal(leida.respuesta, "Listo.");
+  assert.deepEqual(leida.acciones, []);
+  assert.deepEqual(leida.noSePuede, ["zoom"]);
+});
+
+test("Atlas lee el texto numerado, la edición actual y el pedido", () => {
+  const m = mensajeAtlasVideo("quita el inicio", { nombre: "Reel", duracion: 6, transcripcion: tr, edicion: ed() });
+  assert.match(m, /\[0\]Hola,@1\.0 \[1\]~eh,@1\.5/);
+  assert.match(m, /"pausaMax":0\.6/);
+  assert.match(m, /## Pedido\nquita el inicio/);
+});
+
+test("Atlas pide la herramienta a la API de Anthropic sin forzarla en Sonnet 5.5 y aplica lo que devuelve", async () => {
+  const antes = globalThis.fetch;
+  process.env.ANTHROPIC_API_KEY = "sk-ant-prueba";
+  let cuerpo: Record<string, unknown> = {};
+  let url = "";
+  globalThis.fetch = (async (u: unknown, init: RequestInit) => {
+    url = String(u);
+    cuerpo = JSON.parse(String(init.body));
+    return Response.json({ stop_reason: "tool_use", content: [{ type: "tool_use", name: "editar_video", input: { respuesta: "Puse la plantilla Marca. El logo todavía no se puede.", acciones: [{ tipo: "subtitulos", plantilla: "marca" }, { tipo: "armar", formatos: ["9:16"] }], noSePuede: ["Poner el logo al final"] } }] });
+  }) as typeof fetch;
+  try {
+    const r = await interpretarPedidoVideo("subtítulos estilo marca y el logo al final, y expórtalo vertical", { nombre: "Reel", duracion: 6, transcripcion: tr, edicion: ed({ subtitulos: { ...EDICION_INICIAL.subtitulos, plantilla: "limpio" } }) });
+    assert.match(url, /\/v1\/messages$/);
+    assert.equal(cuerpo.model, "claude-sonnet-5-5");
+    assert.deepEqual(cuerpo.tool_choice, { type: "auto" });
+    assert.match(String(cuerpo.system), /^Atlas, departamento de video/);
+    assert.equal(r.edicion.subtitulos.plantilla, "marca");
+    assert.deepEqual(r.armar, ["9:16"]);
+    assert.deepEqual(r.noSePuede, ["Poner el logo al final"]);
+  } finally {
+    globalThis.fetch = antes;
+    delete process.env.ANTHROPIC_API_KEY;
+  }
+  await assert.rejects(interpretarPedidoVideo("hola", { nombre: "R", duracion: 6, transcripcion: tr, edicion: ed() }), /Falta la clave de Anthropic/);
+});

@@ -56,6 +56,9 @@ export interface Ocupado { paso: "transcribir" | "render"; formato?: FormatoVide
 
 export interface ResultadoVideo { formato: FormatoVideo; archivo: string; listo: string; segundos: number; bytes: number; huella: string }
 
+/** Un mensaje del chat del video con Atlas (sistema/63). */
+export interface MensajeVideo { quien: "luna" | "jay" | "atlas"; texto: string; cuando: string; cambios?: string[]; noSePuede?: string[]; error?: boolean }
+
 export interface TrabajoVideo {
   id: string;
   nombre: string;
@@ -76,4 +79,9 @@ export interface TrabajoVideo {
   ocupado?: Ocupado;
   resultados: ResultadoVideo[];
   error?: string;
+  /** Lo que Luna pidió al subir: Atlas lo aplica apenas termina la transcripción (sistema/63). */
+  pedido?: string;
+  /** Ya se aplicó el pedido inicial (para no aplicarlo dos veces). */
+  pedidoAplicado?: boolean;
+  conversacion?: MensajeVideo[];
 }

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const p = await permiso();
   if (p.error) return p.error;
-  let c: { nombre?: unknown; bytes?: unknown; cliente?: unknown };
+  let c: { nombre?: unknown; bytes?: unknown; cliente?: unknown; pedido?: unknown };
   try { c = await req.json(); } catch { return mal("Pedido no válido."); }
   const archivo = String(c.nombre ?? "").slice(0, 200);
   const nombre = archivo.replace(/\.[^.]+$/, "").trim() || "Video";
@@ -16,6 +16,8 @@ export async function POST(req: Request) {
     const ext = validarVideo(archivo, Number(c.bytes));
     const id = nuevoIdVideo(nombre);
     const t = trabajoNuevo(id, nombre, p.yo!, ext, Number(c.bytes), typeof c.cliente === "string" ? c.cliente.trim() : undefined);
+    // Lo que Luna pidió al subir: Atlas lo aplica cuando termine la transcripción (sistema/63).
+    if (typeof c.pedido === "string" && c.pedido.trim()) t.pedido = c.pedido.trim().slice(0, 2000);
     await guardarVideo(t);
     const url = await urlSubida(id, t.original!);
     return Response.json({ id, url, archivo: t.original });

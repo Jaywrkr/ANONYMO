@@ -5,4 +5,5 @@ export * from "./subtitulos.ts";
 export * from "./transcribir.ts";
 export * from "./almacen-video.ts";
 export * from "./proceso.ts";
+export * from "./atlas-video.ts";
 export { medirVideo, rutaFfmpeg, filtrosRender, leerMedida } from "./ffmpeg.ts";

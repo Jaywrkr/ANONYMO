@@ -108,8 +108,10 @@ export async function pedirEstructura<T>(
       }),
       signal: AbortSignal.timeout(90000),
     });
-  let r = await llamar(true);
-  if (r.status === 400) r = await llamar(false);
+  // Sonnet 5.5, Opus 5.5 y Fable/Mythos 5.1–5.2 rechazan forzar la herramienta (400): se pide directo sin forzar.
+  const forzable = !/(sonnet|opus)-5-5|(fable|mythos)-5-[12]/.test(modelo);
+  let r = await llamar(forzable);
+  if (forzable && r.status === 400) r = await llamar(false);
   if (!r.ok) throw new Error(ocultarClaves(`la API respondió ${r.status}: ${(await r.text()).slice(0, 160)}`));
   const d = (await r.json()) as { content?: { type: string; name?: string; input?: unknown; text?: string }[]; stop_reason?: string };
   const uso = d.content?.find((b) => b.type === "tool_use" && b.name === h.nombre);

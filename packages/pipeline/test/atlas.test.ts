@@ -169,7 +169,8 @@ test("Atlas pide el plan como herramienta y usa el objeto que devuelve la API", 
   }) as typeof fetch;
   try {
     const l = await entenderPedido("Dos webs para Gabriela y Sebastián, odontólogos");
-    assert.deepEqual((cuerpo.tool_choice as { name: string }).name, "plan");
+    // Sonnet 5.5 (el modelo por defecto) rechaza forzar la herramienta: se pide sin forzar (sistema/63).
+    assert.deepEqual(cuerpo.tool_choice, { type: "auto" });
     assert.ok(JSON.stringify(cuerpo.tools).includes("4.vector"));
     assert.equal(l.eleccion.porIA, true);
     assert.deepEqual(l.eleccion.tareas, ["1.ledger", "4.orla", "4.vector"]);

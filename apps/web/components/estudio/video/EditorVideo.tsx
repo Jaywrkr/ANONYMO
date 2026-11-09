@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { aEditado, aOriginal, edicionSegura, motivoPalabra, planEdicion, textoHuella } from "@anonymo/pipeline/src/video/edicion.ts";
 import { estiloSub, PLANTILLAS_SUB } from "@anonymo/pipeline/src/video/subtitulos.ts";
-import { FORMATOS_VIDEO, type Edicion, type FormatoVideo, type Ocupado, type ResultadoVideo, type TrabajoVideo } from "@anonymo/pipeline/src/video/tipos.ts";
+import { FORMATOS_VIDEO, type Edicion, type FormatoVideo, type MensajeVideo, type Ocupado, type ResultadoVideo, type TrabajoVideo } from "@anonymo/pipeline/src/video/tipos.ts";
 import { Espera, mmss } from "./Espera";
 
 const ACENTOS = ["#ffd43b", "#ffffff", "#2bb673", "#ff5a1f", "#4f8cff", "#ff6fb1"];
@@ -30,6 +30,9 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
   const router = useRouter();
   const t = inicial;
   const [ed, setEd] = useState<Edicion>(() => edicionSegura(t.edicion, t.edicion));
+  // La edición de ahora, para los pasos que corren después de un cambio de Atlas (sin esperar otro render).
+  const edRef = useRef(ed);
+  edRef.current = ed;
   const [historial, setHistorial] = useState<number[][]>([]);
   const [formato, setFormato] = useState<FormatoVideo>(() => ((t.alto ?? 16) > (t.ancho ?? 9) ? "9:16" : "16:9"));
   const [guardado, setGuardado] = useState<"si" | "guardando" | "error">("si");
@@ -102,7 +105,7 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
     return () => { sigue = false; };
   }, [t.id]);
 
-  const correr = useCallback(async (cuerpo: { paso: "transcribir" | "render"; formato?: FormatoVideo }) => {
+  const correr = useCallback(async (cuerpo: { paso: "transcribir" | "render"; formato?: FormatoVideo }): Promise<boolean> => {
     const desde = Date.now();
     const titulo = cuerpo.paso === "transcribir" ? "Transcribiendo el video" : `Armando el ${NOMBRE_FORMATO[cuerpo.formato!].toLowerCase()}`;
     const estimado = Math.round(cuerpo.paso === "transcribir" ? 12 + duracion * 0.35 : 8 + duracion * 1.1);
@@ -111,7 +114,7 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
     if (cuerpo.paso === "render") {
       // Lo que se arma es lo que está guardado: primero se guarda lo último.
       if (reloj.current) clearTimeout(reloj.current);
-      if (!(await guardar(ed))) { setPaso(null); setAviso({ tipo: "error", texto: "No se pudo guardar la edición. Revisa la conexión y vuelve a intentarlo." }); return; }
+      if (!(await guardar(edRef.current))) { setPaso(null); setAviso({ tipo: "error", texto: "No se pudo guardar la edición. Revisa la conexión y vuelve a intentarlo." }); return false; }
     }
     const parar = seguir(desde, titulo, estimado);
     try {
@@ -128,13 +131,15 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
         setResultados((rs) => [...rs.filter((x) => x.formato !== cuerpo.formato), j.resultado!]);
         setAviso({ tipo: "ok", texto: `Listo: ${NOMBRE_FORMATO[cuerpo.formato!]} armado en ${mmss(s)}. Ya puedes descargarlo.` });
       }
+      return true;
     } catch (e) {
       setAviso({ tipo: "error", texto: (e as Error).message });
+      return false;
     } finally {
       parar();
       setPaso(null);
     }
-  }, [duracion, ed, guardar, router, seguir, t.id]);
+  }, [duracion, guardar, router, seguir, t.id]);
 
   // Si al abrir la página ya había un paso trabajando (otra pestaña, o recargaste), se espera a que termine.
   useEffect(() => {
@@ -163,6 +168,67 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
     arrancado.current = true;
     void correr({ paso: "transcribir" });
   }, [correr, t.estado, t.error, t.ocupado, t.transcripcion, whisper]);
+
+  // ——— Atlas (sistema/63): Luna escribe lo que quiere y Atlas cambia la edición ———
+  const [charla, setCharla] = useState<MensajeVideo[]>(t.conversacion ?? []);
+  const [pedido, setPedido] = useState("");
+  const [deshacerAtlas, setDeshacerAtlas] = useState<Edicion | null>(null);
+  // El chat siempre muestra lo último.
+  const listaChat = useRef<HTMLOListElement>(null);
+  useEffect(() => { const l = listaChat.current; if (l) l.scrollTop = l.scrollHeight; }, [charla]);
+  const pedirAtlas = useCallback(async (texto: string, inicial = false) => {
+    const limpio = texto.trim();
+    if (!limpio || paso) return;
+    const desde = Date.now();
+    setAviso(null);
+    setPaso({ titulo: "Atlas está leyendo tu pedido", texto: "Revisando el texto del video y la edición de ahora", desde, estimado: 15 });
+    // Atlas parte de lo último que hizo Luna: primero se guarda.
+    if (reloj.current) clearTimeout(reloj.current);
+    if (!(await guardar(edRef.current))) { setPaso(null); setAviso({ tipo: "error", texto: "No se pudo guardar la edición. Revisa la conexión y vuelve a intentarlo." }); return; }
+    let armar: FormatoVideo[] = [];
+    try {
+      const r = await fetch(`/estudio/video/${t.id}/atlas`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ texto: limpio, inicial }) });
+      const j = (await r.json().catch(() => ({}))) as { error?: string; edicion?: Edicion; anterior?: Edicion; cambios?: string[]; armar?: FormatoVideo[]; mensajes?: MensajeVideo[] };
+      if (j.mensajes) setCharla((c) => [...c, ...j.mensajes!]);
+      if (!r.ok || !j.edicion) throw new Error(j.error ?? `Atlas no pudo responder (${r.status}).`);
+      const nueva = edicionSegura(j.edicion, j.edicion);
+      ultima.current = JSON.stringify(nueva);
+      setEd(nueva);
+      setGuardado("si");
+      if (j.cambios?.length) { setDeshacerAtlas(j.anterior ? edicionSegura(j.anterior, j.anterior) : null); setHistorial([]); }
+      setPedido("");
+      armar = j.armar ?? [];
+      setAviso(j.cambios?.length ? { tipo: "ok", texto: `Atlas hizo ${j.cambios.length === 1 ? "1 cambio" : `${j.cambios.length} cambios`}. Revisa la vista previa.` } : null);
+    } catch (e) {
+      setAviso({ tipo: "error", texto: (e as Error).message });
+    } finally {
+      setPaso(null);
+    }
+    // Si pidió el video final, se arma cada formato, uno detrás de otro.
+    for (const f of armar) {
+      await new Promise((ok) => setTimeout(ok, 50));
+      if (!(await correr({ paso: "render", formato: f }))) break;
+    }
+  }, [correr, guardar, paso, t.id]);
+  const deshacerLoDeAtlas = () => {
+    if (!deshacerAtlas) return;
+    cambiar(() => deshacerAtlas);
+    setDeshacerAtlas(null);
+    setAviso({ tipo: "ok", texto: "Volvimos a la edición de antes del último pedido a Atlas." });
+  };
+  // El pedido que Luna escribió al subir: se aplica solo, una vez, apenas hay texto.
+  const pedidoInicial = useRef(false);
+  const pedirAtlasRef = useRef(pedirAtlas);
+  pedirAtlasRef.current = pedirAtlas;
+  useEffect(() => {
+    if (!t.transcripcion || !t.pedido || t.pedidoAplicado || t.ocupado) return;
+    const id = setTimeout(() => {
+      if (pedidoInicial.current) return;
+      pedidoInicial.current = true;
+      void pedirAtlasRef.current(t.pedido!, true);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [t.ocupado, t.pedido, t.pedidoAplicado, t.transcripcion]);
 
   // ——— Vista previa ———
   const video = useRef<HTMLVideoElement>(null);
@@ -292,6 +358,57 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
 
         {t.transcripcion && (
           <>
+            <section className={tarjeta} aria-labelledby="titulo-atlas">
+              <div className="flex items-center gap-2">
+                <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta font-serif text-[17px] text-white">A</span>
+                <h2 id="titulo-atlas" className="text-[16px] font-medium">Pídeselo a Atlas</h2>
+              </div>
+              <p className="mt-1 text-[13px] text-medio">Escribe lo que quieres como se lo dirías a alguien del equipo. Atlas cambia la edición y tú lo ves al instante en la vista previa.</p>
+              {charla.length > 0 && (
+                <ol ref={listaChat} aria-label="Conversación con Atlas" aria-live="polite" className="mt-3 grid max-h-[38vh] gap-2 overflow-y-auto rounded-xl bg-carta p-3">
+                  {charla.map((m, i) => (
+                    <li key={i} className={`max-w-[92%] rounded-2xl px-3 py-2 text-[14px] ${m.quien === "atlas" ? (m.error ? "bg-[#fff1ea] text-[#a33a0b]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]") : "ml-auto bg-tinta text-white"}`}>
+                      <span className="sr-only">{m.quien === "atlas" ? "Atlas: " : "Tú: "}</span>
+                      {m.texto}
+                      {!!m.cambios?.length && (
+                        <ul className="mt-1.5 grid gap-0.5 text-[13px] text-medio">
+                          {m.cambios.map((c, k) => <li key={k}>✓ {c}</li>)}
+                        </ul>
+                      )}
+                      {!!m.noSePuede?.length && (
+                        <ul className="mt-1.5 grid gap-0.5 text-[13px] text-[#a35a0b]">
+                          {m.noSePuede.map((c, k) => <li key={k}>Todavía no: {c}</li>)}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <form onSubmit={(e) => { e.preventDefault(); void pedirAtlas(pedido); }} className="mt-3">
+                <label htmlFor="pedido-atlas" className="sr-only">Pedido para Atlas</label>
+                <textarea
+                  id="pedido-atlas"
+                  value={pedido}
+                  onChange={(e) => setPedido(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void pedirAtlas(pedido); } }}
+                  rows={2}
+                  maxLength={2000}
+                  disabled={!listo || !!paso}
+                  placeholder="Por ejemplo: corta los silencios, subtítulos estilo marca más grandes y expórtalo vertical"
+                  className="w-full resize-y rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)] disabled:opacity-60"
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button type="submit" disabled={!listo || !!paso || !pedido.trim()} className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white disabled:opacity-40">Pedir a Atlas</button>
+                  {deshacerAtlas && <button type="button" onClick={deshacerLoDeAtlas} disabled={!!paso} className="inline-flex min-h-11 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Deshacer lo de Atlas</button>}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Ideas rápidas">
+                  {["Más dinámico", "Subtítulos más grandes", "Quita la parte del inicio", "Sin subtítulos", "Expórtalo en los tres formatos"].map((x) => (
+                    <button key={x} type="button" disabled={!listo || !!paso} onClick={() => setPedido(x)} className="inline-flex min-h-9 items-center rounded-full bg-hueso px-3 text-[12px] text-medio hover:text-tinta disabled:opacity-40">{x}</button>
+                  ))}
+                </div>
+              </form>
+            </section>
+
             <section className={tarjeta} aria-labelledby="titulo-texto">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 id="titulo-texto" className="text-[16px] font-medium">Texto del video</h2>
@@ -328,7 +445,7 @@ export function EditorVideo({ inicial, whisper }: { inicial: TrabajoVideo; whisp
               </label>
               {ed.silencios && (
                 <label className="ml-8 block text-[13px] text-medio">
-                  Pausas de más de <b className="font-medium text-tinta">{ed.pausaMax.toFixed(1)} s</b> {ed.pausaMax <= 0.4 ? "(ritmo muy rápido)" : ed.pausaMax >= 1.2 ? "(ritmo pausado)" : "(ritmo de redes)"}
+                  Pausas de más de <b className="font-medium text-tinta">{ed.pausaMax.toLocaleString("es", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s</b> {ed.pausaMax <= 0.4 ? "(ritmo muy rápido)" : ed.pausaMax >= 1.2 ? "(ritmo pausado)" : "(ritmo de redes)"}
                   <input type="range" min={0.3} max={2} step={0.1} value={ed.pausaMax} onChange={(e) => cambiar((x) => ({ ...x, pausaMax: Number(e.target.value) }))} className="mt-1 block w-full max-w-xs accent-[var(--color-tinta)]" />
                 </label>
               )}
