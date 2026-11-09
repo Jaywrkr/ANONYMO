@@ -22,6 +22,8 @@ const entrada = join(dir, "Testimonio clinica.mp4");
 // «Voz» (un tono) en 0,9–2,4 · 4,0–5,2 · 5,6–7,9 s: tres partes.
 execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=720x1280:r=30:d=9", "-f", "lavfi", "-i", "aevalsrc='if(between(t,0.9,2.4)+between(t,4.0,5.2)+between(t,5.6,7.9),0.4*sin(2*PI*330*t),0.003*sin(2*PI*50*t))':s=44100:d=9", "-shortest", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", entrada]);
 
+// Solo cuentan los pedidos a la IA de esta corrida.
+const yaHabia = (() => { try { return readFileSync(registro, "utf8").trim().split("\n").filter(Boolean).length; } catch { return 0; } })();
 const nav = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await nav.newContext({ viewport: { width: 1360, height: 900 }, deviceScaleFactor: 1 });
 const p = await ctx.newPage();
@@ -55,8 +57,9 @@ const textoChat = await chat.innerText();
 exigir(/Corta los silencios/.test(textoChat), "el pedido de Luna queda en la conversación");
 exigir(/✓ Quitar la parte 1/.test(textoChat), "Atlas dice qué cambió (quitó la parte 1)");
 exigir(/donde todavía no empieza/.test(textoChat), "Atlas recibió la hoja de miniaturas");
-exigir((await p.locator("section[aria-labelledby=titulo-partes] li > button[aria-pressed=true]").count()) === 1, "la parte 1 quedó quitada en el editor");
-exigir(/Todavía no: Subtítulos/.test(textoChat) && /Todavía no: Zoom/.test(textoChat) && /Todavía no: Logo/.test(textoChat), "Atlas dice con claridad que subtítulos, zoom y logo no se pueden");
+exigir((await p.locator("section[aria-labelledby=titulo-partes] li > button[aria-label^='Parte '][aria-pressed=true]").count()) === 1, "la parte 1 quedó quitada en el editor");
+exigir(/Todavía no: Subtítulos/.test(textoChat) && /Todavía no: Logo y música: este video no tiene marca/.test(textoChat), "Atlas dice con claridad que no hay subtítulos y que falta elegir la marca para el logo");
+exigir(/✓ Zoom en cada corte/.test(textoChat), "el zoom ya se puede (fase 3)");
 const fila = p.locator("li", { hasText: "Vertical 9:16" });
 exigir(await fila.locator("a:has-text('Descargar')").isVisible(), "el 9:16 se puede descargar");
 await p.screenshot({ path: join(capturas, "3-pedido-aplicado.png") });
@@ -89,7 +92,7 @@ exigir(mensajes === 6, `la conversación sigue al volver (${mensajes} mensajes)`
 await p.screenshot({ path: join(capturas, "4-conversacion.png"), fullPage: true });
 
 // La IA recibió el texto numerado y no se forzó la herramienta (Sonnet 5.5 lo rechaza).
-const pedidos = readFileSync(registro, "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((x) => x.system?.startsWith("Atlas, departamento de video"));
+const pedidos = readFileSync(registro, "utf8").trim().split("\n").slice(yaHabia).map((l) => JSON.parse(l)).filter((x) => x.system?.startsWith("Atlas, departamento de video"));
 exigir(pedidos.length === 3, `3 pedidos a Atlas (${pedidos.length})`);
 exigir(pedidos.every((x) => x.tool_choice?.type === "auto"), "la herramienta va sin forzar");
 const bloques = pedidos[0].messages[0].content;

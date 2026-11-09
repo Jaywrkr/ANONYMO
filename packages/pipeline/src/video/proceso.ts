@@ -6,10 +6,11 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { partesDesdeSilencios, planEdicion, textoHuella } from "./edicion.ts";
-import { detectarSilencios, hojaDeCuadros, medirVideo, renderizar, umbralSilencio, volumenMedio } from "./ffmpeg.ts";
+import { edicionSegura, partesDesdeSilencios, planEdicion, textoHuella, zoomDeTramos } from "./edicion.ts";
+import { detectarSilencios, hojaDeCuadros, medirVideo, renderizar, umbralSilencio, volumenMedio, type MarcaRender } from "./ffmpeg.ts";
+import { leerKit, traerArchivoKit } from "./marcas-video.ts";
 import { cambiarVideo, guardarArchivoVideo, guardarAvance, traerArchivo } from "./almacen-video.ts";
-import type { FormatoVideo, Ocupado, TrabajoVideo } from "./tipos.ts";
+import type { FormatoVideo, KitMarca, Ocupado, TrabajoVideo } from "./tipos.ts";
 
 /** Un paso que lleva más que esto se considera perdido (la función de Vercel dura 5 minutos). */
 const VENCE_MS = 6 * 60 * 1000;
@@ -19,8 +20,8 @@ export const MAX_SEGUNDOS = Number(process.env.ANONYMO_VIDEO_MAX_SEG ?? 180);
 export const estaOcupado = (t: TrabajoVideo, ahora = Date.now()) => !!t.ocupado && ahora - Date.parse(t.ocupado.desde) < VENCE_MS;
 
 /** La huella de lo que se pidió: si cambia la edición, el resultado anterior queda viejo. */
-export function huellaEdicion(t: Pick<TrabajoVideo, "edicion" | "analisis" | "duracion">, formato: FormatoVideo) {
-  return createHash("sha256").update(textoHuella(t, formato)).digest("hex").slice(0, 16);
+export function huellaEdicion(t: Pick<TrabajoVideo, "edicion" | "analisis" | "duracion" | "marca">, formato: FormatoVideo, kit?: Pick<KitMarca, "actualizado">) {
+  return createHash("sha256").update(textoHuella({ ...t, kit: kit?.actualizado }, formato)).digest("hex").slice(0, 16);
 }
 
 async function ocupar(id: string, o: Omit<Ocupado, "desde">) {
@@ -107,15 +108,30 @@ export async function renderVideo(id: string, formato: FormatoVideo) {
     return await conCarpeta(async (dir) => {
       const video = await traerArchivo(id, t.original!, join(dir, t.original!));
       const m = await medirVideo(video);
-      const plan = planEdicion(t.analisis, t.edicion, t.duracion!);
-      await avisar(0.05, "Cortando y encuadrando", true);
+      const edicion = edicionSegura(t.edicion, t.edicion);
+      const plan = planEdicion(t.analisis, edicion, t.duracion!);
+      // El kit de marca del video (sistema/65): se baja solo lo que la edición usa.
+      const kit = t.marca ? await leerKit(t.marca) : undefined;
+      if (t.marca && !kit) throw new Error("No encontramos la marca de este video. Elige otra o quítala.");
+      let marca: MarcaRender | undefined;
+      if (kit) {
+        const usaLogo = kit.logo && (edicion.marca.logoEsquina || edicion.marca.cierre);
+        const usaMusica = kit.musica && edicion.marca.musica;
+        marca = {
+          nombre: kit.nombre, color: kit.color, texto: kit.texto,
+          logo: usaLogo ? await traerArchivoKit(kit.id, kit.logo!, join(dir, kit.logo!)) : undefined,
+          musica: usaMusica ? await traerArchivoKit(kit.id, kit.musica!.archivo, join(dir, kit.musica!.archivo)) : undefined,
+        };
+      }
+      await avisar(0.05, "Cortando, encuadrando y poniendo la marca", true);
       const archivo = `final-${formato.replace(":", "x")}.mp4`;
       const salida = join(dir, archivo);
       const inicio = Date.now();
-      await renderizar({ entrada: video, salida, tramos: plan.tramos, formato, edicion: t.edicion, audio: m.audio, carpeta: dir, alAvanzar: (s) => { void avisar(0.05 + 0.85 * Math.min(1, s / Math.max(0.1, plan.duracion))); } });
+      const total = plan.duracion + (edicion.marca.cierre && marca ? edicion.marca.cierreSegundos : 0);
+      await renderizar({ entrada: video, salida, tramos: plan.tramos, formato, edicion, audio: m.audio, carpeta: dir, zooms: zoomDeTramos(plan.tramos, t.analisis, edicion), marca, alAvanzar: (s) => { void avisar(0.05 + 0.85 * Math.min(1, s / Math.max(0.1, total))); } });
       await avisar(0.92, "Guardando el resultado", true);
       await guardarArchivoVideo(id, archivo, salida);
-      const listo = { formato, archivo, listo: new Date().toISOString(), segundos: Math.round((Date.now() - inicio) / 1000), bytes: statSync(salida).size, huella: huellaEdicion(t, formato) };
+      const listo = { formato, archivo, listo: new Date().toISOString(), segundos: Math.round((Date.now() - inicio) / 1000), bytes: statSync(salida).size, huella: huellaEdicion(t, formato, kit) };
       return cambiarVideo(id, (x) => {
         x.resultados = [...x.resultados.filter((r) => r.formato !== formato), listo];
         x.ocupado = undefined;

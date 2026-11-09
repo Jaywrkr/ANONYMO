@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-const { calcularCortes, tramosConservados, aEditado, aOriginal, planEdicion, partesDesdeSilencios, edicionSegura, textoHuella } = await import("../src/video/edicion.ts");
+const { calcularCortes, tramosConservados, aEditado, aOriginal, planEdicion, partesDesdeSilencios, edicionSegura, textoHuella, zoomDeTramos, duracionFinal } = await import("../src/video/edicion.ts");
 const { filtrosRender, leerMedida, leerSilencios, umbralSilencio, medirVideo, renderizar, rutaFfmpeg, detectarSilencios, volumenMedio, hojaDeCuadros } = await import("../src/video/ffmpeg.ts");
 const { EDICION_INICIAL } = await import("../src/video/tipos.ts");
 
@@ -62,9 +62,35 @@ test("la edición que llega del navegador o de Atlas se limpia", () => {
   assert.equal(e.pausaMax, 3);
   assert.deepEqual(e.quitadas, [2, 3]);
   assert.equal(e.audio.normalizar, true);
-  assert.deepEqual(Object.keys(e), ["silencios", "pausaMax", "quitadas", "audio"]);
-  // La huella no depende del orden en que llegan los campos.
-  assert.equal(textoHuella({ edicion: { audio: e.audio, quitadas: e.quitadas, pausaMax: 3, silencios: true }, analisis: an, duracion: 7 }, "9:16"), textoHuella({ edicion: e, analisis: an, duracion: 7 }, "9:16"));
+  assert.deepEqual(Object.keys(e), ["silencios", "pausaMax", "quitadas", "audio", "motion", "marca"]);
+  // La huella no depende del orden en que llegan los campos, y cambia si cambia la marca o su kit.
+  const h = (x: object) => textoHuella({ edicion: e, analisis: an, duracion: 7, ...x }, "9:16");
+  assert.equal(textoHuella({ edicion: { marca: e.marca, motion: e.motion, audio: e.audio, quitadas: e.quitadas, pausaMax: 3, silencios: true }, analisis: an, duracion: 7 }, "9:16"), h({}));
+  assert.notEqual(h({ marca: "m-silva-1a2b" }), h({}));
+  assert.notEqual(h({ marca: "m-silva-1a2b", kit: "2026-11-10" }), h({ marca: "m-silva-1a2b" }));
+});
+
+test("un video de antes de la fase 3 sale con motion y marca apagados", () => {
+  const vieja = { silencios: true, pausaMax: 0.6, quitadas: [1], audio: { normalizar: true, limpiarRuido: false } } as unknown as typeof EDICION_INICIAL;
+  const e = edicionSegura(vieja, vieja);
+  assert.deepEqual(e.motion, EDICION_INICIAL.motion);
+  assert.deepEqual(e.marca, EDICION_INICIAL.marca);
+  assert.deepEqual(e.quitadas, [1]);
+  const m = edicionSegura({ motion: { transicion: "girar", zoomPartes: [2, -1] }, marca: { cierreSegundos: 30, volumenMusica: 2 } }, e);
+  assert.equal(m.motion.transicion, "corte");
+  assert.deepEqual(m.motion.zoomPartes, [2]);
+  assert.equal(m.marca.cierreSegundos, 5);
+  assert.equal(m.marca.volumenMusica, 0.5);
+});
+
+test("zoom alterno y por partes, y la duración final con fundidos y cierre", () => {
+  const tramos = [{ inicio: 0.9, fin: 2.3 }, { inicio: 3.9, fin: 4.9 }, { inicio: 5.1, fin: 6.0 }];
+  assert.deepEqual(zoomDeTramos(tramos, an, ed({ motion: { zoomAlterno: true, zoomPartes: [], transicion: "corte" } })), [false, true, false]);
+  assert.deepEqual(zoomDeTramos(tramos, an, ed({ motion: { zoomAlterno: false, zoomPartes: [0, 2], transicion: "corte" } })), [true, false, true]);
+  const conTodo = ed({ motion: { zoomAlterno: false, zoomPartes: [], transicion: "fundido" }, marca: { ...EDICION_INICIAL.marca, cierre: true, cierreSegundos: 2 } });
+  // 3,3 s de tramos − 2 fundidos de 0,25 s + 2 s de cierre.
+  assert.equal(duracionFinal(tramos, conTodo, true), 4.8);
+  assert.equal(duracionFinal(tramos, conTodo, false), 2.8);
 });
 
 test("lee la medida de un video girado de celular", () => {
@@ -74,12 +100,34 @@ test("lee la medida de un video girado de celular", () => {
 });
 
 test("los filtros cortan cada tramo con fundido, llevan al formato y normalizan el volumen", () => {
-  const f = filtrosRender([{ inicio: 0, fin: 1 }, { inicio: 2, fin: 3.5 }], "1:1", EDICION_INICIAL, { audio: true });
+  const f = filtrosRender([{ inicio: 0, fin: 1 }, { inicio: 2, fin: 3.5 }], "1:1", EDICION_INICIAL, { audio: true }).filtros;
   assert.match(f, /concat=n=2:v=1:a=1/);
   assert.match(f, /crop=1080:1080/);
   assert.match(f, /afade=t=out:st=1\.488/);
   assert.match(f, /loudnorm=I=-14/);
   assert.doesNotMatch(f, /ass=/);
+});
+
+test("los filtros de motion y marca: zoom, fundido, logo, cierre y música que baja con la voz", () => {
+  const conTodo = ed({ motion: { zoomAlterno: true, zoomPartes: [], transicion: "fundido" }, marca: { logoEsquina: true, cierre: true, cierreSegundos: 2, musica: true, volumenMusica: 0.2 } });
+  const r = filtrosRender([{ inicio: 0, fin: 1 }, { inicio: 2, fin: 3.5 }], "9:16", conTodo, { audio: true, zooms: [false, true], marca: { logo: "/l.png", musica: "/m.mp3", color: "#1d3557", texto: "#ffffff", nombre: "Silva" } });
+  assert.match(r.filtros, /crop=1080:1920,scale=1274:2266:flags=lanczos,crop=1080:1920/);
+  assert.match(r.filtros, /xfade=transition=fade:duration=0\.250:offset=0\.750/);
+  assert.match(r.filtros, /acrossfade=d=0\.250/);
+  assert.match(r.filtros, /\[1:v\]format=rgba,split=2\[le0\]\[lc0\]/);
+  assert.match(r.filtros, /overlay=W-w-54:115/);
+  assert.match(r.filtros, /color=c=0x1d3557:s=1080x1920:r=30:d=2/);
+  assert.match(r.filtros, /\[2:a\].*volume=0\.2/);
+  assert.match(r.filtros, /sidechaincompress/);
+  assert.equal(r.total, 4.25);
+  // Sin logo en el kit: el cierre lleva el nombre (libass) y no hay entrada de logo.
+  const sinLogo = filtrosRender([{ inicio: 0, fin: 1 }], "1:1", conTodo, { audio: true, marca: { color: "#ffffff", texto: "#000000", nombre: "Silva" }, textoCierre: "/c.ass" });
+  assert.doesNotMatch(sinLogo.filtros, /\[1:v\]|sidechain/);
+  assert.match(sinLogo.filtros, /\[fondo\]ass=\/c\.ass/);
+  // Sin marca: nada de cierre ni música aunque la edición lo pida.
+  const sinMarca = filtrosRender([{ inicio: 0, fin: 1 }], "16:9", conTodo, { audio: true });
+  assert.doesNotMatch(sinMarca.filtros, /color=c=|sidechain|overlay/);
+  assert.equal(sinMarca.total, 1);
 });
 
 test("escucha un video de verdad, saca la hoja de miniaturas y lo arma en vertical", { skip: !(await hayFfmpeg()) && "sin FFmpeg" }, async () => {
@@ -103,6 +151,17 @@ test("escucha un video de verdad, saca la hoja de miniaturas y lo arma en vertic
   assert.equal(`${r.ancho}x${r.alto}`, "1080x1920");
   assert.ok(Math.abs(r.duracion - p.duracion) < 0.25, `${r.duracion} vs ${p.duracion}`);
   assert.ok(visto > 0, "avisa el avance");
+  // Fase 3: el mismo video con zoom alterno, fundido, logo, cierre y música de la marca.
+  const logo = join(dir, "logo.png"), musica = join(dir, "musica.mp3");
+  execFileSync(await rutaFfmpeg(), ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0xff5a1f:s=200x100", "-frames:v", "1", logo]);
+  execFileSync(await rutaFfmpeg(), ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=220:d=3", "-c:a", "libmp3lame", musica]);
+  const conTodo = ed({ motion: { zoomAlterno: true, zoomPartes: [], transicion: "fundido" }, marca: { logoEsquina: true, cierre: true, cierreSegundos: 2, musica: true, volumenMusica: 0.2 } });
+  const p2 = planEdicion({ partes, umbralDb: umbral }, conTodo, m.duracion);
+  const salida2 = join(dir, "final-marca.mp4");
+  const esperado = await renderizar({ entrada, salida: salida2, tramos: p2.tramos, formato: "1:1", edicion: conTodo, audio: true, carpeta: dir, vista: true, zooms: zoomDeTramos(p2.tramos, { partes, umbralDb: umbral }, conTodo), marca: { logo, musica, color: "#1d3557", texto: "#ffffff", nombre: "Silva" } });
+  const r2 = await medirVideo(salida2);
+  assert.equal(`${r2.ancho}x${r2.alto}`, "1080x1080");
+  assert.ok(Math.abs(r2.duracion - esperado) < 0.15 && Math.abs(esperado - duracionFinal(p2.tramos, conTodo, true)) < 0.01, `${r2.duracion} vs ${esperado}`);
 });
 
 async function hayFfmpeg() {
@@ -142,10 +201,48 @@ test("Atlas: lo que no tiene sentido se ignora y no cuenta como cambio", () => {
   assert.deepEqual(leida.noSePuede, ["zoom"]);
 });
 
+test("Atlas: zoom, transición y marca; sin kit no pone logo ni música", () => {
+  const kit = { nombre: "Clínica Silva", logo: true, musica: "Tema Silva" };
+  const r = aplicarAcciones(ed(), [
+    { tipo: "zoom", modo: "alterno" },
+    { tipo: "zoom", modo: "partes", desde: 2, hasta: 3 },
+    { tipo: "transicion", estilo: "fundido" },
+    { tipo: "marca", logoEsquina: true, cierre: true, cierreSegundos: 3, musica: true },
+  ], an, kit);
+  assert.equal(r.edicion.motion.zoomAlterno, true);
+  assert.deepEqual(r.edicion.motion.zoomPartes, [1, 2]);
+  assert.equal(r.edicion.motion.transicion, "fundido");
+  assert.deepEqual([r.edicion.marca.logoEsquina, r.edicion.marca.cierre, r.edicion.marca.cierreSegundos, r.edicion.marca.musica], [true, true, 3, true]);
+  assert.deepEqual(r.cambios, ["Zoom en cada corte", "Zoom en las partes 2 y 3", "Fundido corto entre partes", "Marca: logo en la esquina, cierre de 3 s con el logo, música «Tema Silva»"]);
+  const quitar = aplicarAcciones(r.edicion, [{ tipo: "zoom", modo: "quitar", desde: 2, hasta: 2 }, { tipo: "marca", volumenMusica: 0.35 }], an, kit);
+  assert.deepEqual(quitar.edicion.motion.zoomPartes, [2]);
+  assert.equal(quitar.edicion.motion.zoomAlterno, true);
+  assert.deepEqual(quitar.cambios, ["Sin zoom en la parte 2", "Marca: música más alta"]);
+  assert.deepEqual(aplicarAcciones(r.edicion, [{ tipo: "zoom", modo: "quitar" }], an, kit).edicion.motion, { zoomAlterno: false, zoomPartes: [], transicion: "fundido" });
+  // Sin kit no hay marca; con un kit sin logo ni música, el cierre sí (con el nombre), el logo y la música no.
+  assert.deepEqual(aplicarAcciones(ed(), [{ tipo: "marca", logoEsquina: true, musica: true }], an).cambios, []);
+  const pobre = aplicarAcciones(ed(), [{ tipo: "marca", logoEsquina: true, cierre: true, musica: true }], an, { nombre: "Silva", logo: false });
+  assert.deepEqual(pobre.cambios, ["Marca: cierre de 2 s con el nombre"]);
+});
+
 test("Atlas lee las partes numeradas desde 1, con su duración y el silencio de antes", () => {
   const m = mensajeAtlasVideo("quita el inicio", { nombre: "Reel", duracion: 7, analisis: an, edicion: ed({ quitadas: [2] }) });
   assert.match(m, /## Partes \(3\)\n1\. 1\.0–2\.2 s \(dura 1\.2 s; silencio antes 1\.0 s\)\n2\. 4\.0–4\.9 s \(dura 0\.9 s; silencio antes 1\.8 s\)\n3\. .*\[QUITADA\]/);
   assert.match(m, /## Pedido\nquita el inicio/);
+  assert.match(m, /## Marca\nEste video no tiene marca elegida/);
+  assert.match(mensajeAtlasVideo("x", { nombre: "R", duracion: 7, analisis: an, edicion: ed(), kit: { nombre: "Silva", logo: true, musica: "Tema" } }), /## Marca\nSilva: tiene logo; música «Tema»\./);
+});
+
+test("kit de marca: nombre y colores limpios, logo y música validados", async () => {
+  const { datosKit, validarArchivoKit, nuevoIdKit, idKitValido } = await import("../src/video/marcas-video.ts");
+  assert.deepEqual(datosKit({ nombre: "  Clínica Silva ", color: "#1D3557", texto: "rojo" }), { nombre: "Clínica Silva", color: "#1d3557", texto: "#ffffff" });
+  assert.throws(() => datosKit({ nombre: " " }), /Ponle un nombre/);
+  assert.equal(validarArchivoKit("logo", "Logo Final.PNG", 1000), "logo.png");
+  assert.equal(validarArchivoKit("logo", "logo.jpeg", 1000), "logo.jpg");
+  assert.equal(validarArchivoKit("musica", "tema.mp3", 1000), "musica.mp3");
+  assert.throws(() => validarArchivoKit("logo", "logo.svg", 1000), /PNG, JPG o WEBP/);
+  assert.throws(() => validarArchivoKit("musica", "tema.mp3", 31 * 1024 * 1024), /más de 30 MB/);
+  assert.ok(idKitValido(nuevoIdKit("Clínica Silva")) && /^m-clinica-silva-/.test(nuevoIdKit("Clínica Silva")));
 });
 
 test("Atlas manda la hoja de miniaturas a la API de Anthropic, sin forzar la herramienta en Sonnet 5.5", async () => {

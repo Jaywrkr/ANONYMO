@@ -21,7 +21,7 @@ export function crearStorageFalso(rpc){return http.createServer(async (req, res)
     if (req.method === "POST") { if (!datos.has(ruta)) { res.writeHead(404).end("no"); return; } res.end(JSON.stringify({ signedURL: `/object/sign/proyectos/${lectura[1]}?token=tl-${ruta.length}` })); return; }
     if (lectura[3] !== `tl-${ruta.length}` || !datos.has(ruta)) { res.writeHead(400).end("firma mala"); return; }
     const b = datos.get(ruta), r = /bytes=(\d*)-(\d*)/.exec(req.headers.range ?? "");
-    res.setHeader("accept-ranges", "bytes"); res.setHeader("content-type", ruta.endsWith(".mp4") ? "video/mp4" : "application/octet-stream");
+    res.setHeader("accept-ranges", "bytes"); res.setHeader("content-type", { mp4: "video/mp4", png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav" }[ruta.split(".").pop()] ?? "application/octet-stream");
     if (lectura[5]) res.setHeader("content-disposition", `attachment; filename="${decodeURIComponent(lectura[5])}"`);
     if (r) { const a = r[1] ? Number(r[1]) : 0, z = r[2] ? Math.min(b.length - 1, Number(r[2])) : b.length - 1; res.writeHead(206, { "content-range": `bytes ${a}-${z}/${b.length}`, "content-length": z - a + 1 }); res.end(b.subarray(a, z + 1)); return; }
     res.setHeader("content-length", b.length); res.end(b); return;

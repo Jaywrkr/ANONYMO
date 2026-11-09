@@ -33,8 +33,17 @@ http.createServer((req, res) => {
       if (/devuelve/.test(pedido)) { acciones.push({ tipo: "devolver", unidad: "parte", desde: 1, hasta: 99 }); hecho.push("devolví todas las partes"); }
       if (/ruido/.test(pedido)) { acciones.push({ tipo: "audio", limpiarRuido: true }); hecho.push("limpié el ruido"); }
       if (/subtítulo/.test(pedido)) noSePuede.push("Subtítulos: sin transcripción no hay texto que poner.");
-      if (/zoom/.test(pedido)) noSePuede.push("Zoom en la frase clave: llega con la parte de motion.");
-      if (/logo/.test(pedido)) noSePuede.push("Logo al final: llega con los kits de marca.");
+      // Fase 3 (sistema/65): motion y marca. La marca solo si el video tiene una con logo o música.
+      const marca = texto.split("## Marca\n")[1]?.split("\n")[0] ?? "";
+      if (/zoom/.test(pedido)) { acciones.push({ tipo: "zoom", modo: "alterno" }); hecho.push("puse zoom en cada corte"); }
+      if (/fundido/.test(pedido)) { acciones.push({ tipo: "transicion", estilo: "fundido" }); hecho.push("puse fundidos cortos"); }
+      if (/logo|música/.test(pedido)) {
+        if (/no tiene marca/.test(marca)) noSePuede.push("Logo y música: este video no tiene marca. Elígela en «Marca» o créala en «Marcas».");
+        else {
+          acciones.push({ tipo: "marca", ...(/logo/.test(pedido) ? { cierre: true, logoEsquina: /esquina/.test(pedido) } : {}), ...(/música/.test(pedido) ? { musica: true } : {}) });
+          hecho.push(/música/.test(pedido) ? "sumé la música de la marca" : "cerré con el logo");
+        }
+      }
       const formatos = [...(/vertical|9:16/.test(pedido) ? ["9:16"] : []), ...(/tres formatos/.test(pedido) ? ["9:16", "1:1", "16:9"] : [])];
       if (formatos.length) { acciones.push({ tipo: "armar", formatos: [...new Set(formatos)] }); hecho.push("armo el video final"); }
       const respuesta = hecho.length ? `Listo: ${hecho.join(", ")}.` : "No entendí qué cambiar. ¿Me lo dices de otra forma?";

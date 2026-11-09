@@ -34,6 +34,26 @@ export interface Edicion {
   /** Índices de partes que se quitaron (tocándolas o pidiéndoselo a Atlas). */
   quitadas: number[];
   audio: { normalizar: boolean; limpiarRuido: boolean };
+  /** Motion (sistema/65): zoom y transiciones entre partes. */
+  motion: {
+    /** En cada corte alterna plano normal y plano cerrado (el estilo de los videos hablados en redes). */
+    zoomAlterno: boolean;
+    /** Partes (índices) que van con plano cerrado para remarcarlas. */
+    zoomPartes: number[];
+    /** Entre un tramo y otro: corte seco o fundido corto. */
+    transicion: "corte" | "fundido";
+  };
+  /** Marca (sistema/65): lo que se toma del kit de marca del video. */
+  marca: {
+    logoEsquina: boolean;
+    /** Cierre con el logo sobre el color de la marca. */
+    cierre: boolean;
+    cierreSegundos: number;
+    /** Música de la marca, que baja sola cuando alguien habla. */
+    musica: boolean;
+    /** Volumen de la música: 0,05 (muy bajo) a 0,5 (alto). */
+    volumenMusica: number;
+  };
 }
 
 export const EDICION_INICIAL: Edicion = {
@@ -41,7 +61,23 @@ export const EDICION_INICIAL: Edicion = {
   pausaMax: 0.6,
   quitadas: [],
   audio: { normalizar: true, limpiarRuido: false },
+  motion: { zoomAlterno: false, zoomPartes: [], transicion: "corte" },
+  marca: { logoEsquina: false, cierre: false, cierreSegundos: 2, musica: false, volumenMusica: 0.18 },
 };
+
+/** Kit de marca de un cliente (sistema/65): colores, logo y música propia. Vive en `_marcas/<id>/`. */
+export interface KitMarca {
+  id: string;
+  nombre: string;
+  /** Color principal (#rrggbb): fondo del cierre. */
+  color: string;
+  /** Color del texto sobre el fondo si no hay logo. */
+  texto: string;
+  /** «logo.png» dentro de la carpeta del kit. */
+  logo?: string;
+  musica?: { archivo: string; nombre: string };
+  actualizado: string;
+}
 
 export type EstadoVideo = "subiendo" | "subido" | "analizado" | "error";
 
@@ -78,4 +114,6 @@ export interface TrabajoVideo {
   /** Ya se aplicó el pedido inicial (para no aplicarlo dos veces). */
   pedidoAplicado?: boolean;
   conversacion?: MensajeVideo[];
+  /** Kit de marca elegido para este video (sistema/65). */
+  marca?: string;
 }

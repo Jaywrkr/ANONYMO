@@ -159,46 +159,154 @@ export async function hojaDeCuadros(video: string, partes: TramoVideo[], carpeta
   return { columnas, ancho, alto, total };
 }
 
+/** Lo que el render toma del kit de marca (sistema/65), ya bajado al disco. */
+export interface MarcaRender { logo?: string; musica?: string; color: string; texto: string; nombre: string }
+
+/** Las entradas del render en orden: 0 = video, después logo y música si se usan. */
+function entradas(ed: Edicion, m?: MarcaRender) {
+  const usaLogo = !!m?.logo && (ed.marca.logoEsquina || ed.marca.cierre);
+  const usaMusica = !!m?.musica && ed.marca.musica;
+  return { logo: usaLogo ? 1 : -1, musica: usaMusica ? (usaLogo ? 2 : 1) : -1, cierre: ed.marca.cierre && !!m };
+}
+
 /**
- * Los filtros del render: corta y une los tramos (con un fundido de 12 ms para que no suene un clic),
- * encuadra al formato llenando el cuadro y deja el volumen en el nivel de redes (−14 LUFS).
+ * Los filtros del render. Por tramo: corta, encuadra al formato llenando el cuadro y, si toca, cierra el plano
+ * (zoom). Une los tramos con corte seco o fundido corto. Pone el logo en la esquina y el cierre con el logo
+ * sobre el color de la marca. El audio: la voz con un fundido de 12 ms en cada corte (sin clics), la música
+ * de la marca que baja sola cuando se habla (sidechain) y todo al nivel de redes (−14 LUFS).
  */
-export function filtrosRender(tramos: TramoVideo[], formato: FormatoVideo, ed: Edicion, o: { audio: boolean }) {
-  const { ancho, alto } = MEDIDAS[formato];
+export function filtrosRender(tramos: TramoVideo[], formato: FormatoVideo, ed: Edicion, o: { audio: boolean; zooms?: boolean[]; marca?: MarcaRender; textoCierre?: string }) {
+  const { ancho: W, alto: H } = MEDIDAS[formato];
+  const ent = entradas(ed, o.marca);
   const f: string[] = [];
   const fade = 0.012;
+  const fundido = ed.motion.transicion === "fundido" && tramos.length > 1;
+  const df = fundido ? duracionFundidoTramos(tramos) : 0;
+  const z = ZOOM_RENDER;
   tramos.forEach((t, i) => {
-    const d = (t.fin - t.inicio).toFixed(3);
-    f.push(`[0:v]trim=start=${t.inicio.toFixed(3)}:end=${t.fin.toFixed(3)},setpts=PTS-STARTPTS[v${i}]`);
-    if (o.audio) f.push(`[0:a]atrim=start=${t.inicio.toFixed(3)}:end=${t.fin.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=in:d=${fade},afade=t=out:st=${Math.max(0, Number(d) - fade).toFixed(3)}:d=${fade}[a${i}]`);
+    const d = t.fin - t.inicio;
+    const cerrar = o.zooms?.[i] ? `,scale=${Math.round((W * z) / 2) * 2}:${Math.round((H * z) / 2) * 2}:flags=lanczos,crop=${W}:${H}` : "";
+    f.push(`[0:v]trim=start=${t.inicio.toFixed(3)}:end=${t.fin.toFixed(3)},setpts=PTS-STARTPTS,scale=${W}:${H}:force_original_aspect_ratio=increase:flags=lanczos,crop=${W}:${H}${cerrar},setsar=1,fps=30,format=yuv420p[v${i}]`);
+    if (o.audio) f.push(`[0:a]atrim=start=${t.inicio.toFixed(3)}:end=${t.fin.toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo,afade=t=in:d=${fade},afade=t=out:st=${Math.max(0, d - fade).toFixed(3)}:d=${fade}[a${i}]`);
   });
-  const ent = tramos.map((_, i) => (o.audio ? `[v${i}][a${i}]` : `[v${i}]`)).join("");
-  f.push(`${ent}concat=n=${tramos.length}:v=1:a=${o.audio ? 1 : 0}${o.audio ? "[vc][ac]" : "[vc]"}`);
-  f.push(`[vc]scale=${ancho}:${alto}:force_original_aspect_ratio=increase:flags=lanczos,crop=${ancho}:${alto},setsar=1,fps=30,format=yuv420p[vo]`);
-  if (o.audio) {
-    const cadena = [ed.audio.limpiarRuido ? "highpass=f=80,afftdn=nf=-25" : "", ed.audio.normalizar ? "loudnorm=I=-14:TP=-1.5:LRA=11" : "", "aresample=48000"].filter(Boolean).join(",");
-    f.push(`[ac]${cadena}[ao]`);
+  // Unir los tramos.
+  let video = "v0", voz = o.audio ? "a0" : "";
+  if (tramos.length > 1 && fundido) {
+    let acum = tramos[0].fin - tramos[0].inicio;
+    for (let i = 1; i < tramos.length; i++) {
+      f.push(`[${video}][v${i}]xfade=transition=fade:duration=${df.toFixed(3)}:offset=${(acum - df).toFixed(3)}[x${i}]`);
+      if (o.audio) f.push(`[${voz}][a${i}]acrossfade=d=${df.toFixed(3)}:c1=tri:c2=tri[y${i}]`);
+      video = `x${i}`; voz = o.audio ? `y${i}` : "";
+      acum += tramos[i].fin - tramos[i].inicio - df;
+    }
+  } else if (tramos.length > 1) {
+    f.push(`${tramos.map((_, i) => (o.audio ? `[v${i}][a${i}]` : `[v${i}]`)).join("")}concat=n=${tramos.length}:v=1:a=${o.audio ? 1 : 0}${o.audio ? "[vc][ac]" : "[vc]"}`);
+    video = "vc"; voz = o.audio ? "ac" : "";
   }
-  return f.join(";\n");
+  // Logo: uno para la esquina y otro para el cierre.
+  const logos: string[] = [];
+  if (ent.logo >= 0) {
+    const usos = [ed.marca.logoEsquina ? "le" : "", ent.cierre ? "lc" : ""].filter(Boolean);
+    f.push(`[${ent.logo}:v]format=rgba${usos.length > 1 ? `,split=2[${usos[0]}0][${usos[1]}0]` : `[${usos[0]}0]`}`);
+    logos.push(...usos);
+  }
+  if (logos.includes("le")) {
+    const lado = Math.round(Math.min(W, H) * 0.16);
+    f.push(`[le0]scale=${lado}:${lado}:force_original_aspect_ratio=decrease,colorchannelmixer=aa=0.9[le]`);
+    const mx = Math.round(W * 0.05), my = Math.round(H * (formato === "9:16" ? 0.06 : 0.05));
+    f.push(`[${video}][le]overlay=W-w-${mx}:${my}:format=auto,format=yuv420p[vl]`);
+    video = "vl";
+  }
+  // Cierre: el color de la marca con el logo (o el nombre) al centro, que entra con un fundido.
+  const cs = ed.marca.cierreSegundos;
+  if (ent.cierre && o.marca) {
+    f.push(`color=c=${o.marca.color.replace("#", "0x")}:s=${W}x${H}:r=30:d=${cs},format=yuv420p[fondo]`);
+    if (logos.includes("lc")) {
+      const lado = Math.round(Math.min(W, H) * 0.42);
+      f.push(`[lc0]scale=${lado}:${lado}:force_original_aspect_ratio=decrease[lc]`);
+      f.push(`[fondo][lc]overlay=(W-w)/2:(H-h)/2:format=auto,format=yuv420p[cie0]`);
+    } else if (o.textoCierre) {
+      f.push(`[fondo]ass=${escaparRuta(o.textoCierre)}:fontsdir=${escaparRuta(carpetaFuentes())}[cie0]`);
+    } else f.push(`[fondo]null[cie0]`);
+    f.push(`[cie0]fade=t=in:st=0:d=0.35,setsar=1[cie]`);
+    f.push(`[${video}][cie]concat=n=2:v=1:a=0[vk]`);
+    video = "vk";
+    if (voz) { f.push(`anullsrc=r=48000:cl=stereo,atrim=0:${cs},asetpts=PTS-STARTPTS[sil]`); f.push(`[${voz}][sil]concat=n=2:v=0:a=1[vozk]`); voz = "vozk"; }
+  }
+  f.push(`[${video}]null[vo]`);
+  // Audio final.
+  const total = duracionFinalRender(tramos, ed, ent.cierre);
+  const limpiar = ed.audio.limpiarRuido ? "highpass=f=80,afftdn=nf=-25" : "";
+  if (voz && limpiar) { f.push(`[${voz}]${limpiar}[vozl]`); voz = "vozl"; }
+  let mezcla = voz;
+  if (ent.musica >= 0) {
+    f.push(`[${ent.musica}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${total.toFixed(3)},asetpts=PTS-STARTPTS,volume=${ed.marca.volumenMusica},afade=t=in:d=0.5,afade=t=out:st=${Math.max(0, total - 1.5).toFixed(3)}:d=1.5[mus]`);
+    if (voz) {
+      // La voz manda: la música baja sola cuando alguien habla.
+      f.push(`[${voz}]asplit=2[vozm][vozsc]`);
+      f.push(`[mus][vozsc]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=450:makeup=1[musd]`);
+      f.push(`[vozm][musd]amix=inputs=2:duration=first:normalize=0[mix]`);
+      mezcla = "mix";
+    } else mezcla = "mus";
+  }
+  if (mezcla) {
+    const cadena = [ed.audio.normalizar ? "loudnorm=I=-14:TP=-1.5:LRA=11" : "", "aresample=48000"].filter(Boolean).join(",");
+    f.push(`[${mezcla}]${cadena}[ao]`);
+  }
+  return { filtros: f.join(";\n"), audio: !!mezcla, total };
 }
+
+/** Cuánto se acerca el plano cerrado (igual que en la vista previa). */
+const ZOOM_RENDER = 1.18;
+const duracionFundidoTramos = (tramos: TramoVideo[]) => Math.max(0.05, Math.min(0.25, ...tramos.map((t) => (t.fin - t.inicio) / 2)));
+function duracionFinalRender(tramos: TramoVideo[], ed: Edicion, cierre: boolean) {
+  const base = tramos.reduce((s, t) => s + t.fin - t.inicio, 0);
+  const solape = ed.motion.transicion === "fundido" && tramos.length > 1 ? (tramos.length - 1) * duracionFundidoTramos(tramos) : 0;
+  return base - solape + (cierre ? ed.marca.cierreSegundos : 0);
+}
+
+/** El nombre de la marca en el cierre cuando no hay logo (libass: el FFmpeg de Vercel no trae drawtext). */
+export function assNombre(nombre: string, color: string, formato: FormatoVideo) {
+  const { ancho: W, alto: H } = MEDIDAS[formato];
+  const hex = color.replace("#", "");
+  const c = `&H00${hex.slice(4, 6)}${hex.slice(2, 4)}${hex.slice(0, 2)}`.toUpperCase();
+  const fs = Math.round(Math.min(W, H) * 0.09);
+  return ["[Script Info]", "ScriptType: v4.00+", `PlayResX: ${W}`, `PlayResY: ${H}`, "WrapStyle: 0", "",
+    "[V4+ Styles]", "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+    `Style: N,Geist SemiBold,${fs},${c},${c},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,${Math.round(W * 0.1)},${Math.round(W * 0.1)},0,1`,
+    "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+    `Dialogue: 0,0:00:00.00,0:01:00.00,N,,0,0,0,,${nombre.replace(/[{}\\]/g, "").replace(/\n/g, " ").slice(0, 60)}`].join("\n") + "\n";
+}
+
 /** Las rutas dentro de un filtro de FFmpeg no pueden llevar «:» ni comillas sin escapar. */
 const escaparRuta = (r: string) => r.replace(/\\/g, "/").replace(/:/g, "\\:").replace(/'/g, "\\'").replace(/,/g, "\\,");
 
-export interface OpcionesRender { entrada: string; salida: string; tramos: TramoVideo[]; formato: FormatoVideo; edicion: Edicion; audio: boolean; carpeta: string; vista?: boolean; alAvanzar?: (seg: number) => void; senal?: AbortSignal }
+export interface OpcionesRender { entrada: string; salida: string; tramos: TramoVideo[]; formato: FormatoVideo; edicion: Edicion; audio: boolean; carpeta: string; zooms?: boolean[]; marca?: MarcaRender; vista?: boolean; alAvanzar?: (seg: number) => void; senal?: AbortSignal }
 
-/** Arma el video final de un formato. */
+/** Arma el video final de un formato. Devuelve su duración esperada. */
 export async function renderizar(o: OpcionesRender) {
   if (!o.tramos.length) throw new Error("No queda nada del video con estos cortes.");
-  const guion = join(o.carpeta, `filtros-${o.formato.replace(":", "x")}.txt`);
-  writeFileSync(guion, filtrosRender(o.tramos, o.formato, o.edicion, { audio: o.audio }));
+  const sufijo = o.formato.replace(":", "x");
+  const ent = entradas(o.edicion, o.marca);
+  let textoCierre: string | undefined;
+  if (ent.cierre && o.marca && ent.logo < 0) {
+    textoCierre = join(o.carpeta, `cierre-${sufijo}.ass`);
+    writeFileSync(textoCierre, assNombre(o.marca.nombre, o.marca.texto, o.formato));
+  }
+  const r = filtrosRender(o.tramos, o.formato, o.edicion, { audio: o.audio, zooms: o.zooms, marca: o.marca, textoCierre });
+  const guion = join(o.carpeta, `filtros-${sufijo}.txt`);
+  writeFileSync(guion, r.filtros);
   const args = [
     "-y", "-i", o.entrada,
+    ...(ent.logo >= 0 ? ["-i", o.marca!.logo!] : []),
+    ...(ent.musica >= 0 ? ["-stream_loop", "-1", "-i", o.marca!.musica!] : []),
     "-filter_complex_script", guion,
-    "-map", "[vo]", ...(o.audio ? ["-map", "[ao]"] : []),
+    "-map", "[vo]", ...(r.audio ? ["-map", "[ao]"] : []),
     "-c:v", "libx264", "-preset", o.vista ? "ultrafast" : "veryfast", "-crf", o.vista ? "28" : "20", "-profile:v", "high", "-pix_fmt", "yuv420p",
-    ...(o.audio ? ["-c:a", "aac", "-b:a", "160k"] : []),
+    ...(r.audio ? ["-c:a", "aac", "-b:a", "160k"] : []),
+    "-t", r.total.toFixed(3),
     "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", o.salida,
   ];
   await correr(args, { alAvanzar: o.alAvanzar, senal: o.senal });
-  return o.salida;
+  return r.total;
 }

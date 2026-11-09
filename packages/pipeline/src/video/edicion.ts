@@ -1,7 +1,7 @@
 // El editor del departamento de video (sistema/62, por partes desde sistema/64): del análisis del audio y del
 // JSON de edición salen los cortes y los tramos que quedan. Todo es cálculo puro: la vista previa del navegador
 // y el render final usan exactamente lo mismo.
-import type { Analisis, Corte, Edicion, MotivoCorte, TramoVideo } from "./tipos.ts";
+import { EDICION_INICIAL, type Analisis, type Corte, type Edicion, type MotivoCorte, type TramoVideo } from "./tipos.ts";
 
 /** Respiro que se deja antes y después de cada parte al cortar un silencio (segundos). */
 export const MARGEN = 0.12;
@@ -131,22 +131,57 @@ export function partesDesdeSilencios(silencios: TramoVideo[], duracion: number, 
 
 /** Normaliza un JSON de edición que llega de la interfaz o de Atlas: nunca se confía en lo que llega. */
 export function edicionSegura(x: unknown, base: Edicion): Edicion {
+  // Los videos de antes de sistema/65 no tienen motion ni marca: se completan con lo de siempre.
+  const b: Edicion = { ...EDICION_INICIAL, ...base, motion: { ...EDICION_INICIAL.motion, ...base?.motion }, marca: { ...EDICION_INICIAL.marca, ...base?.marca } };
   const e = (x && typeof x === "object" ? x : {}) as Partial<Edicion>;
   const a = (e.audio ?? {}) as Partial<Edicion["audio"]>;
+  const mo = (e.motion ?? {}) as Partial<Edicion["motion"]>;
+  const ma = (e.marca ?? {}) as Partial<Edicion["marca"]>;
   const num = (v: unknown, min: number, max: number, def: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : def);
   const bool = (v: unknown, def: boolean) => (typeof v === "boolean" ? v : def);
+  const indices = (v: unknown, def: number[]) => (Array.isArray(v) ? [...new Set(v.filter((n): n is number => Number.isInteger(n) && n >= 0 && n < 100000))].sort((m, n) => m - n) : def);
   return {
-    silencios: bool(e.silencios, base.silencios),
-    pausaMax: Math.round(num(e.pausaMax, 0.25, 3, base.pausaMax) * 100) / 100,
-    quitadas: Array.isArray(e.quitadas) ? [...new Set(e.quitadas.filter((n): n is number => Number.isInteger(n) && n >= 0 && n < 100000))].sort((m, n) => m - n) : base.quitadas,
-    audio: { normalizar: bool(a.normalizar, base.audio.normalizar), limpiarRuido: bool(a.limpiarRuido, base.audio.limpiarRuido) },
+    silencios: bool(e.silencios, b.silencios),
+    pausaMax: Math.round(num(e.pausaMax, 0.25, 3, b.pausaMax) * 100) / 100,
+    quitadas: indices(e.quitadas, b.quitadas),
+    audio: { normalizar: bool(a.normalizar, b.audio.normalizar), limpiarRuido: bool(a.limpiarRuido, b.audio.limpiarRuido) },
+    motion: {
+      zoomAlterno: bool(mo.zoomAlterno, b.motion.zoomAlterno),
+      zoomPartes: indices(mo.zoomPartes, b.motion.zoomPartes),
+      transicion: mo.transicion === "corte" || mo.transicion === "fundido" ? mo.transicion : b.motion.transicion,
+    },
+    marca: {
+      logoEsquina: bool(ma.logoEsquina, b.marca.logoEsquina),
+      cierre: bool(ma.cierre, b.marca.cierre),
+      cierreSegundos: Math.round(num(ma.cierreSegundos, 1, 5, b.marca.cierreSegundos) * 10) / 10,
+      musica: bool(ma.musica, b.marca.musica),
+      volumenMusica: Math.round(num(ma.volumenMusica, 0.05, 0.5, b.marca.volumenMusica) * 100) / 100,
+    },
   };
+}
+
+/** Cuánto se acerca el plano cerrado. */
+export const ZOOM = 1.18;
+/** Duración del fundido entre tramos (segundos), sin pasar de la mitad del tramo más corto. */
+export const duracionFundido = (tramos: TramoVideo[]) => Math.max(0.05, Math.min(0.25, ...tramos.map((t) => (t.fin - t.inicio) / 2)));
+
+/** Qué tramos van con plano cerrado: el alterno (uno sí, uno no) y los de las partes marcadas. */
+export function zoomDeTramos(tramos: TramoVideo[], an: Analisis | undefined, ed: Edicion): boolean[] {
+  const marcadas = (ed.motion?.zoomPartes ?? []).map((i) => an?.partes[i]).filter((p): p is TramoVideo => !!p);
+  return tramos.map((t, i) => (!!ed.motion?.zoomAlterno && i % 2 === 1) || marcadas.some((p) => { const m = (p.inicio + p.fin) / 2; return m >= t.inicio && m <= t.fin; }));
+}
+
+/** Duración del video final: lo que queda, menos lo que se solapa en los fundidos, más el cierre. */
+export function duracionFinal(tramos: TramoVideo[], ed: Edicion, conCierre: boolean) {
+  const base = duracionDe(tramos);
+  const solape = ed.motion?.transicion === "fundido" && tramos.length > 1 ? (tramos.length - 1) * duracionFundido(tramos) : 0;
+  return r3(base - solape + (conCierre && ed.marca?.cierre ? ed.marca.cierreSegundos : 0));
 }
 
 /**
  * Lo que identifica un resultado: si cambia, el video armado quedó viejo. El servidor y el navegador
  * calculan su huella (sha-256) sobre este mismo texto.
  */
-export function textoHuella(t: { edicion: Edicion; analisis?: Analisis; duracion?: number }, formato: string) {
-  return JSON.stringify({ e: edicionSegura(t.edicion, t.edicion), n: t.analisis?.partes.length ?? 0, d: t.duracion, formato });
+export function textoHuella(t: { edicion: Edicion; analisis?: Analisis; duracion?: number; marca?: string; kit?: string }, formato: string) {
+  return JSON.stringify({ e: edicionSegura(t.edicion, t.edicion), n: t.analisis?.partes.length ?? 0, d: t.duracion, formato, m: t.marca ?? "", k: t.kit ?? "" });
 }

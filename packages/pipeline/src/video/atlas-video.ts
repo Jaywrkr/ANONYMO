@@ -9,7 +9,7 @@ import { FORMATOS_VIDEO, type Analisis, type Edicion, type FormatoVideo, type Me
 
 /** Una acción que Atlas puede pedir. Campos planos: el modelo llena solo los que usa. */
 export interface AccionVideo {
-  tipo: "silencios" | "quitar" | "devolver" | "audio" | "armar";
+  tipo: "silencios" | "quitar" | "devolver" | "audio" | "zoom" | "transicion" | "marca" | "armar";
   activo?: boolean;
   pausaMax?: number;
   /** Para quitar/devolver: partes (números desde 1, como en las miniaturas, inclusive) o segundos del original. */
@@ -18,6 +18,15 @@ export interface AccionVideo {
   hasta?: number;
   normalizar?: boolean;
   limpiarRuido?: boolean;
+  /** zoom (sistema/65): "alterno" (en cada corte), "partes" (desde/hasta, números de parte), "quitar" (sin zoom en desde/hasta, o en todo si no hay desde) */
+  modo?: "alterno" | "partes" | "quitar";
+  /** transicion: corte seco o fundido corto. */
+  estilo?: "corte" | "fundido";
+  logoEsquina?: boolean;
+  cierre?: boolean;
+  cierreSegundos?: number;
+  musica?: boolean;
+  volumenMusica?: number;
   formatos?: FormatoVideo[];
 }
 
@@ -38,7 +47,9 @@ export interface ResultadoAtlas {
   noSePuede: string[];
 }
 
-type VideoParaAtlas = Pick<TrabajoVideo, "nombre" | "cliente" | "duracion" | "analisis" | "edicion"> & { conversacion?: MensajeVideo[] };
+/** Lo que Atlas sabe del kit de marca del video (sistema/65). */
+export interface KitParaAtlas { nombre: string; logo: boolean; musica?: string }
+type VideoParaAtlas = Pick<TrabajoVideo, "nombre" | "cliente" | "duracion" | "analisis" | "edicion"> & { conversacion?: MensajeVideo[]; kit?: KitParaAtlas };
 
 const seg = (n: number) => `${(Math.round(n * 10) / 10).toLocaleString("es")} s`;
 
@@ -58,8 +69,8 @@ function nombrePartes(indices: number[]) {
 }
 
 /** Aplica las acciones a la edición, sin IA. Lo que no tiene sentido se ignora y no se cuenta como cambio. */
-export function aplicarAcciones(base: Edicion, acciones: AccionVideo[], an: Analisis | undefined): { edicion: Edicion; cambios: string[]; armar: FormatoVideo[] } {
-  let e: Edicion = structuredClone(base);
+export function aplicarAcciones(base: Edicion, acciones: AccionVideo[], an: Analisis | undefined, kit?: KitParaAtlas): { edicion: Edicion; cambios: string[]; armar: FormatoVideo[] } {
+  let e: Edicion = edicionSegura(structuredClone(base), base);
   const cambios: string[] = [];
   const armar = new Set<FormatoVideo>();
   const n = an?.partes.length ?? 0;
@@ -87,6 +98,44 @@ export function aplicarAcciones(base: Edicion, acciones: AccionVideo[], an: Anal
       e = edicionSegura({ ...e, audio: { ...antes, ...(a.normalizar !== undefined ? { normalizar: a.normalizar } : {}), ...(a.limpiarRuido !== undefined ? { limpiarRuido: a.limpiarRuido } : {}) } }, e);
       if (e.audio.normalizar !== antes.normalizar) cambios.push(e.audio.normalizar ? "Volumen parejo" : "Volumen como viene");
       if (e.audio.limpiarRuido !== antes.limpiarRuido) cambios.push(e.audio.limpiarRuido ? "Limpiar ruido de fondo" : "Sin limpiar ruido");
+    } else if (a.tipo === "zoom") {
+      const antes = JSON.stringify(e.motion);
+      const rango = (): number[] => {
+        if (!an || !n || typeof a.desde !== "number") return [];
+        const ini = Math.max(1, Math.ceil(Math.min(a.desde, a.hasta ?? a.desde))), fin = Math.min(n, Math.floor(Math.max(a.desde, a.hasta ?? a.desde)));
+        return Array.from({ length: Math.max(0, fin - ini + 1) }, (_, k) => ini - 1 + k);
+      };
+      if (a.modo === "alterno") { e.motion = { ...e.motion, zoomAlterno: true }; if (JSON.stringify(e.motion) !== antes) cambios.push("Zoom en cada corte"); }
+      else if (a.modo === "partes") {
+        const r = rango().filter((i) => !e.motion.zoomPartes.includes(i));
+        if (r.length) { e.motion = { ...e.motion, zoomPartes: [...e.motion.zoomPartes, ...r].sort((x, y) => x - y) }; cambios.push(`Zoom en ${nombrePartes(r)}`); }
+      } else if (a.modo === "quitar") {
+        const r = typeof a.desde === "number" ? rango() : null;
+        const zp = r ? e.motion.zoomPartes.filter((i) => !r.includes(i)) : [];
+        e.motion = { ...e.motion, zoomAlterno: r ? e.motion.zoomAlterno : false, zoomPartes: zp };
+        if (JSON.stringify(e.motion) !== antes) cambios.push(r ? `Sin zoom en ${nombrePartes(r)}` : "Sin zoom");
+      }
+    } else if (a.tipo === "transicion" && (a.estilo === "corte" || a.estilo === "fundido")) {
+      if (e.motion.transicion !== a.estilo) { e.motion = { ...e.motion, transicion: a.estilo }; cambios.push(a.estilo === "fundido" ? "Fundido corto entre partes" : "Corte seco entre partes"); }
+    } else if (a.tipo === "marca") {
+      // Sin kit de marca no hay logo ni música que poner: no se cuenta como cambio (Atlas lo dice en noSePuede).
+      if (!kit) continue;
+      const antes = e.marca;
+      const pedido = {
+        ...(a.logoEsquina !== undefined && (kit.logo || !a.logoEsquina) ? { logoEsquina: a.logoEsquina } : {}),
+        ...(a.cierre !== undefined ? { cierre: a.cierre } : {}),
+        ...(typeof a.cierreSegundos === "number" ? { cierreSegundos: a.cierreSegundos } : {}),
+        ...(a.musica !== undefined && (kit.musica || !a.musica) ? { musica: a.musica } : {}),
+        ...(typeof a.volumenMusica === "number" ? { volumenMusica: a.volumenMusica } : {}),
+      };
+      e = edicionSegura({ ...e, marca: { ...antes, ...pedido } }, e);
+      const m = e.marca, l: string[] = [];
+      if (m.logoEsquina !== antes.logoEsquina) l.push(m.logoEsquina ? "logo en la esquina" : "sin logo en la esquina");
+      if (m.cierre !== antes.cierre) l.push(m.cierre ? `cierre de ${seg(m.cierreSegundos)} con ${kit.logo ? "el logo" : "el nombre"}` : "sin cierre");
+      else if (m.cierre && m.cierreSegundos !== antes.cierreSegundos) l.push(`cierre de ${seg(m.cierreSegundos)}`);
+      if (m.musica !== antes.musica) l.push(m.musica ? `música «${kit.musica}»` : "sin música");
+      if (m.volumenMusica !== antes.volumenMusica && m.musica) l.push(m.volumenMusica > antes.volumenMusica ? "música más alta" : "música más baja");
+      if (l.length) cambios.push(`Marca: ${l.join(", ")}`);
     } else if (a.tipo === "armar") {
       for (const f of a.formatos ?? []) if (FORMATOS_VIDEO.includes(f)) armar.add(f);
     }
@@ -103,9 +152,12 @@ Lo que se puede hacer hoy (acciones):
 - silencios: activo true/false; pausaMax en segundos (0,3 = ritmo muy rápido, 0,6 = ritmo de redes, 1,2 = pausado). «Corta los silencios» = activo true; «más dinámico» = bajar pausaMax.
 - quitar / devolver: partes enteras. unidad "parte" con desde/hasta = números de parte (desde 1, inclusive, como en las miniaturas), o unidad "segundo" con tiempos del video original. «Quita la parte del inicio» = las primeras partes donde la persona aún no empieza (se acomoda, mira fuera de cámara, partes muy cortas al arranque).
 - audio: normalizar (volumen parejo al nivel de redes), limpiarRuido (aire, ventilador).
+- zoom: modo "alterno" = en cada corte alterna plano normal y plano cerrado (el estilo de los videos hablados; disimula los saltos); modo "partes" con desde/hasta = plano cerrado en esas partes, para remarcar un momento (una frase clave, un gesto, el producto); modo "quitar" = sin zoom (con desde/hasta, solo en esas partes).
+- transicion: estilo "corte" (seco, lo normal en redes) o "fundido" (corto, más suave).
+- marca: usa el kit de marca del video. logoEsquina (logo chico arriba a la derecha), cierre (el video termina con el logo, o el nombre si no hay logo, sobre el color de la marca) y cierreSegundos (1 a 5), musica (la música de la marca, que baja sola cuando alguien habla) y volumenMusica (0,05 muy baja, 0,18 normal, 0,35 alta). Si el video no tiene marca, o la marca no tiene logo o música, dilo en noSePuede y explica que se elige o se sube en «Marcas».
 - armar: formatos ["9:16","1:1","16:9"] cuando pide el video final, exportar o descargar.
 
-Lo que todavía NO se puede (va en noSePuede, en palabras simples, y no inventes acciones para eso): subtítulos o texto en pantalla, zoom o acercamientos, logo, transiciones, música de fondo, cambiar el orden de las partes, efectos de color, cortar dentro de una parte o buscar una frase por lo que se dice (no hay transcripción).
+Lo que todavía NO se puede (va en noSePuede, en palabras simples, y no inventes acciones para eso): subtítulos o texto en pantalla, música que no sea la de la marca (no hay biblioteca de canciones), cambiar el orden de las partes, efectos de color, cortar dentro de una parte o buscar una frase por lo que se dice (no hay transcripción).
 
 Reglas:
 - Solo pide lo que Luna pidió. No cambies nada más «por las dudas».
@@ -129,7 +181,7 @@ const HERRAMIENTA = {
           additionalProperties: false,
           required: ["tipo"],
           properties: {
-            tipo: { type: "string", enum: ["silencios", "quitar", "devolver", "audio", "armar"] },
+            tipo: { type: "string", enum: ["silencios", "quitar", "devolver", "audio", "zoom", "transicion", "marca", "armar"] },
             activo: { type: "boolean" },
             pausaMax: { type: "number" },
             unidad: { type: "string", enum: ["parte", "segundo"] },
@@ -137,6 +189,13 @@ const HERRAMIENTA = {
             hasta: { type: "number" },
             normalizar: { type: "boolean" },
             limpiarRuido: { type: "boolean" },
+            modo: { type: "string", enum: ["alterno", "partes", "quitar"] },
+            estilo: { type: "string", enum: ["corte", "fundido"] },
+            logoEsquina: { type: "boolean" },
+            cierre: { type: "boolean" },
+            cierreSegundos: { type: "number" },
+            musica: { type: "boolean" },
+            volumenMusica: { type: "number" },
             formatos: { type: "array", items: { type: "string", enum: FORMATOS_VIDEO } },
           },
         },
@@ -160,6 +219,7 @@ export function mensajeAtlasVideo(pedido: string, t: VideoParaAtlas) {
     `# Video: ${t.nombre}${t.cliente ? ` (${t.cliente})` : ""}`,
     `Dura ${seg(t.duracion ?? 0)}; con la edición actual queda en ${seg(plan.duracion)}.`,
     `## Edición actual\n${JSON.stringify(t.edicion)}`,
+    `## Marca\n${t.kit ? `${t.kit.nombre}: ${t.kit.logo ? "tiene logo" : "sin logo (el cierre lleva el nombre)"}; ${t.kit.musica ? `música «${t.kit.musica}»` : "sin música"}.` : "Este video no tiene marca elegida: no hay logo ni música."}`,
     `## Partes (${an?.partes.length ?? 0})\n${partes}${sinImagen}`,
     previos ? `## Conversación reciente\n${previos}` : "",
     `## Pedido\n${pedido}`,
@@ -196,6 +256,6 @@ export async function interpretarPedidoVideo(pedido: string, t: VideoParaAtlas, 
   }
   if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Atlas no puede leer pedidos. Mientras tanto puedes editar a mano.");
   const r = leerRespuestaAtlas(crudo);
-  const { edicion, cambios, armar } = aplicarAcciones(t.edicion, r.acciones, t.analisis);
+  const { edicion, cambios, armar } = aplicarAcciones(t.edicion, r.acciones, t.analisis, t.kit);
   return { respuesta: r.respuesta, edicion, cambios, armar, noSePuede: r.noSePuede };
 }

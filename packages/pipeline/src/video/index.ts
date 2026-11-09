@@ -4,4 +4,5 @@ export * from "./edicion.ts";
 export * from "./almacen-video.ts";
 export * from "./proceso.ts";
 export * from "./atlas-video.ts";
-export { medirVideo, rutaFfmpeg, filtrosRender, leerMedida, leerSilencios, umbralSilencio, MEDIDAS } from "./ffmpeg.ts";
+export { medirVideo, rutaFfmpeg, filtrosRender, leerMedida, leerSilencios, umbralSilencio, MEDIDAS, type MarcaRender } from "./ffmpeg.ts";
+export * from "./marcas-video.ts";

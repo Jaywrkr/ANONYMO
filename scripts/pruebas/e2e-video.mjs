@@ -47,7 +47,7 @@ await p.screenshot({ path: join(capturas, "2-escuchando.png") });
 await p.locator("#titulo-partes").waitFor({ timeout: 60000 });
 await p.waitForLoadState("networkidle");
 exigir(await p.locator("[role=status]:has-text('dividimos el video en partes')").isVisible().catch(() => false), "dice que terminó de escuchar");
-const partes = p.locator("section[aria-labelledby=titulo-partes] li > button[aria-pressed]");
+const partes = p.locator("section[aria-labelledby=titulo-partes] li > button[aria-label^='Parte ']");
 exigir((await partes.count()) === 3, `encontró las 3 partes con sonido (${await partes.count()})`);
 const fondo = await partes.first().evaluate((b) => getComputedStyle(b).backgroundImage);
 exigir(/cuadros\.jpg/.test(fondo), "cada parte muestra su miniatura");
