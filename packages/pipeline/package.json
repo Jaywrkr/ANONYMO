@@ -14,6 +14,7 @@
     "@anonymo/agentes": "*",
     "@axe-core/playwright": "4.10.2",
     "@sparticuz/chromium": "141.0.0",
+    "ffmpeg-static": "5.3.0",
     "lighthouse": "12.8.2",
     "marked": "15.0.12",
     "playwright": "1.56.0"

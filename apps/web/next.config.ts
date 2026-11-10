@@ -9,7 +9,11 @@ const config: NextConfig = {
   transpilePackages: ["@anonymo/agentes", "@anonymo/pipeline"],
   // Herramientas pesadas del pipeline: se cargan desde node_modules, no se empaquetan.
   serverExternalPackages: ["playwright", "playwright-core", "lighthouse", "@axe-core/playwright", "@sparticuz/chromium"],
-  outputFileTracingIncludes: { "/trabajo/*": ["../../node_modules/@sparticuz/chromium/bin/**/*"] },
+  outputFileTracingIncludes: {
+    "/trabajo/*": ["../../node_modules/@sparticuz/chromium/bin/**/*"],
+    // Departamento de video (sistema/62): FFmpeg y la fuente de los números de las miniaturas.
+    "/estudio/video/*/paso": ["../../node_modules/ffmpeg-static/ffmpeg", "../../node_modules/ffmpeg-static/package.json", "../../packages/pipeline/src/video/fuentes/*"],
+  },
   reactStrictMode: true,
   // Precios en la web (web/12): solo si decides publicarlos (PRECIOS_PUBLICOS=1 y TARIFA_HORA).
   // Versión del estudio (sistema/34): hora del build y commit, para verlos en la esquina.

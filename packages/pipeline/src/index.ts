@@ -38,6 +38,8 @@ export * from "./encargos.ts";
 
 export * from "./piezas.ts";
 
+export * from "./video/index.ts";
+
 export * from "./estandar.ts";
 
 export * from "./diagnostico.ts";
@@ -52,3 +54,4 @@ export * from "./juez.ts";
 export * from "./banco.ts";
 export * from "./arquetipos.ts";
 export * from "./capturas-banco.ts";
+export * from "./video/index.ts";

@@ -13,6 +13,44 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'To turn thinking off on this model, send "thinking": {"type": "between_tools"}.' } }));
       return;
     }
+    // Como la API real: Sonnet 5.5 no acepta forzar una herramienta (sistema/63).
+    if (/sonnet-5-5/.test(cuerpo.model ?? "") && (cuerpo.tool_choice?.type === "tool" || cuerpo.tool_choice?.type === "any")) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
+      return;
+    }
+    // Atlas del departamento de video (sistema/63–64): lee el pedido con reglas simples y responde con la herramienta.
+    // Recibe la hoja de miniaturas como imagen y las partes numeradas en el texto.
+    if (cuerpo.system?.startsWith("Atlas, departamento de video")) {
+      const bloques = Array.isArray(cuerpo.messages?.[0]?.content) ? cuerpo.messages[0].content : [{ type: "text", text: String(cuerpo.messages?.[0]?.content ?? "") }];
+      const conImagen = bloques.some((b) => b.type === "image" && b.source?.media_type === "image/jpeg" && b.source.data?.length > 100);
+      const texto = bloques.find((b) => b.type === "text")?.text ?? "";
+      const pedido = (texto.split("## Pedido\n")[1] ?? "").toLowerCase();
+      const acciones = [], hecho = [], noSePuede = [];
+      if (/silencio|pausa/.test(pedido)) { acciones.push({ tipo: "silencios", activo: true, pausaMax: 0.6 }); hecho.push("corté los silencios"); }
+      if (/dinámico/.test(pedido)) { acciones.push({ tipo: "silencios", activo: true, pausaMax: 0.3 }); hecho.push("dejé el ritmo más rápido"); }
+      if (/inicio|arranque/.test(pedido)) { acciones.push({ tipo: "quitar", unidad: "parte", desde: 1, hasta: 1 }); hecho.push(conImagen ? "quité la parte 1, donde todavía no empieza" : "quité la parte 1"); }
+      if (/devuelve/.test(pedido)) { acciones.push({ tipo: "devolver", unidad: "parte", desde: 1, hasta: 99 }); hecho.push("devolví todas las partes"); }
+      if (/ruido/.test(pedido)) { acciones.push({ tipo: "audio", limpiarRuido: true }); hecho.push("limpié el ruido"); }
+      if (/subtítulo/.test(pedido)) noSePuede.push("Subtítulos: sin transcripción no hay texto que poner.");
+      // Fase 3 (sistema/65): motion y marca. La marca solo si el video tiene una con logo o música.
+      const marca = texto.split("## Marca\n")[1]?.split("\n")[0] ?? "";
+      if (/zoom/.test(pedido)) { acciones.push({ tipo: "zoom", modo: "alterno" }); hecho.push("puse zoom en cada corte"); }
+      if (/fundido/.test(pedido)) { acciones.push({ tipo: "transicion", estilo: "fundido" }); hecho.push("puse fundidos cortos"); }
+      if (/logo|música/.test(pedido)) {
+        if (/no tiene marca/.test(marca)) noSePuede.push("Logo y música: este video no tiene marca. Elígela en «Marca» o créala en «Marcas».");
+        else {
+          acciones.push({ tipo: "marca", ...(/logo/.test(pedido) ? { cierre: true, logoEsquina: /esquina/.test(pedido) } : {}), ...(/música/.test(pedido) ? { musica: true } : {}) });
+          hecho.push(/música/.test(pedido) ? "sumé la música de la marca" : "cerré con el logo");
+        }
+      }
+      const formatos = [...(/vertical|9:16/.test(pedido) ? ["9:16"] : []), ...(/tres formatos/.test(pedido) ? ["9:16", "1:1", "16:9"] : [])];
+      if (formatos.length) { acciones.push({ tipo: "armar", formatos: [...new Set(formatos)] }); hecho.push("armo el video final"); }
+      const respuesta = hecho.length ? `Listo: ${hecho.join(", ")}.` : "No entendí qué cambiar. ¿Me lo dices de otra forma?";
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_1", name: "editar_video", input: { respuesta, acciones, noSePuede } }], usage: { input_tokens: 900, output_tokens: 120 } }));
+      return;
+    }
     if(cuerpo.system?.startsWith('Comprobación de conexión ANONYMO.')){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({content:[{type:'text',text:'LISTO'}],usage:{input_tokens:10,output_tokens:2}}));return;}
     // Comparación a ciegas contra el banco (sistema/55): la pieza B siempre gana, con arreglos para las dos.
     if (cuerpo.system?.startsWith('Revisor de calidad.') && JSON.stringify(cuerpo.messages).includes('# Comparación a ciegas')) {
