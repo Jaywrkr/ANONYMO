@@ -117,7 +117,8 @@ function PiePublico() {
 
 /** Rutas internas: el estudio, su entrada y el portal del cliente no llevan el menú ni el pie de la web pública. */
 const esInterna = (ruta: string) => /^\/(estudio|entrar|imprimir)(\/|$)/.test(ruta);
-const esPortal = (ruta: string) => /^\/portal(\/|$)/.test(ruta);
+// La muestra para un prospecto (/m, sistema/72) es la web de otro negocio: sin el marco de ANONYMO.
+const esPortal = (ruta: string) => /^\/(portal|m)(\/|$)/.test(ruta);
 
 export function Encabezado() {
   const ruta = usePathname() ?? "";

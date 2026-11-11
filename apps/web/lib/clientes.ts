@@ -1,5 +1,5 @@
 // Ayudas del escritorio de Imán, clientes nuevos (sistema/66).
-import { ESTADOS_PROSPECTO, idFicha, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
+import { ESTADOS_PROSPECTO, idFicha, idMuestra, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
 
 export const mal = (error: string, status = 400) => Response.json({ error }, { status, headers: { "cache-control": "no-store" } });
@@ -12,9 +12,11 @@ export async function permiso() {
 }
 
 /** Lo que ve el navegador de cada negocio: ya puntuado, con su mensaje y su enlace de WhatsApp. */
-export function vistaProspecto(p: Prospecto, firma: string) {
+export function vistaProspecto(p: Prospecto, firma: string, base: string) {
   const { puntaje, motivos, buenaFama } = puntuar(p);
-  const mensaje = p.mensaje ?? mensajeInicial(p, firma);
+  // La muestra (sistema/72): su idea de web, en /m/<id>. El enlace va dentro del primer mensaje.
+  const muestra = `${base}/m/${idMuestra(p)}`;
+  const mensaje = p.mensaje ?? mensajeInicial(p, firma, new Date(), muestra);
   const ficha = idFicha(p.nombre);
   const q = new URLSearchParams({ q: pedidoDesdeProspecto(p), cliente: p.nombre.slice(0, 80), ficha, prospecto: p.id });
   // Tiene ficha cuando ya hay relación o se volvió pedido (sistema/70).
@@ -50,13 +52,18 @@ export function vistaProspecto(p: Prospecto, firma: string) {
     contactado: p.historial?.find((h) => h.que === "Pasó a «Contactado»")?.cuando,
     /** Lo que Sonda leyó en su web. */
     sonda: p.revision?.estado === "ok" ? p.revision.sonda : undefined,
+    muestra,
+    vistas: p.muestra?.vistas ?? 0,
+    ultimaVista: p.muestra?.ultima,
+    quiere: p.muestra?.quiere,
   };
 }
 export type VistaProspecto = ReturnType<typeof vistaProspecto>;
 
-export const vistaLista = (l: ListaProspectos) => ({
+export const vistaLista = (l: ListaProspectos, base: string) => ({
   firma: l.firma,
-  prospectos: Object.values(l.prospectos).map((p) => vistaProspecto(p, l.firma)),
+  numero: l.numero ?? "",
+  prospectos: Object.values(l.prospectos).map((p) => vistaProspecto(p, l.firma, base)),
 });
 export type VistaLista = ReturnType<typeof vistaLista>;
 

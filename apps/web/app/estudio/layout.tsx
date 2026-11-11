@@ -14,6 +14,9 @@ import { pendientes } from "@/lib/pendientes";
 import { Vigia } from "@/components/estudio/Vigia";
 import { momento } from "@/lib/camino";
 
+// El estudio se puede instalar en el celular (sistema/72): hace falta en iPhone para recibir avisos.
+export const metadata = { manifest: "/estudio.webmanifest", appleWebApp: { capable: true, title: "ANONYMO", statusBarStyle: "default" as const }, icons: { apple: "/estudio-180.png" } };
+
 // Todo el estudio vive dentro del marco: barra de espacios a la izquierda y el contenido en una tarjeta (sistema/32).
 export default async function LayoutEstudio({ children }: { children: React.ReactNode }) {
   const yo = await exigirEstudio();

@@ -56,11 +56,15 @@ export interface Prospecto {
   proyecto?: string;
   /** Lo que pasó con este negocio, en orden (sistema/70): lo muestra su ficha de cliente. */
   historial?: { cuando: string; que: string; por?: string }[];
+  /** Lo que pasó con su muestra (sistema/72): cuántas veces la abrió y si tocó «Quiero esta web». */
+  muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
 }
 
 export interface ListaProspectos {
   actualizado: string;
   firma: string;
+  /** El WhatsApp de ANONYMO (sistema/72): adonde escribe quien toca «Quiero esta web» en su muestra. */
+  numero?: string;
   prospectos: Record<string, Prospecto>;
 }
 

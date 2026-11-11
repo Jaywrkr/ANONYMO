@@ -13,6 +13,9 @@ cd "$R"
 ANONYMO_PROYECTOS="$T/semilla" node --experimental-strip-types "$D/semilla.ts"
 export ANONYMO_NUBE=1 SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_KEY=x SUPABASE_BUCKET=proyectos
 ANONYMO_PROYECTOS="$T/semilla" node --experimental-strip-types -e 'const { subirProyecto } = await import("./packages/pipeline/src/index.ts"); for (const id of ["clinica-sonrisa","cafe-lento","hotel-cuenca","dental-norte","_solicitudes"]) await subirProyecto(id); console.log("subido a la nube falsa");'
+# Avisos al celular (sistema/72): claves VAPID de un solo uso, creadas en cada arranque. Nada se guarda.
+read -r VAPID_PUBLICA VAPID_PRIVADA < <(node -e 'const k=require("web-push").generateVAPIDKeys();console.log(k.publicKey,k.privateKey)')
+export VAPID_PUBLICA VAPID_PRIVADA ANONYMO_AVISOS_PRUEBA=1
 cd apps/web
 (ANONYMO_PROYECTOS="$T/nube" ESTUDIO=1 ESTUDIO_CLAVE_JAY=prueba-clave-jay ESTUDIO_CLAVE_LUNA=prueba-clave-luna ESTUDIO_SECRETO=secreto-de-prueba-largo-123456789 PORTAL=1 TARIFA_HORA=35 ANTHROPIC_API_KEY=sk-ant-prueba-falsa ANTHROPIC_BASE_URL=http://127.0.0.1:45888 ANONYMO_PLAZO_MS=20000 ANONYMO_MARGEN_MS=2000 ANONYMO_CAPTURA_TIMEOUT_MS=5000 GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-clave-google-falsa} GOOGLE_PLACES_URL=${GOOGLE_PLACES_URL:-http://127.0.0.1:45999} nohup npx next start -p 3100 > "$T/next.log" 2>&1 &)
 sleep 4

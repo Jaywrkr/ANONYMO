@@ -2,6 +2,8 @@
 import { clavePlaces, GRUPOS_RUBRO, CIUDADES, leerProspectos, TANDA_DIARIA } from "@anonymo/pipeline";
 import { exigirEstudio, serif } from "@/lib/estudio";
 import { vistaLista, type VistaLista } from "@/lib/clientes";
+import { baseUrl } from "@/lib/base";
+import { clavePublicaAvisos } from "@/lib/avisos-celular";
 import { Cara } from "@/components/estudio/piezas";
 import { ClientesNuevos } from "@/components/estudio/clientes/ClientesNuevos";
 import { PestanasClientes } from "@/components/estudio/clientes/PestanasClientes";
@@ -11,9 +13,9 @@ export const metadata = { title: "Clientes nuevos — Estudio", robots: { index:
 
 export default async function Pagina() {
   await exigirEstudio();
-  let inicial: VistaLista = { firma: "", prospectos: [] };
+  let inicial: VistaLista = { firma: "", numero: "", prospectos: [] };
   let falla = "";
-  try { inicial = vistaLista(await leerProspectos()); } catch (e) { falla = (e as Error).message; }
+  try { inicial = vistaLista(await leerProspectos(), await baseUrl()); } catch (e) { falla = (e as Error).message; }
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
       <div className="flex items-center gap-4">
@@ -34,6 +36,7 @@ export default async function Pagina() {
         grupos={GRUPOS_RUBRO.map((g) => ({ id: g.id, nombre: g.nombre, busquedas: [...g.busquedas] }))}
         ciudades={Object.keys(CIUDADES)}
         tope={TANDA_DIARIA}
+        clavePublica={clavePublicaAvisos()}
       />
     </div>
   );

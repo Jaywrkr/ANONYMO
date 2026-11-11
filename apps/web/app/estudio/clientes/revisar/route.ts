@@ -1,6 +1,7 @@
 // Revisa la web de los negocios que faltan, de a varios por pedido (sistema/66). El navegador repite hasta que no quede ninguno.
 import { cambiarProspectos, leerProspectos, porRevisar, revisarWeb, type RevisionWeb } from "@anonymo/pipeline";
 import { mal, permiso, vistaLista } from "@/lib/clientes";
+import { baseUrl } from "@/lib/base";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -20,7 +21,7 @@ export async function POST() {
         if (x && x.web === web) x.revision = r;
       }
     });
-    return Response.json({ revisadas: hechas.length, quedan: porRevisar(lista).length, ...vistaLista(lista) }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ revisadas: hechas.length, quedan: porRevisar(lista).length, ...vistaLista(lista, await baseUrl()) }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return mal((e as Error).message, 502);
   }

@@ -52,7 +52,7 @@ export function puntuar(p: Prospecto, hoy = new Date()): Puntaje {
 const SALUD = /odont|dent|m[eé]dic|fisio|psic|derma|pediat|cl[ií]nica/i;
 
 /** El primer mensaje: corto, específico y con una muestra ofrecida. */
-export function mensajeInicial(p: Prospecto, firma: string, hoy = new Date()) {
+export function mensajeInicial(p: Prospecto, firma: string, hoy = new Date(), muestra?: string) {
   const r = p.revision;
   const fama = p.estrellas && p.resenas ? ` Tienen ${p.estrellas} estrellas con ${p.resenas} reseñas, se nota que hacen muy buen trabajo.` : "";
   let problema: string;
@@ -62,7 +62,9 @@ export function mensajeInicial(p: Prospecto, firma: string, hoy = new Date()) {
   else if (r?.estado === "ok" && !r.celular) problema = "Noté que su web no se adapta bien al celular, que es desde donde la mayoría los busca.";
   else if (r?.estado === "ok" && anioViejo(r.anio, hoy)) problema = `Noté que su web parece no actualizarse desde ${r.anio}.`;
   else problema = `Vi su web y creo que puede verse mucho más profesional y traerles más ${SALUD.test(p.rubro) ? "pacientes" : "clientes"}.`;
-  return `Hola, ¿qué tal? Vi ${p.nombre} en Google Maps.${fama} ${problema} Les preparé una idea de cómo podría verse su web. ¿Se la puedo enviar por aquí?\n\n${firma}`;
+  // Con muestra (sistema/72) el enlace va en el primer mensaje: es lo que hace que contesten.
+  const oferta = muestra ? `Les preparé una idea de cómo podría verse su web, sin compromiso: ${muestra}` : "Les preparé una idea de cómo podría verse su web. ¿Se la puedo enviar por aquí?";
+  return `Hola, ¿qué tal? Vi ${p.nombre} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}`;
 }
 
 /** Solo los dígitos, con el código de Ecuador: «099 123 4567» → «593991234567». */
