@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Espera } from "@/components/estudio/video/Espera";
 import type { VistaLista, VistaProspecto } from "@/lib/clientes";
+import { armarTanda, diaCuenca } from "@/lib/tanda";
+import { AhoraMismo } from "./AhoraMismo";
+import { AvisosCelular } from "./AvisosCelular";
 
 const ESTADOS: [VistaProspecto["estado"], string][] = [
   ["nuevo", "Nuevo"], ["contactado", "Contactado"], ["respondio", "Respondió"], ["reunion", "Reunión"], ["cliente", "Cliente"], ["descartado", "Descartado"],
@@ -26,11 +29,13 @@ async function pedir<T>(url: string, metodo: string, cuerpo?: unknown): Promise<
   return j;
 }
 
-export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope }: { inicial: VistaLista; hayClave: boolean; grupos: Grupo[]; ciudades: string[]; tope: number }) {
+export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clavePublica }: { inicial: VistaLista; hayClave: boolean; grupos: Grupo[]; ciudades: string[]; tope: number; clavePublica?: string }) {
   const [listo, setListo] = useState(false);
   const [lista, setLista] = useState(inicial.prospectos);
   const [firma, setFirma] = useState(inicial.firma);
   const [firmaEditada, setFirmaEditada] = useState(inicial.firma);
+  const [numero, setNumero] = useState(inicial.numero);
+  const [numeroEditado, setNumeroEditado] = useState(inicial.numero);
   const [ciudad, setCiudad] = useState(ciudades[0] ?? "Cuenca");
   const [elegidos, setElegidos] = useState(grupos.map((g) => g.id));
   const [otras, setOtras] = useState("");
@@ -110,18 +115,28 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope }: { 
     }
   }
 
+  async function guardarNumero() {
+    if (trabajo || numeroEditado.trim() === numero) return;
+    setAviso(null);
+    setTrabajo({ titulo: "Guardando el número", texto: "Las muestras llevan a este WhatsApp", desde: Date.now() });
+    try {
+      const j = await pedir<VistaLista>("/estudio/clientes/ajustes", "PATCH", { numero: numeroEditado });
+      setNumero(j.numero);
+      setNumeroEditado(j.numero);
+      setAviso({ ok: true, texto: j.numero ? "Número guardado. «Quiero esta web» en las muestras escribe a este WhatsApp." : "Número quitado." });
+    } catch (e) {
+      setAviso({ ok: false, texto: (e as Error).message });
+    } finally {
+      setTrabajo(null);
+    }
+  }
+
   const reemplazar = (p: VistaProspecto) => setLista((l) => l.map((x) => (x.id === p.id ? p : x)));
 
   // La tanda de hoy (sistema/71): Imán propone a quién escribir hoy, sin pasar del tope diario.
-  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" });
-  const diaDe = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" }) : "");
-  const enviadosHoy = lista.filter((p) => diaDe(p.contactado) === hoy).length;
-  const quedan = Math.max(0, tope - enviadosHoy);
-  const tanda = useMemo(() => new Set(lista
-    .filter((p) => p.estado === "nuevo" && p.revisada && p.whatsapp && p.puntaje >= 50)
-    .sort((a, b) => b.puntaje - a.puntaje || (b.resenas ?? 0) - (a.resenas ?? 0))
-    .slice(0, quedan)
-    .map((p) => p.id)), [lista, quedan]);
+  const { hoy, enviadosHoy, quedan, propuestos } = useMemo(() => armarTanda(lista, tope), [lista, tope]);
+  const tanda = useMemo(() => new Set(propuestos.map((p) => p.id)), [propuestos]);
+  const diaDe = diaCuenca;
 
   const vista = useMemo(() => lista
     .filter((p) => {
@@ -194,6 +209,8 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope }: { 
         </div>
       </section>
 
+      <AhoraMismo inicial={inicial.prospectos} />
+
       {aviso && <p role="status" className={`rounded-2xl p-4 text-[14px] ${aviso.ok ? "bg-[#e6f6ee] text-[#17714a]" : "bg-[#fde8e4] text-[#8a1c0c]"}`}>{aviso.texto}</p>}
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Resumen">
@@ -218,7 +235,10 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope }: { 
             <span className="font-medium">La tanda de hoy: {enviadosHoy} de {tope} enviados.</span>{" "}
             <span className="text-medio">{quedan ? `Imán te propone ${tanda.size} ${tanda.size === 1 ? "negocio" : "negocios"} con celular y buena oportunidad.` : "Llegaste al tope de hoy: mañana sigue la tanda."}</span>
           </p>
-          <p className="text-[12px] text-suave">Más de {tope} mensajes nuevos al día desde un número puede hacer que WhatsApp lo bloquee.</p>
+          {quedan > 0 && tanda.size > 0 && (
+            <Link href="/estudio/clientes/tanda" className="inline-flex min-h-11 items-center rounded-full bg-[#25d366] px-5 text-[14px] font-medium text-black">Empezar la tanda →</Link>
+          )}
+          <p className="w-full text-[12px] text-suave">Más de {tope} mensajes nuevos al día desde un número puede hacer que WhatsApp lo bloquee. Cada mensaje lleva el enlace a su muestra.</p>
         </section>
       )}
 
@@ -260,10 +280,18 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope }: { 
           <input value={firmaEditada} onChange={(e) => setFirmaEditada(e.target.value)} maxLength={120}
             className="min-h-11 rounded-xl bg-hueso/60 px-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
         </label>
+        <label className="grid gap-2">
+          <span className="text-[13px] font-medium">WhatsApp de ANONYMO</span>
+          <input value={numeroEditado} onChange={(e) => setNumeroEditado(e.target.value)} maxLength={20} inputMode="tel" placeholder="099 123 4567"
+            className="min-h-11 rounded-xl bg-hueso/60 px-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
+          <span className="text-[12px] text-suave">El número aparte desde el que escribes. Quien toca «Quiero esta web» en su muestra te escribe aquí.</span>
+        </label>
         <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={guardarNumero} disabled={!listo || !!trabajo || numeroEditado.trim() === numero} className={botonChico}>Guardar número</button>
           <button type="button" onClick={guardarFirma} disabled={!listo || !!trabajo || firmaEditada.trim() === firma} className={botonChico}>Guardar firma</button>
           <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico}>Bajar la lista (CSV)</button>
         </div>
+        <AvisosCelular clavePublica={clavePublica} />
         <p className="text-[12px] text-suave">La lista vive en la nube privada del estudio: Jay y Luna ven la misma.</p>
       </section>
     </div>
@@ -325,6 +353,8 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
                 {p.tipoWeb === "ok" && !p.motivos.length && <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{TIPO_WEB.ok}, sin problemas claros</span>}
                 {p.motivos.map((m) => <span key={m} className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{m}</span>)}
                 {p.buenaFama && <span className="rounded-md bg-[#fff1d6] px-2 py-0.5 text-[11px] text-[#8a5a00]">Muy buena fama</span>}
+                {p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
+                  : p.vistas > 0 && <span className="rounded-md bg-[#e6f6ee] px-2 py-0.5 text-[11px] text-[#17714a]">Vio su muestra {p.vistas === 1 ? "1 vez" : `${p.vistas} veces`}</span>}
               </>
             )}
           </div>
@@ -340,6 +370,7 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
           </a>
         ) : <span className="inline-flex min-h-9 items-center rounded-full bg-hueso px-3 text-[13px] text-suave">Sin teléfono</span>}
         <button type="button" onClick={copiar} disabled={ocupado} className={botonChico}>{copiado ? "Copiado ✓" : "Copiar mensaje"}</button>
+        <a href={p.muestra} target="_blank" rel="noreferrer" className={botonChico}>Su muestra ↗</a>
         {p.mapa && <a href={p.mapa} target="_blank" rel="noreferrer" className={botonChico}>Mapa</a>}
         {p.web && <a href={p.web} target="_blank" rel="noreferrer" className={botonChico}>Su web</a>}
         <select value={p.estado} disabled={ocupado} aria-label="Estado"

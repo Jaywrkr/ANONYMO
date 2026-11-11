@@ -10,7 +10,17 @@ Recorrido: prospecto → «Convertir en pedido» → el proyecto nace con `pedid
 
 - Clientes → Nuevos abre en **«La tanda de hoy»**: los negocios nuevos con celular y puntaje de 50 o más, los mejores primero, hasta completar 20 mensajes en el día (hora de Cuenca). Arriba dice cuántos van. Al llegar a 20, las tarjetas nuevas muestran «Tope de hoy» en lugar de WhatsApp. El tope es `TANDA_DIARIA` en `packages/pipeline/src/prospectos/tipos.ts`. Los demás filtros siguen en el selector.
 - Al revisar una web, **Sonda** guarda cómo se describe el negocio (meta description), de qué habla (títulos h1 y h2) y sus redes (`revision.sonda`). Se ve en «Más» → «Lo que Sonda vio en su web» y sirve para escribir un mensaje que no suene genérico.
-- Pendiente: la muestra automática (una portada de ejemplo para cada prospecto).
+
+## La muestra, el aviso y la tanda de celular (sistema/72)
+
+- **La muestra**: cada prospecto tiene una idea de su web en `/m/<nombre>-<huella>` (pública, sin índice en Google). Se arma sin IA con lo que ya se sabe: nombre, rubro, ciudad, dirección, teléfono, estrellas, y lo que Sonda leyó en su web (cómo se describe y de qué habla). Lo que no se sabe va como texto de ejemplo y la página lo dice. No usa fotos ni reseñas de Google. Los colores salen del rubro (salud, legal, belleza, otro). Si el prospecto se descarta, la muestra deja de abrirse.
+- **El primer mensaje lleva el enlace**: «Les preparé una idea de cómo podría verse su web, sin compromiso: …».
+- **El aviso**: cuando el negocio la abre, se anota en su historial («Abrió su muestra», «Volvió a ver su muestra») y suena el celular de quienes activaron «Avisarme en este celular». Recargar no vuelve a avisar (30 minutos de pausa). Si la abre Jay o Luna con sesión, no cuenta. La vista previa de WhatsApp tampoco: solo cuenta un navegador de verdad.
+- **«Quiero esta web»**: la barra de abajo de la muestra dice plazo y precio (de `docs/oferta.md`) y abre el WhatsApp de ANONYMO (Ajustes → «WhatsApp de ANONYMO») con el mensaje listo. Es la señal más fuerte: avisa y queda primera en «Ahora mismo».
+- **Ahora mismo**: arriba del escritorio y de la tanda, quién está viendo su muestra (última media hora) y quién quiere su web, con Llamar y WhatsApp. Se actualiza solo cada medio minuto.
+- **La tanda de celular** (`/estudio/clientes/tanda`): un negocio por pantalla, el de más puntaje primero, con su muestra y el mensaje. «Enviar por WhatsApp» abre el chat y lo marca como contactado; «Saltar» lo deja para el final; «Descartar» lo saca. Respeta el tope de 20 al día.
+- **Avisos al celular**: Web Push. En Android basta Chrome. En iPhone hay que agregar el estudio a la pantalla de inicio (Compartir → «Agregar a inicio») y activarlo desde ahí. Las claves son `VAPID_PUBLICA` y `VAPID_PRIVADA` (`npx web-push generate-vapid-keys`); los celulares quedan en `_avisos/lista/celulares.json` en la nube privada.
+- Código: `packages/pipeline/src/prospectos/muestra.ts`, `packages/pipeline/src/avisos-celular.ts`, `packages/pipeline/src/oferta.ts`, `apps/web/app/m/[id]/`, `apps/web/app/estudio/clientes/tanda/`, `apps/web/app/estudio/avisos/`, `apps/web/lib/tanda.ts`, `apps/web/lib/avisos-celular.ts`. Pruebas: `test/muestra.test.ts` y `scripts/pruebas/e2e-muestra.mjs` (en una nube recién levantada).
 
 # Clientes nuevos (sistema/66)
 

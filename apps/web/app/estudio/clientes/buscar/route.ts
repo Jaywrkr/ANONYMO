@@ -1,6 +1,7 @@
 // Imán busca un rubro en Google Maps y suma lo que encuentra a la lista (sistema/66). Una búsqueda por pedido.
 import { buscarLugares, CIUDADES, cambiarProspectos, sumarLugares } from "@anonymo/pipeline";
 import { mal, permiso, vistaLista } from "@/lib/clientes";
+import { baseUrl } from "@/lib/base";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
   try {
     const lugares = await buscarLugares(busqueda, ciudad, Number(c.paginas) || 1);
     const { lista, valor: nuevos } = await cambiarProspectos((l) => sumarLugares(l, lugares, busqueda, ciudad, p.yo!));
-    return Response.json({ encontrados: lugares.length, nuevos, ...vistaLista(lista) }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ encontrados: lugares.length, nuevos, ...vistaLista(lista, await baseUrl()) }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return mal((e as Error).message, 502);
   }

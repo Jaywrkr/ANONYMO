@@ -1,6 +1,7 @@
 // Cambia el estado, las notas o el mensaje de un negocio (sistema/66).
 import { aplicarCambio, cambiarProspectos, ESTADOS_PROSPECTO, type CambioProspecto, type EstadoProspecto } from "@anonymo/pipeline";
 import { mal, permiso, vistaProspecto } from "@/lib/clientes";
+import { baseUrl } from "@/lib/base";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return x;
     });
     if (!x) return mal("No encontramos ese negocio. Recarga la página.", 404);
-    return Response.json({ prospecto: vistaProspecto(x, lista.firma) }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ prospecto: vistaProspecto(x, lista.firma, await baseUrl()) }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return mal((e as Error).message, 502);
   }

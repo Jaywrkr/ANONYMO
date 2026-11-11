@@ -57,3 +57,5 @@ export * from "./capturas-banco.ts";
 export * from "./video/index.ts";
 export * from "./prospectos/index.ts";
 export * from "./clientes/index.ts";
+export * from "./oferta.ts";
+export * from "./avisos-celular.ts";

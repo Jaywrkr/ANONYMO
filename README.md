@@ -8,7 +8,7 @@ El repo tiene tres cosas:
 2. **El estudio**: el panel interno, con sus departamentos:
    - **Proyectos** (marca y web): Jay y Luna cargan un pedido, Atlas arma el plan y los agentes trabajan hasta entregar.
    - **Video**: Luna sube un video, se divide en partes y se entrega en 9:16, 1:1 o 16:9 con la marca del cliente ([docs/video.md](docs/video.md)).
-   - **Clientes**: la cartera con una ficha por cliente (de dónde vino, pedidos, proyectos, videos, marca, historia y notas) y «Nuevos», donde Imán busca negocios con buena fama y mala web y deja el mensaje de WhatsApp listo, en una tanda de 20 al día como máximo y con lo que Sonda vio en cada web ([docs/clientes.md](docs/clientes.md)).
+   - **Clientes**: la cartera con una ficha por cliente (de dónde vino, pedidos, proyectos, videos, marca, historia y notas) y «Nuevos», donde Imán busca negocios con buena fama y mala web y deja el mensaje de WhatsApp listo, en una tanda de 20 al día como máximo, con lo que Sonda vio en cada web y con una muestra de su web nueva que avisa al celular cuando la abren ([docs/clientes.md](docs/clientes.md)).
    - Por construir: contenido mensual por cliente (ver el mapa).
 3. **El pipeline**: el motor que hace trabajar a los agentes con Claude, guarda todo y maneja revisiones, pausas, jurado y nube.
 
@@ -131,6 +131,8 @@ Todas están explicadas en `.env.example`. Las principales:
 | `TARIFA_HORA` | Precio por hora para presupuesto y propuesta |
 | `RESEND_API_KEY`, `AVISOS_CORREO`, `AVISOS_WEBHOOK` | Avisos por correo o webhook |
 | `GOOGLE_PLACES_API_KEY` | Clientes nuevos: búsqueda en Google Maps (Places API nueva) |
+| `VAPID_PUBLICA`, `VAPID_PRIVADA`, `VAPID_CORREO` | Avisos al celular cuando un negocio abre su muestra. Se crean con `npx web-push generate-vapid-keys` |
+| `ANONYMO_URL` | Dirección pública del estudio para los enlaces que salen por WhatsApp (si no, la del navegador) |
 | `ANONYMO_PLAZO_MS`, `ANONYMO_MARGEN_MS` | Duración de cada vuelta (pruebas) |
 
 Las claves las pone Jay en Vercel. Nunca se escriben en el código, en el chat ni en el registro.
