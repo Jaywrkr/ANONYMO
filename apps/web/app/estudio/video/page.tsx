@@ -10,8 +10,9 @@ export const metadata = { title: "Video — Estudio", robots: { index: false } }
 const ESTADO: Record<TrabajoVideo["estado"], string> = { subiendo: "Sin terminar de subir", subido: "Por escuchar", analizado: "Listo para editar", error: "Con un problema" };
 const fecha = (iso: string) => new Date(iso).toLocaleString("es-EC", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guayaquil" });
 
-export default async function Pagina() {
+export default async function Pagina({ searchParams }: { searchParams: Promise<{ cliente?: string }> }) {
   await exigirEstudio();
+  const { cliente } = await searchParams;
   let videos: TrabajoVideo[] = [];
   let falla = "";
   try { videos = await listarVideos(); } catch (e) { falla = (e as Error).message; }
@@ -20,7 +21,7 @@ export default async function Pagina() {
       <h1 className={`${serif} text-[40px] leading-none`}>Video.</h1>
       <p className="mt-3 max-w-2xl text-[15px] text-medio">Sube un video de alguien hablando o haciendo algo. Lo escuchamos para quitar los silencios, lo dividimos en partes que puedes quitar con un toque, Atlas hace lo que le pidas y lo entregamos en 9:16, 1:1 o 16:9.</p>
       <p className="mt-3"><Link href="/estudio/video/marcas" className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Marcas: logo, colores y música de cada cliente →</Link></p>
-      <SubirVideo maxMb={Math.round(MAX_VIDEO / 1024 / 1024)} />
+      <SubirVideo maxMb={Math.round(MAX_VIDEO / 1024 / 1024)} cliente={cliente?.slice(0, 80)} />
       <h2 className="mt-10 text-[13px] text-suave">Videos</h2>
       {falla && <p role="alert" className="mt-2 text-[14px] text-[#a33a0b]">No se pudo leer la lista: {falla}</p>}
       {!videos.length && !falla && <p className="mt-2 text-[14px] text-medio">Todavía no hay videos.</p>}

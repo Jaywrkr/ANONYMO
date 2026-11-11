@@ -59,7 +59,7 @@ try {
   await p.waitForURL(/estudio\/banco/);
   exigir(await p.locator("aside details").evaluate((d) => d.open), "en el banco, el Taller queda abierto");
   const orden = await p.locator("aside nav > div.grid").first().locator("a").allInnerTexts();
-  exigir(/Clientes nuevos/.test(orden.join("|")) && /Video/.test(orden.join("|")), "los departamentos están arriba en el menú");
+  exigir(/Clientes/.test(orden.join("|")) && /Video/.test(orden.join("|")), "los departamentos están arriba en el menú");
   await p.screenshot({ path: join(capturas, "1-menu.png") });
 
   // 5 · Celular: barra de abajo, Atlas desde la barra, nada se sale de 390 px.

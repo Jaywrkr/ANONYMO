@@ -1,10 +1,18 @@
+# Clientes (sistema/66 y 70)
+
+## La ficha de cada cliente (sistema/70)
+
+Menú → **Clientes** abre la cartera. Cada ficha se arma sola uniendo, por el nombre del cliente o por el enlace guardado: el prospecto de Imán (si respondió, tiene reunión, es cliente o se volvió pedido), sus pedidos y proyectos (menos los de la papelera), sus videos y su kit de marca. A mano se agregan teléfono, correo, web, notas y otros nombres (alias): lo que tenga uno de esos nombres entra a la misma ficha. Código en `packages/pipeline/src/clientes/`; lo escrito a mano vive en `_clientes/lista/fichas.json` en la nube privada.
+
+Recorrido: prospecto → «Convertir en pedido» → el proyecto nace con `pedido.ficha` y el prospecto pasa a «Cliente» con el id del proyecto → el proyecto tiene «Ficha de…» → la ficha muestra todo y su historia → desde el prospecto, «Ver el proyecto» y «Ficha del cliente».
+
 # Clientes nuevos (sistema/66)
 
 El escritorio de **Imán** (Ventas) dentro del estudio. Busca negocios que necesitan una web y deja listo el primer mensaje.
 
 ## Cómo se usa
 
-1. Menú → **Clientes nuevos**.
+1. Menú → **Clientes** → pestaña **Nuevos · Imán**.
 2. Elige ciudad y rubros (Salud, Legal y contable, Belleza y bienestar) o escribe otras búsquedas separadas por coma.
 3. «Que Imán busque»: por cada búsqueda trae hasta 20 negocios de Google Maps (60 con «Más resultados»). Después revisa la web de cada uno.
 4. La lista sale ordenada por puntaje. Filtra por tipo de web, estado, puntaje o «Solo con celular».
@@ -27,7 +35,7 @@ Reputación: 4,5 estrellas o más con 20 reseñas o más, +15 («Muy buena fama�
 ## Dónde vive
 
 - Lista: `_prospectos/lista/lista.json` en la nube privada (en tu máquina, `proyectos/_prospectos/`). Nunca en el repo: son negocios reales.
-- Rutas: `/estudio/clientes` (página), `/buscar` (una búsqueda), `/revisar` (8 webs por vez; el navegador repite hasta terminar), `/[id]` (estado, notas, mensaje), `/ajustes` (firma).
+- Rutas: `/estudio/clientes/nuevos` (página), `/buscar` (una búsqueda), `/revisar` (8 webs por vez; el navegador repite hasta terminar), `/[id]` (estado, notas, mensaje), `/ajustes` (firma).
 - La revisión de webs no abre navegador: baja el HTML con `fetch` y busca viewport, título, generador, año del copyright y tiempo de respuesta.
 
 ## Clave

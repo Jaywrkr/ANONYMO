@@ -20,12 +20,13 @@ function subir(url: string, archivo: File, avance: (p: number) => void) {
   });
 }
 
-export function SubirVideo({ maxMb }: { maxMb: number }) {
+export function SubirVideo({ maxMb, cliente: clienteInicial = "" }: { maxMb: number; cliente?: string }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [listo, setListo] = useState(false);
   const [archivo, setArchivo] = useState<File | null>(null);
-  const [cliente, setCliente] = useState("");
+  // Desde la ficha de un cliente llega con su nombre puesto (sistema/70).
+  const [cliente, setCliente] = useState(clienteInicial);
   const [pedido, setPedido] = useState("");
   const [encima, setEncima] = useState(false);
   const [subiendo, setSubiendo] = useState<{ desde: number; avance: number; texto: string } | null>(null);

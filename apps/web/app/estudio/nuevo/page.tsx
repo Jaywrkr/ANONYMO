@@ -12,9 +12,9 @@ export const maxDuration = 60;
 export const metadata = { title: "Nuevo pedido — Estudio", robots: { index: false } };
 
 // Jay o Luna cuentan lo que hablaron con el cliente, en sus palabras. Atlas decide el resto.
-export default async function NuevoProyecto({ searchParams }: { searchParams: Promise<{ error?: string; q?: string; cliente?: string }> }) {
+export default async function NuevoProyecto({ searchParams }: { searchParams: Promise<{ error?: string; q?: string; cliente?: string; ficha?: string; prospecto?: string }> }) {
   const yo = await exigirEstudio();
-  const { error, q, cliente } = await searchParams;
+  const { error, q, cliente, ficha, prospecto } = await searchParams;
   const enLinea = nubeActiva();
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
@@ -42,6 +42,9 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
 
         <form action={accionNuevoProyecto} className="mt-8 grid gap-7">
           <Contar inicial={q?.trim() ?? ""} />
+          {/* De qué ficha y de qué prospecto viene el pedido (sistema/70): así el proyecto queda unido a su cliente. */}
+          {ficha && /^[a-z0-9-]{1,60}$/.test(ficha) && <input type="hidden" name="ficha" value={ficha} />}
+          {prospecto && <input type="hidden" name="prospecto" value={prospecto.slice(0, 200)} />}
 
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid content-start gap-2">

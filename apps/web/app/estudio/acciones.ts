@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
 import { agregarReferencia, retirarReferencia, prepararEncargo, aplicarEncargo, cambiarMejora, type AccionEncargo, pedirControl, anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
+import { aplicarCambio as cambioProspecto, cambiarProspectos, idFicha } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
@@ -278,7 +279,9 @@ export async function accionNuevoProyecto(f: FormData) {
     const base = slug(cliente);
     let id = base;
     for (let i = 2; usados.has(id) || existe(id); i++) id = `${base}-${i}`;
-    const pedido: Pedido = { id, cliente, tipo: l.tipo, descripcion: texto, contexto: l.contexto, idioma: l.idioma, plantilla: l.plantilla, creado: new Date().toISOString() };
+    // La ficha del cliente (sistema/70): la que mandó el formulario o la que corresponde a su nombre.
+    const ficha = /^[a-z0-9-]{1,60}$/.test(String(f.get("ficha") ?? "")) ? String(f.get("ficha")) : idFicha(cliente);
+    const pedido: Pedido = { id, cliente, ficha, tipo: l.tipo, descripcion: texto, contexto: l.contexto, idioma: l.idioma, plantilla: l.plantilla, creado: new Date().toISOString() };
     await conNube([id], async () => {
       const plan = planificar(pedido, l.eleccion);
       crear(pedido, plan, "plan");
@@ -286,6 +289,11 @@ export async function accionNuevoProyecto(f: FormData) {
       // Los archivos entran antes de que trabajen: así los agentes los ven desde la primera entrega.
       for (const a of archivos) guardarArchivo(id, a.name, a.datos, `Subido por ${quienN} al crear el proyecto`);
     });
+    // Si vino de Clientes nuevos, el prospecto queda como cliente y unido a este proyecto.
+    const prospecto = String(f.get("prospecto") ?? "");
+    if (prospecto) {
+      await cambiarProspectos((l) => { const x = l.prospectos[prospecto]; if (x) cambioProspecto(x, { estado: "cliente", proyecto: id }, yo); }).catch((e) => console.error("[pedido] no se pudo unir el prospecto:", (e as Error).message));
+    }
     destino = `/estudio/${id}`;
   } catch (e) {
     // Lo que escribió vuelve a la caja: no se pierde por un error.

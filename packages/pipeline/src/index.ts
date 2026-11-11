@@ -56,3 +56,4 @@ export * from "./arquetipos.ts";
 export * from "./capturas-banco.ts";
 export * from "./video/index.ts";
 export * from "./prospectos/index.ts";
+export * from "./clientes/index.ts";
