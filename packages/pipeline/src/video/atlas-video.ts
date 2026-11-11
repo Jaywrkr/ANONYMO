@@ -1,4 +1,4 @@
-// Atlas en el departamento de video (sistema/63; sin transcripción desde sistema/64): Luna escribe lo que quiere
+// El departamento de video (sistema/63; sin transcripción desde sistema/64; edita Corte desde sistema/71): Luna escribe lo que quiere
 // y Atlas lo convierte en acciones sobre el JSON de edición. Atlas no oye el video: ve una hoja con una miniatura
 // numerada por parte y sabe cuánto dura cada parte y cuánto silencio hay entre ellas.
 // La IA solo elige las acciones; aplicarlas es cálculo puro (`aplicarAcciones`), así lo que se ve en la vista
@@ -49,7 +49,7 @@ export interface ResultadoAtlas {
 
 /** Lo que Atlas sabe del kit de marca del video (sistema/65). */
 export interface KitParaAtlas { nombre: string; logo: boolean; musica?: string }
-type VideoParaAtlas = Pick<TrabajoVideo, "nombre" | "cliente" | "duracion" | "analisis" | "edicion"> & { conversacion?: MensajeVideo[]; kit?: KitParaAtlas };
+type VideoParaAtlas = Pick<TrabajoVideo, "nombre" | "cliente" | "duracion" | "analisis" | "edicion"> & { conversacion?: MensajeVideo[]; kit?: KitParaAtlas; guion?: string };
 
 const seg = (n: number) => `${(Math.round(n * 10) / 10).toLocaleString("es")} s`;
 
@@ -143,7 +143,7 @@ export function aplicarAcciones(base: Edicion, acciones: AccionVideo[], an: Anal
   return { edicion: edicionSegura(e, base), cambios, armar: [...armar] };
 }
 
-export const SISTEMA_ATLAS_VIDEO = `Atlas, departamento de video de ANONYMO.
+export const SISTEMA_ATLAS_VIDEO = `Corte, editor de video de ANONYMO: ritmo puro, si aburre se corta. Atlas te pasa el pedido.
 Luna (o Jay) te escribe lo que quiere de un video filmado (una persona hablando o haciendo algo) y tú lo conviertes en acciones de edición. Respondes siempre con la herramienta «editar_video».
 
 Qué sabes del video: no lo escuchas ni tienes transcripción. Tienes la lista de sus partes (cada tramo con voz o sonido entre dos silencios: inicio, fin, duración y el silencio que viene antes) y una hoja con una miniatura por parte, numeradas desde 1 en el mismo orden. Usa la imagen para entender qué pasa en cada parte (si se ve la persona, si mira a cámara, si está acomodándose, si hay pantalla en negro).
@@ -214,13 +214,14 @@ export function mensajeAtlasVideo(pedido: string, t: VideoParaAtlas) {
     ? an.partes.map((p, i) => `${i + 1}. ${p.inicio.toFixed(1)}–${p.fin.toFixed(1)} s (dura ${(p.fin - p.inicio).toFixed(1)} s; silencio antes ${(p.inicio - (i ? an.partes[i - 1].fin : 0)).toFixed(1)} s)${quitadas.has(i) ? " [QUITADA]" : ""}`).join("\n")
     : "(sin analizar)";
   const sinImagen = an && an.partes.length > (an.cuadros?.total ?? 0) ? `\nLa hoja muestra solo las primeras ${an.cuadros?.total ?? 0} partes.` : "";
-  const previos = (t.conversacion ?? []).slice(-8).map((m) => `${m.quien === "atlas" ? "Atlas" : "Luna"}: ${m.texto}`).join("\n");
+  const previos = (t.conversacion ?? []).slice(-8).map((m) => `${m.quien === "atlas" ? "Corte" : "Luna"}: ${m.texto}`).join("\n");
   return [
     `# Video: ${t.nombre}${t.cliente ? ` (${t.cliente})` : ""}`,
     `Dura ${seg(t.duracion ?? 0)}; con la edición actual queda en ${seg(plan.duracion)}.`,
     `## Edición actual\n${JSON.stringify(t.edicion)}`,
     `## Marca\n${t.kit ? `${t.kit.nombre}: ${t.kit.logo ? "tiene logo" : "sin logo (el cierre lleva el nombre)"}; ${t.kit.musica ? `música «${t.kit.musica}»` : "sin música"}.` : "Este video no tiene marca elegida: no hay logo ni música."}`,
     `## Partes (${an?.partes.length ?? 0})\n${partes}${sinImagen}`,
+    t.guion ? `## Guion de Faro (lo que se quería decir; úsalo para decidir qué partes sobran y el orden)\n${t.guion}` : "",
     previos ? `## Conversación reciente\n${previos}` : "",
     `## Pedido\n${pedido}`,
   ].filter(Boolean).join("\n\n");
@@ -242,7 +243,7 @@ export function leerRespuestaAtlas(x: unknown): RespuestaAtlasVideo {
  */
 export async function interpretarPedidoVideo(pedido: string, t: VideoParaAtlas, hoja?: Uint8Array): Promise<ResultadoAtlas> {
   const limpio = pedido.trim().slice(0, 2000);
-  if (!limpio) throw new Error("Escribe qué quieres que haga Atlas con el video.");
+  if (!limpio) throw new Error("Escribe qué quieres que haga Corte con el video.");
   if (!t.analisis) throw new Error("Primero hay que escuchar el video.");
   const texto = mensajeAtlasVideo(limpio, t);
   const contenido = hoja?.length
@@ -252,9 +253,9 @@ export async function interpretarPedidoVideo(pedido: string, t: VideoParaAtlas, 
   try {
     crudo = await pedirEstructura<RespuestaAtlasVideo>(SISTEMA_ATLAS_VIDEO, contenido, HERRAMIENTA, 2500);
   } catch (e) {
-    throw new Error(`Atlas no pudo leer el pedido: ${(e as Error).message}`);
+    throw new Error(`Corte no pudo leer el pedido: ${(e as Error).message}`);
   }
-  if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Atlas no puede leer pedidos. Mientras tanto puedes editar a mano.");
+  if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Corte no puede leer pedidos. Mientras tanto puedes editar a mano.");
   const r = leerRespuestaAtlas(crudo);
   const { edicion, cambios, armar } = aplicarAcciones(t.edicion, r.acciones, t.analisis, t.kit);
   return { respuesta: r.respuesta, edicion, cambios, armar, noSePuede: r.noSePuede };

@@ -46,6 +46,10 @@ export function vistaProspecto(p: Prospecto, firma: string) {
     ficha: conFicha ? `/estudio/cliente/${ficha}` : undefined,
     proyecto: p.proyecto ? `/estudio/${p.proyecto}` : undefined,
     actualizado: p.actualizado,
+    /** Cuándo se le escribió por primera vez (sistema/71): cuenta para la tanda del día. */
+    contactado: p.historial?.find((h) => h.que === "Pasó a «Contactado»")?.cuando,
+    /** Lo que Sonda leyó en su web. */
+    sonda: p.revision?.estado === "ok" ? p.revision.sonda : undefined,
   };
 }
 export type VistaProspecto = ReturnType<typeof vistaProspecto>;

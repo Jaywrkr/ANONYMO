@@ -26,7 +26,7 @@ async function pedir<T>(url: string, metodo: string, cuerpo?: unknown): Promise<
   return j;
 }
 
-export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicial: VistaLista; hayClave: boolean; grupos: Grupo[]; ciudades: string[] }) {
+export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope }: { inicial: VistaLista; hayClave: boolean; grupos: Grupo[]; ciudades: string[]; tope: number }) {
   const [listo, setListo] = useState(false);
   const [lista, setLista] = useState(inicial.prospectos);
   const [firma, setFirma] = useState(inicial.firma);
@@ -37,7 +37,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicia
   const [mas, setMas] = useState(false);
   const [trabajo, setTrabajo] = useState<Trabajo | null>(null);
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
-  const [filtro, setFiltro] = useState({ web: "todas", estado: "activos", minimo: 0, celular: false, texto: "" });
+  const [filtro, setFiltro] = useState({ web: "todas", estado: inicial.prospectos.length ? "tanda" : "activos", minimo: 0, celular: false, texto: "" });
   // Hasta que la página está lista, los botones no responden: nunca un clic sin respuesta.
   useEffect(() => setListo(true), []);
 
@@ -112,20 +112,32 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicia
 
   const reemplazar = (p: VistaProspecto) => setLista((l) => l.map((x) => (x.id === p.id ? p : x)));
 
+  // La tanda de hoy (sistema/71): Imán propone a quién escribir hoy, sin pasar del tope diario.
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" });
+  const diaDe = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" }) : "");
+  const enviadosHoy = lista.filter((p) => diaDe(p.contactado) === hoy).length;
+  const quedan = Math.max(0, tope - enviadosHoy);
+  const tanda = useMemo(() => new Set(lista
+    .filter((p) => p.estado === "nuevo" && p.revisada && p.whatsapp && p.puntaje >= 50)
+    .sort((a, b) => b.puntaje - a.puntaje || (b.resenas ?? 0) - (a.resenas ?? 0))
+    .slice(0, quedan)
+    .map((p) => p.id)), [lista, quedan]);
+
   const vista = useMemo(() => lista
     .filter((p) => {
       if (filtro.web === "sin" && p.tipoWeb !== "sin") return false;
       if (filtro.web === "social" && p.tipoWeb !== "social") return false;
       if (filtro.web === "rota" && p.tipoWeb !== "rota") return false;
       if (filtro.web === "mejorable" && !(p.tipoWeb === "ok" && p.motivos.length)) return false;
+      if (filtro.estado === "tanda" && !(tanda.has(p.id) || diaDe(p.contactado) === hoy)) return false;
       if (filtro.estado === "activos" && (p.estado === "descartado" || p.estado === "cliente")) return false;
-      if (filtro.estado !== "activos" && filtro.estado !== "todos" && p.estado !== filtro.estado) return false;
+      if (!["activos", "todos", "tanda"].includes(filtro.estado) && p.estado !== filtro.estado) return false;
       if (p.puntaje < filtro.minimo) return false;
       if (filtro.celular && !p.celular) return false;
       if (filtro.texto && !`${p.nombre} ${p.rubro} ${p.direccion}`.toLowerCase().includes(filtro.texto.toLowerCase())) return false;
       return true;
     })
-    .sort((a, b) => b.puntaje - a.puntaje || (b.resenas ?? 0) - (a.resenas ?? 0)), [lista, filtro]);
+    .sort((a, b) => b.puntaje - a.puntaje || (b.resenas ?? 0) - (a.resenas ?? 0)), [lista, filtro, tanda, hoy]);
 
   const cuenta = {
     total: lista.length,
@@ -200,6 +212,16 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicia
         </p>
       )}
 
+      {lista.length > 0 && (
+        <section aria-label="La tanda de hoy" className="flex flex-wrap items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
+          <p className="min-w-0 flex-1 text-[14px]">
+            <span className="font-medium">La tanda de hoy: {enviadosHoy} de {tope} enviados.</span>{" "}
+            <span className="text-medio">{quedan ? `Imán te propone ${tanda.size} ${tanda.size === 1 ? "negocio" : "negocios"} con celular y buena oportunidad.` : "Llegaste al tope de hoy: mañana sigue la tanda."}</span>
+          </p>
+          <p className="text-[12px] text-suave">Más de {tope} mensajes nuevos al día desde un número puede hacer que WhatsApp lo bloquee.</p>
+        </section>
+      )}
+
       <section className="flex flex-wrap items-center gap-2" aria-label="Filtros">
         <select value={filtro.web} onChange={(e) => setFiltro({ ...filtro, web: e.target.value })} className={selector} aria-label="Tipo de web">
           <option value="todas">Todas las webs</option>
@@ -209,6 +231,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicia
           <option value="mejorable">Web mejorable</option>
         </select>
         <select value={filtro.estado} onChange={(e) => setFiltro({ ...filtro, estado: e.target.value })} className={selector} aria-label="Estado">
+          <option value="tanda">La tanda de hoy</option>
           <option value="activos">Por trabajar</option>
           <option value="todos">Todos</option>
           {ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
@@ -228,7 +251,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicia
 
       <ul className="grid gap-3" aria-label="Negocios">
         {!vista.length && <li className="py-10 text-center text-[14px] text-medio">{lista.length ? "Nada con estos filtros." : "Elige rubros y dile a Imán que busque."}</li>}
-        {vista.map((p) => <Tarjeta key={p.id} p={p} listo={listo} alCambiar={reemplazar} />)}
+        {vista.map((p) => <Tarjeta key={p.id} p={p} listo={listo} alCambiar={reemplazar} tope={p.estado === "nuevo" && quedan === 0 ? tope : undefined} />)}
       </ul>
 
       <section className={`${caja} grid gap-3`} aria-label="Ajustes">
@@ -247,7 +270,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades }: { inicia
   );
 }
 
-function Tarjeta({ p, listo, alCambiar }: { p: VistaProspecto; listo: boolean; alCambiar: (p: VistaProspecto) => void }) {
+function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: boolean; alCambiar: (p: VistaProspecto) => void; tope?: number }) {
   const [abierta, setAbierta] = useState(false);
   const [guardando, setGuardando] = useState("");
   const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null);
@@ -309,7 +332,7 @@ function Tarjeta({ p, listo, alCambiar }: { p: VistaProspecto; listo: boolean; a
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {p.whatsapp ? (
+        {tope ? <span className="inline-flex min-h-9 items-center rounded-full bg-hueso px-3 text-[13px] text-medio" title="Mañana sigue la tanda">Tope de hoy: {tope} enviados</span> : p.whatsapp ? (
           <a href={p.whatsapp} target="_blank" rel="noreferrer" aria-disabled={ocupado}
             onClick={() => { if (p.estado === "nuevo") void cambiar({ estado: "contactado" }, "Marcando como contactado", "Marcado como contactado."); }}
             className="inline-flex min-h-9 items-center rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">
@@ -350,6 +373,16 @@ function Tarjeta({ p, listo, alCambiar }: { p: VistaProspecto; listo: boolean; a
           </label>
           <div>
             <button type="button" disabled={ocupado || notas === p.notas} onClick={() => void cambiar({ notas }, "Guardando las notas", "Notas guardadas.")} className={botonChico}>Guardar notas</button>
+          </div>
+          <div className="rounded-xl bg-hueso/50 px-3 py-2 text-[13px]">
+            <p className="text-[12px] text-suave">Lo que Sonda vio en su web</p>
+            {p.sonda && (p.sonda.descripcion || p.sonda.secciones.length || p.sonda.redes.length) ? (
+              <ul className="mt-1 grid gap-0.5">
+                {p.sonda.descripcion && <li>Se describe como: «{p.sonda.descripcion}»</li>}
+                {p.sonda.secciones.length > 0 && <li>Habla de: {p.sonda.secciones.join(" · ")}</li>}
+                {p.sonda.redes.length > 0 && <li>Redes: {p.sonda.redes.map((r) => r.replace(/^https?:\/\/(www\.)?/, "")).join(" · ")}</li>}
+              </ul>
+            ) : <p className="mt-1 text-medio">{p.tipoWeb === "ok" ? "Su web no dice mucho de sí misma." : "No tiene una web propia que leer."}</p>}
           </div>
           <p className="text-[12px] text-suave">{[p.direccion, p.telefono, p.detalleWeb].filter(Boolean).join(" · ")}</p>
         </div>

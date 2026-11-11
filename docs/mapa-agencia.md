@@ -22,16 +22,16 @@ Un cliente no termina al entregar la web: el contenido y el video de cada mes lo
 
 ## Funciones y estado
 
-| Función de una agencia | En ANONYMO | Agentes | Estado (0.67) | Falta |
+| Función de una agencia | En ANONYMO | Agentes | Estado (0.72) | Falta |
 |---|---|---|---|---|
-| Nuevos negocios | Clientes nuevos (`/estudio/clientes`) | Imán, Sonda | Primera versión | Muestra automática, seguimiento con fechas, tanda diaria de 20 como máximo |
+| Nuevos negocios | Clientes nuevos (`/estudio/clientes`) | Imán, Sonda | Tanda diaria de 20 y notas de Sonda desde 0.72 | Muestra automática, seguimiento con fechas |
 | Atención al cliente | Ficha del cliente (`/estudio/cliente/[id]`) + portal | Atlas, Tempo | Ficha por cliente desde 0.71; portal por proyecto | Portal por cliente, no por proyecto |
 | Planificación y estrategia | Fase 1 · Arranque | Nova, Sonda | Funciona | Usar lo que Imán ya sabe del cliente |
 | Presupuesto y finanzas | Números, propuesta | Ledger | Funciona | Facturas y cobros; margen real contra estimado |
 | Marca | Fases 2 y 3 | Verba, Mira, Rhea, Kine, Eco | Funciona, calidad por calibrar | Calibración con el criterio de Jay |
 | Web | Fase 4 | Orla, Lumen, Vector, Tempo | Funciona, diseño todavía con aire de plantilla | Panel de diseño que rehace (HANDOFF, prioridad 2); publicar con un botón |
 | Contenido y redes (mensual) | Departamento de contenido | Faro, Chispa, Rhea | No existe en ANONYMO | Volver multi-cliente el planificador de Jay (`Jaywrkr/JAYCONTENTPLANNER`) |
-| Video | `/estudio/video` | Corte, Faro, Eco | Edición lista (0.66) | Guion antes de grabar; que edite Corte y no Atlas |
+| Video | `/estudio/video` | Corte, Faro, Eco | Faro escribe el guion, Corte edita leyéndolo (0.72) | Subtítulos; que Corte oiga lo que se dice |
 | Foto, shootings y eventos | Producción con Luna | Lente, Escena | Solo dentro del lanzamiento | Moodboard y plan de rodaje |
 | Calidad, premios y datos | Fase 6 · Jurado, banco | Prisma, Trofeo, Pulso | Banco listo; falta calibrar | Las decisiones de Jay y Luna alimentan al juez; informe mensual al cliente |
 | Mejorar la casa | Taller | Atlas | Criterio, banco, conexiones y métricas sueltos en el menú | Agruparlos fuera del trabajo diario |
@@ -70,7 +70,7 @@ Una fase por rama. No empieza hasta que la anterior está en `main` y Jay la us�
 |---|---|---|
 | 1 · Pulir lo que existe (hecho en 0.69 y 0.70) | Reglas de [experiencia.md](experiencia.md): volver a la misma pestaña, avisos fuera de la dirección, una sola espera y confirmación, menú en dos niveles, barra de celular nueva | Una prueba recorre todas las acciones del proyecto desde cada pestaña y en todas vuelve a la misma; Atrás funciona; nada se sale de 390 px en celular |
 | 2 · Un solo cliente (hecho en 0.71) | Ficha de cliente: prospecto, pedidos, proyectos, videos, contenido y kit de marca | Del prospecto se llega al proyecto y del proyecto se vuelve al prospecto, con la misma historia |
-| 3 · Cada función con sus agentes | Corte edita y Faro escribe guiones en video; Sonda prepara cada prospecto; tanda diaria; muestra automática | Un pedido de video pasa Atlas → Faro → Corte con cada paso firmado |
+| 3 · Cada función con sus agentes (hecho en 0.72, menos la muestra automática) | Corte edita y Faro escribe guiones en video; Sonda prepara cada prospecto; tanda diaria; muestra automática | Un pedido de video pasa Atlas → Faro → Corte con cada paso firmado |
 | 4 · Contenido mensual | El planificador vuelto multi-cliente; el primer cliente es la propia ANONYMO | El mes de contenido de ANONYMO sale del sistema, aprobado por Luna, sin trabajo fuera de él |
 | 5 · Celular como herramienta de campo | App instalable, «Compartir a ANONYMO», pedido por voz, aprobar de una en una | Una foto de la galería llega a la ficha del cliente correcto en menos de 3 toques |
 | 6 · Calidad que aprende | Calibración por disciplina; panel que rehace; las decisiones alimentan el banco | En 10 piezas seguidas, el panel y Jay coinciden en 8 o más |

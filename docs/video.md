@@ -1,5 +1,7 @@
 # Departamento de video
 
+**Desde 0.72 edita Corte, no Atlas**, y antes de grabar **Faro escribe el guion**: en Video → «¿De qué es el video?» (cliente y duración) → «Que Faro escriba el guion». Sale el gancho, las partes con la toma de cada una, el cierre y la lista de rodaje. Luna lo aprueba, graba y toca «Ya lo grabé: subir el video»: lo que sube queda unido al guion y Corte lo lee al editar para decidir qué sobra y en qué orden. El guion pasa a «Grabado» y lleva al video. Cada paso queda firmado (quién pidió, Atlas, Faro, quién aprobó, quién subió). Los guiones viven en `_guiones/lista/guiones.json` (`packages/pipeline/src/video/guiones.ts`). Donde abajo dice Atlas, en la pantalla dice Corte.
+
 Para que Luna edite videos filmados (personas hablando o haciendo algo) sin línea de tiempo: sube el video, le dice a Atlas lo que quiere o toca las partes que sobran, y descarga el resultado.
 
 **Solo usa la API de Anthropic** (la misma clave del estudio) y FFmpeg. No hay transcripción ni subtítulos: Jay decidió no usar Whisper/OpenAI (0.65).

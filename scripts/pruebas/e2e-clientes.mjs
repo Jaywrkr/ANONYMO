@@ -35,7 +35,7 @@ const google = createServer((req, res) => {
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify({ places: q.startsWith("odontólogo") ? LUGARES : [] }));
     }
-    if (req.url === "/sitio/bien") { res.writeHead(200, { "content-type": "text/html" }); return res.end(`<html><head><meta name="viewport" content="width=device-width"><title>Bien</title></head><body>${"contenido ".repeat(60)}© 2026</body></html>`); }
+    if (req.url === "/sitio/bien") { res.writeHead(200, { "content-type": "text/html" }); return res.end(`<html><head><meta name="viewport" content="width=device-width"><meta name="description" content="Odontología familiar en Cuenca desde 1998"><title>Bien</title></head><body><h1>Clínica Bien Hecha</h1><h2>Ortodoncia</h2><a href="https://www.instagram.com/bienhecha/">ig</a>${"contenido ".repeat(60)}© 2026</body></html>`); }
     if (req.url === "/sitio/vieja") { res.writeHead(200, { "content-type": "text/html" }); return res.end(`<html><head><title>Vieja</title><meta name="generator" content="Joomla! 1.5"></head><body>${"contenido ".repeat(60)}Copyright 2017</body></html>`); }
     res.writeHead(500); res.end("error");
   });
@@ -98,7 +98,17 @@ try {
 
   await p.reload();
   await p.waitForSelector("ul[aria-label=Negocios] > li");
+  // La tanda de hoy (sistema/71): abre por defecto, cuenta lo enviado y no propone a quien no tiene teléfono.
+  const banda = await p.locator("section[aria-label='La tanda de hoy']").innerText();
+  exigir(/1 de 20 enviados/.test(banda), `la tanda cuenta lo enviado hoy («${banda.split("\n")[0]}»)`);
+  const enTanda = await p.locator("ul[aria-label=Negocios] > li p.truncate").allInnerTexts();
+  exigir(enTanda.includes("Dental Enlace Roto") && enTanda.includes("Sonrisa Sin Web") && !enTanda.includes("Consultorio Web Vieja"), `la tanda propone con teléfono y deja ver lo enviado hoy (${enTanda.join(", ")})`);
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  const bien = p.locator("li:has-text('Clínica Bien Hecha')");
+  await bien.locator("button:has-text('Más')").click();
+  const vio = await bien.locator("text=Lo que Sonda vio en su web").locator("..").innerText();
+  exigir(/Odontología familiar en Cuenca desde 1998/.test(vio) && /Ortodoncia/.test(vio) && /instagram\.com\/bienhecha/.test(vio), "Sonda dice cómo se describe, de qué habla y sus redes");
+  await bien.locator("button:has-text('Cerrar')").click();
   const otra = p.locator("li:has-text('Sonrisa Sin Web')");
   exigir(await otra.locator("select[aria-label=Estado]").inputValue() === "contactado", "al recargar sigue contactado (vive en la nube)");
   await otra.locator("button:has-text('Más')").click();

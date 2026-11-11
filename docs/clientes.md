@@ -6,6 +6,12 @@ Menú → **Clientes** abre la cartera. Cada ficha se arma sola uniendo, por el 
 
 Recorrido: prospecto → «Convertir en pedido» → el proyecto nace con `pedido.ficha` y el prospecto pasa a «Cliente» con el id del proyecto → el proyecto tiene «Ficha de…» → la ficha muestra todo y su historia → desde el prospecto, «Ver el proyecto» y «Ficha del cliente».
 
+## La tanda de hoy y lo que vio Sonda (sistema/71)
+
+- Clientes → Nuevos abre en **«La tanda de hoy»**: los negocios nuevos con celular y puntaje de 50 o más, los mejores primero, hasta completar 20 mensajes en el día (hora de Cuenca). Arriba dice cuántos van. Al llegar a 20, las tarjetas nuevas muestran «Tope de hoy» en lugar de WhatsApp. El tope es `TANDA_DIARIA` en `packages/pipeline/src/prospectos/tipos.ts`. Los demás filtros siguen en el selector.
+- Al revisar una web, **Sonda** guarda cómo se describe el negocio (meta description), de qué habla (títulos h1 y h2) y sus redes (`revision.sonda`). Se ve en «Más» → «Lo que Sonda vio en su web» y sirve para escribir un mensaje que no suene genérico.
+- Pendiente: la muestra automática (una portada de ejemplo para cada prospecto).
+
 # Clientes nuevos (sistema/66)
 
 El escritorio de **Imán** (Ventas) dentro del estudio. Busca negocios que necesitan una web y deja listo el primer mensaje.

@@ -48,11 +48,11 @@ await p.waitForURL(/estudio\/video\/v-testimonio-clinica-/, { timeout: 60000 });
 exigir(await espera(p.locator("[role=status]:has-text('armado')"), 120000), "avisa que el 9:16 está listo");
 const orden = await vistas();
 console.log("   esperas:", orden.join(" → "));
-const i = orden.indexOf("Atlas está leyendo tu pedido"), j = orden.indexOf("Armando el vertical 9:16");
+const i = orden.indexOf("Corte está leyendo tu pedido"), j = orden.indexOf("Armando el vertical 9:16");
 exigir(orden.indexOf("Escuchando el video") >= 0 && i > orden.indexOf("Escuchando el video"), "Atlas lee el pedido apenas termina de escuchar el video");
 exigir(j > i, "después arma el 9:16 que pidió, sin tocar nada");
 await p.screenshot({ path: join(capturas, "2-listo.png") });
-const chat = p.locator("ol[aria-label='Conversación con Atlas']");
+const chat = p.locator("ol[aria-label='Conversación con Corte']");
 const textoChat = await chat.innerText();
 exigir(/Corta los silencios/.test(textoChat), "el pedido de Luna queda en la conversación");
 exigir(/✓ Quitar la parte 1/.test(textoChat), "Atlas dice qué cambió (quitó la parte 1)");
@@ -68,31 +68,31 @@ await p.screenshot({ path: join(capturas, "3-pedido-aplicado.png") });
 await p.fill("#pedido-atlas", "Más dinámico");
 await p.keyboard.press("Enter");
 exigir(await espera(chat.locator("li", { hasText: "ritmo más rápido" })), "Atlas responde al cambio por chat");
-exigir((await vistas()).filter((x) => x === "Atlas está leyendo tu pedido").length === 2, "al pedir por chat, la espera aparece");
+exigir((await vistas()).filter((x) => x === "Corte está leyendo tu pedido").length === 2, "al pedir por chat, la espera aparece");
 exigir(/Pausas de más de 0,3 s/.test(await p.locator("section[aria-labelledby=titulo-cortes]").innerText()), "las pausas pasaron a 0,3 s");
 exigir(await espera(fila.locator("button:has-text('Volver a armar')"), 5000), "el 9:16 armado queda marcado como viejo");
 
 // 4. Deshacer lo de Atlas vuelve a la edición de antes (y el 9:16 vuelve a estar al día).
-await p.click("button:has-text('Deshacer lo de Atlas')");
+await p.click("button:has-text('Deshacer lo de Corte')");
 exigir(await espera(p.locator("section[aria-labelledby=titulo-cortes]", { hasText: "Pausas de más de 0,6 s" }), 5000), "deshacer devuelve las pausas de 0,6 s");
 exigir(await espera(fila.locator("a:has-text('Descargar')"), 10000), "el 9:16 vuelve a estar al día");
 await p.locator("text=Guardado").waitFor({ timeout: 10000 });
 
 // 5. Un pedido que no se entiende: Atlas pregunta y no cambia nada.
 await p.fill("#pedido-atlas", "hola");
-await p.click("button:has-text('Pedir a Atlas')");
+await p.click("button:has-text('Pedir a Corte')");
 exigir(await espera(chat.locator("li", { hasText: "No entendí" })), "si no entiende, pregunta");
-exigir(await p.locator("button:has-text('Deshacer lo de Atlas')").count() === 0, "y no hay nada que deshacer");
+exigir(await p.locator("button:has-text('Deshacer lo de Corte')").count() === 0, "y no hay nada que deshacer");
 
 // 6. La conversación queda guardada.
 await p.reload();
-await p.locator("text=Pídeselo a Atlas").waitFor();
+await p.locator("text=Pídeselo a Corte").waitFor();
 const mensajes = await chat.locator(":scope > li").count();
 exigir(mensajes === 6, `la conversación sigue al volver (${mensajes} mensajes)`);
 await p.screenshot({ path: join(capturas, "4-conversacion.png"), fullPage: true });
 
 // La IA recibió el texto numerado y no se forzó la herramienta (Sonnet 5.5 lo rechaza).
-const pedidos = readFileSync(registro, "utf8").trim().split("\n").slice(yaHabia).map((l) => JSON.parse(l)).filter((x) => x.system?.startsWith("Atlas, departamento de video"));
+const pedidos = readFileSync(registro, "utf8").trim().split("\n").slice(yaHabia).map((l) => JSON.parse(l)).filter((x) => x.system?.startsWith("Corte, editor de video"));
 exigir(pedidos.length === 3, `3 pedidos a Atlas (${pedidos.length})`);
 exigir(pedidos.every((x) => x.tool_choice?.type === "auto"), "la herramienta va sin forzar");
 const bloques = pedidos[0].messages[0].content;
@@ -103,7 +103,7 @@ exigir(/## Partes \(3\)\n1\. 0\.9–2\.4 s/.test(bloques[1]?.text ?? ""), "Atlas
 const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });
 const m = await cel.newPage();
 await m.goto(p.url());
-await m.locator("text=Pídeselo a Atlas").waitFor();
+await m.locator("text=Pídeselo a Corte").waitFor();
 exigir((await m.evaluate(() => document.documentElement.scrollWidth)) <= 392, "sin desplazamiento horizontal en celular");
 await m.locator("#titulo-atlas").scrollIntoViewIfNeeded();
 await m.screenshot({ path: join(capturas, "5-celular.png") });

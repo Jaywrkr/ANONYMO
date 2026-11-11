@@ -1,5 +1,5 @@
 // El escritorio de Imán (sistema/66): negocios con buena fama y mala web, listos para escribirles.
-import { clavePlaces, GRUPOS_RUBRO, CIUDADES, leerProspectos } from "@anonymo/pipeline";
+import { clavePlaces, GRUPOS_RUBRO, CIUDADES, leerProspectos, TANDA_DIARIA } from "@anonymo/pipeline";
 import { exigirEstudio, serif } from "@/lib/estudio";
 import { vistaLista, type VistaLista } from "@/lib/clientes";
 import { Cara } from "@/components/estudio/piezas";
@@ -33,6 +33,7 @@ export default async function Pagina() {
         hayClave={!!clavePlaces()}
         grupos={GRUPOS_RUBRO.map((g) => ({ id: g.id, nombre: g.nombre, busquedas: [...g.busquedas] }))}
         ciudades={Object.keys(CIUDADES)}
+        tope={TANDA_DIARIA}
       />
     </div>
   );
