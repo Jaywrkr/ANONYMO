@@ -11,10 +11,12 @@ import { Cara } from "@/components/estudio/piezas";
 export default function ErrorEstudio({ error }: { error: Error & { digest?: string } }) {
   const ruta = usePathname() ?? "/estudio";
   const proyecto = ruta.match(/^\/estudio\/([a-z0-9_-]+)/)?.[1];
-  const esProyecto = proyecto && !["nuevo", "biblioteca", "oficina", "papelera", "analitica", "pendientes"].includes(proyecto);
+  const esProyecto = proyecto && !["nuevo", "biblioteca", "oficina", "papelera", "analitica", "pendientes", "video", "clientes", "criterio", "banco", "conexiones", "resumen"].includes(proyecto);
   const volver = esProyecto ? `/estudio/${proyecto}` : "/estudio";
   const tiempo = /tim(e|ed) ?out|504|FUNCTION_INVOCATION_TIMEOUT|tard/i.test(error.message);
   useEffect(() => console.error("[estudio]", error.digest ?? "", error.message), [error]);
+  // Si una acción falló, la pantalla de espera se libera para que se lea esto (sistema/69).
+  useEffect(() => { dispatchEvent(new Event("anonymo:liberar")); }, [error]);
   return (
     <div className="grid min-h-[70vh] place-items-center px-5 py-16">
       <div className="max-w-lg text-center">

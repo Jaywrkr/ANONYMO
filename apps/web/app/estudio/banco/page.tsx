@@ -111,8 +111,9 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
           const deNivel = refs.filter((r) => nivelDe(r.nota) === nv.id).sort((a, b) => b.nota - a.nota);
           return (
             <div key={nv.id} className="mt-6">
-              <h3 className="text-[15px] font-medium">{nv.nombre} · {nv.rango} <span className="text-suave">· {deNivel.length}</span></h3>
-              {deNivel.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{deNivel.map((r) => <Tarjeta key={r.id} r={r} capturas={capturas[r.id] ?? []} revision={cambios.revision} volver={volver} rubrica={notaPorRubrica(r, rub)} />)}</div> : <p className="mt-2 text-[13px] text-medio">Ninguna{rubro ? " en este rubro" : ""}.</p>}
+              <h3 className="text-[15px] font-medium">{nv.nombre} · {nv.rango} <span className="text-suave">· {deNivel.length}</span>{deNivel.length > 1 && <span className="ml-2 text-[12px] font-normal text-suave sm:hidden">desliza para ver más →</span>}</h3>
+              {/* En celular, una referencia a la vez y se desliza (sistema/69); en pantallas grandes, la grilla. */}
+              {deNivel.length ? <div className="-mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3">{deNivel.map((r) => <Tarjeta key={r.id} r={r} capturas={capturas[r.id] ?? []} revision={cambios.revision} volver={volver} rubrica={notaPorRubrica(r, rub)} />)}</div> : <p className="mt-2 text-[13px] text-medio">Ninguna{rubro ? " en este rubro" : ""}.</p>}
             </div>
           );
         })}
@@ -175,7 +176,7 @@ function Tarjeta({ r, capturas, revision, volver, rubrica }: { r: Referencia; ca
   const img = capturas.find((c) => c.ancho === 1440) ?? capturas[0];
   const cel = capturas.find((c) => c.ancho === 390);
   return (
-    <article className={`${tarjeta} flex min-w-0 flex-col gap-2 p-4 text-[13px]`}>
+    <article className={`${tarjeta} flex w-[86%] min-w-0 shrink-0 snap-center flex-col gap-2 p-4 text-[13px] sm:w-auto sm:shrink`}>
       {img ? <div className="flex gap-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/estudio/banco/imagen/${img.archivo}`} alt={`Captura privada de ${r.nombre}`} loading="lazy" className="h-36 min-w-0 flex-1 rounded-lg bg-[#f6f3ee] object-cover object-top" />
