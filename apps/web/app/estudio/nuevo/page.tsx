@@ -12,9 +12,9 @@ export const maxDuration = 60;
 export const metadata = { title: "Nuevo pedido — Estudio", robots: { index: false } };
 
 // Jay o Luna cuentan lo que hablaron con el cliente, en sus palabras. Atlas decide el resto.
-export default async function NuevoProyecto({ searchParams }: { searchParams: Promise<{ error?: string; q?: string }> }) {
+export default async function NuevoProyecto({ searchParams }: { searchParams: Promise<{ error?: string; q?: string; cliente?: string }> }) {
   const yo = await exigirEstudio();
-  const { error, q } = await searchParams;
+  const { error, q, cliente } = await searchParams;
   const enLinea = nubeActiva();
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
@@ -46,7 +46,7 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
           <div className="grid gap-5 md:grid-cols-2">
             <label className="grid content-start gap-2">
               <span className="text-[13px] font-medium">Cliente <span className="font-normal text-suave">· opcional</span></span>
-              <input name="cliente" maxLength={80} placeholder="Si no lo pones, Atlas lo saca del texto" className={campo} />
+              <input name="cliente" maxLength={80} defaultValue={cliente?.slice(0, 80) ?? ""} placeholder="Si no lo pones, Atlas lo saca del texto" className={campo} />
             </label>
             <div className="grid content-start gap-2">
               <span className="text-[13px] font-medium">Imágenes y archivos <span className="font-normal text-suave">· opcional</span></span>
