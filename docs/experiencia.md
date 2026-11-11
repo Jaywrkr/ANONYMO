@@ -32,8 +32,8 @@ Barra de abajo en celular: **Inicio** · **Clientes** · **＋ Capturar** · **V
 
 | Dónde | Qué pasa | Causa |
 |---|---|---|
-| Proyecto → Ajustes, Archivos, Cliente | Pausar, subir archivos, pedir el enlace del portal o cambiar quién aprueba te devuelve a Resumen | 14 de las 28 llamadas a `correr()` en `app/estudio/acciones.ts` no pasan `ruta` |
-| Avisos | `?ok=` y `?error=` viajan en la dirección y suman pasos al historial | `redirect()` con el texto del aviso |
+| Proyecto → Ajustes, Cliente | Pausar, reanudar, pedir el enlace del portal o cambiar quién aprueba te devuelve a Resumen (arreglado en 0.69) | 14 de las 28 llamadas a `correr()` en `app/estudio/acciones.ts` no pasan `ruta` |
+| Avisos | `?ok=` y `?error=` viajan en la dirección y suman pasos al historial | `redirect()` con el texto del aviso (desde 0.69 reemplaza el paso del historial) |
 | Celular, barra de abajo | Lleva a Proyectos, Buscar y Pendientes; Video y Clientes nuevos solo por el menú | `components/estudio/Marco.tsx` |
 | Celular, proyecto | 3 pestañas visibles, el resto en «Más opciones»; el botón de Atlas tapa la fila de pestañas | Pestañas de escritorio encogidas |
 | Escritorio, menú | Herramientas diarias al mismo nivel que Banco, Conexiones y Métricas | El menú creció por agregado |

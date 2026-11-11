@@ -6,9 +6,9 @@ assert.ok([307,308,404].includes((await fetch(base+ruta+'/consultar',{method:'PO
 const nav=await chromium.launch({executablePath:process.env.CHROMIUM??'/usr/bin/chromium'});
 try{
  const p=await nav.newPage({viewport:{width:390,height:844}}),errores=[];p.on('pageerror',e=>errores.push(e.message));
- await p.goto(base+'/entrar');await p.fill('input[name="clave"]','prueba-clave-jay');await p.click('text=Entrar al estudio');await p.waitForURL(base+'/estudio');await p.goto(base+ruta);await p.getByRole('button',{name:'Abrir chat de Atlas',exact:true}).click();
+ await p.goto(base+'/entrar');await p.fill('input[name="clave"]','prueba-clave-jay');await p.click('text=Entrar al estudio');await p.waitForURL(base+'/estudio');await p.goto(base+ruta);await p.getByRole('navigation',{name:'Accesos móviles'}).getByRole('button',{name:'Atlas',exact:true}).click();
  await p.getByLabel('Tu consulta').fill('¿Qué avanzó en este proyecto?');await p.getByRole('button',{name:'Enviar mensaje',exact:true}).click();await p.getByText('Respuesta ficticia: revisa el avance del proyecto en sus registros.',{exact:true}).last().waitFor();
- assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=390));await p.reload();await p.getByRole('button',{name:'Abrir chat de Atlas',exact:true}).click();await p.getByText('Respuesta ficticia: revisa el avance del proyecto en sus registros.',{exact:true}).last().waitFor();
+ assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=390));await p.reload();await p.getByRole('navigation',{name:'Accesos móviles'}).getByRole('button',{name:'Atlas',exact:true}).click();await p.getByText('Respuesta ficticia: revisa el avance del proyecto en sus registros.',{exact:true}).last().waitFor();
  const id=randomUUID(),d={pregunta:'¿Qué falta?',agente:'atlas',solicitud:id,modo:'consultar'};
  const solicitar=data=>p.evaluate(async({url,data})=>{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});return {estado:r.status,texto:await r.text()};},{url:ruta+'/consultar',data});
  const a=await solicitar(d);assert.equal(a.estado,200);assert.doesNotThrow(()=>JSON.parse(a.texto));const b=await solicitar(d);assert.deepEqual(JSON.parse(a.texto),JSON.parse(b.texto));
