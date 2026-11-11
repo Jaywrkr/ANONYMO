@@ -56,9 +56,13 @@ try {
   await p.waitForSelector("button:has-text('Que Imán busque')");
 
   // 1 · El número de ANONYMO y los avisos.
-  await p.fill("input[placeholder='099 123 4567']", "099 555 0000");
-  await p.click("button:has-text('Guardar número')");
+  await p.fill("input[aria-label='Tu WhatsApp']", "099 555 0000");
+  await p.locator("section[aria-label=Ajustes] div", { has: p.locator("input[aria-label='Tu WhatsApp']") }).last().locator("button:has-text('Guardar')").click();
   exigir(await espera(p.locator("[role=status]:has-text('Número guardado')")), "guardar el número de ANONYMO dice qué pasó");
+  await p.reload();
+  await p.waitForSelector("button:has-text('Que Imán busque')");
+  exigir(!(await p.locator("section[aria-label=Ajustes]").count()) && await p.locator("button:has-text('Ajustes')").count() === 1, "con el número puesto, los ajustes quedan cerrados en un botón");
+  await p.click("button:has-text('Ajustes')");
   const r = await p.evaluate(async (s) => { const x = await fetch("/estudio/avisos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ suscripcion: s, equipo: "Android" }) }); return { status: x.status, j: await x.json() }; }, suscripcion);
   exigir(r.status === 200 && r.j.enviados === 1, `anotar el celular manda un aviso de prueba (${r.status} ${JSON.stringify(r.j)})`);
   exigir(await esperarAvisos(1) && avisos[0].headers["content-encoding"] === "aes128gcm" && /^vapid /.test(avisos[0].headers.authorization ?? ""), "el aviso va cifrado y firmado (Web Push)");

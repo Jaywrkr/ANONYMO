@@ -22,6 +22,21 @@ const chip = (on: boolean) => `min-h-10 rounded-full px-4 text-[13px] transition
 const selector = "min-h-10 rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]";
 const botonChico = "inline-flex min-h-9 items-center rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] transition hover:shadow-[inset_0_0_0_1px_rgba(26,24,22,.35)] disabled:opacity-50";
 
+const campoFila = "min-h-10 min-w-0 flex-1 rounded-xl bg-hueso/60 px-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]";
+
+/** Una fila de ajustes: qué es a la izquierda, el campo y su botón a la derecha. */
+function Fila({ titulo, ayuda, children }: { titulo: string; ayuda: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-3 py-3 first:pt-0 md:grid-cols-[minmax(200px,1fr)_2fr] md:items-center">
+      <div>
+        <p className="text-[14px] font-medium">{titulo}</p>
+        <p className="text-[12px] text-suave">{ayuda}</p>
+      </div>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
 async function pedir<T>(url: string, metodo: string, cuerpo?: unknown): Promise<T> {
   const r = await fetch(url, { method: metodo, headers: { "content-type": "application/json" }, body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo) });
   const j = (await r.json().catch(() => ({}))) as T & { error?: string };
@@ -36,6 +51,8 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
   const [firmaEditada, setFirmaEditada] = useState(inicial.firma);
   const [numero, setNumero] = useState(inicial.numero);
   const [numeroEditado, setNumeroEditado] = useState(inicial.numero);
+  // Los ajustes van arriba, cerrados; se abren solos si falta el número de ANONYMO.
+  const [ajustes, setAjustes] = useState(!inicial.numero);
   const [ciudad, setCiudad] = useState(ciudades[0] ?? "Cuenca");
   const [elegidos, setElegidos] = useState(grupos.map((g) => g.id));
   const [otras, setOtras] = useState("");
@@ -181,6 +198,30 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
         </p>
       )}
 
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {!numero && !ajustes && <span className="text-[13px] text-[#a33a0b]">Falta tu WhatsApp</span>}
+        <button type="button" onClick={() => setAjustes(!ajustes)} aria-expanded={ajustes} aria-controls="ajustes-iman" className={botonChico}>
+          {ajustes ? "Cerrar ajustes" : "Ajustes"}
+        </button>
+      </div>
+
+      {ajustes && (
+        <section id="ajustes-iman" className={`${caja} grid gap-0 divide-y divide-borde`} aria-label="Ajustes">
+          <Fila titulo="Tu WhatsApp" ayuda="El número aparte desde el que escribes. Quien toca «Quiero esta web» en su muestra te escribe aquí.">
+            <input value={numeroEditado} onChange={(e) => setNumeroEditado(e.target.value)} maxLength={20} inputMode="tel" placeholder="Ej.: 099 123 4567" aria-label="Tu WhatsApp" className={campoFila} />
+            <button type="button" onClick={guardarNumero} disabled={!listo || !!trabajo || numeroEditado.trim() === numero} className={botonChico}>Guardar</button>
+          </Fila>
+          <Fila titulo="Firma de los mensajes" ayuda="Va al final de cada mensaje de WhatsApp.">
+            <input value={firmaEditada} onChange={(e) => setFirmaEditada(e.target.value)} maxLength={120} aria-label="Firma de los mensajes" className={campoFila} />
+            <button type="button" onClick={guardarFirma} disabled={!listo || !!trabajo || firmaEditada.trim() === firma} className={botonChico}>Guardar</button>
+          </Fila>
+          <Fila titulo="Avisos en este celular" ayuda="Suena cuando un negocio abre su muestra o toca «Quiero esta web».">
+            <AvisosCelular clavePublica={clavePublica} compacto />
+          </Fila>
+          <p className="pt-3 text-[12px] text-suave">Jay y Luna ven la misma lista y los mismos ajustes.</p>
+        </section>
+      )}
+
       <section className={`${caja} grid gap-4`} aria-label="Buscar negocios">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[13px] font-medium">Dónde</span>
@@ -267,6 +308,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
         </label>
         <input value={filtro.texto} onChange={(e) => setFiltro({ ...filtro, texto: e.target.value })} placeholder="Buscar en la lista" aria-label="Buscar en la lista"
           className="min-h-10 min-w-[160px] flex-1 rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none" />
+        <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico} title="La lista tal como la filtraste">Bajar CSV</button>
       </section>
 
       <ul className="grid gap-3" aria-label="Negocios">
@@ -274,26 +316,6 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
         {vista.map((p) => <Tarjeta key={p.id} p={p} listo={listo} alCambiar={reemplazar} tope={p.estado === "nuevo" && quedan === 0 ? tope : undefined} />)}
       </ul>
 
-      <section className={`${caja} grid gap-3`} aria-label="Ajustes">
-        <label className="grid gap-2">
-          <span className="text-[13px] font-medium">Firma de los mensajes</span>
-          <input value={firmaEditada} onChange={(e) => setFirmaEditada(e.target.value)} maxLength={120}
-            className="min-h-11 rounded-xl bg-hueso/60 px-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
-        </label>
-        <label className="grid gap-2">
-          <span className="text-[13px] font-medium">WhatsApp de ANONYMO</span>
-          <input value={numeroEditado} onChange={(e) => setNumeroEditado(e.target.value)} maxLength={20} inputMode="tel" placeholder="099 123 4567"
-            className="min-h-11 rounded-xl bg-hueso/60 px-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
-          <span className="text-[12px] text-suave">El número aparte desde el que escribes. Quien toca «Quiero esta web» en su muestra te escribe aquí.</span>
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={guardarNumero} disabled={!listo || !!trabajo || numeroEditado.trim() === numero} className={botonChico}>Guardar número</button>
-          <button type="button" onClick={guardarFirma} disabled={!listo || !!trabajo || firmaEditada.trim() === firma} className={botonChico}>Guardar firma</button>
-          <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico}>Bajar la lista (CSV)</button>
-        </div>
-        <AvisosCelular clavePublica={clavePublica} />
-        <p className="text-[12px] text-suave">La lista vive en la nube privada del estudio: Jay y Luna ven la misma.</p>
-      </section>
     </div>
   );
 }
