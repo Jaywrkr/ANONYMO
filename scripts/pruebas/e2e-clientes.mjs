@@ -117,8 +117,11 @@ try {
   await otra.locator("button:has-text('Volver al de Imán')").click();
   await otra.locator("[role=status]:has-text('Volvió al mensaje de Imán')").waitFor({ timeout: 15000 });
 
-  await p.fill("input[maxlength='120']", "Luna · ANONYMO");
-  await p.click("button:has-text('Guardar firma')");
+  // Los ajustes van arriba (sistema/73): sin número de ANONYMO se abren solos; cada campo tiene su botón.
+  const ajustes = p.locator("section[aria-label=Ajustes]");
+  exigir(await ajustes.isVisible() && await p.evaluate(() => { const a = document.querySelector("section[aria-label=Ajustes]"), b = document.querySelector("section[aria-label='Buscar negocios']"); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), "sin número, los ajustes se abren solos y arriba de la búsqueda");
+  await p.fill("input[aria-label='Firma de los mensajes']", "Luna · ANONYMO");
+  await ajustes.locator("div", { has: p.locator("input[aria-label='Firma de los mensajes']") }).last().locator("button:has-text('Guardar')").click();
   await p.locator("[role=status]:has-text('Firma guardada')").waitFor({ timeout: 15000 });
   exigir(decodeURIComponent((await otra.locator("a:has-text('WhatsApp')").getAttribute("href")) ?? "").includes("Luna · ANONYMO"), "la firma nueva entra en los mensajes");
 
