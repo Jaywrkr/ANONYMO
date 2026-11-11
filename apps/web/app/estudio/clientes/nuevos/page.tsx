@@ -26,7 +26,7 @@ export default async function Pagina() {
         </div>
       </div>
       <PestanasClientes actual="nuevos" nuevos={inicial.prospectos.length} />
-      <p className="mt-5 max-w-2xl text-[15px] text-medio">
+      <p className="mt-5 hidden max-w-2xl text-[15px] text-medio md:block">
         Imán busca en Google Maps negocios con buenas reseñas y una web que no les hace justicia: sin web, solo con Instagram, rota o que no sirve en celular. Los ordena por oportunidad y te deja el mensaje listo para WhatsApp. Cuando alguien responde, lo conviertes en pedido.
       </p>
       {falla && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">No se pudo leer la lista: {falla}</p>}

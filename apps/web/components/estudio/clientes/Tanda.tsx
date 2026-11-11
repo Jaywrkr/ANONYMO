@@ -55,11 +55,11 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
   return (
     <div className="mx-auto grid max-w-xl gap-4 pb-40">
       <AhoraMismo inicial={inicial} />
-      <div className="flex items-center justify-between gap-3">
+      <div className="grid gap-2">
         <p className="text-[14px]"><span className="font-medium">{enviadosHoy} de {tope}</span> <span className="text-medio">enviados hoy{actual ? ` · quedan ${cola.length} en la tanda` : ""}</span></p>
-        <AvisosCelular clavePublica={clavePublica} compacto />
+        <div className="h-1.5 overflow-hidden rounded-full bg-hueso" aria-hidden><div className="h-full rounded-full bg-tinta transition-all" style={{ width: `${Math.min(100, (enviadosHoy / tope) * 100)}%` }} /></div>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-hueso" aria-hidden><div className="h-full rounded-full bg-tinta transition-all" style={{ width: `${Math.min(100, (enviadosHoy / tope) * 100)}%` }} /></div>
+      <AvisosCelular clavePublica={clavePublica} compacto />
 
       {aviso && <p role="status" className={`rounded-2xl px-4 py-3 text-[14px] ${aviso.ok ? "bg-[#e6f6ee] text-[#17714a]" : "bg-[#fde8e4] text-[#8a1c0c]"}`}>{aviso.texto}</p>}
 
