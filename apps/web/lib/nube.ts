@@ -39,7 +39,7 @@ export async function aislado<T>(fn: () => Promise<T>): Promise<T> {
 /** Baja todos los proyectos y las solicitudes (no la analítica ni las capturas del banco: tienen su propia página). */
 export async function traerTodo() {
   if (!nubeActiva()) return;
-  await traer(...(await proyectosEnNube()).filter((id) => id !== "_analitica" && id !== "_subidas" && id !== "_banco"), "_solicitudes");
+  await traer(...(await proyectosEnNube()).filter((id) => id !== "_analitica" && id !== "_subidas" && id !== "_banco" && id !== "_prospectos"), "_solicitudes");
 }
 
 /** Sube estos proyectos tal como quedaron. */
