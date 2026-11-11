@@ -10,7 +10,7 @@ const aviso = async (texto) => p.getByText(texto).first().waitFor({ timeout: 300
 const bloquea = () => p.locator("[data-aviso-trabajo], button[disabled]").first().waitFor({ timeout: 3000 }).then(() => true, () => false);
 
 await p.goto(`${B}/entrar`); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
-ok(await p.getByRole("link", { name: "Banco de calibración" }).first().waitFor({ state: "attached", timeout: 15000 }).then(() => true, () => false), "está en el menú");
+ok(await p.getByRole("link", { name: "Banco de calibración", includeHidden: true }).first().waitFor({ state: "attached", timeout: 15000 }).then(() => true, () => false), "está en el menú");
 await p.goto(`${B}/estudio/banco`); await p.waitForLoadState("networkidle");
 for (const d of ["Web", "Identidad y logo", "Naming", "Redes y contenido"]) ok(await p.getByRole("link", { name: new RegExp(`^${d} · \\d+`) }).count() === 1, `pestaña ${d}`);
 for (const n of ["Premiadas · 9–10", "Correctas pero genéricas · 5–6", "De principiante · 3–4"]) ok(await p.getByText(n).count() > 0, `nivel ${n}`);

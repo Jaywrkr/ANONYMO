@@ -48,7 +48,7 @@ Un cliente no termina al entregar la web: el contenido y el video de cada mes lo
 | Shooting o evento | Luna |
 | Publicar o mandar al cliente | Quien aprobó |
 
-Por confirmar con Luna.
+Confirmada por Jay (11 nov 2026).
 
 ## Contenido mensual: cómo va a funcionar
 
@@ -68,14 +68,14 @@ Una fase por rama. No empieza hasta que la anterior está en `main` y Jay la us�
 
 | Fase | Qué entra | Se acepta si |
 |---|---|---|
-| 1 · Pulir lo que existe | Reglas de [experiencia.md](experiencia.md): volver a la misma pestaña, avisos fuera de la dirección, una sola espera y confirmación, menú en dos niveles, barra de celular nueva | Una prueba recorre todas las acciones del proyecto desde cada pestaña y en todas vuelve a la misma; Atrás funciona; nada se sale de 390 px en celular |
+| 1 · Pulir lo que existe (en curso: 0.69 hizo volver a la pestaña, Atrás, menú y barra de celular) | Reglas de [experiencia.md](experiencia.md): volver a la misma pestaña, avisos fuera de la dirección, una sola espera y confirmación, menú en dos niveles, barra de celular nueva | Una prueba recorre todas las acciones del proyecto desde cada pestaña y en todas vuelve a la misma; Atrás funciona; nada se sale de 390 px en celular |
 | 2 · Un solo cliente | Ficha de cliente: prospecto, pedidos, proyectos, videos, contenido y kit de marca | Del prospecto se llega al proyecto y del proyecto se vuelve al prospecto, con la misma historia |
 | 3 · Cada función con sus agentes | Corte edita y Faro escribe guiones en video; Sonda prepara cada prospecto; tanda diaria; muestra automática | Un pedido de video pasa Atlas → Faro → Corte con cada paso firmado |
-| 4 · Contenido mensual | El planificador vuelto multi-cliente | El mes de Coresolutions sale en ANONYMO igual o mejor que en su planificador |
+| 4 · Contenido mensual | El planificador vuelto multi-cliente; el primer cliente es la propia ANONYMO | El mes de contenido de ANONYMO sale del sistema, aprobado por Luna, sin trabajo fuera de él |
 | 5 · Celular como herramienta de campo | App instalable, «Compartir a ANONYMO», pedido por voz, aprobar de una en una | Una foto de la galería llega a la ficha del cliente correcto en menos de 3 toques |
 | 6 · Calidad que aprende | Calibración por disciplina; panel que rehace; las decisiones alimentan el banco | En 10 piezas seguidas, el panel y Jay coinciden en 8 o más |
 | Después | Publicar webs con un botón, publicar en redes, facturas, shootings y eventos | — |
 
 ## Riesgo conocido: WhatsApp
 
-WhatsApp restringe cuentas que escriben a desconocidos en masa. Imán propone una tanda corta por día (20 como máximo), con cada mensaje distinto y enviado a mano por Jay. Nunca se envía solo.
+WhatsApp restringe cuentas que escriben a desconocidos en masa. Imán propone una tanda corta por día (20 como máximo), con cada mensaje distinto y enviado a mano por Jay desde un número aparte, para no arriesgar el personal. Nunca se envía solo. Los mensajes firman como ANONYMO.

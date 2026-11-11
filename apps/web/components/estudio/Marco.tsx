@@ -59,6 +59,20 @@ interface Props {
   children: React.ReactNode;
 }
 
+/** Botón de la barra de abajo: icono y nombre, marcado si estás ahí. */
+const abajo = (activo: boolean) => `flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] ${activo ? "font-medium text-tinta" : "text-tinta/60"}`;
+
+/** Abre el chat de Atlas desde la barra de abajo, con el proyecto donde estás. */
+function BotonAtlas() {
+  const [listo, setListo] = useState(false);
+  useEffect(() => setListo(true), []);
+  return (
+    <button type="button" disabled={!listo} aria-busy={!listo} onClick={() => window.dispatchEvent(new CustomEvent("anonymo:atlas", { detail: {} }))} className={abajo(false)}>
+      <Icono d={I.atlas} />Atlas
+    </button>
+  );
+}
+
 const fila = (activo: boolean) =>
   `flex min-h-10 items-center gap-2.5 rounded-[10px] px-2.5 text-[13.5px] transition ${activo ? "bg-white/80 font-medium shadow-[0_1px_2px_rgba(26,24,22,.06),inset_0_0_0_1px_rgba(255,255,255,.9)]" : "hover:bg-white/40"}`;
 
@@ -78,7 +92,12 @@ const I = {
   biblioteca: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z",
   video: "M3 6h12v12H3zM15 10l6-3v10l-6-3",
   clientes: "M6 4v8a6 6 0 0 0 12 0V4M6 8h4M14 8h4",
+  taller: "M14 7a4 4 0 0 0-5.3 5.3L4 17l3 3 4.7-4.7A4 4 0 0 0 17 10l-2.5 2.5-3-3z",
+  atlas: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8M12 8v8",
 };
+
+/** Páginas del Taller: herramientas para mejorar la casa, no para el trabajo de cada día. */
+const TALLER = ["/estudio/criterio", "/estudio/banco", "/estudio/conexiones", "/estudio/analitica"];
 
 /** Pide permiso para avisar con notificaciones del navegador (una vez). */
 function PermisoAvisos() {
@@ -149,9 +168,9 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
           <Icono d={I.todo} /> Inicio
           {tetoca > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] font-medium text-white" title="Cosas que esperan tu decisión">{tetoca}</span>}
         </Link>
-        <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
-        <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
         <Link href="/estudio/clientes" onClick={alIr} className={fila(ruta.startsWith("/estudio/clientes"))} aria-current={ruta.startsWith("/estudio/clientes") ? "page" : undefined}><Icono d={I.clientes} /> Clientes nuevos</Link>
+        <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
+        <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
         <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
       </div>
 
@@ -182,11 +201,20 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
       <div className="mt-auto grid gap-0.5">
         <span className="px-2.5 text-[11px] text-medio lg:hidden"><Version/></span>
         <Link href="/estudio?vista=completa" onClick={alIr} className={`${fila(false)} lg:hidden`}>Vista completa del estudio</Link>
-        <Link href="/estudio/criterio" onClick={alIr} className={fila(ruta === "/estudio/criterio")} aria-current={ruta === "/estudio/criterio" ? "page" : undefined}>Criterio de la casa</Link>
-        <Link href="/estudio/banco" onClick={alIr} className={fila(ruta === "/estudio/banco")} aria-current={ruta === "/estudio/banco" ? "page" : undefined}>Banco de calibración</Link>
-        <Link href="/estudio/conexiones" onClick={alIr} className={fila(ruta === "/estudio/conexiones")}>Conexiones del estudio</Link>
-        <Link href="/estudio/analitica" onClick={alIr} className={fila(ruta === "/estudio/analitica")}><Icono d={I.metricas} /> Métricas de la web</Link>
-        <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")}><Icono d={I.papelera} /> Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>
+        {/* El Taller (sistema/68): lo que mejora la casa, separado del trabajo diario. Abierto si estás en una de sus páginas. */}
+        <details open={TALLER.some((t) => ruta.startsWith(t))} className="group">
+          <summary className={`${fila(false)} cursor-pointer list-none text-tinta/70 [&::-webkit-details-marker]:hidden`}>
+            <Icono d={I.taller} /> Taller
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="ml-auto transition group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
+          <div className="grid gap-0.5 pl-3">
+            <Link href="/estudio/criterio" onClick={alIr} className={fila(ruta === "/estudio/criterio")} aria-current={ruta === "/estudio/criterio" ? "page" : undefined}>Criterio de la casa</Link>
+            <Link href="/estudio/banco" onClick={alIr} className={fila(ruta === "/estudio/banco")} aria-current={ruta === "/estudio/banco" ? "page" : undefined}>Banco de calibración</Link>
+            <Link href="/estudio/conexiones" onClick={alIr} className={fila(ruta === "/estudio/conexiones")} aria-current={ruta === "/estudio/conexiones" ? "page" : undefined}>Conexiones del estudio</Link>
+            <Link href="/estudio/analitica" onClick={alIr} className={fila(ruta === "/estudio/analitica")} aria-current={ruta === "/estudio/analitica" ? "page" : undefined}>Métricas de la web</Link>
+          </div>
+        </details>
+        <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")} aria-current={ruta === "/estudio/papelera" ? "page" : undefined}><Icono d={I.papelera} /> Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>
         <a href="/" target="_blank" rel="noreferrer" className={fila(false)}><Icono d={I.web} /> Ver la web</a>
         <div className="mt-2 flex items-center gap-2 px-2.5">
           <span className="flex">
@@ -266,8 +294,15 @@ export function Marco({ children, ...props }: Props) {
           <button type="button" onClick={() => setAyuda(true)} className="pointer-events-auto hidden h-6 w-6 items-center justify-center rounded-full bg-white/70 font-mono text-[11px] text-tinta/60 shadow-[0_0_0_1px_rgba(26,24,22,.08)] hover:text-tinta lg:inline-flex" aria-label="Atajos de teclado">?</button>
           <Version className="rounded-full bg-white/70 px-2.5 py-1 shadow-[0_0_0_1px_rgba(26,24,22,.06)] backdrop-blur" />
         </div>
-        <nav aria-label="Accesos móviles" className="fixed inset-x-2 bottom-2 z-40 grid grid-cols-3 rounded-2xl border border-borde bg-carta/95 p-1 pb-[max(4px,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
-          {[["/estudio","Proyectos"],["/estudio/biblioteca?buscar=1","Buscar"],["/estudio#te-toca","Pendientes"]].map(([href,texto])=><Link key={texto} href={href} className="flex min-h-12 items-center justify-center rounded-xl text-[13px] font-medium">{texto}{texto==="Pendientes"&&props.tetoca>0?` · ${props.tetoca}`:""}</Link>)}
+        {/* Barra de abajo en celular (sistema/68): los departamentos, un pedido nuevo al centro y Atlas. */}
+        <nav aria-label="Accesos móviles" className="fixed inset-x-2 bottom-2 z-40 grid grid-cols-5 rounded-2xl border border-borde bg-carta/95 p-1 pb-[max(4px,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
+          <Link href="/estudio" aria-current={ruta === "/estudio" ? "page" : undefined} className={abajo(ruta === "/estudio")}>
+            <span className="relative"><Icono d={I.todo} />{props.tetoca > 0 && <span className="absolute -right-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-urgente px-1 text-[10px] text-white">{props.tetoca}</span>}</span>Inicio
+          </Link>
+          <Link href="/estudio/clientes" aria-current={ruta.startsWith("/estudio/clientes") ? "page" : undefined} className={abajo(ruta.startsWith("/estudio/clientes"))}><Icono d={I.clientes} />Clientes</Link>
+          <Link href="/estudio/nuevo" aria-label="Nuevo pedido" className="flex min-h-12 items-center justify-center"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-tinta text-white"><Icono d={I.nuevo} /></span></Link>
+          <Link href="/estudio/video" aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined} className={abajo(ruta.startsWith("/estudio/video"))}><Icono d={I.video} />Video</Link>
+          <BotonAtlas />
         </nav>
         <main id="principal" className="mb-20 min-h-[calc(100dvh-16px)] min-w-0 flex-1 lg:mb-0 rounded-[18px] bg-carta shadow-[0_0_0_1px_rgba(26,24,22,.05),0_24px_60px_-24px_rgba(60,40,20,.25)]">
           {children}

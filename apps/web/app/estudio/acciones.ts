@@ -1,6 +1,9 @@
 "use server";
 // Lo mismo que la terminal, con botones. Cada acción corre el pipeline y vuelve a la página del proyecto.
-import { redirect } from "next/navigation";
+// sistema/68: toda acción vuelve a la misma pestaña desde donde se envió, y reemplaza el paso del historial
+// (Atrás lleva a la vista anterior, nunca a un aviso viejo).
+import { redirect as irA, RedirectType } from "next/navigation";
+import { headers } from "next/headers";
 import { agentePorId } from "@anonymo/agentes";
 import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
@@ -13,6 +16,32 @@ import { archivosDe } from "@/lib/subidas";
 import { lanzar, trabajandoAhora } from "@/lib/trabajo";
 
 type Quien = "jay" | "luna";
+
+/** Ir a otra página reemplazando el paso del historial: el resultado de una acción no es un lugar al que volver. */
+const redirect = (url: string): never => irA(url, RedirectType.replace);
+
+/** Parámetros que son resultado de una acción o de un paso intermedio, no parte del lugar. */
+const PASAJEROS = ["ok", "error", "fiesta", "vista", "pendiente"];
+
+/**
+ * De qué parte del proyecto vino la acción (sistema/68): la pestaña (`?ver=`), la subpágina y sus filtros.
+ * Lo saca de la página que envió el formulario; si no es de este proyecto, vuelve al proyecto.
+ */
+async function origen(id: string): Promise<string> {
+  const ref = (await headers()).get("referer");
+  if (!ref) return "";
+  try {
+    const u = new URL(ref);
+    const base = `/estudio/${id}`;
+    if (u.pathname !== base && !u.pathname.startsWith(`${base}/`)) return "";
+    for (const k of PASAJEROS) u.searchParams.delete(k);
+    const q = u.searchParams.toString();
+    return `${u.pathname.slice(base.length)}${q ? `?${q}` : ""}`;
+  } catch {
+    return "";
+  }
+}
+
 
 /** Con claves configuradas, la acción queda a nombre de quien entró (no de lo que diga el formulario). */
 async function leer(f: FormData) {
@@ -30,7 +59,10 @@ async function leer(f: FormData) {
  */
 async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: string, fiesta = false, ruta = "", trabaja = false) {
   await exigirEstudio();
-  // ruta: a qué parte del proyecto volver (ej. «?ver=marca» o «/propuesta»).
+  // ruta: a qué parte del proyecto volver (ej. «?ver=marca» o «/propuesta»). Sin ruta, a donde estabas.
+  if (!ruta) ruta = await origen(id);
+  // «.»: la acción hace avanzar el proyecto (aprobar, elegir dirección…): se vuelve a su página principal a ver al equipo.
+  if (ruta === ".") ruta = "";
   const base = `/estudio/${id}${ruta.startsWith("/") ? ruta.split("?")[0] : ""}`;
   const extra = ruta.includes("?") ? `${ruta.split("?")[1]}&` : "";
   let destino = `${base}?${extra}ok=${encodeURIComponent(ok)}${fiesta ? "&fiesta=1" : ""}`;
@@ -52,7 +84,7 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
 
 export async function accionAprobar(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
-  await correr(id, () => aprobar(id, quien, nota, motor, undefined, f.get("forzar") === "1", { max: 0 }), "Aprobado. Sigue el equipo: te avisamos cuando haya algo para revisar.", true, "", true);
+  await correr(id, () => aprobar(id, quien, nota, motor, undefined, f.get("forzar") === "1", { max: 0 }), "Aprobado. Sigue el equipo: te avisamos cuando haya algo para revisar.", true, ".", true);
 }
 
 export async function accionCambiar(f: FormData) {
@@ -61,7 +93,7 @@ export async function accionCambiar(f: FormData) {
   await correr(id, () => {
     if (!nota) throw new Error("Escribe qué hay que cambiar.");
     return cambiar(id, quien, nota, agente, motor, undefined, { max: 0 });
-  }, "Cambio pedido. Lo están rehaciendo: te avisamos cuando esté.", false, "", true);
+  }, "Cambio pedido. Lo están rehaciendo: te avisamos cuando esté.", false, ".", true);
 }
 
 export async function accionParar(f: FormData) {
@@ -401,13 +433,13 @@ export async function accionModo(f: FormData) {
 export async function accionElegirDireccion(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
   const n = Number(f.get("n"));
-  await correr(id, () => elegirDireccion(id, n, quien, nota, motor, undefined, { max: 0 }), "Dirección elegida. El equipo diseña la web con ella: te avisamos cuando haya algo para revisar.", true, "", true);
+  await correr(id, () => elegirDireccion(id, n, quien, nota, motor, undefined, { max: 0 }), "Dirección elegida. El equipo diseña la web con ella: te avisamos cuando haya algo para revisar.", true, ".", true);
 }
 
 /** Pide (otras) 3 direcciones de diseño. */
 export async function accionPedirDirecciones(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
-  await correr(id, () => pedirDirecciones(id, quien, nota, motor, undefined, { max: 0 }), "Pedidas. Te avisamos cuando lleguen las 3 direcciones.", false, "", true);
+  await correr(id, () => pedirDirecciones(id, quien, nota, motor, undefined, { max: 0 }), "Pedidas. Te avisamos cuando lleguen las 3 direcciones.", false, ".", true);
 }
 
 
