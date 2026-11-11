@@ -323,7 +323,8 @@ function Tarjeta({ p, listo, alCambiar }: { p: VistaProspecto; listo: boolean; a
           onChange={(e) => void cambiar({ estado: e.target.value }, "Guardando el estado", `Ahora está en «${ESTADOS.find(([v]) => v === e.target.value)?.[1]}».`)} className={selector}>
           {ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
         </select>
-        <Link href={p.pedido} className={botonChico}>Convertir en pedido →</Link>
+        {p.proyecto ? <Link href={p.proyecto} className={botonChico}>Ver el proyecto →</Link> : <Link href={p.pedido} className={botonChico}>Convertir en pedido →</Link>}
+        {p.ficha && <Link href={p.ficha} className={botonChico}>Ficha del cliente</Link>}
         <button type="button" onClick={() => setAbierta(!abierta)} aria-expanded={abierta} className="inline-flex min-h-9 items-center px-2 text-[13px] text-medio underline-offset-4 hover:underline">{abierta ? "Cerrar" : "Más"}</button>
       </div>
 

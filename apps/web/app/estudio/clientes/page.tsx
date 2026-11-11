@@ -1,37 +1,63 @@
-// El escritorio de Imán (sistema/66): negocios con buena fama y mala web, listos para escribirles.
-import { clavePlaces, GRUPOS_RUBRO, CIUDADES, leerProspectos } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
-import { vistaLista, type VistaLista } from "@/lib/clientes";
+// La cartera de clientes (sistema/70): cada cliente con todo lo suyo, lo más movido arriba.
+import Link from "next/link";
+import { leerProspectos, resumenFicha } from "@anonymo/pipeline";
+import { exigirEstudio, serif, campo, botonLleno } from "@/lib/estudio";
+import { cartera } from "@/lib/cartera";
 import { Cara } from "@/components/estudio/piezas";
-import { ClientesNuevos } from "@/components/estudio/clientes/ClientesNuevos";
+import { PestanasClientes } from "@/components/estudio/clientes/PestanasClientes";
+import { accionNuevaFicha } from "@/app/estudio/cliente/acciones";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Clientes nuevos — Estudio", robots: { index: false } };
+export const metadata = { title: "Clientes — Estudio", robots: { index: false } };
+
+const fecha = (iso: string) => (iso ? new Date(iso).toLocaleDateString("es-EC", { day: "numeric", month: "short", timeZone: "America/Guayaquil" }) : "");
 
 export default async function Pagina() {
   await exigirEstudio();
-  let inicial: VistaLista = { firma: "", prospectos: [] };
-  let falla = "";
-  try { inicial = vistaLista(await leerProspectos()); } catch (e) { falla = (e as Error).message; }
+  const [{ fichas, fallas }, nuevos] = await Promise.all([cartera(), leerProspectos().then((l) => Object.keys(l.prospectos).length).catch(() => undefined)]);
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
       <div className="flex items-center gap-4">
-        <Cara id="iman" tam={56} flota />
+        <Cara id="atlas" tam={56} flota />
         <div>
-          <p className="text-[13px] text-suave">Imán · Ventas</p>
-          <h1 className={`${serif} text-[40px] leading-none`}>Clientes nuevos.</h1>
+          <p className="text-[13px] text-suave">Atlas · cada cliente en un solo lugar</p>
+          <h1 className={`${serif} text-[40px] leading-none`}>Clientes.</h1>
         </div>
       </div>
-      <p className="mt-3 max-w-2xl text-[15px] text-medio">
-        Imán busca en Google Maps negocios con buenas reseñas y una web que no les hace justicia: sin web, solo con Instagram, rota o que no sirve en celular. Los ordena por oportunidad y te deja el mensaje listo para WhatsApp. Cuando alguien responde, lo conviertes en pedido.
+      <PestanasClientes actual="cartera" cartera={fichas.length} nuevos={nuevos} />
+      <p className="mt-5 max-w-2xl text-[15px] text-medio">
+        Cada ficha junta lo que hay de un cliente: de dónde vino, sus pedidos y proyectos, sus videos, su marca, su contacto y tus notas. Se arma sola con el nombre del cliente; los prospectos de Imán entran cuando responden.
       </p>
-      {falla && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">No se pudo leer la lista: {falla}</p>}
-      <ClientesNuevos
-        inicial={inicial}
-        hayClave={!!clavePlaces()}
-        grupos={GRUPOS_RUBRO.map((g) => ({ id: g.id, nombre: g.nombre, busquedas: [...g.busquedas] }))}
-        ciudades={Object.keys(CIUDADES)}
-      />
+      {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
+
+      <ul className="mt-6 grid gap-2" aria-label="Clientes">
+        {!fichas.length && <li className="py-8 text-[14px] text-medio">Todavía no hay clientes. Aparecen solos al crear un pedido, subir un video para alguien o cuando un prospecto responde.</li>}
+        {fichas.map((f) => (
+          <li key={f.id}>
+            <Link href={`/estudio/cliente/${f.id}`} className="flex min-h-16 items-center gap-4 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">
+              <i aria-hidden className="h-9 w-9 shrink-0 rounded-xl" style={{ background: f.kits[0]?.color ?? "#e9e4dc" }} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-medium">{f.nombre}</span>
+                <span className="block truncate text-[13px] text-suave">{resumenFicha(f)}</span>
+              </span>
+              <span className="hidden shrink-0 gap-3 text-[12px] text-medio sm:flex">
+                {f.proyectos.length > 0 && <span>{f.proyectos.length} {f.proyectos.length === 1 ? "proyecto" : "proyectos"}</span>}
+                {f.videos.length > 0 && <span>{f.videos.length} {f.videos.length === 1 ? "video" : "videos"}</span>}
+                {f.prospecto && <span>vino de Imán</span>}
+              </span>
+              <span className="shrink-0 text-[12px] text-suave">{fecha(f.actualizado)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <details className="mt-8 max-w-lg">
+        <summary className="min-h-11 cursor-pointer text-[14px] text-medio">Agregar un cliente a mano</summary>
+        <form action={accionNuevaFicha} className="mt-2 flex flex-wrap gap-2">
+          <input name="nombre" required maxLength={80} placeholder="Nombre del cliente" className={`${campo} min-w-0 flex-1`} />
+          <button className={botonLleno} data-trabajando="Creando la ficha…">Crear ficha</button>
+        </form>
+      </details>
     </div>
   );
 }

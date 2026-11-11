@@ -49,6 +49,8 @@ export interface Prospecto {
   por?: string;
   /** Si ya se convirtió en pedido, el id del proyecto. */
   proyecto?: string;
+  /** Lo que pasó con este negocio, en orden (sistema/70): lo muestra su ficha de cliente. */
+  historial?: { cuando: string; que: string; por?: string }[];
 }
 
 export interface ListaProspectos {

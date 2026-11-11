@@ -96,6 +96,9 @@ const I = {
   atlas: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8M12 8v8",
 };
 
+/** Clientes: la cartera, los nuevos de Imán y cada ficha (sistema/70). */
+const enClientes = (ruta: string) => ruta.startsWith("/estudio/clientes") || ruta.startsWith("/estudio/cliente/");
+
 /** Páginas del Taller: herramientas para mejorar la casa, no para el trabajo de cada día. */
 const TALLER = ["/estudio/criterio", "/estudio/banco", "/estudio/conexiones", "/estudio/analitica"];
 
@@ -168,7 +171,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
           <Icono d={I.todo} /> Inicio
           {tetoca > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] font-medium text-white" title="Cosas que esperan tu decisión">{tetoca}</span>}
         </Link>
-        <Link href="/estudio/clientes" onClick={alIr} className={fila(ruta.startsWith("/estudio/clientes"))} aria-current={ruta.startsWith("/estudio/clientes") ? "page" : undefined}><Icono d={I.clientes} /> Clientes nuevos</Link>
+        <Link href="/estudio/clientes" onClick={alIr} className={fila(enClientes(ruta))} aria-current={enClientes(ruta) ? "page" : undefined}><Icono d={I.clientes} /> Clientes</Link>
         <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
         <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
         <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
@@ -299,7 +302,7 @@ export function Marco({ children, ...props }: Props) {
           <Link href="/estudio" aria-current={ruta === "/estudio" ? "page" : undefined} className={abajo(ruta === "/estudio")}>
             <span className="relative"><Icono d={I.todo} />{props.tetoca > 0 && <span className="absolute -right-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-urgente px-1 text-[10px] text-white">{props.tetoca}</span>}</span>Inicio
           </Link>
-          <Link href="/estudio/clientes" aria-current={ruta.startsWith("/estudio/clientes") ? "page" : undefined} className={abajo(ruta.startsWith("/estudio/clientes"))}><Icono d={I.clientes} />Clientes</Link>
+          <Link href="/estudio/clientes" aria-current={enClientes(ruta) ? "page" : undefined} className={abajo(enClientes(ruta))}><Icono d={I.clientes} />Clientes</Link>
           <Link href="/estudio/nuevo" aria-label="Nuevo pedido" className="flex min-h-12 items-center justify-center"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-tinta text-white"><Icono d={I.nuevo} /></span></Link>
           <Link href="/estudio/video" aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined} className={abajo(ruta.startsWith("/estudio/video"))}><Icono d={I.video} />Video</Link>
           <BotonAtlas />

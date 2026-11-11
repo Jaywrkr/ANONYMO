@@ -5,6 +5,8 @@ import type { TipoPedido } from "@anonymo/agentes";
 export interface Pedido {
   id: string; // slug: "clinica-sonrisa"
   cliente: string;
+  /** La ficha del cliente a la que pertenece (sistema/70). Sin esto, se une por el nombre del cliente. */
+  ficha?: string;
   correo?: string;
   tipo: TipoPedido;
   descripcion: string;

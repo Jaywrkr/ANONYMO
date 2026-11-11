@@ -1,5 +1,5 @@
 // Ayudas del escritorio de Imán, clientes nuevos (sistema/66).
-import { ESTADOS_PROSPECTO, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
+import { ESTADOS_PROSPECTO, idFicha, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
 
 export const mal = (error: string, status = 400) => Response.json({ error }, { status, headers: { "cache-control": "no-store" } });
@@ -15,7 +15,10 @@ export async function permiso() {
 export function vistaProspecto(p: Prospecto, firma: string) {
   const { puntaje, motivos, buenaFama } = puntuar(p);
   const mensaje = p.mensaje ?? mensajeInicial(p, firma);
-  const q = new URLSearchParams({ q: pedidoDesdeProspecto(p), cliente: p.nombre.slice(0, 80) });
+  const ficha = idFicha(p.nombre);
+  const q = new URLSearchParams({ q: pedidoDesdeProspecto(p), cliente: p.nombre.slice(0, 80), ficha, prospecto: p.id });
+  // Tiene ficha cuando ya hay relación o se volvió pedido (sistema/70).
+  const conFicha = !!p.proyecto || ["respondio", "reunion", "cliente"].includes(p.estado);
   return {
     id: p.id,
     nombre: p.nombre,
@@ -40,6 +43,8 @@ export function vistaProspecto(p: Prospecto, firma: string) {
     motivos,
     buenaFama,
     pedido: `/estudio/nuevo?${q}`,
+    ficha: conFicha ? `/estudio/cliente/${ficha}` : undefined,
+    proyecto: p.proyecto ? `/estudio/${p.proyecto}` : undefined,
     actualizado: p.actualizado,
   };
 }

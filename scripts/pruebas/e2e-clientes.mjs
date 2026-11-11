@@ -48,8 +48,11 @@ p.on("pageerror", (e) => fallas.push(`error en la página: ${e.message}`));
 try {
   await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="jay"]', { force: true }); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
 
-  await p.click("nav >> text=Clientes nuevos");
+  await p.click("aside nav >> a:has-text('Clientes')");
   await p.waitForURL(/estudio\/clientes$/);
+  exigir(await p.locator("h1", { hasText: "Clientes." }).waitFor({ timeout: 15000 }).then(() => true, () => false), "Clientes abre la cartera desde la barra");
+  await p.click("nav[aria-label='Partes de clientes'] >> text=Nuevos · Imán");
+  await p.waitForURL(/estudio\/clientes\/nuevos$/);
   exigir(await p.locator("h1", { hasText: "Clientes nuevos." }).waitFor({ timeout: 15000 }).then(() => true, () => false), "el escritorio de Imán abre desde la barra");
   exigir(!(await p.locator("text=Falta la clave de Google Maps").count()), "con clave no avisa que falta");
   await p.waitForSelector("button:has-text('Que Imán busque')");
@@ -119,13 +122,47 @@ try {
   exigir(/Una web para Sonrisa Sin Web, odontólogo en Cuenca/.test(await p.locator("textarea").first().inputValue()), "y lo que Imán sabe del negocio");
   await p.screenshot({ path: join(capturas, "3-pedido.png") });
 
+  // Fase 2 del mapa (sistema/70): el pedido crea el proyecto unido a la ficha y al prospecto, y se vuelve por los dos lados.
+  await p.click("button:has-text('Que Atlas arme el plan')");
+  await p.waitForURL(/estudio\/sonrisa-sin-web(\?|$)/, { timeout: 120000 });
+  const enlaceFicha = p.locator("a:has-text('Ficha de Sonrisa Sin Web')");
+  exigir(await enlaceFicha.waitFor({ timeout: 15000 }).then(() => true, () => false), "el proyecto tiene el enlace a la ficha del cliente");
+  await enlaceFicha.click();
+  await p.waitForURL(/estudio\/cliente\/sonrisa-sin-web$/);
+  await p.locator("#t-historia").waitFor({ timeout: 15000 });
+  const ficha = await p.locator("main").innerText();
+  exigir(/Vino de Imán/.test(ficha) && /4\.8 \(95\)/.test(ficha), "la ficha muestra de dónde vino y su fama");
+  exigir((await p.locator("section[aria-labelledby=t-proyectos] a[href='/estudio/sonrisa-sin-web']").count()) === 1, "la ficha lista el proyecto");
+  exigir(/Imán lo encontró buscando «odontólogo» en Cuenca/.test(ficha) && /Pasó a «Contactado»/.test(ficha) && /Se convirtió en pedido/.test(ficha) && /Pedido nuevo/.test(ficha), "la historia junta lo de Imán y el pedido");
+  exigir((await p.inputValue("input[name=telefono]")) === "099 000 0003", "el teléfono viene del prospecto");
+  await p.fill("textarea[name=notas]", "Prefiere que lo llamen en la tarde.");
+  await p.click("button:has-text('Guardar')");
+  exigir(await p.locator("[role=status]:has-text('Ficha guardada')").waitFor({ timeout: 15000 }).then(() => true, () => false), "guardar la ficha dice qué pasó");
+  exigir(new URL(p.url()).pathname === "/estudio/cliente/sonrisa-sin-web", "y se queda en la ficha");
+  await p.reload();
+  exigir((await p.inputValue("textarea[name=notas]")) === "Prefiere que lo llamen en la tarde.", "las notas quedan guardadas en la nube");
+  await p.screenshot({ path: join(capturas, "5-ficha.png"), fullPage: true });
+  await p.goto(`${B}/estudio/clientes/nuevos`);
+  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  const ya = p.locator("li:has-text('Sonrisa Sin Web')");
+  exigir((await ya.locator("select[aria-label=Estado]").inputValue()) === "cliente", "el prospecto quedó como cliente");
+  exigir((await ya.locator("a:has-text('Ver el proyecto')").getAttribute("href")) === "/estudio/sonrisa-sin-web" && (await ya.locator("a:has-text('Ficha del cliente')").count()) === 1, "y desde el prospecto se llega al proyecto y a la ficha");
+  await p.goto(`${B}/estudio/clientes`);
+  exigir(await p.locator("ul[aria-label=Clientes] a[href='/estudio/cliente/sonrisa-sin-web']").waitFor({ timeout: 15000 }).then(() => true, () => false), "la cartera lo muestra");
+
   const movil = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });
   const m = await movil.newPage();
-  await m.goto(`${B}/estudio/clientes`);
+  await m.goto(`${B}/estudio/clientes/nuevos`);
   await m.waitForSelector("ul[aria-label=Negocios] > li");
   const ancho = await m.evaluate(() => document.documentElement.scrollWidth);
   exigir(ancho <= 392, `en celular no se sale de la pantalla (${ancho}px)`);
   await m.screenshot({ path: join(capturas, "4-celular.png"), fullPage: true });
+  for (const ruta of ["/estudio/clientes", "/estudio/cliente/sonrisa-sin-web"]) {
+    await m.goto(B + ruta);
+    const w = await m.evaluate(() => document.documentElement.scrollWidth);
+    exigir(w <= 392, `${ruta} cabe en celular (${w}px)`);
+  }
+  await m.screenshot({ path: join(capturas, "6-ficha-celular.png"), fullPage: true });
   await movil.close();
 } catch (e) {
   fallas.push(`se cortó: ${e.message}`);

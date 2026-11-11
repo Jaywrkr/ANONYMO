@@ -25,7 +25,7 @@ Un cliente no termina al entregar la web: el contenido y el video de cada mes lo
 | Función de una agencia | En ANONYMO | Agentes | Estado (0.67) | Falta |
 |---|---|---|---|---|
 | Nuevos negocios | Clientes nuevos (`/estudio/clientes`) | Imán, Sonda | Primera versión | Muestra automática, seguimiento con fechas, tanda diaria de 20 como máximo |
-| Atención al cliente | Ficha del cliente + portal | Atlas, Tempo | Portal por proyecto; no hay ficha de cliente | Una ficha por cliente con toda su historia |
+| Atención al cliente | Ficha del cliente (`/estudio/cliente/[id]`) + portal | Atlas, Tempo | Ficha por cliente desde 0.71; portal por proyecto | Portal por cliente, no por proyecto |
 | Planificación y estrategia | Fase 1 · Arranque | Nova, Sonda | Funciona | Usar lo que Imán ya sabe del cliente |
 | Presupuesto y finanzas | Números, propuesta | Ledger | Funciona | Facturas y cobros; margen real contra estimado |
 | Marca | Fases 2 y 3 | Verba, Mira, Rhea, Kine, Eco | Funciona, calidad por calibrar | Calibración con el criterio de Jay |
@@ -69,7 +69,7 @@ Una fase por rama. No empieza hasta que la anterior está en `main` y Jay la us�
 | Fase | Qué entra | Se acepta si |
 |---|---|---|
 | 1 · Pulir lo que existe (hecho en 0.69 y 0.70) | Reglas de [experiencia.md](experiencia.md): volver a la misma pestaña, avisos fuera de la dirección, una sola espera y confirmación, menú en dos niveles, barra de celular nueva | Una prueba recorre todas las acciones del proyecto desde cada pestaña y en todas vuelve a la misma; Atrás funciona; nada se sale de 390 px en celular |
-| 2 · Un solo cliente | Ficha de cliente: prospecto, pedidos, proyectos, videos, contenido y kit de marca | Del prospecto se llega al proyecto y del proyecto se vuelve al prospecto, con la misma historia |
+| 2 · Un solo cliente (hecho en 0.71) | Ficha de cliente: prospecto, pedidos, proyectos, videos, contenido y kit de marca | Del prospecto se llega al proyecto y del proyecto se vuelve al prospecto, con la misma historia |
 | 3 · Cada función con sus agentes | Corte edita y Faro escribe guiones en video; Sonda prepara cada prospecto; tanda diaria; muestra automática | Un pedido de video pasa Atlas → Faro → Corte con cada paso firmado |
 | 4 · Contenido mensual | El planificador vuelto multi-cliente; el primer cliente es la propia ANONYMO | El mes de contenido de ANONYMO sale del sistema, aprobado por Luna, sin trabajo fuera de él |
 | 5 · Celular como herramienta de campo | App instalable, «Compartir a ANONYMO», pedido por voz, aprobar de una en una | Una foto de la galería llega a la ficha del cliente correcto en menos de 3 toques |

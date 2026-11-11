@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { join } from "node:path";
 import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
-import { FIRMA_INICIAL, type EstadoProspecto, type ListaProspectos, type Prospecto } from "./tipos.ts";
+import { ESTADOS_PROSPECTO, FIRMA_INICIAL, type EstadoProspecto, type ListaProspectos, type Prospecto } from "./tipos.ts";
 import type { Lugar } from "./buscar-lugares.ts";
 
 export const CARPETA_PROSPECTOS = "_prospectos";
@@ -53,7 +53,7 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
       if (webCambio) ya.revision = undefined;
       continue;
     }
-    l.prospectos[x.id] = { ...x, rubro, ciudad, estado: "nuevo", agregado: ahora, actualizado: ahora, por };
+    l.prospectos[x.id] = { ...x, rubro, ciudad, estado: "nuevo", agregado: ahora, actualizado: ahora, por, historial: [{ cuando: ahora, que: `Imán lo encontró buscando «${rubro}» en ${ciudad}`, por }] };
     nuevos++;
   }
   return nuevos;
@@ -65,6 +65,10 @@ export const porRevisar = (l: ListaProspectos) => Object.values(l.prospectos).fi
 export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string }
 
 export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
+  const ahora = new Date().toISOString();
+  const anotar = (que: string) => (p.historial ??= []).push({ cuando: ahora, que, por });
+  if (c.estado && c.estado !== p.estado) anotar(`Pasó a «${ESTADOS_PROSPECTO[c.estado]}»`);
+  if (c.proyecto && c.proyecto !== p.proyecto) anotar("Se convirtió en pedido");
   if (c.estado) p.estado = c.estado;
   if (c.notas !== undefined) p.notas = c.notas.slice(0, 2000) || undefined;
   if (c.mensaje !== undefined) p.mensaje = c.mensaje ? c.mensaje.slice(0, 2000) : undefined;
