@@ -47,6 +47,29 @@ export function Trabajando() {
     return () => removeEventListener("anonymo:trabajando", f);
   }, []);
 
+  // Una sola forma de esperar (sistema/69): cualquier formulario del estudio que va al servidor bloquea la pantalla
+  // con el aviso chico hasta que llega la página nueva, aunque su botón no sea un «Enviar». El texto sale de
+  // data-trabajando del botón («Guardando…») o, si no tiene, de lo que dice el botón.
+  useEffect(() => {
+    const f = (e: SubmitEvent) => {
+      const form = e.target as HTMLFormElement | null;
+      if (!form || form.dataset.sinEspera !== undefined) return;
+      // Solo las acciones del servidor (Next deja en el formulario un campo «$ACTION_ID_…» o lo envía por POST);
+      // los formularios que se manejan en la misma página (filtros, buscar, chat) no bloquean.
+      const esAccion = !!form.querySelector('input[name^="$ACTION_"]') || form.method === "post";
+      if (!esAccion) return;
+      if (!form.checkValidity()) return;
+      const boton = e.submitter as HTMLElement | null;
+      const propio = boton?.dataset.trabajando;
+      const texto = propio ?? (boton?.textContent?.trim() ? `${boton.textContent.trim().replace(/[→…]+$/, "").trim()}…` : "Un momento…");
+      setCorto((ya) => ya ?? texto);
+    };
+    const liberar = () => { setCorto(undefined); setT({ activo: false }); };
+    addEventListener("submit", f as EventListener, true);
+    addEventListener("anonymo:liberar", liberar);
+    return () => { removeEventListener("submit", f as EventListener, true); removeEventListener("anonymo:liberar", liberar); };
+  }, []);
+
   // Mientras trabaja: reloj, estado en vivo, nada de atajos ni de salir.
   useEffect(() => {
     if (!t.activo) return;

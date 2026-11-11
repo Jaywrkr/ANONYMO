@@ -45,7 +45,9 @@ try {
   const fase = p.locator("form:has(select[name=socio])").first();
   await fase.locator("select[name=socio]").selectOption("luna");
   await fase.locator("button:has-text('Guardar')").click();
+  exigir(await p.locator("[data-aviso-trabajo]").first().isVisible({ timeout: 2000 }).catch(() => false), "un botón cualquiera bloquea la pantalla mientras responde (una sola espera)");
   exigir(await aviso(p, "la aprueba ahora Luna"), "cambiar quién aprueba dice qué pasó");
+  exigir(!(await p.locator("[data-aviso-trabajo]").first().isVisible().catch(() => false)), "la espera se libera al llegar la respuesta");
   exigir(busqueda(p).get("ver") === "ajustes", `después de cambiar quién aprueba sigue en Ajustes (${p.url().replace(B, "")})`);
 
   // 4 · El Taller: cerrado en el día a día, abierto cuando estás en una de sus páginas.
@@ -76,7 +78,22 @@ try {
   await barra.getByRole("link", { name: /Clientes/ }).click();
   await m.waitForURL(/estudio\/clientes/);
   exigir((await barra.getByRole("link", { name: /Clientes/ }).getAttribute("aria-current")) === "page", "la barra marca dónde estás");
-  for (const ruta of ["/estudio", "/estudio/cafe-lento", "/estudio/cafe-lento?ver=ajustes", "/estudio/clientes", "/estudio/video", "/estudio/nuevo", "/estudio/biblioteca"]) {
+  // El proyecto en celular: todas las pestañas en una fila que se desliza, nada escondido en «Más opciones».
+  await m.goto(`${B}/estudio/cafe-lento?ver=ajustes`);
+  const pestanas = m.locator("#pestanas-proyecto a");
+  await pestanas.first().waitFor({ timeout: 15000 });
+  exigir((await pestanas.count()) === 7, `las 7 pestañas del proyecto están en celular (${await pestanas.count()})`);
+  exigir(!(await m.locator("text=Más opciones del proyecto").count()), "ya no hay «Más opciones del proyecto»");
+  const actual = m.getByRole("navigation", { name: "Secciones del proyecto" }).locator("[aria-current=page]");
+  const caja = await actual.boundingBox();
+  exigir(!!caja && caja.x >= 0 && caja.x + caja.width <= 390, "la pestaña donde estás se ve aunque sea la última");
+  await m.screenshot({ path: join(capturas, "4-celular-pestanas.png") });
+  // El banco en celular: una referencia a la vez, deslizando.
+  await m.goto(`${B}/estudio/banco`);
+  await m.waitForLoadState("networkidle").catch(() => {});
+  const alto = await m.evaluate(() => document.documentElement.scrollHeight);
+  exigir(alto < 12000, `el banco en celular ya no es una lista interminable (${alto} px de alto)`);
+  for (const ruta of ["/estudio/banco", "/estudio", "/estudio/cafe-lento", "/estudio/cafe-lento?ver=ajustes", "/estudio/clientes", "/estudio/video", "/estudio/nuevo", "/estudio/biblioteca"]) {
     await m.goto(B + ruta);
     await m.waitForLoadState("networkidle").catch(() => {});
     const ancho = await m.evaluate(() => document.documentElement.scrollWidth);

@@ -1,5 +1,6 @@
 import {versionadoActivo} from "@anonymo/pipeline";
 import {AbrirAtlas} from "@/components/estudio/AbrirAtlas";
+import { PestanaVisible } from "@/components/estudio/PestanaVisible";
 import {urlBoceto} from "@/lib/sitio";
 import Link from "next/link";
 import { SeguimientoMovil } from "@/components/estudio/SeguimientoMovil";
@@ -207,10 +208,10 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
       {!p.papelera && p.estado === "plan" && <div className="mt-6"><PlanAtlas p={p} conIA={!!process.env.ANTHROPIC_API_KEY} /></div>}
 
       {/* Pestañas */}
-      <nav aria-label="Secciones del proyecto" className="sticky top-0 z-10 -mx-5 mt-8 overflow-x-auto border-b border-borde bg-carta/95 px-5 backdrop-blur md:-mx-10 md:px-10">
+      <nav aria-label="Secciones del proyecto" id="pestanas-proyecto" className="sticky top-0 z-10 -mx-5 mt-8 overflow-x-auto [scrollbar-width:none] border-b border-borde bg-carta/95 px-5 backdrop-blur md:-mx-10 md:px-10">
         <ul className="flex gap-1">
           {PESTANAS.map((t) => (
-            <li key={t.id} className={["","entregas","cliente"].includes(t.id)?"":"hidden lg:block"}>
+            <li key={t.id}>
               <Link href={t.id ? `/estudio/${id}?ver=${t.id}` : `/estudio/${id}`} aria-current={ver === t.id ? "page" : undefined} scroll={false}
                 className={`relative inline-flex min-h-12 items-center gap-1.5 whitespace-nowrap px-3 text-[14px] transition ${ver === t.id ? "font-medium text-tinta after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-tinta" : "text-medio hover:text-tinta"}`}>
                 {t.nombre}
@@ -221,7 +222,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         </ul>
       </nav>
 
-      <details className="mt-3 lg:hidden"><summary className="min-h-11 cursor-pointer text-[13px]">Más opciones del proyecto</summary><div className="flex flex-wrap gap-2">{PESTANAS.filter(t=>!["","entregas","cliente"].includes(t.id)).map(t=><Link href={`/estudio/${id}?ver=${t.id}`} key={t.id} className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px]">{t.nombre}</Link>)}</div></details>
+      <PestanaVisible />
       <div className="pt-7">
         {/* RESUMEN */}
         {ver === "" && (
