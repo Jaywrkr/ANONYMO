@@ -183,7 +183,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
     if (!limpio || paso) return;
     const desde = Date.now();
     setAviso(null);
-    setPaso({ titulo: "Atlas está leyendo tu pedido", texto: "Mirando las partes del video y la edición de ahora", desde, estimado: 15 });
+    setPaso({ titulo: "Corte está leyendo tu pedido", texto: "Mirando las partes del video y la edición de ahora", desde, estimado: 15 });
     // Atlas parte de lo último que hizo Luna: primero se guarda.
     if (reloj.current) clearTimeout(reloj.current);
     if (!(await guardar(edRef.current))) { setPaso(null); setAviso({ tipo: "error", texto: "No se pudo guardar la edición. Revisa la conexión y vuelve a intentarlo." }); return; }
@@ -192,7 +192,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
       const r = await fetch(`/estudio/video/${t.id}/atlas`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ texto: limpio, inicial }) });
       const j = (await r.json().catch(() => ({}))) as { error?: string; edicion?: Edicion; anterior?: Edicion; cambios?: string[]; armar?: FormatoVideo[]; mensajes?: MensajeVideo[] };
       if (j.mensajes) setCharla((c) => [...c, ...j.mensajes!]);
-      if (!r.ok || !j.edicion) throw new Error(j.error ?? `Atlas no pudo responder (${r.status}).`);
+      if (!r.ok || !j.edicion) throw new Error(j.error ?? `Corte no pudo responder (${r.status}).`);
       const nueva = edicionSegura(j.edicion, j.edicion);
       ultima.current = JSON.stringify(nueva);
       setEd(nueva);
@@ -200,7 +200,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
       if (j.cambios?.length) { setDeshacerAtlas(j.anterior ? edicionSegura(j.anterior, j.anterior) : null); setHistorial([]); }
       setPedido("");
       armar = j.armar ?? [];
-      setAviso(j.cambios?.length ? { tipo: "ok", texto: `Atlas hizo ${j.cambios.length === 1 ? "1 cambio" : `${j.cambios.length} cambios`}. Revisa la vista previa.` } : null);
+      setAviso(j.cambios?.length ? { tipo: "ok", texto: `Corte hizo ${j.cambios.length === 1 ? "1 cambio" : `${j.cambios.length} cambios`}. Revisa la vista previa.` } : null);
     } catch (e) {
       setAviso({ tipo: "error", texto: (e as Error).message });
     } finally {
@@ -225,7 +225,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
     if (!deshacerAtlas) return;
     cambiar(() => deshacerAtlas);
     setDeshacerAtlas(null);
-    setAviso({ tipo: "ok", texto: "Volvimos a la edición de antes del último pedido a Atlas." });
+    setAviso({ tipo: "ok", texto: "Volvimos a la edición de antes del último pedido a Corte." });
   };
   // El pedido que Luna escribió al subir: se aplica solo, una vez, apenas hay texto.
   const pedidoInicial = useRef(false);
@@ -425,15 +425,15 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
             <section className={tarjeta} aria-labelledby="titulo-atlas">
               <div className="flex items-center gap-2">
                 <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta font-serif text-[17px] text-white">A</span>
-                <h2 id="titulo-atlas" className="text-[16px] font-medium">Pídeselo a Atlas</h2>
+                <h2 id="titulo-atlas" className="text-[16px] font-medium">Pídeselo a Corte</h2>
               </div>
-              <p className="mt-1 text-[13px] text-medio">Escribe lo que quieres como se lo dirías a alguien del equipo. Atlas mira las partes del video, cambia la edición y tú lo ves al instante en la vista previa.</p>
-              {!atlas && <p className="mt-2 rounded-xl bg-[#fff1ea] px-3 py-2 text-[13px] text-[#a33a0b]">Falta la clave de Anthropic (ANTHROPIC_API_KEY): Atlas no puede leer pedidos. Puedes editar a mano.</p>}
+              <p className="mt-1 text-[13px] text-medio">Escribe lo que quieres como se lo dirías a alguien del equipo. Corte mira las partes del video, cambia la edición y tú lo ves al instante en la vista previa.</p>
+              {!atlas && <p className="mt-2 rounded-xl bg-[#fff1ea] px-3 py-2 text-[13px] text-[#a33a0b]">Falta la clave de Anthropic (ANTHROPIC_API_KEY): Corte no puede leer pedidos. Puedes editar a mano.</p>}
               {charla.length > 0 && (
-                <ol ref={listaChat} aria-label="Conversación con Atlas" aria-live="polite" className="mt-3 grid max-h-[38vh] gap-2 overflow-y-auto rounded-xl bg-carta p-3">
+                <ol ref={listaChat} aria-label="Conversación con Corte" aria-live="polite" className="mt-3 grid max-h-[38vh] gap-2 overflow-y-auto rounded-xl bg-carta p-3">
                   {charla.map((m, i) => (
                     <li key={i} className={`max-w-[92%] rounded-2xl px-3 py-2 text-[14px] ${m.quien === "atlas" ? (m.error ? "bg-[#fff1ea] text-[#a33a0b]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]") : "ml-auto bg-tinta text-white"}`}>
-                      <span className="sr-only">{m.quien === "atlas" ? "Atlas: " : "Tú: "}</span>
+                      <span className="sr-only">{m.quien === "atlas" ? "Corte: " : "Tú: "}</span>
                       {m.texto}
                       {!!m.cambios?.length && (
                         <ul className="mt-1.5 grid gap-0.5 text-[13px] text-medio">
@@ -450,7 +450,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
                 </ol>
               )}
               <form onSubmit={(e) => { e.preventDefault(); void pedirAtlas(pedido); }} className="mt-3">
-                <label htmlFor="pedido-atlas" className="sr-only">Pedido para Atlas</label>
+                <label htmlFor="pedido-atlas" className="sr-only">Pedido para Corte</label>
                 <textarea
                   id="pedido-atlas"
                   value={pedido}
@@ -463,8 +463,8 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
                   className="w-full resize-y rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)] disabled:opacity-60"
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button type="submit" disabled={!listo || !!paso || !pedido.trim()} className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white disabled:opacity-40">Pedir a Atlas</button>
-                  {deshacerAtlas && <button type="button" onClick={deshacerLoDeAtlas} disabled={!!paso} className="inline-flex min-h-11 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Deshacer lo de Atlas</button>}
+                  <button type="submit" disabled={!listo || !!paso || !pedido.trim()} className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[13px] font-medium text-white disabled:opacity-40">Pedir a Corte</button>
+                  {deshacerAtlas && <button type="button" onClick={deshacerLoDeAtlas} disabled={!!paso} className="inline-flex min-h-11 items-center rounded-full bg-hueso px-4 text-[13px] disabled:opacity-40">Deshacer lo de Corte</button>}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Ideas rápidas">
                   {["Más dinámico", "Quita la parte del inicio", "Zoom en cada corte", "Cierra con el logo", "Ponle la música de la marca", "Expórtalo en los tres formatos"].map((x) => (

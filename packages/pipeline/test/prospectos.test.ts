@@ -2,7 +2,7 @@ import "./preparar.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 const { puntuar, mensajeInicial, numeroInternacional, esCelular, enlaceWhatsapp, pedidoDesdeProspecto } = await import("../src/prospectos/puntaje.ts");
-const { leerHtml, revisarWeb } = await import("../src/prospectos/revisar-web.ts");
+const { leerHtml, revisarWeb, leerSonda } = await import("../src/prospectos/revisar-web.ts");
 const { buscarLugares } = await import("../src/prospectos/buscar-lugares.ts");
 const { leerProspectos, cambiarProspectos, sumarLugares, porRevisar, aplicarCambio } = await import("../src/prospectos/almacen-prospectos.ts");
 
@@ -62,7 +62,7 @@ test("el pedido para Atlas lleva el negocio, su fama y lo que falla", () => {
 test("lee el HTML: celular, título, con qué está hecha y el año", () => {
   const html = `<html><head><title> Clínica X </title><meta name="generator" content="Joomla! - Open Source"></head><body>${"x".repeat(400)}<footer>© 2018 - 2021 Clínica</footer></body></html>`;
   const r = leerHtml(html, "http://x.ec", 1200, hoy);
-  assert.deepEqual(r, { estado: "ok", https: false, celular: false, titulo: "Clínica X", hechaCon: "Joomla!", anio: 2021, ms: 1200 });
+  assert.deepEqual(r, { estado: "ok", https: false, celular: false, titulo: "Clínica X", hechaCon: "Joomla!", anio: 2021, ms: 1200, sonda: { descripcion: undefined, secciones: [], redes: [] } });
   const wix = leerHtml(`<meta name="viewport" content="width=device-width"><script src="https://static.wixstatic.com/a.js"></script>${"x".repeat(400)}`, "https://x.ec", 300, hoy);
   assert.equal(wix.estado === "ok" && wix.hechaCon, "Wix");
   assert.equal(wix.estado === "ok" && wix.celular, true);
@@ -133,4 +133,9 @@ test("la lista se guarda, no duplica, respeta el seguimiento y vuelve a revisar 
   assert.deepEqual(porRevisar(lista).map((x) => x.id), ["a"]);
   await cambiarProspectos((l) => aplicarCambio(l.prospectos.a, { mensaje: null }, "jay"));
   assert.equal((await leerProspectos()).prospectos.a.mensaje, undefined);
+});
+
+test("Sonda lee cómo se describe el negocio, sus secciones y sus redes", () => {
+  const html = `<meta name="description" content="Odontología estética en Cuenca &amp; ortodoncia invisible"><h1>Clínica <b>Sonrisa</b></h1><h2>Ortodoncia</h2><h2>Ortodoncia</h2><h2>Blanqueamiento</h2><h3>No cuenta</h3><a href="https://www.instagram.com/sonrisa/">ig</a><a href="https://facebook.com/sonrisa?ref=x">fb</a><a href="https://instagram.com/sonrisa">ig2</a>`;
+  assert.deepEqual(leerSonda(html), { descripcion: "Odontología estética en Cuenca & ortodoncia invisible", secciones: ["Clínica Sonrisa", "Ortodoncia", "Blanqueamiento"], redes: ["https://www.instagram.com/sonrisa", "https://facebook.com/sonrisa", "https://instagram.com/sonrisa"] });
 });

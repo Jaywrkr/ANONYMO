@@ -20,7 +20,7 @@ function subir(url: string, archivo: File, avance: (p: number) => void) {
   });
 }
 
-export function SubirVideo({ maxMb, cliente: clienteInicial = "" }: { maxMb: number; cliente?: string }) {
+export function SubirVideo({ maxMb, cliente: clienteInicial = "", guion }: { maxMb: number; cliente?: string; guion?: { id: string; titulo: string } }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [listo, setListo] = useState(false);
@@ -47,7 +47,7 @@ export function SubirVideo({ maxMb, cliente: clienteInicial = "" }: { maxMb: num
     setError("");
     setSubiendo({ desde: Date.now(), avance: 0, texto: "Preparando la subida" });
     try {
-      const r = await fetch("/estudio/video/nuevo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nombre: archivo.name, bytes: archivo.size, cliente, pedido }) });
+      const r = await fetch("/estudio/video/nuevo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nombre: archivo.name, bytes: archivo.size, cliente, guion: guion?.id, pedido }) });
       const j = (await r.json().catch(() => ({}))) as { id?: string; url?: string; archivo?: string; error?: string };
       if (!r.ok || !j.id) throw new Error(j.error ?? `No se pudo empezar (${r.status}).`);
       setSubiendo((s) => s && { ...s, texto: "Subiendo el video" });
@@ -63,7 +63,8 @@ export function SubirVideo({ maxMb, cliente: clienteInicial = "" }: { maxMb: num
   }
 
   return (
-    <div className="mt-6 rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-6">
+    <div id="subir" className="mt-6 rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-6">
+      {guion && <p className="mb-4 rounded-xl bg-[#eef3ff] px-3 py-2 text-[13px] text-[#2342a8]">Lo que subas queda unido al guion de Faro «{guion.titulo}»: Corte lo lee al editar.</p>}
       <div
         onDragOver={(e) => { e.preventDefault(); setEncima(true); }}
         onDragLeave={() => setEncima(false)}
@@ -91,7 +92,7 @@ export function SubirVideo({ maxMb, cliente: clienteInicial = "" }: { maxMb: num
       <button type="button" disabled={!listo || !archivo || !!subiendo} onClick={empezar} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-tinta px-6 text-[14px] font-medium text-white transition hover:bg-black disabled:opacity-40 md:w-auto">
         {!listo ? "Cargando…" : subiendo ? "Subiendo…" : "Subir video"}
       </button>
-      <p className="mt-2 text-[12px] text-suave">Después de subir, escuchamos el video, quitamos las pausas largas y Atlas hace lo que pediste. Nada se publica.</p>
+      <p className="mt-2 text-[12px] text-suave">Después de subir, escuchamos el video, quitamos las pausas largas y Corte hace lo que pediste. Nada se publica.</p>
       {subiendo && <Espera titulo="Subiendo el video" texto={subiendo.texto} avance={subiendo.avance} desde={subiendo.desde} aviso="No cierres esta pestaña hasta que termine de subir." />}
     </div>
   );

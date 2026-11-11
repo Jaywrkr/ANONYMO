@@ -17,6 +17,17 @@ const sitioGoogleCerrado = (url: string) => /business\.site/i.test(url);
 
 const MOVIL = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
 
+const limpiar = (t: string) => t.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#?\w+;/g, " ").replace(/\s+/g, " ").trim();
+
+/** Lo que Sonda saca de la web, sin IA: cómo se describe, sus secciones y sus redes (sistema/71). */
+export function leerSonda(html: string) {
+  const meta = (n: string) => html.match(new RegExp(`<meta[^>]+(?:name|property)=["']${n}["'][^>]+content=["']([^"']{8,300})`, "i"))?.[1];
+  const descripcion = meta("description") ?? meta("og:description");
+  const secciones = [...new Set([...html.matchAll(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/gi)].map((m) => limpiar(m[1])).filter((t) => t.length >= 3 && t.length <= 80))].slice(0, 6);
+  const redes = [...new Set([...html.matchAll(/href=["'](https?:\/\/(?:www\.)?(?:instagram\.com|facebook\.com|tiktok\.com|wa\.me|linkedin\.com)\/[^"'?#\s]*)/gi)].map((m) => m[1].replace(/\/$/, "")))].slice(0, 5);
+  return { descripcion: descripcion ? limpiar(descripcion).slice(0, 240) : undefined, secciones, redes };
+}
+
 /** Lee el HTML ya bajado: lo separa de la red para poder probarlo sin internet. */
 export function leerHtml(html: string, urlFinal: string, ms: number, hoy = new Date()): RevisionWeb {
   if (html.length < 300 || /domain (is )?for sale|este dominio est[aá]|parked domain|account suspended|cuenta suspendida/i.test(html.slice(0, 6000))) {
@@ -33,7 +44,7 @@ export function leerHtml(html: string, urlFinal: string, ms: number, hoy = new D
   const anios = [...html.matchAll(/(?:©|&copy;|copyright)\s*(?:\d{4}\s*[-–]\s*)?(20\d{2})/gi)]
     .map((m) => Number(m[1]))
     .filter((y) => y >= 2000 && y <= hoy.getFullYear());
-  return { estado: "ok", https: urlFinal.startsWith("https://"), celular, titulo, hechaCon, anio: anios.length ? Math.max(...anios) : undefined, ms };
+  return { estado: "ok", https: urlFinal.startsWith("https://"), celular, titulo, hechaCon, anio: anios.length ? Math.max(...anios) : undefined, ms, sonda: leerSonda(html) };
 }
 
 export async function revisarWeb(url: string, f: typeof fetch = fetch, esperaMs = 10_000): Promise<RevisionWeb> {

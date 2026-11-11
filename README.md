@@ -8,7 +8,7 @@ El repo tiene tres cosas:
 2. **El estudio**: el panel interno, con sus departamentos:
    - **Proyectos** (marca y web): Jay y Luna cargan un pedido, Atlas arma el plan y los agentes trabajan hasta entregar.
    - **Video**: Luna sube un video, se divide en partes y se entrega en 9:16, 1:1 o 16:9 con la marca del cliente ([docs/video.md](docs/video.md)).
-   - **Clientes**: la cartera con una ficha por cliente (de dónde vino, pedidos, proyectos, videos, marca, historia y notas) y «Nuevos», donde Imán busca negocios con buena fama y mala web y deja el mensaje de WhatsApp listo ([docs/clientes.md](docs/clientes.md)).
+   - **Clientes**: la cartera con una ficha por cliente (de dónde vino, pedidos, proyectos, videos, marca, historia y notas) y «Nuevos», donde Imán busca negocios con buena fama y mala web y deja el mensaje de WhatsApp listo, en una tanda de 20 al día como máximo y con lo que Sonda vio en cada web ([docs/clientes.md](docs/clientes.md)).
    - Por construir: contenido mensual por cliente (ver el mapa).
 3. **El pipeline**: el motor que hace trabajar a los agentes con Claude, guarda todo y maneja revisiones, pausas, jurado y nube.
 
@@ -74,7 +74,7 @@ Atlas decide en cada pedido qué tareas entran. Los contratos completos (qué le
 
 - **Inicio**: «Te toca» (lo que espera tu decisión), el equipo trabajando, la oficina, lo último entregado y el gasto de IA del mes.
 - **Proyecto**: barra de fases del plan (con avance y si trabajan o te toca), panel «Ahora/Después», el equipo en vivo, pestañas Resumen, Entregas, Cliente, Archivos, Marca, Números (presupuesto, costo, propuesta) y Ajustes (modo, pausas, quién aprueba, papelera).
-- **Video**: subir, partes del video, kits de marca por cliente, pedirle cambios a Atlas y exportar por formato.
+- **Video**: Faro escribe el guion antes de grabar; subir lo grabado unido al guion, partes del video, kits de marca por cliente, pedirle cambios a Corte (el editor) y exportar por formato.
 - **Clientes**: cartera y ficha de cada cliente (`/estudio/clientes`, `/estudio/cliente/[id]`); en «Nuevos», búsqueda en Google Maps por rubro y ciudad, revisión de la web de cada negocio, puntaje de 0 a 100, mensaje de WhatsApp, seguimiento y «Convertir en pedido».
 - **Biblioteca**: todas las entregas, más «Diseño y web» (direcciones y webs construidas de todos los proyectos).
 - **La oficina**: escritorios 3D de los agentes con su estado.

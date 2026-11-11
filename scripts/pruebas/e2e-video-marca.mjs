@@ -90,7 +90,7 @@ await p.screenshot({ path: join(capturas, "3-editor.png") });
 // 4. Atlas: fundido por chat.
 await p.fill("#pedido-atlas", "Ponle fundido entre partes");
 await p.keyboard.press("Enter");
-exigir(await espera(p.locator("ol[aria-label='Conversación con Atlas'] > li", { hasText: "Fundido corto entre partes" }).first()), "Atlas pone el fundido");
+exigir(await espera(p.locator("ol[aria-label='Conversación con Corte'] > li", { hasText: "Fundido corto entre partes" }).first()), "Atlas pone el fundido");
 exigir((await p.locator("section[aria-labelledby=titulo-motion] button[aria-pressed=true]").innerText()) === "Fundido corto", "el editor muestra el fundido");
 
 // 5. Armar el 9:16 y comprobar el cierre.

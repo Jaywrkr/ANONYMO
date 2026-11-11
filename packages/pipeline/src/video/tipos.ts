@@ -116,4 +116,6 @@ export interface TrabajoVideo {
   conversacion?: MensajeVideo[];
   /** Kit de marca elegido para este video (sistema/65). */
   marca?: string;
+  /** El guion de Faro con que se grabó (sistema/71): Corte lo lee al editar. */
+  guion?: string;
 }

@@ -260,7 +260,7 @@ test("Atlas manda la hoja de miniaturas a la API de Anthropic, sin forzar la her
     assert.match(url, /\/v1\/messages$/);
     assert.equal(cuerpo.model, "claude-sonnet-5-5");
     assert.deepEqual(cuerpo.tool_choice, { type: "auto" });
-    assert.match(String(cuerpo.system), /^Atlas, departamento de video/);
+    assert.match(String(cuerpo.system), /^Corte, editor de video/);
     const bloques = cuerpo.messages![0].content;
     assert.equal(bloques[0].type, "image");
     assert.equal(bloques[0].source!.media_type, "image/jpeg");

@@ -23,7 +23,12 @@ export type RevisionWeb =
       hechaCon?: string;
       anio?: number;
       ms: number;
+      /** Lo que Sonda leyó en la web (sistema/71): para personalizar el primer mensaje. */
+      sonda?: { descripcion?: string; secciones: string[]; redes: string[] };
     };
+
+/** Cuántos negocios nuevos se escriben por día, como máximo: WhatsApp castiga los envíos masivos (sistema/71). */
+export const TANDA_DIARIA = 20;
 
 export interface Prospecto {
   /** Id del lugar en Google Maps. */

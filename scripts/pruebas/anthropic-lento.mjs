@@ -19,9 +19,18 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
       return;
     }
+    // Faro escribe guiones (sistema/71): uno fijo de prueba, con el cliente y la duración que le llegan.
+    if (cuerpo.system?.startsWith("Faro, contenido de ANONYMO")) {
+      const texto = String(cuerpo.messages?.[0]?.content ?? "");
+      const cliente = texto.split("## Cliente\n")[1]?.split("\n")[0] ?? "la marca";
+      const input = { titulo: `Guion de prueba para ${cliente}`, gancho: "¿Y si tu agencia trabajara mientras duermes?", partes: [{ texto: "Somos dos personas y veintidós agentes.", toma: "Plano medio de Jay y Luna en el estudio" }, { texto: "Cada uno hace lo suyo, como en una oficina de verdad.", toma: "Pantalla con la oficina de agentes" }], cierre: "Escríbenos y te mostramos tu web en una semana.", tomas: ["Jay y Luna en el estudio", "Pantalla de la oficina", "Logo al final"] };
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_faro", name: "escribir_guion", input }], usage: { input_tokens: 400, output_tokens: 200 } }));
+      return;
+    }
     // Atlas del departamento de video (sistema/63–64): lee el pedido con reglas simples y responde con la herramienta.
     // Recibe la hoja de miniaturas como imagen y las partes numeradas en el texto.
-    if (cuerpo.system?.startsWith("Atlas, departamento de video")) {
+    if (cuerpo.system?.startsWith("Corte, editor de video")) {
       const bloques = Array.isArray(cuerpo.messages?.[0]?.content) ? cuerpo.messages[0].content : [{ type: "text", text: String(cuerpo.messages?.[0]?.content ?? "") }];
       const conImagen = bloques.some((b) => b.type === "image" && b.source?.media_type === "image/jpeg" && b.source.data?.length > 100);
       const texto = bloques.find((b) => b.type === "text")?.text ?? "";
