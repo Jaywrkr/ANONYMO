@@ -1,10 +1,15 @@
 # ANONYMO*
 
-Agencia creativa de Jay y Luna (Cuenca, Ecuador) con un equipo de 22 agentes de IA.
+Agencia creativa de Jay y Luna (Cuenca, Ecuador) que funciona como una agencia completa: Jay y Luna deciden, 22 agentes de IA producen y Atlas reparte el trabajo. El mapa de la agencia (funciones, estado y orden de construcción) está en **[docs/mapa-agencia.md](docs/mapa-agencia.md)**, y las reglas de interacción en **[docs/experiencia.md](docs/experiencia.md)**.
+
 El repo tiene tres cosas:
 
 1. **La web pública de la agencia**: el equipo en 3D, la sala, los casos y el contacto.
-2. **El estudio**: el panel interno donde Jay y Luna cargan un pedido, Atlas arma el plan y los agentes trabajan uno por uno hasta entregar la web del cliente.
+2. **El estudio**: el panel interno, con sus departamentos:
+   - **Proyectos** (marca y web): Jay y Luna cargan un pedido, Atlas arma el plan y los agentes trabajan hasta entregar.
+   - **Video**: Luna sube un video, se divide en partes y se entrega en 9:16, 1:1 o 16:9 con la marca del cliente ([docs/video.md](docs/video.md)).
+   - **Clientes nuevos**: Imán busca negocios con buena fama y mala web, los puntúa y deja el mensaje de WhatsApp listo ([docs/clientes.md](docs/clientes.md)).
+   - Por construir: contenido mensual por cliente y la ficha única de cada cliente (ver el mapa).
 3. **El pipeline**: el motor que hace trabajar a los agentes con Claude, guarda todo y maneja revisiones, pausas, jurado y nube.
 
 > ¿Vas a seguir el desarrollo con otra herramienta (Codex u otra)? Lee primero **[HANDOFF.md](HANDOFF.md)**: estado actual, qué falla, qué sigue y cómo probar. Las reglas del repo para agentes de código están en **[AGENTS.md](AGENTS.md)**.
@@ -18,7 +23,7 @@ En línea: https://anonymo-ecru.vercel.app (estudio en `/estudio`, con clave). L
 ```
 apps/web/                 Next.js 16 (App Router), React 19, Tailwind v4, R3F/three, Motion, GSAP
   app/                    Web pública (/ /agentes /proceso /sala /casos /contacto /en/...)
-  app/estudio/            El estudio (panel interno): inicio, proyecto, biblioteca, oficina, papelera...
+  app/estudio/            El estudio (panel interno): inicio, proyecto, video, clientes, biblioteca, oficina, papelera...
   app/portal/[id]/        Portal privado del cliente (entregas, cuestionario, elegir dirección, comentar)
   app/trabajo/[id]/       Vuelta de trabajo en segundo plano (un agente por vuelta)
   app/sitio/[id]/[v]/...  Vista previa firmada de la web que construyó Vector
@@ -30,7 +35,7 @@ packages/pipeline/        El motor: contratos, Atlas, correr, motor de IA, nube,
   src/contratos.ts        Qué entrega cada agente en cada fase, qué lee y con qué criterios
   test/                   Pruebas (node:test)
 scripts/pruebas/          Estudio de prueba completo sin servicios reales (Supabase e IA falsos) + pruebas de punta a punta
-docs/                     mejoras.md (todo lo construido, rama por rama), pipeline.md, fases.md, direccion-arte.md, jurado/
+docs/                     mapa-agencia.md (el norte), experiencia.md (reglas de interacción), mejoras.md (todo lo construido, rama por rama), pipeline.md, video.md, clientes.md, jurado/
 data/nombres.json         Matriz de nombres con dominio libre (de cuando se buscó el nombre de la agencia)
 proyectos/                Proyectos de clientes en local. NO se suben (ver .gitignore y el candado de pre-commit)
 prototipos/               Primer prototipo de la sala, solo referencia
@@ -69,6 +74,8 @@ Atlas decide en cada pedido qué tareas entran. Los contratos completos (qué le
 
 - **Inicio**: «Te toca» (lo que espera tu decisión), el equipo trabajando, la oficina, lo último entregado y el gasto de IA del mes.
 - **Proyecto**: barra de fases del plan (con avance y si trabajan o te toca), panel «Ahora/Después», el equipo en vivo, pestañas Resumen, Entregas, Cliente, Archivos, Marca, Números (presupuesto, costo, propuesta) y Ajustes (modo, pausas, quién aprueba, papelera).
+- **Video**: subir, partes del video, kits de marca por cliente, pedirle cambios a Atlas y exportar por formato.
+- **Clientes nuevos**: búsqueda en Google Maps por rubro y ciudad, revisión de la web de cada negocio, puntaje de 0 a 100, mensaje de WhatsApp, seguimiento y «Convertir en pedido».
 - **Biblioteca**: todas las entregas, más «Diseño y web» (direcciones y webs construidas de todos los proyectos).
 - **La oficina**: escritorios 3D de los agentes con su estado.
 - **Campana**: pendientes y avisos (también notificaciones del navegador).
@@ -123,6 +130,7 @@ Todas están explicadas en `.env.example`. Las principales:
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET` | Almacén privado (en Vercel es obligatorio: el disco se borra) |
 | `TARIFA_HORA` | Precio por hora para presupuesto y propuesta |
 | `RESEND_API_KEY`, `AVISOS_CORREO`, `AVISOS_WEBHOOK` | Avisos por correo o webhook |
+| `GOOGLE_PLACES_API_KEY` | Clientes nuevos: búsqueda en Google Maps (Places API nueva) |
 | `ANONYMO_PLAZO_MS`, `ANONYMO_MARGEN_MS` | Duración de cada vuelta (pruebas) |
 
 Las claves las pone Jay en Vercel. Nunca se escriben en el código, en el chat ni en el registro.
