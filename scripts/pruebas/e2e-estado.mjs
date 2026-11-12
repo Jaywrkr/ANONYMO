@@ -69,6 +69,15 @@ try {
   await m.goto(`${B}/estudio/estado`);
   exigir((await m.evaluate(() => document.documentElement.scrollWidth)) <= 392, "Estado cabe en celular");
   await cel.close();
+
+  // Criterio propuesto (sistema/79): se lee y se aplica con un botón.
+  await p.goto(`${B}/estudio/criterio`);
+  const prop = p.locator("details[data-propuesta]");
+  await prop.locator("summary").click();
+  exigir(await prop.locator("li").count() === 10, "la propuesta de criterio trae 10 reglas");
+  await prop.locator("button:has-text('Usar esta propuesta')").click();
+  exigir(await espera(p.locator("[role=status]:has-text('Criterio guardado')")), "usarla dice qué pasó");
+  exigir((await p.locator("#criterio").inputValue()).startsWith("1. La tipografía hace el trabajo") && await prop.count() === 0, "y queda como el criterio de la casa");
 } catch (e) {
   fallas.push(`se cortó: ${e.message}`);
   await p.screenshot({ path: join(capturas, "error.png") }).catch(() => {});

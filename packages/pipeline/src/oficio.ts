@@ -208,6 +208,21 @@ export const CRITERIO_BASE = [
   "Simple y directo: menos elementos y mejor resueltos. Cuidado al detalle.",
 ].join("\n");
 
+/** Propuesta de criterio (sistema/79) armada con lo que Jay guarda en MyMind y el tablero «Criterio de la casa» de Savee.
+ *  Es un borrador para calibrar con Jay en 15 minutos: se aplica desde Estudio → Criterio de la casa → «Usar esta propuesta». */
+export const CRITERIO_PROPUESTO = [
+  "1. La tipografía hace el trabajo. Sí: un titular grande y bien espaciado que se lee de lejos. No: tres tamaños medianos peleando.",
+  "2. Una idea por pantalla. Sí: cada bloque dice una cosa y lleva una acción. No: secciones que repiten lo mismo con otras palabras.",
+  "3. Grilla visible y aire. Sí: márgenes generosos, columnas alineadas, líneas finas que ordenan. No: tarjetas con sombra flotando sin orden.",
+  "4. Color con intención. Sí: un color fuerte por marca y neutros cálidos. No: degradados de moda o cinco acentos.",
+  "5. El celular primero. Sí: se diseña en 390 px y el botón principal queda a mano del pulgar. No: la versión de escritorio encogida.",
+  "6. Textos concretos del negocio. Sí: «Agenda tu limpieza en un minuto». No: «Soluciones integrales de calidad», «los mejores del mercado».",
+  "7. Una acción clara. Sí: WhatsApp o agenda, siempre a la vista. No: cuatro botones del mismo peso.",
+  "8. Hecho a mano, no plantilla. Sí: un detalle propio (la inicial gigante, una cifra entre corchetes, el nombre como firma). No: hero con foto de banco y tres íconos.",
+  "9. Rápido y liviano. Sí: carga en menos de 2 s en celular, imágenes optimizadas, sin animaciones que estorben. No: carrusel automático ni video de fondo pesado.",
+  "10. Cuidado al detalle. Sí: acentos bien puestos, alturas iguales, nada desbordado. No: un texto cortado, un botón que no hace nada o una tilde que falta.",
+].join("\n");
+
 export interface CriterioCasa { texto: string; revision: number; fecha?: string; quien?: string }
 const rutaCriterio = () => join(carpeta(), "_agencia", "criterio.json");
 export function leerCriterio(): CriterioCasa {

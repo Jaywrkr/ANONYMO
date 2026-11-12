@@ -1,5 +1,5 @@
 // Ayudas del escritorio de Imán, clientes nuevos (sistema/66).
-import { ESTADOS_PROSPECTO, idFicha, idMuestra, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
+import { ESTADOS_PROSPECTO, idFicha, idMuestra, plantillaDe, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
 
 export const mal = (error: string, status = 400) => Response.json({ error }, { status, headers: { "cache-control": "no-store" } });
@@ -56,6 +56,9 @@ export function vistaProspecto(p: Prospecto, firma: string, base: string) {
     vistas: p.muestra?.vistas ?? 0,
     ultimaVista: p.muestra?.ultima,
     quiere: p.muestra?.quiere,
+    /** Su plantilla (sistema/79) y si alguien la eligió a mano. */
+    plantilla: plantillaDe(p),
+    plantillaElegida: !!p.plantilla,
   };
 }
 export type VistaProspecto = ReturnType<typeof vistaProspecto>;

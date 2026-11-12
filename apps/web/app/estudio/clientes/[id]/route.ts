@@ -17,6 +17,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     cambio.estado = c.estado as EstadoProspecto;
   }
   if (typeof c.notas === "string") cambio.notas = c.notas;
+  if (c.plantilla === "sereno" || c.plantilla === "grafico") cambio.plantilla = c.plantilla;
   if (typeof c.mensaje === "string" || c.mensaje === null) cambio.mensaje = c.mensaje as string | null;
   try {
     const { lista, valor: x } = await cambiarProspectos((l) => {

@@ -97,7 +97,7 @@ try {
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
   exigir(await m.locator("text=Idea de web para Barbería Don Bigote, hecha por ANONYMO").count() === 1, "dice que es una idea y quién la hizo");
-  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() === 1 && await m.locator("text=4,9 en Google").count() === 1, "con su dirección y su fama");
+  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() === 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
   exigir(await m.locator("text=USD 390 + IVA").count() === 1 && await m.locator("text=Lista en 7 días").count() === 1, "la barra dice plazo y precio");
   exigir((await m.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");
   exigir(!(await m.locator("text=Puntaje").count()) && !(await m.locator("text=Sin web").count()), "no muestra nada interno");
@@ -126,6 +126,29 @@ try {
   await negocio.close();
   await p.reload();
   exigir(/Barbería Don Bigote quiere su web/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "el escritorio lo pone primero: quiere su web");
+
+  // 5b · Plantillas (sistema/79): cada muestra sale con una de dos, y Jay puede cambiarla.
+  const tarjetaDon = p.locator("ul[aria-label=Negocios] li", { hasText: "Barbería Don Bigote" });
+  await tarjetaDon.getByRole("button", { name: "Más", exact: true }).click();
+  const sel = tarjetaDon.locator("select[aria-label=Plantilla]");
+  const antesPl = await sel.inputValue();
+  const otra = antesPl === "sereno" ? "grafico" : "sereno";
+  await sel.selectOption(otra);
+  exigir(await espera(p.locator("[role=status]:has-text('Su muestra ahora es')")), "cambiar la plantilla dice qué pasó");
+  const m2 = await (await nav.newContext()).newPage();
+  await m2.goto(enlace);
+  exigir(await m2.locator(`[data-plantilla=${otra}]`).count() === 1, `la muestra ya se ve en «${otra}»`);
+  exigir(await m2.evaluate(() => document.documentElement.scrollWidth) <= 1300, "y no se desborda");
+  await m2.context().close();
+  await p.goto(`${B}/estudio/clientes/plantillas`);
+  exigir(await p.locator("iframe").count() === 8, "la página de plantillas muestra las 8 (4 rubros × 2)");
+  const ej = await (await nav.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  const rEj = await ej.goto(`${B}/m/ejemplo/salud/grafico`);
+  exigir(rEj?.status() === 200 && await ej.locator("[data-plantilla=grafico]").count() === 1 && await ej.evaluate(() => document.documentElement.scrollWidth) <= 392, "el ejemplo público abre y cabe en celular");
+  exigir((await ej.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "y Google no lo indexa");
+  const rMal = await ej.goto(`${B}/m/ejemplo/nada/raro`);
+  exigir(rMal?.status() === 404, "un ejemplo que no existe da 404");
+  await ej.context().close();
 
   // 6a · En computadora, la tanda se despacha con el teclado (sistema/77): S salta sin tocar nada.
   await p.goto(`${B}/estudio/clientes/tanda`);

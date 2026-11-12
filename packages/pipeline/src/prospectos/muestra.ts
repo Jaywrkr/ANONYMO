@@ -2,7 +2,7 @@
 // Se abre en /m/<id>. Cada vez que el negocio la abre, queda anotado y Jay recibe un aviso.
 import { createHash } from "node:crypto";
 import { slug } from "../solicitudes.ts";
-import { GRUPOS_RUBRO, type Prospecto } from "./tipos.ts";
+import { GRUPOS_RUBRO, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
 
 /** El id de la muestra: el nombre y una huella del lugar. No hace falta guardarlo: siempre sale igual. */
 export function idMuestra(p: Pick<Prospecto, "id" | "nombre">) {
@@ -44,7 +44,14 @@ const BAJADA: Record<Tono, (rubro: string, ciudad: string) => string> = {
 const GENERICAS = /^(inicio|home|contacto|cont[aá]ctanos|nosotros|qui[eé]nes somos|men[uú]|blog|galer[ií]a|ubicaci[oó]n|bienvenid)/i;
 const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** La plantilla elegida, o una fija por negocio (mitad y mitad) para poder comparar cuál responde mejor. */
+export function plantillaDe(p: Pick<Prospecto, "id" | "plantilla">): PlantillaMuestra {
+  if (p.plantilla) return p.plantilla;
+  return parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 2), 16) % 2 ? "grafico" : "sereno";
+}
+
 export interface ContenidoMuestra {
+  plantilla: PlantillaMuestra;
   nombre: string;
   rubro: string;
   ciudad: string;
@@ -70,6 +77,7 @@ export function contenidoMuestra(p: Prospecto): ContenidoMuestra {
   const servicios = [...propias, ...SERVICIOS[tono].filter((s) => !propias.includes(s))].slice(0, 4);
   const descripcion = sonda?.descripcion?.trim();
   return {
+    plantilla: plantillaDe(p),
     nombre: p.nombre,
     rubro: mayuscula(p.rubro),
     ciudad: p.ciudad,

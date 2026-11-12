@@ -58,7 +58,16 @@ export interface Prospecto {
   historial?: { cuando: string; que: string; por?: string }[];
   /** Lo que pasó con su muestra (sistema/72): cuántas veces la abrió y si tocó «Quiero esta web». */
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
+  /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la mitad «sereno» y la mitad «grafico», para comparar cuál responde mejor. */
+  plantilla?: PlantillaMuestra;
 }
+
+/** Las dos variantes de la muestra (sistema/79): calma premium o grilla gráfica. */
+export type PlantillaMuestra = "sereno" | "grafico";
+export const PLANTILLAS_MUESTRA: Record<PlantillaMuestra, { nombre: string; idea: string }> = {
+  sereno: { nombre: "Sereno", idea: "Papel cálido, serif liviana con una palabra en cursiva, bloques redondeados. Calma premium." },
+  grafico: { nombre: "Gráfico", idea: "Grilla suiza, secciones numeradas, un bloque de color fuerte y listas con líneas." },
+};
 
 export interface ListaProspectos {
   actualizado: string;

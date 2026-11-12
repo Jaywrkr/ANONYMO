@@ -35,6 +35,15 @@ El escritorio de **Imán** (Ventas) dentro del estudio. Busca negocios que neces
 5. **WhatsApp** abre el chat con el mensaje escrito y marca el negocio como contactado. «Más» deja editar el mensaje y las notas.
 6. Cuando el negocio responde y hay trato, **Convertir en pedido** abre «Cuéntale a Atlas» con el negocio y lo que Imán encontró.
 
+## Plantillas de la muestra (sistema/79)
+
+Cada muestra sale con una de dos plantillas, mitad y mitad, para ver cuál convence más:
+
+- **Sereno**: calma premium. Titular con serif, bloque de color con la inicial, servicios numerados, cierre con el nombre grande.
+- **Gráfico**: grilla y color. Portada a todo color con el nombre gigante, secciones «1:» a «4:», cifras entre corchetes.
+
+Cada rubro tiene su paleta. Para cambiarla en un negocio: «Más» → «Plantilla de su muestra». Para verlas todas: Clientes → **Plantillas**. Los ejemplos con datos inventados se abren sin entrar al estudio (`/m/ejemplo/<rubro>/<plantilla>`) y no los indexa Google.
+
 ## Puntaje (0 a 100)
 
 Sin IA, reglas fijas en `packages/pipeline/src/prospectos/puntaje.ts`:

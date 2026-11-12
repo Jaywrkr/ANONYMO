@@ -52,6 +52,7 @@ try {
 
   // Ctrl K (sistema/77): una paleta para ir a cualquier lado escribiendo.
   await p.goto(`${B}/estudio`);
+  await p.waitForLoadState("networkidle");
   await p.keyboard.press("Control+k");
   const paleta = p.getByRole("dialog", { name: "Ir a" });
   exigir(await paleta.isVisible().catch(() => false) || await paleta.waitFor({ timeout: 3000 }).then(() => true, () => false), "Ctrl K abre la paleta");

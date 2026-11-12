@@ -438,6 +438,18 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             {p.web && <a href={p.web} target="_blank" rel="noreferrer" className={botonChico}>Su web</a>}
             {p.mapa && <a href={p.mapa} target="_blank" rel="noreferrer" className={botonChico}>Mapa</a>}
           </div>
+          {/* La plantilla de su muestra (sistema/79): se cambia aquí y la muestra se ve distinta al instante. */}
+          <label className="flex flex-wrap items-center gap-2 text-[13px]">
+            <span className="text-suave">Plantilla de su muestra</span>
+            <select value={p.plantilla} disabled={ocupado} aria-label="Plantilla"
+              onChange={(e) => void cambiar({ plantilla: e.target.value }, "Cambiando la plantilla", `Su muestra ahora es «${e.target.value === "grafico" ? "Gráfico" : "Sereno"}».`)}
+              className={selector}>
+              <option value="sereno">Sereno · calma premium</option>
+              <option value="grafico">Gráfico · grilla y color</option>
+            </select>
+            {!p.plantillaElegida && <span className="text-[12px] text-suave">(salió sola; puedes cambiarla)</span>}
+            <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>
+          </label>
           <label className="grid gap-1.5">
             <span className="text-[12px] text-suave">Mensaje{p.mensajePropio ? " · escrito a mano" : " · lo arma Imán"}</span>
             <textarea rows={6} value={mensaje} onChange={(e) => setMensaje(e.target.value)} disabled={ocupado} className="rounded-xl bg-hueso/60 p-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
