@@ -234,7 +234,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             <div className="grid content-start gap-5">
               <Link href={`/estudio/${id}?ver=cliente#anotar`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
                 <Cara id="atlas" tam={40} titulo={false} />
-                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">¿El cliente dijo algo?</span><span className="block text-[13px] text-medio">Anótalo y Atlas se lo pasa a quien corresponde.</span></span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">Anotar lo que dijo el cliente</span><span className="block text-[13px] text-medio">Atlas se lo pasa a quien corresponde.</span></span>
                 <span className="text-suave transition group-hover:translate-x-0.5">→</span>
               </Link>
               {(p.tareas["1.ledger"] === "lista" || p.propuesta) && (

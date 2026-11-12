@@ -85,7 +85,7 @@ export function SubirVideo({ maxMb, cliente: clienteInicial = "", guion }: { max
         <input value={cliente} onChange={(e) => setCliente(e.target.value)} maxLength={80} placeholder="Por ejemplo: Clínica Silva" className="mt-1 w-full rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]" />
       </label>
       <label className="mt-4 block text-[12px] text-suave">
-        ¿Qué quieres? (opcional: Atlas lo hace apenas termine de escuchar el video)
+        ¿Qué quieres? (opcional: Corte lo hace apenas termine de escuchar el video)
         <textarea value={pedido} onChange={(e) => setPedido(e.target.value)} maxLength={2000} rows={3} placeholder="Por ejemplo: corta los silencios, quita el arranque donde se acomoda y expórtalo vertical" className="mt-1 w-full resize-y rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]" />
       </label>
       {error && <p role="alert" className="mt-3 rounded-xl bg-[#fff1ea] px-3 py-2 text-[14px] text-[#a33a0b]">{error}</p>}

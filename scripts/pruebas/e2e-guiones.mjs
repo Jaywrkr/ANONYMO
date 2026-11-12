@@ -28,7 +28,7 @@ p.on("pageerror", (e) => fallas.push(`error en la página: ${e.message}`));
 try {
   await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="luna"]', { force: true }); await p.fill('input[name="clave"]', "prueba-clave-luna"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
   await p.goto(`${B}/estudio/video`);
-  exigir(await espera(p.locator("text=Corte edita · Faro escribe los guiones")), "Video dice quién edita y quién escribe");
+  exigir(await espera(p.locator("text=Guiones y edición · Faro y Corte")), "Video dice quién edita y quién escribe");
 
   // 1 · Faro escribe.
   const seccion = p.locator("section[aria-labelledby=titulo-guiones]");

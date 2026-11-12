@@ -54,7 +54,7 @@ try {
   await p.goto(`${B}/estudio`);
   exigir(!(await p.locator("aside details").evaluate((d) => d.open)), "el Taller está cerrado en el inicio");
   exigir(!(await p.locator("aside >> text=Banco de calibración").isVisible()), "el banco no está a la vista en el trabajo diario");
-  await p.click("aside summary:has-text('Taller')");
+  await p.click("aside summary:has-text('Mejorar el estudio')");
   await p.click("aside >> text=Banco de calibración");
   await p.waitForURL(/estudio\/banco/);
   exigir(await p.locator("aside details").evaluate((d) => d.open), "en el banco, el Taller queda abierto");

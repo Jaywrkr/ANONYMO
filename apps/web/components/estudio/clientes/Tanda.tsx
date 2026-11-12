@@ -8,6 +8,7 @@ import type { VistaProspecto } from "@/lib/clientes";
 import { armarTanda } from "@/lib/tanda";
 import { AhoraMismo } from "./AhoraMismo";
 import { AvisosCelular } from "./AvisosCelular";
+import { colorOportunidad } from "./ClientesNuevos";
 
 async function patch(id: string, cuerpo: Record<string, unknown>) {
   const r = await fetch(`/estudio/clientes/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(cuerpo) });
@@ -57,7 +58,7 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
       <AhoraMismo inicial={inicial} />
       <div className="grid gap-2">
         <p className="text-[14px]"><span className="font-medium">{enviadosHoy} de {tope}</span> <span className="text-medio">enviados hoy{actual ? ` · quedan ${cola.length} en la tanda` : ""}</span></p>
-        <div className="h-1.5 overflow-hidden rounded-full bg-hueso" aria-hidden><div className="h-full rounded-full bg-tinta transition-all" style={{ width: `${Math.min(100, (enviadosHoy / tope) * 100)}%` }} /></div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-[#d9d4cb]" aria-hidden><div className="h-full rounded-full bg-[#25d366] transition-all" style={{ width: `${Math.min(100, (enviadosHoy / tope) * 100)}%` }} /></div>
       </div>
       <AvisosCelular clavePublica={clavePublica} compacto />
 
@@ -72,7 +73,7 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
       ) : (
         <article aria-label={`Negocio: ${actual.nombre}`} aria-busy={ocupado} className="grid gap-4 rounded-3xl bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
           <div className="flex gap-4">
-            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium ${actual.puntaje >= 85 ? "bg-[#ff4d2e] text-white" : "bg-[#fff1d6] text-[#8a5a00]"}`} aria-label={`Puntaje ${actual.puntaje} de 100`}>{actual.puntaje}</div>
+            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium ${colorOportunidad(actual.puntaje)}`} aria-label={`Oportunidad ${actual.puntaje} de 100`}><span className="grid place-items-center leading-none">{actual.puntaje}<span className="mt-1 text-[9px] font-normal opacity-75">oportunidad</span></span></div>
             <div className="min-w-0">
               <h2 className="text-[20px] font-medium leading-tight">{actual.nombre}</h2>
               <p className="text-[13px] text-suave">{actual.rubro} · {actual.ciudad}{actual.estrellas ? ` · ★ ${actual.estrellas} (${actual.resenas})` : ""}</p>

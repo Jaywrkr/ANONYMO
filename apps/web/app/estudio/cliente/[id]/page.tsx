@@ -108,6 +108,16 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
 
           <section className={tarjeta} aria-labelledby="t-datos">
             <h2 id="t-datos" className="text-[13px] text-suave">Contacto y notas</h2>
+            {/* Se lee como texto; los campos aparecen al tocar «Editar» (sistema/76). */}
+            <dl className="mt-3 grid gap-1 text-[14px]">
+              {[["Teléfono", g?.telefono ?? f.contacto.telefono], ["Correo", g?.correo], ["Web", g?.web ?? f.contacto.web]].filter(([, v]) => v).map(([k, v]) => (
+                <div key={k} className="flex gap-2"><dt className="w-20 shrink-0 text-suave">{k}</dt><dd className="min-w-0 break-words">{v}</dd></div>
+              ))}
+              {g?.notas ? <div className="mt-2 whitespace-pre-line rounded-xl bg-hueso/60 p-3">{g.notas}</div> : null}
+              {!(g?.telefono ?? f.contacto.telefono) && !g?.correo && !(g?.web ?? f.contacto.web) && !g?.notas && <p className="text-medio">Sin datos todavía.</p>}
+            </dl>
+            <details className="mt-3 group">
+            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)] [&::-webkit-details-marker]:hidden">Editar contacto y notas</summary>
             <form action={accionGuardarFicha} className="mt-3 grid gap-3">
               <input type="hidden" name="id" value={f.id} />
               <label className="grid gap-1 text-[13px]">Nombre<input name="nombre" required maxLength={80} defaultValue={f.nombre} className={campo} /></label>
@@ -117,8 +127,9 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               <label className="grid gap-1 text-[13px]">Otros nombres <span className="text-suave">· separados por coma; sus pedidos y videos entran a esta ficha</span><input name="alias" maxLength={300} defaultValue={(g?.alias ?? []).join(", ")} className={campo} /></label>
               <label className="grid gap-1 text-[13px]">Notas<textarea name="notas" rows={5} maxLength={4000} defaultValue={g?.notas ?? ""} className={campo} /></label>
               <div><button className={botonLleno} data-trabajando="Guardando la ficha…">Guardar</button></div>
-              {g && <p className="text-[12px] text-suave">Cambiada por {g.por === "luna" ? "Luna" : "Jay"} el {fecha(g.actualizado)}.</p>}
             </form>
+            </details>
+            {g && <p className="mt-2 text-[12px] text-suave">Cambiada por {g.por === "luna" ? "Luna" : "Jay"} el {fecha(g.actualizado)}.</p>}
           </section>
         </div>
       </div>

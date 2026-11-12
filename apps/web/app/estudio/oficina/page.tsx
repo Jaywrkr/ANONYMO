@@ -19,7 +19,7 @@ export default async function OficinaPagina() {
       <p className="text-[13px] text-suave">El estudio · 22 agentes en 6 áreas</p>
       <h1 className={`${serif} mt-1 text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Quién está en qué.</h1>
       <p className="mt-3 max-w-xl text-[15px] text-medio">Toca a cualquiera para ver sus trabajos. Los que trabajan brillan en verde; los que esperan tu revisión, en naranja.</p>
-      <div className="mt-8"><Oficina proyectos={proyectos} /></div>
+      <div className="mt-8"><Oficina proyectos={proyectos} listaEnCelular /></div>
     </div>
   );
 }

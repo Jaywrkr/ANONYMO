@@ -22,6 +22,8 @@ const chip = (on: boolean) => `min-h-10 rounded-full px-4 text-[13px] transition
 const selector = "min-h-10 rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]";
 const botonChico = "inline-flex min-h-9 items-center rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] transition hover:shadow-[inset_0_0_0_1px_rgba(26,24,22,.35)] disabled:opacity-50";
 
+export const colorOportunidad = (n: number) => (n >= 85 ? "bg-tinta text-white" : n >= 60 ? "bg-[#5d5a55] text-white" : n >= 40 ? "bg-[#d9d4cb] text-tinta" : "bg-hueso text-medio");
+
 const campoFila = "min-h-10 min-w-0 flex-1 rounded-xl bg-hueso/60 px-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]";
 
 /** Una fila de ajustes: qué es a la izquierda, el campo y su botón a la derecha. */
@@ -52,7 +54,8 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
   const [numero, setNumero] = useState(inicial.numero);
   const [numeroEditado, setNumeroEditado] = useState(inicial.numero);
   // Los ajustes van arriba, cerrados; se abren solos si falta el número de ANONYMO.
-  const [ajustes, setAjustes] = useState(!inicial.numero);
+  // Los ajustes siempre empiezan cerrados (sistema/76); si falta el número, una línea lo pide sin tapar la tanda.
+  const [ajustes, setAjustes] = useState(false);
   // Buscar es lo de menos todos los días: plegado si ya hay lista.
   const [buscar, setBuscar] = useState(inicial.prospectos.length === 0);
   const [filtros, setFiltros] = useState(false);
@@ -210,11 +213,17 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
           {buscar ? "Cerrar búsqueda" : "Buscar más negocios"}
         </button>
         <span className="flex-1" />
-        {!numero && !ajustes && <span className="text-[12px] text-[#a33a0b]">Falta tu WhatsApp</span>}
         <button type="button" onClick={() => setAjustes(!ajustes)} aria-expanded={ajustes} aria-controls="ajustes-iman" className={botonChico}>
           {ajustes ? "Cerrar ajustes" : "Ajustes"}
         </button>
       </div>
+
+      {!numero && !ajustes && (
+        <p role="note" className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#fff6ee] px-4 py-3 text-[13px] text-[#8a3a0c]">
+          <span className="min-w-0 flex-1">Falta tu WhatsApp: sin él, «Quiero esta web» en las muestras no lleva a ningún lado.</span>
+          <button type="button" onClick={() => setAjustes(true)} className="font-medium underline underline-offset-4">Ponerlo</button>
+        </p>
+      )}
 
       {ajustes && (
         <section id="ajustes-iman" className={`${caja} grid gap-0 divide-y divide-borde`} aria-label="Ajustes">
@@ -367,13 +376,14 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
 
   const ocupado = !listo || !!guardando;
   const pendiente = !p.revisada;
-  const color = p.puntaje >= 85 ? "bg-[#ff4d2e] text-white" : p.puntaje >= 60 ? "bg-[#fff1d6] text-[#8a5a00]" : "bg-hueso text-medio";
+  // Una sola escala (sistema/76): más oscuro = mejor oportunidad. El rojo queda para lo urgente.
+  const color = colorOportunidad(p.puntaje);
 
   return (
     <li className={`rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] ${p.estado === "descartado" ? "opacity-50" : ""} ${p.estado === "cliente" ? "shadow-[0_0_0_2px_#17714a]" : ""}`} aria-busy={!!guardando}>
       <div className="flex gap-4">
         <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium ${pendiente ? "bg-hueso text-suave" : color}`} aria-label={pendiente ? "Puntaje pendiente" : `Puntaje ${p.puntaje} de 100`}>
-          {pendiente ? "…" : p.puntaje}
+          {pendiente ? "…" : <span className="grid place-items-center leading-none">{p.puntaje}<span className="mt-1 text-[9px] font-normal opacity-75">oportunidad</span></span>}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[16px] font-medium">{p.nombre}</p>

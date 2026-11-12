@@ -38,14 +38,15 @@ function Lista({ p, onElegir }: { p: ReturnType<typeof calcular>; onElegir: (id:
   );
 }
 
-export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[min(62vh,620px)]" }: { proyectos: ProyectoOficina[]; vivo?: string; alto?: string }) {
+export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[min(62vh,620px)]", listaEnCelular = false }: { proyectos: ProyectoOficina[]; vivo?: string; alto?: string; listaEnCelular?: boolean }) {
   const [datos, setDatos] = useState(proyectos);
   const capa = useRef<HTMLDivElement>(null);
   const [elegido, setElegido] = useState("");
   const [con3D, setCon3D] = useState(true);
   const [trabajando, setTrabajando] = useState(false);
   useEffect(() => setDatos(proyectos), [proyectos]);
-  useEffect(() => setCon3D(!sin3D()), []);
+  // En la página de la oficina, el celular abre la lista (sistema/76): las figuras del mapa son muy chicas para tocarlas.
+  useEffect(() => setCon3D(!sin3D() && !(listaEnCelular && innerWidth < 1024)), [listaEnCelular]);
 
   // Mientras un botón deja trabajar al equipo (o el proyecto quedó a medias), se consulta el estado cada 3 s.
   useEffect(() => {
@@ -100,10 +101,10 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
       ) : (
         <Lista p={p} onElegir={setElegido} />
       )}
-      <details className="mt-3">
+      {con3D && <details className="mt-3">
         <summary className={`${etiqueta} cursor-pointer`}>Ver el equipo en lista</summary>
         <div className="mt-2"><Lista p={p} onElegir={setElegido} /></div>
-      </details>
+      </details>}
 
       {a && puesto && (
         <aside aria-label={`Panel de ${a.nombre}`} className="absolute right-3 top-14 z-30 w-[min(320px,calc(100%-24px))] rounded-[18px] bg-white/95 p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06),0_18px_44px_-18px_rgba(40,30,20,.35)] backdrop-blur">

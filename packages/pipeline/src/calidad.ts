@@ -57,7 +57,7 @@ export function estadoEntrega(p: Proyecto, e: Entrega): ControlEntrega['estado']
   return revisionVigente(p,e) ? e.calidad.estado : 'pendiente';
 }
 export const puedeAprobar = (p: Proyecto, e: Entrega) => ['verificado','aprobado','simulado'].includes(estadoEntrega(p,e));
-export const TEXTO_CALIDAD: Record<ControlEntrega['estado'], string> = { generado: 'Generado · sin verificar', pendiente: 'Revisión pendiente', cambios: 'Necesita cambios', verificado: 'Verificado · por aprobar', aprobado: 'Aprobado', simulado: 'Simulación · sin verificar' };
+export const TEXTO_CALIDAD: Record<ControlEntrega['estado'], string> = { generado: 'Generado · sin verificar', pendiente: 'Revisión pendiente', cambios: 'Necesita cambios', verificado: 'Verificado · por aprobar', aprobado: 'Aprobado', simulado: 'Hecho sin IA real · revisar' };
 
 export function controlInicial(p: Proyecto, e: Entrega): ControlEntrega {
   return { estado: e.modo === 'simulado' ? 'simulado' : 'generado', version: e.version, huella: huellaEntrega(p,e), contexto: contextoCalidad(p,e.tarea), fecha: new Date().toISOString(), resumen: e.modo === 'simulado' ? 'Ejemplo de prueba: no es una verificación de calidad.' : 'La pieza está generada. Todavía faltan las comprobaciones.', comprobaciones: [], capturas: [] };

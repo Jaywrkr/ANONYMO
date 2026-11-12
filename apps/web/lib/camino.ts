@@ -82,6 +82,10 @@ const VERBO: Record<string, string> = { preparando: "se está preparando", esper
  * `ultima`: cuándo dio la última señal una vuelta de este proyecto (la página del proyecto lo sabe).
  * Sin ese dato (listas, campana), no se da por detenido hasta que pasa el tiempo de una vuelta entera (sistema/44).
  */
+// La tarea primero y el agente después (sistema/76): «Diseño de la web (Orla)» se entiende sin conocer a Orla.
+const mayus = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+const tareaPrimero = (t: string) => `${mayus(entregaDe(t))} (${agenteDe(t)})`;
+
 export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now(), vivo?: SenalVivo, ultima?: string | null): Momento {
   const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
   const total = Math.max(1, p.plan.tareas.length);
@@ -148,13 +152,13 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
     }
     if (p.error) {
       return { ...base, paso: "trabajo", indice: 2, teToca: true, tono: "cortado", accion: "Continuar", trabado: true,
-        ahora: `${p.error.tarea ? agenteDe(p.error.tarea) : "El equipo"} no pudo trabajar. Lo terminado está guardado.`,
+        ahora: p.error.tarea ? `${tareaPrimero(p.error.tarea)} no pudo seguir. Lo terminado está guardado.` : "El equipo no pudo trabajar. Lo terminado está guardado.",
         despues: `Motivo: ${p.error.mensaje.slice(0, 160)}. Al continuar, lo intenta de nuevo.` };
     }
     if (trabajando.length) {
       const t = enCurso.find(viva)!;
       return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
-        ahora: trabajando.length === 1 ? `${agenteDe(t)} está trabajando: ${entregaDe(t).toLowerCase()}.` : `${nombres(trabajando)} están trabajando en ${fase.nombre}.`,
+        ahora: trabajando.length === 1 ? `${mayus(entregaDe(t))} · ${agenteDe(t)} está trabajando.` : `${nombres(trabajando)} están trabajando en ${fase.nombre}.`,
         despues };
     }
     // Entre una vuelta y la siguiente pasan segundos: recién después de un rato sin nadie se da por detenido.
@@ -163,10 +167,10 @@ export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, 
     if (reciente) {
       const sig = siguienteTarea(p);
       return { ...base, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
-        ahora: sig ? `${agenteDe(sig)} está por empezar: ${entregaDe(sig).toLowerCase()}.` : "El equipo está cerrando la fase.", despues };
+        ahora: sig ? `${mayus(entregaDe(sig))} · ${agenteDe(sig)} está por empezar.` : "El equipo está cerrando la fase.", despues };
     }
     return { ...base, paso: "trabajo", indice: 2, teToca: true, tono: "cortado", accion: "Continuar", trabado: true,
-      ahora: enCurso.length ? `${agenteDe(enCurso[0])} se detuvo a mitad de camino. Lo terminado está guardado.` : "El equipo se detuvo. Lo terminado está guardado.",
+      ahora: enCurso.length ? `${tareaPrimero(enCurso[0])} se detuvo a mitad de camino. Lo terminado está guardado.` : "El equipo se detuvo. Lo terminado está guardado.",
       despues: "Al continuar, sigue desde donde quedó." };
   }
   if (p.estado === "parado") {

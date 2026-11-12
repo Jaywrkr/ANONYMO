@@ -4,6 +4,8 @@ Para quien siga el desarrollo (Codex u otro agente de código). Escrito el 29 de
 Primero lee [README.md](README.md) (qué hay y cómo correrlo) y [AGENTS.md](AGENTS.md) (reglas del repo).
 
 
+**Trabajo 0.77 para revisión (sistema/76-claridad, va encima de 0.76):** los arreglos de claridad de la revisión con 6 expertos. Atlas se abre desde `Barra` (botón «Abrir chat de Atlas») o con la tecla A; el botón flotante de `AtlasFlotante` queda oculto y el foco vuelve a quien abrió el chat. Las frases de `lib/camino.ts` ponen la tarea antes que el agente (`tareaPrimero`). `colorOportunidad` en `ClientesNuevos.tsx`. `Oficina` acepta `listaEnCelular`. Pruebas ajustadas: `e2e-clientes`, `e2e-muestra`, `e2e-navegacion`, `e2e-oficio`, `e2e-guiones`, `e2e-calidad-movil`. Siguiente: rama 77 · Velocidad.
+
 **Trabajo 0.76 para revisión (sistema/75-interfaz-revisada):** revisión de interfaz en 390 y 1360 px (ver la fila en `docs/mejoras.md`). `app/estudio/page.tsx` lee los prospectos para «Ahora mismo». `InicioMovil` sin «Últimos avances», «Preguntar a Atlas» ni «Requisitos y comprobaciones»: queda el último avance y el enlace «Calidad» (`e2e-calidad-movil` ajustada). La versión y «?» viven en `Barra` (Marco.tsx).
 
 **Trabajo 0.75 para revisión (sistema/74-celular-ordenado):** `ClientesNuevos.tsx` reordenado (acción primero; buscar y ajustes plegados; filtros extra tras «Filtros» en celular; tarjeta con tres botones). Ojo: las grillas que contienen tarjetas usan `grid-cols-[minmax(0,1fr)]`, si no, el contenido estira la página en 390 px. `avisarCelulares(a, solo?)` devuelve `{ enviados, fallas }` y escribe `[avisos]` en el registro; `AvisosCelular` explica el resultado, detecta claves cambiadas y vuelve a suscribir. `e2e-clientes` revisa el orden en celular.

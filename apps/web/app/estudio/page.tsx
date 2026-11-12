@@ -195,10 +195,13 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
           <aside className="grid content-start gap-4">
             <Link href="/estudio/oficina" className="block rounded-[18px] bg-[#f6f3ee] p-5 shadow-[0_0_0_1px_rgba(26,24,22,.04)] transition hover:-translate-y-0.5">
               <span className="flex items-center gap-2 text-[12px] text-suave"><i className={`h-1.5 w-1.5 rounded-full ${trabajando.length ? "late bg-vivo" : "bg-suave"}`} /> La oficina ahora</span>
-              <span className="mt-3 flex flex-wrap gap-0.5">
-                {Object.entries(oficina).map(([id, x]) => <Cara key={id} id={id} tam={28} apagado={x.estado === "libre"} className={x.estado === "trabajando" ? "flota" : ""} />)}
-              </span>
-              <span className="mt-3 block text-[13px] text-medio">{Object.values(oficina).filter((x) => x.estado === "trabajando").length} trabajando · {Object.values(oficina).filter((x) => x.estado === "libre").length} libres · ver la oficina →</span>
+              {/* Una línea con el dato (sistema/76): las 22 caritas decoraban sin informar. Solo se ven las de quien trabaja. */}
+              {Object.values(oficina).some((x) => x.estado === "trabajando") && (
+                <span className="mt-3 flex flex-wrap gap-0.5">
+                  {Object.entries(oficina).filter(([, x]) => x.estado === "trabajando").map(([id]) => <Cara key={id} id={id} tam={28} className="flota" />)}
+                </span>
+              )}
+              <span className="mt-2 block text-[13px] text-medio">{Object.values(oficina).filter((x) => x.estado === "trabajando").length} trabajando · {Object.values(oficina).filter((x) => x.estado === "libre").length} libres · ver la oficina →</span>
             </Link>
 
             <div className="rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
@@ -219,11 +222,8 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
               <Link href="/estudio/biblioteca" className="mt-2 inline-flex min-h-9 items-center text-[13px] text-medio hover:text-tinta">Ver todo en la biblioteca →</Link>
             </div>
 
-            <div className="rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
-              <p className="text-[12px] text-suave">Gastado en IA este mes</p>
-              <p className={`${serif} mt-1 text-[44px] leading-none`}>${gastoMes.toFixed(2)}</p>
-              <p className="mt-1 text-[12px] text-suave">{proyectos.filter((p) => p.estado !== "listo").length} proyectos activos</p>
-            </div>
+            {/* El gasto en una línea (sistema/76): grande no aporta cuando es poco. */}
+            <p className="px-1 text-[12px] text-suave">IA este mes: <span className="font-medium text-tinta">${gastoMes.toFixed(2)}</span> · {proyectos.filter((p) => p.estado !== "listo").length} proyectos activos</p>
           </aside>
         </div>
       )}

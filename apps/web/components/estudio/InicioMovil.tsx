@@ -14,7 +14,8 @@ export function InicioMovil({proyectos,nombre,error,avisos=[],pendientes=0}:{pro
  const encontrados=proyectos.filter(p=>(filtro==='todos'||(filtro==='revisar'?p.toca:p.estado==='en-curso'))&&normal([p.nombre,p.texto,...p.entregas.map(e=>e.titulo+' '+e.resumen)].join(' ')).includes(normal(q)));
  return <div className="px-4 pb-8 pt-6 lg:hidden" data-testid="inicio-movil">
   <p className="text-[13px] text-medio">{nombre} · tu estudio</p>
-  <h1 className="mt-1 font-serif text-[38px] leading-none">Lo que está avanzando.</h1>
+  {/* El mismo titular que en computadora (sistema/76): dice qué hacer, no solo qué pasa. */}
+  <h1 className="mt-1 font-serif text-[38px] leading-none">{pendientes?`Tienes ${pendientes===1?'una cosa':`${pendientes} cosas`} por decidir.`:'Todo al día.'}</h1>
   <div className="mt-3"><SeguimientoMovil/></div>
   <form role="search" action="/estudio/biblioteca" className="sticky top-2 z-10 mt-5 flex min-w-0 items-center gap-2 rounded-2xl bg-white p-2 shadow-sm">
    <label className="min-w-0 flex-1"><span className="sr-only">Buscar proyectos y entregas</span><input name="q" value={q} onChange={e=>setQ(e.target.value)} placeholder="Busca un cliente, una idea, una entrega…" className="w-full rounded-xl bg-transparent px-2 py-3 text-[16px] outline-none"/></label>

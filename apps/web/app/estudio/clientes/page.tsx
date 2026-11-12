@@ -20,7 +20,7 @@ export default async function Pagina() {
       <div className="flex items-center gap-4">
         <Cara id="atlas" tam={56} flota />
         <div>
-          <p className="text-[13px] text-suave">Atlas · cada cliente en un solo lugar</p>
+          <p className="text-[13px] text-suave">Cada cliente en un solo lugar · Atlas</p>
           <h1 className={`${serif} text-[40px] leading-none`}>Clientes.</h1>
         </div>
       </div>

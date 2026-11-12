@@ -10,7 +10,7 @@ import { MARCO_TODO } from "@/lib/espacio";
 import { salir } from "@/app/entrar/acciones";
 import { Version } from "./Version";
 
-const ATAJOS: [string, string][] = [["Ctrl K", "Buscar en la biblioteca"], ["N", "Nuevo pedido"], ["I", "Inicio"], ["B", "Biblioteca"], ["O", "La oficina"], ["?", "Ver estos atajos"], ["Esc", "Cerrar"]];
+const ATAJOS: [string, string][] = [["Ctrl K", "Buscar en la biblioteca"], ["N", "Nuevo pedido"], ["A", "Hablar con Atlas"], ["I", "Inicio"], ["B", "Biblioteca"], ["O", "La oficina"], ["?", "Ver estos atajos"], ["Esc", "Cerrar"]];
 
 function Ayuda({ cerrar }: { cerrar: () => void }) {
   return (
@@ -173,6 +173,10 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
         </Link>
         <Link href="/estudio/clientes" onClick={alIr} className={fila(enClientes(ruta))} aria-current={enClientes(ruta) ? "page" : undefined}><Icono d={I.clientes} /> Clientes</Link>
         <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
+        {/* Atlas en un solo lugar (sistema/76): antes flotaba y tapaba el contenido. */}
+        <button type="button" aria-label="Abrir chat de Atlas" onClick={() => { alIr?.(); window.dispatchEvent(new CustomEvent("anonymo:atlas", { detail: {} })); }} className={`${fila(false)} w-full text-left`}>
+          <span aria-hidden className="grid h-4 w-4 place-items-center rounded-full bg-tinta font-serif text-[10px] text-white">A</span> Atlas <kbd className="ml-auto font-mono text-[10px] text-tinta/40">A</kbd>
+        </button>
         <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
         <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
       </div>
@@ -208,7 +212,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
         {/* El Taller (sistema/68): lo que mejora la casa, separado del trabajo diario. Abierto si estás en una de sus páginas. */}
         <details open={TALLER.some((t) => ruta.startsWith(t))} className="group">
           <summary className={`${fila(false)} cursor-pointer list-none text-tinta/70 [&::-webkit-details-marker]:hidden`}>
-            <Icono d={I.taller} /> Taller
+            <Icono d={I.taller} /> Mejorar el estudio
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="ml-auto transition group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
           </summary>
           <div className="grid gap-0.5 pl-3">
@@ -259,6 +263,8 @@ export function Marco({ children, ...props }: Props) {
       if (escribiendo || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
       if (e.key === "Escape") { setAyuda(false); setAbierto(false); return; }
       if (e.key === "?") { setAyuda((x) => !x); return; }
+      // Atlas vive en la barra (sistema/76): la tecla A lo abre desde cualquier página.
+      if (e.key.toLowerCase() === "a") { setAyuda(false); window.dispatchEvent(new CustomEvent("anonymo:atlas", { detail: {} })); return; }
       const destino = ir[e.key.toLowerCase()];
       if (destino) { setAyuda(false); router.push(destino); }
     };

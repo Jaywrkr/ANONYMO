@@ -21,7 +21,7 @@ export default async function Pagina() {
       <div className="mx-auto flex max-w-xl items-center gap-3">
         <Cara id="iman" tam={44} />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] text-suave">Imán · Ventas</p>
+          <p className="text-[13px] text-suave">Ventas · Imán</p>
           <h1 className={`${serif} text-[34px] leading-none`}>La tanda de hoy.</h1>
         </div>
         <Link href="/estudio/clientes/nuevos" className="text-[13px] text-medio underline underline-offset-4">Ver la lista</Link>

@@ -39,7 +39,7 @@ await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="luna"]', 
 // 1. Subir con el pedido escrito (el ejemplo del documento del módulo).
 await p.goto(`${B}/estudio/video`);
 await p.setInputFiles('input[type="file"]', entrada);
-await p.fill("textarea", "Corta los silencios, quita el arranque, ponle subtítulos, zoom en la frase clave y el logo al final, y expórtalo vertical");
+await p.fill("#subir textarea", "Corta los silencios, quita el arranque, ponle subtítulos, zoom en la frase clave y el logo al final, y expórtalo vertical");
 await p.screenshot({ path: join(capturas, "1-subir-con-pedido.png") });
 await p.click("button:has-text('Subir video')");
 await p.waitForURL(/estudio\/video\/v-testimonio-clinica-/, { timeout: 60000 });

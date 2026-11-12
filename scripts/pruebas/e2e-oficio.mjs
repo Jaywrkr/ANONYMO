@@ -7,7 +7,7 @@ const nav = await chromium.launch(process.env.CHROMIUM ? { executablePath: proce
 const p = await (await nav.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 const marca = "Siempre tipografía con carácter y nada de tazas como ícono " + Date.now();
 await p.goto(`${B}/entrar`); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
-await p.click("summary:has-text('Taller')"); await p.click("text=Criterio de la casa"); await p.waitForURL(/criterio/); await p.waitForLoadState("networkidle");
+await p.click("summary:has-text('Mejorar el estudio')"); await p.click("text=Criterio de la casa"); await p.waitForURL(/criterio/); await p.waitForLoadState("networkidle");
 console.log("saben:", await p.locator("details summary").count(), "disciplinas y rubros");
 await p.fill("#criterio", marca);
 await p.click("button:has-text('Guardar criterio')");

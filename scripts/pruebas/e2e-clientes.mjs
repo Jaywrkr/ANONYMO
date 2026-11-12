@@ -119,7 +119,9 @@ try {
 
   // Los ajustes van arriba (sistema/73): sin número de ANONYMO se abren solos; cada campo tiene su botón.
   const ajustes = p.locator("section[aria-label=Ajustes]");
-  exigir(await ajustes.isVisible() && await p.evaluate(() => { const a = document.querySelector("section[aria-label=Ajustes]"), b = document.querySelector("ul[aria-label=Negocios]"); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), "sin número, los ajustes se abren solos y arriba de la lista");
+  exigir(await p.locator("[role=note]:has-text('Falta tu WhatsApp')").isVisible() && !(await ajustes.count()), "sin número, una línea lo pide sin abrir los ajustes");
+  await p.click("[role=note] button:has-text('Ponerlo')");
+  exigir(await ajustes.isVisible() && await p.evaluate(() => { const a = document.querySelector("section[aria-label=Ajustes]"), b = document.querySelector("ul[aria-label=Negocios]"); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), "«Ponerlo» abre los ajustes arriba de la lista");
   await p.fill("input[aria-label='Firma de los mensajes']", "Luna · ANONYMO");
   await ajustes.locator("div", { has: p.locator("input[aria-label='Firma de los mensajes']") }).last().locator("button:has-text('Guardar')").click();
   await p.locator("[role=status]:has-text('Firma guardada')").waitFor({ timeout: 15000 });
@@ -148,12 +150,14 @@ try {
   exigir((await p.locator("section[aria-labelledby=t-proyectos] a[href='/estudio/sonrisa-sin-web']").count()) === 1, "la ficha lista el proyecto");
   exigir(/Imán lo encontró buscando «odontólogo» en Cuenca/.test(ficha) && /Pasó a «Contactado»/.test(ficha) && /Se convirtió en pedido/.test(ficha) && /Pedido nuevo/.test(ficha), "la historia junta lo de Imán y el pedido");
   exigir((await p.inputValue("input[name=telefono]")) === "099 000 0003", "el teléfono viene del prospecto");
+  await p.click("summary:has-text('Editar contacto y notas')");
   await p.fill("textarea[name=notas]", "Prefiere que lo llamen en la tarde.");
   await p.click("button:has-text('Guardar')");
   exigir(await p.locator("[role=status]:has-text('Ficha guardada')").waitFor({ timeout: 15000 }).then(() => true, () => false), "guardar la ficha dice qué pasó");
   exigir(new URL(p.url()).pathname === "/estudio/cliente/sonrisa-sin-web", "y se queda en la ficha");
   await p.reload();
   exigir((await p.inputValue("textarea[name=notas]")) === "Prefiere que lo llamen en la tarde.", "las notas quedan guardadas en la nube");
+  exigir(await p.locator("section[aria-labelledby=t-datos]").locator("text=Prefiere que lo llamen en la tarde.").first().isVisible(), "y se leen sin abrir el formulario");
   await p.screenshot({ path: join(capturas, "5-ficha.png"), fullPage: true });
   await p.goto(`${B}/estudio/clientes/nuevos`);
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");

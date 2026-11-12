@@ -7,7 +7,7 @@ try{
  const p=await nav.newPage({viewport:{width:390,height:844}});
  const errores=[];p.on('pageerror',e=>errores.push(e.message));
  await p.goto(base+'/entrar');await p.fill('input[name="clave"]','prueba-clave-jay');await p.click('text=Entrar al estudio');await p.waitForURL(base+'/estudio');
- await p.getByTestId('inicio-movil').getByRole('heading',{name:'Lo que está avanzando.'}).waitFor();
+ await p.getByTestId('inicio-movil').getByRole('heading',{name:/por decidir|Todo al día/}).waitFor();
  await p.getByLabel('Buscar proyectos y entregas').fill('Taller Control');
  const tarjeta=p.getByTestId('inicio-movil').locator('article');await tarjeta.getByText('Taller Control',{exact:true}).waitFor();assert.equal(await tarjeta.count(),1);
  assert.match(await tarjeta.innerText(),/Verificado · por aprobar/);

@@ -56,6 +56,7 @@ try {
   await p.waitForSelector("button:has-text('Que Imán busque')");
 
   // 1 · El número de ANONYMO y los avisos.
+  await p.click("[role=note] button:has-text('Ponerlo')");
   await p.fill("input[aria-label='Tu WhatsApp']", "099 555 0000");
   await p.locator("section[aria-label=Ajustes] div", { has: p.locator("input[aria-label='Tu WhatsApp']") }).last().locator("button:has-text('Guardar')").click();
   exigir(await espera(p.locator("[role=status]:has-text('Número guardado')")), "guardar el número de ANONYMO dice qué pasó");

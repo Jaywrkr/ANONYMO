@@ -26,13 +26,23 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
       <div className="flex items-center gap-4">
         <Cara id="corte" tam={56} flota />
         <div>
-          <p className="text-[13px] text-suave">Corte edita · Faro escribe los guiones</p>
+          <p className="text-[13px] text-suave">Guiones y edición · Faro y Corte</p>
           <h1 className={`${serif} text-[40px] leading-none`}>Video.</h1>
         </div>
       </div>
       <p className="mt-3 hidden max-w-2xl text-[15px] text-medio md:block">Sube un video de alguien hablando o haciendo algo. Lo escuchamos para quitar los silencios, lo dividimos en partes que puedes quitar con un toque, Corte, nuestro editor, hace lo que le pidas y lo entregamos en 9:16, 1:1 o 16:9.</p>
       <p className="mt-3"><Link href="/estudio/video/marcas" className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Marcas: logo, colores y música de cada cliente →</Link></p>
-      <SubirVideo maxMb={Math.round(MAX_VIDEO / 1024 / 1024)} cliente={(cliente ?? guion?.cliente)?.slice(0, 80)} guion={guion ? { id: guion.id, titulo: guion.titulo } : undefined} />
+      {/* Las dos acciones en el orden del trabajo (sistema/76): primero el guion, después lo grabado. */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Qué quieres hacer">
+        <a href="#guiones" className="flex min-h-20 items-center gap-4 rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hueso text-[14px] font-medium">1</span>
+          <span><span className="block text-[15px] font-medium">Pedir un guion</span><span className="block text-[13px] text-medio">Antes de grabar: Faro escribe qué decir y qué tomas hacer.</span></span>
+        </a>
+        <a href="#subir" className="flex min-h-20 items-center gap-4 rounded-2xl bg-tinta p-4 text-white transition hover:bg-black">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 text-[14px] font-medium">2</span>
+          <span><span className="block text-[15px] font-medium">Subir lo grabado</span><span className="block text-[13px] text-white/70">Corte quita silencios y edita lo que le pidas.</span></span>
+        </a>
+      </div>
       <h2 className="mt-10 text-[13px] text-suave">Videos</h2>
       {falla && <p role="alert" className="mt-2 text-[14px] text-[#a33a0b]">No se pudo leer la lista: {falla}</p>}
       {!videos.length && !falla && <p className="mt-2 text-[14px] text-medio">Todavía no hay videos.</p>}
@@ -51,7 +61,9 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
           </li>
         ))}
       </ul>
-      <Guiones inicial={guiones} clienteInicial={cliente?.slice(0, 80) ?? ""} />
+      <div id="guiones" className="scroll-mt-6"><Guiones inicial={guiones} clienteInicial={cliente?.slice(0, 80) ?? ""} /></div>
+      <h2 className="mt-10 text-[13px] text-suave">Subir lo grabado</h2>
+      <SubirVideo maxMb={Math.round(MAX_VIDEO / 1024 / 1024)} cliente={(cliente ?? guion?.cliente)?.slice(0, 80)} guion={guion ? { id: guion.id, titulo: guion.titulo } : undefined} />
     </div>
   );
 }
