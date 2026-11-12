@@ -44,6 +44,13 @@ Cada muestra sale con una de dos plantillas, mitad y mitad, para ver cuál conve
 
 Cada rubro tiene su paleta. Para cambiarla en un negocio: «Más» → «Plantilla de su muestra». Para verlas todas: Clientes → **Plantillas**. Los ejemplos con datos inventados se abren sin entrar al estudio (`/m/ejemplo/<rubro>/<plantilla>`) y no los indexa Google.
 
+## Recordatorio y propuesta (sistema/80)
+
+- A los **3 días** sin respuesta, la tanda pone primero el recordatorio: un mensaje corto con el enlace a su **propuesta**. Se manda una sola vez y no cuenta para el tope diario.
+- La propuesta (`/p/<id>`) dice precio, plazo, qué incluye, cómo sigue, el plan mensual y los extras. Sale de `packages/pipeline/src/oferta.ts`.
+- Cuando el negocio la abre, suena el celular. Si toca **Aceptar**, suena otra vez, pasa a «Respondió», queda primero en «Ahora mismo» y se abre el WhatsApp de ANONYMO con «acepto la propuesta». Lo siguiente es cobrar el 50 % y convertirlo en pedido.
+- En cada negocio, «Más» → «Su propuesta» para mandarla antes si preguntan el precio.
+
 ## Puntaje (0 a 100)
 
 Sin IA, reglas fijas en `packages/pipeline/src/prospectos/puntaje.ts`:

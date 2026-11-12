@@ -117,3 +117,44 @@ export function anotarQuiere(p: Prospecto, ahora = new Date()) {
   if (!ya) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Tocó «Quiero esta web» en su muestra" });
   return { avisar: !ya };
 }
+
+// Seguimiento y propuesta (sistema/80).
+
+/** Días sin respuesta antes del único recordatorio. */
+export const DIAS_SEGUIMIENTO = 3;
+
+/** Cuándo se le escribió por primera vez. */
+export const contactadoEn = (p: Pick<Prospecto, "historial">) => p.historial?.find((h) => h.que === "Pasó a «Contactado»")?.cuando;
+
+/** Le toca el recordatorio: se le escribió hace 3 días o más, no respondió, no pidió la web y no se le recordó todavía. */
+export function tocaSeguimiento(p: Prospecto, ahora = new Date()) {
+  const desde = contactadoEn(p);
+  if (p.estado !== "contactado" || p.seguimiento || p.muestra?.quiere || p.propuesta?.acepto || !desde) return false;
+  return ahora.getTime() - Date.parse(desde) >= DIAS_SEGUIMIENTO * 24 * 60 * 60 * 1000;
+}
+
+/** El recordatorio: corto, sin presión, con la muestra y la propuesta. */
+export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "muestra">, firma: string, muestra: string, propuesta: string) {
+  const vio = p.muestra?.vistas ? "Vi que alcanzaron a abrir la idea de web que les preparé." : `Hace unos días les mandé una idea de web para ${p.nombre}: ${muestra}`;
+  return `Hola de nuevo. ${vio} Si les interesa, aquí está la propuesta con precio, plazos y lo que incluye: ${propuesta}\n\nSi no es el momento, no hay problema. ¡Gracias!\n\n${firma}`;
+}
+
+/** Abrió su propuesta o tocó «Aceptar». Devuelve si hay que avisar. */
+export function anotarPropuesta(p: Prospecto, accion: "vista" | "acepto", ahora = new Date()) {
+  const pr = (p.propuesta ??= { vistas: 0 });
+  if (accion === "acepto") {
+    const ya = !!pr.acepto;
+    pr.acepto ??= ahora.toISOString();
+    if (!ya) {
+      (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Aceptó la propuesta" });
+      if (p.estado === "nuevo" || p.estado === "contactado") p.estado = "respondio";
+    }
+    return { avisar: !ya };
+  }
+  const antes = pr.ultima ? Date.parse(pr.ultima) : 0;
+  const nueva = !antes || ahora.getTime() - antes > PAUSA_VISITA_MS;
+  pr.vistas += 1;
+  pr.ultima = ahora.toISOString();
+  if (nueva) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Abrió su propuesta" });
+  return { avisar: nueva };
+}

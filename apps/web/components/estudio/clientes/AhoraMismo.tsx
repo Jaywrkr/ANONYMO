@@ -1,9 +1,9 @@
 "use client";
 
-// Quién está viendo su muestra ahora y quién tocó «Quiero esta web» (sistema/72). Se actualiza solo cada medio minuto.
+// Quién está viendo su muestra ahora, quién tocó «Quiero esta web» (sistema/72) y quién aceptó su propuesta (sistema/80). Se actualiza solo cada medio minuto.
 import { useEffect, useState } from "react";
 import type { VistaProspecto } from "@/lib/clientes";
-import { viendoAhora } from "@/lib/tanda";
+import { calientes, viendoAhora } from "@/lib/tanda";
 
 const hace = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
@@ -13,7 +13,7 @@ const sinTexto = (wa?: string) => wa?.split("?")[0];
 
 export function AhoraMismo({ inicial }: { inicial: VistaProspecto[] }) {
   const [ahora, setAhora] = useState(() => viendoAhora(inicial));
-  const [quieren, setQuieren] = useState(() => inicial.filter((x) => x.quiere && x.estado !== "cliente" && x.estado !== "descartado"));
+  const [quieren, setQuieren] = useState(() => calientes(inicial));
   useEffect(() => {
     let vivo = true;
     const traer = () => {
@@ -38,7 +38,7 @@ export function AhoraMismo({ inicial }: { inicial: VistaProspecto[] }) {
     <section aria-label="Ahora mismo" className="grid gap-3 rounded-2xl bg-[#ff4d2e] p-4 text-white">
       <p className="text-[12px] uppercase tracking-[.12em] text-white/80">Ahora mismo</p>
       <ul className="grid gap-2">
-        {quieren.map((p) => fila(p, "quiere su web: tocó «Quiero esta web»"))}
+        {quieren.map((p) => fila(p, p.acepto ? "aceptó la propuesta: escríbele para el primer pago" : "quiere su web: tocó «Quiero esta web»"))}
         {ahora.filter((p) => !quieren.some((q) => q.id === p.id)).map((p) => fila(p, `está viendo su muestra (${hace(p.ultimaVista!)})`))}
       </ul>
     </section>

@@ -2,6 +2,7 @@
 
 // La tanda de celular (sistema/72): un negocio por pantalla, con su muestra y el mensaje listo.
 // Enviar abre WhatsApp y lo marca como contactado; Saltar lo deja para el final; Descartar lo saca de la lista.
+// Primero van los recordatorios (sistema/80): a quienes se les escribió hace 3 días y no respondieron, con su propuesta.
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { VistaProspecto } from "@/lib/clientes";
@@ -19,13 +20,17 @@ async function patch(id: string, cuerpo: Record<string, unknown>) {
 
 export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto[]; tope: number; clavePublica?: string }) {
   const [lista, setLista] = useState(inicial);
-  const [cola, setCola] = useState(() => armarTanda(inicial, tope).propuestos.map((p) => p.id));
+  const [seguir] = useState(() => new Set(armarTanda(inicial, tope).seguimientos.map((p) => p.id)));
+  const [cola, setCola] = useState(() => { const t = armarTanda(inicial, tope); return [...t.seguimientos, ...t.propuestos].map((p) => p.id); });
   const [guardando, setGuardando] = useState("");
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
   const [verTodo, setVerTodo] = useState(false);
   const { enviadosHoy, quedan } = useMemo(() => armarTanda(lista, tope), [lista, tope]);
   const actual = lista.find((p) => p.id === cola[0]);
   const ocupado = !!guardando;
+  const esSeguir = !!actual && seguir.has(actual.id);
+  const enlace = esSeguir ? actual?.whatsappSeguimiento : actual?.whatsapp;
+  const diasDesde = actual?.contactado ? Math.max(1, Math.round((Date.now() - Date.parse(actual.contactado)) / 86_400_000)) : 0;
 
   const reemplazar = (p: VistaProspecto) => setLista((l) => l.map((x) => (x.id === p.id ? p : x)));
   const siguiente = () => { setCola((c) => c.slice(1)); setVerTodo(false); };
@@ -35,7 +40,8 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
     setGuardando(estado === "contactado" ? "Marcando como enviado" : "Descartando");
     setAviso(null);
     try {
-      reemplazar(await patch(actual.id, { estado }));
+      // Un recordatorio no cambia el estado: solo anota que se mandó.
+      reemplazar(await patch(actual.id, estado === "contactado" && seguir.has(actual.id) ? { seguimiento: true } : { estado }));
       setAviso({ ok: true, texto: hecho });
       siguiente();
     } catch (e) {
@@ -52,12 +58,13 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
     setAviso({ ok: true, texto: `${actual.nombre} queda para el final.` });
   }
 
-  const lleno = quedan === 0;
+  // El tope es para mensajes nuevos: los recordatorios siguen aunque se haya llegado.
+  const lleno = quedan === 0 && !esSeguir;
 
   // Atajos en computadora (sistema/77): E envía, S salta, D descarta. Lo repetido se hace con el teclado.
   const acciones = useRef({ enviar: () => {}, saltar, descartar: () => {} });
   acciones.current = {
-    enviar: () => { if (!actual?.whatsapp || ocupado || lleno) return; window.open(actual.whatsapp, "_blank", "noopener"); void marcar("contactado", `Enviado a ${actual.nombre}. Sigue el próximo.`); },
+    enviar: () => { if (!actual || !enlace || ocupado || lleno) return; window.open(enlace, "_blank", "noopener"); void marcar("contactado", esSeguir ? `Recordatorio enviado a ${actual.nombre}.` : `Enviado a ${actual.nombre}. Sigue el próximo.`); },
     saltar,
     descartar: () => { if (actual && !lleno) void marcar("descartado", `${actual.nombre} quedó descartado.`); },
   };
@@ -93,6 +100,7 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
         </section>
       ) : (
         <article aria-label={`Negocio: ${actual.nombre}`} aria-busy={ocupado} className="grid gap-4 rounded-3xl bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
+          {esSeguir && <p className="-mb-1 text-[13px] font-medium text-[#8a5a00]">Recordatorio · le escribiste hace {diasDesde} {diasDesde === 1 ? "día" : "días"}{actual.vistas ? ` y vio su muestra ${actual.vistas === 1 ? "1 vez" : `${actual.vistas} veces`}` : " y no abrió su muestra"}</p>}
           <div className="flex gap-4">
             <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium ${colorOportunidad(actual.puntaje)}`} aria-label={`Oportunidad ${actual.puntaje} de 100`}><span className="grid place-items-center leading-none">{actual.puntaje}<span className="mt-1 text-[9px] font-normal opacity-75">oportunidad</span></span></div>
             <div className="min-w-0">
@@ -104,12 +112,12 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
             {actual.motivos.map((m) => <span key={m} className="rounded-md bg-hueso px-2 py-0.5 text-[12px] text-medio">{m}</span>)}
             {actual.buenaFama && <span className="rounded-md bg-[#fff1d6] px-2 py-0.5 text-[12px] text-[#8a5a00]">Muy buena fama</span>}
           </div>
-          <a href={actual.muestra} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl bg-hueso/70 px-4 py-3 text-[14px]">
-            <span><span className="font-medium">Su muestra</span> <span className="text-medio">· va en el mensaje</span></span><span aria-hidden>↗</span>
+          <a href={esSeguir ? actual.propuesta : actual.muestra} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl bg-hueso/70 px-4 py-3 text-[14px]">
+            <span><span className="font-medium">{esSeguir ? "Su propuesta" : "Su muestra"}</span> <span className="text-medio">· va en el mensaje</span></span><span aria-hidden>↗</span>
           </a>
           <div className="rounded-2xl bg-hueso/40 p-4">
             <p className="text-[12px] text-suave">El mensaje</p>
-            <p className={`mt-1 whitespace-pre-line text-[14px] leading-relaxed ${verTodo ? "" : "line-clamp-4"}`}>{actual.mensaje}</p>
+            <p className={`mt-1 whitespace-pre-line text-[14px] leading-relaxed ${verTodo ? "" : "line-clamp-4"}`}>{esSeguir ? actual.mensajeSeguimiento : actual.mensaje}</p>
             <button type="button" onClick={() => setVerTodo(!verTodo)} className="mt-1 text-[13px] text-medio underline underline-offset-4">{verTodo ? "Ver menos" : "Ver todo"}</button>
           </div>
         </article>
@@ -119,10 +127,10 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
         <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 px-4 lg:bottom-6">
           <div className="mx-auto grid max-w-xl gap-2 rounded-3xl bg-white/95 p-3 shadow-[0_12px_40px_rgba(26,24,22,.18)] backdrop-blur">
             {guardando && <p role="status" className="text-center text-[13px] text-medio">{guardando}…</p>}
-            <a href={actual.whatsapp} target="_blank" rel="noreferrer" aria-disabled={ocupado}
-              onClick={(e) => { if (ocupado) { e.preventDefault(); return; } void marcar("contactado", `Enviado a ${actual.nombre}. Sigue el próximo.`); }}
+            <a href={enlace} target="_blank" rel="noreferrer" aria-disabled={ocupado}
+              onClick={(e) => { if (ocupado) { e.preventDefault(); return; } void marcar("contactado", esSeguir ? `Recordatorio enviado a ${actual.nombre}.` : `Enviado a ${actual.nombre}. Sigue el próximo.`); }}
               className={`inline-flex min-h-14 items-center justify-center rounded-2xl bg-[#25d366] text-[16px] font-medium text-black ${ocupado ? "pointer-events-none opacity-60" : ""}`}>
-              Enviar por WhatsApp{tecla("E")}
+              {esSeguir ? "Enviar recordatorio" : "Enviar por WhatsApp"}{tecla("E")}
             </a>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={saltar} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] disabled:opacity-50">Saltar{tecla("S")}</button>

@@ -78,7 +78,7 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
 /** Los que tienen web y todavía no se revisaron. */
 export const porRevisar = (l: ListaProspectos) => Object.values(l.prospectos).filter((p) => p.web && !p.revision);
 
-export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra }
+export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean }
 
 export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   const ahora = new Date().toISOString();
@@ -89,6 +89,7 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   if (c.notas !== undefined) p.notas = c.notas.slice(0, 2000) || undefined;
   if (c.mensaje !== undefined) p.mensaje = c.mensaje ? c.mensaje.slice(0, 2000) : undefined;
   if (c.proyecto) p.proyecto = c.proyecto;
+  if (c.seguimiento && !p.seguimiento) { p.seguimiento = ahora; anotar("Se le mandó el seguimiento"); }
   if (c.plantilla && c.plantilla !== p.plantilla) { p.plantilla = c.plantilla; anotar(`Su muestra pasó a «${PLANTILLAS_MUESTRA[c.plantilla].nombre}»`); }
   p.actualizado = new Date().toISOString();
   p.por = por;

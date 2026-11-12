@@ -3,23 +3,11 @@
 import { anotarError, anotarQuiere, anotarVista, buscarPorMuestra, cambiarProspectos, idMuestraValido } from "@anonymo/pipeline";
 import { portalActivo, quienEsta } from "@/lib/estudio";
 import { avisarCelulares } from "@/lib/avisos-celular";
+import { BOT, frenar, nada } from "@/lib/freno";
 
 export const dynamic = "force-dynamic";
 
-// Freno (sistema/78): una muestra se anota como máximo 6 veces por minuto y una misma conexión 30 veces.
-// Vive en la memoria de cada servidor: no es perfecto, pero corta a un bot o a alguien recargando sin parar.
-const visitas = new Map<string, number[]>();
-function frenar(clave: string, max: number) {
-  const ahora = Date.now();
-  const v = (visitas.get(clave) ?? []).filter((t) => ahora - t < 60_000);
-  v.push(ahora);
-  visitas.set(clave, v);
-  if (visitas.size > 5000) visitas.clear();
-  return v.length > max;
-}
-const BOT = /bot|crawl|spider|preview|facebookexternalhit|whatsapp|slack|discord|telegram/i;
-
-const nada = () => new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+// Freno (sistema/78): una muestra se anota como máximo 6 veces por minuto y una misma conexión 30 veces (lib/freno.ts).
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -396,7 +396,8 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
                 {p.tipoWeb === "ok" && !p.motivos.length && <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{TIPO_WEB.ok}, sin problemas claros</span>}
                 {p.motivos.map((m) => <span key={m} className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{m}</span>)}
                 {p.buenaFama && <span className="rounded-md bg-[#fff1d6] px-2 py-0.5 text-[11px] text-[#8a5a00]">Muy buena fama</span>}
-                {p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
+                {p.acepto ? <span className="rounded-md bg-[#17714a] px-2 py-0.5 text-[11px] text-white">Aceptó la propuesta</span>
+                  : p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
                   : p.vistas > 0 && <span className="rounded-md bg-[#e6f6ee] px-2 py-0.5 text-[11px] text-[#17714a]">Vio su muestra {p.vistas === 1 ? "1 vez" : `${p.vistas} veces`}</span>}
               </>
             )}
@@ -450,6 +451,11 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             {!p.plantillaElegida && <span className="text-[12px] text-suave">(salió sola; puedes cambiarla)</span>}
             <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>
           </label>
+          {/* La propuesta (sistema/80): precio y «Aceptar». Va sola en el recordatorio; aquí para mandarla antes si preguntan el precio. */}
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+            <a href={p.propuesta} target="_blank" rel="noreferrer" className="underline underline-offset-4">Su propuesta ↗</a>
+            <span className="text-[12px] text-suave">{p.vistasPropuesta ? `La abrió ${p.vistasPropuesta === 1 ? "1 vez" : `${p.vistasPropuesta} veces`}` : "Todavía no la abre"}{p.seguimiento ? " · recordatorio enviado" : p.tocaSeguimiento ? " · le toca el recordatorio (en la tanda)" : ""}</span>
+          </p>
           <label className="grid gap-1.5">
             <span className="text-[12px] text-suave">Mensaje{p.mensajePropio ? " · escrito a mano" : " · lo arma Imán"}</span>
             <textarea rows={6} value={mensaje} onChange={(e) => setMensaje(e.target.value)} disabled={ocupado} className="rounded-xl bg-hueso/60 p-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />

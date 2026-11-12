@@ -60,6 +60,10 @@ export interface Prospecto {
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
   /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la mitad «sereno» y la mitad «grafico», para comparar cuál responde mejor. */
   plantilla?: PlantillaMuestra;
+  /** Cuándo se le mandó el seguimiento (sistema/80): un solo recordatorio a los 3 días sin respuesta. */
+  seguimiento?: string;
+  /** Lo que pasó con su propuesta (sistema/80): cuántas veces la abrió y cuándo tocó «Aceptar». */
+  propuesta?: { vistas: number; ultima?: string; acepto?: string };
 }
 
 /** Las dos variantes de la muestra (sistema/79): calma premium o grilla gráfica. */

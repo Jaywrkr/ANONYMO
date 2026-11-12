@@ -10,7 +10,7 @@ import { estaQuieto } from "@/lib/movimiento";
 export function Despertar() {
   const ruta = usePathname() ?? "";
   const en = idiomaDeRuta(ruta) === "en";
-  const interna = /^\/(estudio|entrar|portal|imprimir|m)(\/|$)/.test(ruta);
+  const interna = /^\/(estudio|entrar|portal|imprimir|m|p)(\/|$)/.test(ruta);
   const [n, setN] = useState(0);
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
