@@ -74,7 +74,7 @@ try {
   await p.click("button:has-text('Que Imán busque')");
   exigir(await espera(p.locator("[role=status]:has-text('Listo: 2 negocios nuevos')"), 60000), "Imán encuentra las dos barberías");
   const uno = p.locator("ul[aria-label=Negocios] > li", { hasText: "Barbería Don Bigote" });
-  const enlace = await uno.locator("a:has-text('Su muestra')").getAttribute("href");
+  const enlace = await uno.locator("a:has-text('Muestra ↗')").getAttribute("href");
   exigir(/^http:\/\/127\.0\.0\.1:3100\/m\/barberia-don-bigote-[0-9a-f]{6}$/.test(enlace ?? ""), `cada negocio tiene su muestra (${enlace})`);
   await uno.locator("button:has-text('Más')").click();
   exigir((await uno.locator("textarea").first().inputValue()).includes(`sin compromiso: ${enlace}`), "el primer mensaje lleva el enlace a la muestra");

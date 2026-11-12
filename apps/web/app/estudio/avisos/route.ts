@@ -15,8 +15,9 @@ export async function POST(req: Request) {
   const s = c.suscripcion;
   try {
     await sumarCelular({ endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth }, socio: p.yo!, agregado: new Date().toISOString(), equipo: typeof c.equipo === "string" ? c.equipo.slice(0, 60) : undefined });
-    const { enviados } = c.probar === false ? { enviados: 0 } : await avisarCelulares({ titulo: "Avisos listos", texto: "Aquí te va a sonar cuando un negocio abra su muestra.", url: "/estudio/clientes/tanda" });
-    return Response.json({ ok: true, enviados }, { headers: { "cache-control": "no-store" } });
+    // El aviso de prueba va solo a este celular y dice qué pasó (sistema/74).
+    const r = c.probar === false ? { enviados: 0, fallas: [] } : await avisarCelulares({ titulo: "Aviso de prueba", texto: "Así te va a sonar cuando un negocio abra su muestra.", url: "/estudio/clientes/tanda" }, s.endpoint);
+    return Response.json({ ok: true, ...r }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return mal((e as Error).message, 502);
   }

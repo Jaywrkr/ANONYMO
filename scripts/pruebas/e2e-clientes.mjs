@@ -74,7 +74,7 @@ try {
   const vieja = p.locator("li:has-text('Consultorio Web Vieja')");
   exigir(await vieja.locator("text=No se ve bien en celular").isVisible() && await vieja.locator("text=Sin actualizar desde 2017").isVisible() && await vieja.locator("text=Sin teléfono").isVisible(), "la web vieja muestra qué falla y que no hay teléfono");
   exigir(await p.locator("li:has-text('Ortodoncia Solo Insta') >> text=Solo Instagram").isVisible(), "detecta que solo tiene Instagram");
-  exigir(await p.locator("li:has-text('Ortodoncia Solo Insta') >> text=WhatsApp (número fijo)").isVisible(), "avisa cuando el número es fijo");
+  exigir(await p.locator("li:has-text('Ortodoncia Solo Insta') >> text=WhatsApp (fijo)").isVisible(), "avisa cuando el número es fijo");
   await p.screenshot({ path: join(capturas, "2-lista.png"), fullPage: true });
 
   const tarjeta = p.locator("li:has-text('Sonrisa Sin Web')");
@@ -119,7 +119,7 @@ try {
 
   // Los ajustes van arriba (sistema/73): sin número de ANONYMO se abren solos; cada campo tiene su botón.
   const ajustes = p.locator("section[aria-label=Ajustes]");
-  exigir(await ajustes.isVisible() && await p.evaluate(() => { const a = document.querySelector("section[aria-label=Ajustes]"), b = document.querySelector("section[aria-label='Buscar negocios']"); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), "sin número, los ajustes se abren solos y arriba de la búsqueda");
+  exigir(await ajustes.isVisible() && await p.evaluate(() => { const a = document.querySelector("section[aria-label=Ajustes]"), b = document.querySelector("ul[aria-label=Negocios]"); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), "sin número, los ajustes se abren solos y arriba de la lista");
   await p.fill("input[aria-label='Firma de los mensajes']", "Luna · ANONYMO");
   await ajustes.locator("div", { has: p.locator("input[aria-label='Firma de los mensajes']") }).last().locator("button:has-text('Guardar')").click();
   await p.locator("[role=status]:has-text('Firma guardada')").waitFor({ timeout: 15000 });
@@ -159,6 +159,7 @@ try {
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
   const ya = p.locator("li:has-text('Sonrisa Sin Web')");
   exigir((await ya.locator("select[aria-label=Estado]").inputValue()) === "cliente", "el prospecto quedó como cliente");
+  await ya.locator("button:has-text('Más')").click();
   exigir((await ya.locator("a:has-text('Ver el proyecto')").getAttribute("href")) === "/estudio/sonrisa-sin-web" && (await ya.locator("a:has-text('Ficha del cliente')").count()) === 1, "y desde el prospecto se llega al proyecto y a la ficha");
   await p.goto(`${B}/estudio/clientes`);
   exigir(await p.locator("ul[aria-label=Clientes] a[href='/estudio/cliente/sonrisa-sin-web']").waitFor({ timeout: 15000 }).then(() => true, () => false), "la cartera lo muestra");
@@ -169,6 +170,11 @@ try {
   await m.waitForSelector("ul[aria-label=Negocios] > li");
   const ancho = await m.evaluate(() => document.documentElement.scrollWidth);
   exigir(ancho <= 392, `en celular no se sale de la pantalla (${ancho}px)`);
+  // Orden en celular (sistema/74): la tanda antes que la lista, buscar plegado, tres botones por tarjeta en una fila.
+  exigir(!(await m.locator("section[aria-label='Buscar negocios']").count()) && await m.locator("button:has-text('Buscar más negocios')").count() === 1, "en celular buscar queda plegado");
+  const filas = await m.locator("ul[aria-label=Negocios] > li").first().evaluate((li) => [...li.querySelectorAll(":scope > div:nth-child(2) > *")].map((x) => Math.round(x.getBoundingClientRect().top)));
+  exigir(filas.length === 3 && new Set(filas).size === 1, `cada tarjeta muestra sus tres botones en una sola fila (${filas.join(",")})`);
+  exigir(!(await m.locator("select[aria-label='Tipo de web']").isVisible()) && await m.locator("button:has-text('Filtros')").isVisible(), "los filtros extra van en «Filtros»");
   await m.screenshot({ path: join(capturas, "4-celular.png"), fullPage: true });
   for (const ruta of ["/estudio/clientes", "/estudio/cliente/sonrisa-sin-web"]) {
     await m.goto(B + ruta);
