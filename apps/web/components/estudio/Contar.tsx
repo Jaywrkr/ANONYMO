@@ -62,8 +62,9 @@ export function Contar({ inicial = "" }: { inicial?: string }) {
         <span className="ml-auto text-suave">{palabras} palabras</span>
       </div>
 
+      {/* Cinco etiquetas a la vista (sistema/77); el resto, en «Más detalles»: menos decisiones antes de escribir. */}
       <div className="grid gap-3">
-        {ATAJOS.map((g) => (
+        {ATAJOS.slice(0, 1).map((g) => (
           <div key={g.grupo}>
             <p className="mb-1.5 text-[12px] text-suave">{g.grupo} · toca para agregar</p>
             <div className="flex flex-wrap gap-2">
@@ -84,6 +85,32 @@ export function Contar({ inicial = "" }: { inicial?: string }) {
             </div>
           </div>
         ))}
+        <details className="group">
+          <summary className="inline-flex min-h-9 cursor-pointer list-none items-center text-[13px] text-medio underline underline-offset-4 [&::-webkit-details-marker]:hidden">Más detalles: lo que ya tiene y cómo lo quiere</summary>
+          <div className="mt-3 grid gap-3">
+            {ATAJOS.slice(1).map((g) => (
+          <div key={g.grupo}>
+            <p className="mb-1.5 text-[12px] text-suave">{g.grupo} · toca para agregar</p>
+            <div className="flex flex-wrap gap-2">
+              {g.frases.map((f) => {
+                const puesta = texto.includes(f);
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    disabled={puesta}
+                    onClick={() => agregar(f)}
+                    className={`min-h-9 rounded-full px-3.5 text-[13px] transition ${puesta ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9] hover:text-tinta"}`}
+                  >
+                    {puesta ? "✓ " : "+ "}{f.replace(/\.$/, "")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+          </div>
+        </details>
       </div>
 
       {enlaces.length > 0 && (

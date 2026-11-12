@@ -9,8 +9,9 @@ import { caraSvg } from "@/lib/caras";
 import { MARCO_TODO } from "@/lib/espacio";
 import { salir } from "@/app/entrar/acciones";
 import { Version } from "./Version";
+import { Paleta } from "./Paleta";
 
-const ATAJOS: [string, string][] = [["Ctrl K", "Buscar en la biblioteca"], ["N", "Nuevo pedido"], ["A", "Hablar con Atlas"], ["I", "Inicio"], ["B", "Biblioteca"], ["O", "La oficina"], ["?", "Ver estos atajos"], ["Esc", "Cerrar"]];
+const ATAJOS: [string, string][] = [["Ctrl K", "Ir a cualquier lado (y buscar)"], ["N", "Nuevo pedido"], ["A", "Hablar con Atlas"], ["I", "Inicio"], ["B", "Biblioteca"], ["O", "La oficina"], ["?", "Ver estos atajos"], ["Esc", "Cerrar"]];
 
 function Ayuda({ cerrar }: { cerrar: () => void }) {
   return (
@@ -177,7 +178,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
         <button type="button" aria-label="Abrir chat de Atlas" onClick={() => { alIr?.(); window.dispatchEvent(new CustomEvent("anonymo:atlas", { detail: {} })); }} className={`${fila(false)} w-full text-left`}>
           <span aria-hidden className="grid h-4 w-4 place-items-center rounded-full bg-tinta font-serif text-[10px] text-white">A</span> Atlas <kbd className="ml-auto font-mono text-[10px] text-tinta/40">A</kbd>
         </button>
-        <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">Ctrl K</kbd></Link>
+        <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">B</kbd></Link>
         <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
       </div>
 
@@ -250,14 +251,15 @@ export function Marco({ children, ...props }: Props) {
 
   // Atajos: Ctrl/⌘ K busca; sin estar escribiendo: N nuevo pedido, I inicio, B biblioteca, O oficina, ? la ayuda.
   const [ayuda, setAyuda] = useState(false);
+  const [paleta, setPaleta] = useState(false);
   useEffect(() => {
     const ir: Record<string, string> = { n: "/estudio/nuevo", i: "/estudio", b: "/estudio/biblioteca", o: "/estudio/oficina" };
     const f = (e: KeyboardEvent) => {
       const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName) || (e.target as HTMLElement)?.isContentEditable;
+      // Ctrl K abre la paleta (sistema/77): ir a cualquier lado escribiendo; si nada coincide, busca en la biblioteca.
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        const c = document.getElementById("buscar") as HTMLInputElement | null;
-        if (c) { c.focus(); c.select?.(); } else router.push("/estudio/biblioteca?buscar=1");
+        setPaleta((x) => !x);
         return;
       }
       if (escribiendo || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
@@ -268,8 +270,10 @@ export function Marco({ children, ...props }: Props) {
       const destino = ir[e.key.toLowerCase()];
       if (destino) { setAyuda(false); router.push(destino); }
     };
+    const abrirPaleta = () => setPaleta(true);
     addEventListener("keydown", f);
-    return () => removeEventListener("keydown", f);
+    addEventListener("anonymo:paleta", abrirPaleta);
+    return () => { removeEventListener("keydown", f); removeEventListener("anonymo:paleta", abrirPaleta); };
   }, [router]);
 
   useEffect(() => setAbierto(false), [ruta]);
@@ -300,6 +304,7 @@ export function Marco({ children, ...props }: Props) {
         )}
 
         {ayuda && <Ayuda cerrar={() => setAyuda(false)} />}
+        {paleta && <Paleta proyectos={props.espacios.map((e) => ({ id: e.id, nombre: e.nombre }))} cerrar={() => setPaleta(false)} />}
         {/* Barra de abajo en celular (sistema/68): los departamentos, un pedido nuevo al centro y Atlas. */}
         <nav aria-label="Accesos móviles" className="fixed inset-x-2 bottom-2 z-40 grid grid-cols-5 rounded-2xl border border-borde bg-carta/95 p-1 pb-[max(4px,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
           <Link href="/estudio" aria-current={ruta === "/estudio" ? "page" : undefined} className={abajo(ruta === "/estudio")}>

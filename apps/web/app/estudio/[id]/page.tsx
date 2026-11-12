@@ -1,6 +1,5 @@
 import { idFicha } from "@anonymo/pipeline";
 import {versionadoActivo} from "@anonymo/pipeline";
-import {AbrirAtlas} from "@/components/estudio/AbrirAtlas";
 import { PestanaVisible } from "@/components/estudio/PestanaVisible";
 import {urlBoceto} from "@/lib/sitio";
 import Link from "next/link";
@@ -122,8 +121,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         </div>
         {nota && <div className="text-right"><p className="text-[12px] text-suave">Nota de calidad</p><p className={`${serif} text-[44px] leading-none`}>{String(nota.final).replace(".", ",")}</p></div>}
       </div>
-      <AbrirAtlas id={id} className="mt-3 mr-2 inline-flex min-h-11 items-center rounded-full bg-tinta px-4 text-[13px] text-white"/>
-      <Link href={`/estudio/${id}/calidad`} className="mt-3 mr-2 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px]">Requisitos y calidad →</Link>
+      {/* Arriba solo la ficha (sistema/77): Atlas está en la barra (tecla A) y «Requisitos y calidad» es una pestaña más. */}
       {/* La ficha del cliente (sistema/70): su prospecto, otros pedidos, videos y notas. */}
       <Link href={`/estudio/cliente/${p.pedido.ficha ?? idFicha(p.pedido.cliente)}`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px]">Ficha de {p.pedido.cliente} →</Link>
       <div className="hidden lg:block mt-4 max-w-3xl"><Camino m={m} p={p} /></div>
@@ -222,6 +220,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               </Link>
             </li>
           ))}
+          <li>
+            <Link href={`/estudio/${id}/calidad`} className="relative inline-flex min-h-12 items-center gap-1.5 whitespace-nowrap px-3 text-[14px] text-medio transition hover:text-tinta">Calidad</Link>
+          </li>
         </ul>
       </nav>
 

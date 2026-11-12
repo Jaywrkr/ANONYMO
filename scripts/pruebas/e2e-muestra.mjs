@@ -127,6 +127,13 @@ try {
   await p.reload();
   exigir(/Barbería Don Bigote quiere su web/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "el escritorio lo pone primero: quiere su web");
 
+  // 6a · En computadora, la tanda se despacha con el teclado (sistema/77): S salta sin tocar nada.
+  await p.goto(`${B}/estudio/clientes/tanda`);
+  const primero = (await p.locator("article h2").innerText()).trim();
+  await p.keyboard.press("s");
+  exigir(await p.locator("article h2").filter({ hasNotText: primero }).waitFor({ timeout: 5000 }).then(() => true, () => false), "la tecla S salta al siguiente");
+  exigir(await p.locator("a:has-text('Enviar por WhatsApp') kbd").isVisible(), "los botones muestran su tecla");
+
   // 6 · La tanda en el celular, de uno en uno.
   const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });
   await atajarWa(cel);
@@ -140,7 +147,7 @@ try {
   const enviar = t.locator("a:has-text('Enviar por WhatsApp')");
   const caja = await enviar.boundingBox();
   const encima = caja && await t.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("a")?.textContent, { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 });
-  exigir(encima === "Enviar por WhatsApp" && caja.y + caja.height <= 844, "el botón de enviar se ve y no lo tapa la barra del celular");
+  exigir(encima?.startsWith("Enviar por WhatsApp") && caja.y + caja.height <= 844, "el botón de enviar se ve y no lo tapa la barra del celular");
   await t.screenshot({ path: join(capturas, "2-tanda.png") });
   await t.click("button:has-text('Saltar')");
   exigir(/Barbería La Navaja/.test(await tarjeta.innerText()), "Saltar pasa al siguiente");

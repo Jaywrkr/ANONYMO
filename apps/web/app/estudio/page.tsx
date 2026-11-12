@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {pendientes as avisosPendientes} from "@/lib/pendientes";
 import { InicioMovil } from "@/components/estudio/InicioMovil";
+import { AbrirPaleta } from "@/components/estudio/AbrirPaleta";
 import { AhoraMismo } from "@/components/estudio/clientes/AhoraMismo";
 import { vistaLista, type VistaLista } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
@@ -100,7 +101,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
           <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1.02]`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
         </div>
         <div className="flex gap-2">
-          <Link href="/estudio/biblioteca?buscar=1" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Buscar <kbd className="font-mono text-[10px] text-suave">Ctrl K</kbd></Link>
+          <AbrirPaleta className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Ir a… <kbd className="font-mono text-[10px] text-suave">Ctrl K</kbd></AbrirPaleta>
         </div>
       </div>
 

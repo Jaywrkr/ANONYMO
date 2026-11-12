@@ -2,7 +2,7 @@
 
 // La tanda de celular (sistema/72): un negocio por pantalla, con su muestra y el mensaje listo.
 // Enviar abre WhatsApp y lo marca como contactado; Saltar lo deja para el final; Descartar lo saca de la lista.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { VistaProspecto } from "@/lib/clientes";
 import { armarTanda } from "@/lib/tanda";
@@ -53,6 +53,27 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
   }
 
   const lleno = quedan === 0;
+
+  // Atajos en computadora (sistema/77): E envía, S salta, D descarta. Lo repetido se hace con el teclado.
+  const acciones = useRef({ enviar: () => {}, saltar, descartar: () => {} });
+  acciones.current = {
+    enviar: () => { if (!actual?.whatsapp || ocupado || lleno) return; window.open(actual.whatsapp, "_blank", "noopener"); void marcar("contactado", `Enviado a ${actual.nombre}. Sigue el próximo.`); },
+    saltar,
+    descartar: () => { if (actual && !lleno) void marcar("descartado", `${actual.nombre} quedó descartado.`); },
+  };
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName) || t?.isContentEditable) return;
+      const k = e.key.toLowerCase();
+      if (k === "e") { e.preventDefault(); acciones.current.enviar(); }
+      else if (k === "s") { e.preventDefault(); acciones.current.saltar(); }
+      else if (k === "d") { e.preventDefault(); acciones.current.descartar(); }
+    };
+    addEventListener("keydown", f);
+    return () => removeEventListener("keydown", f);
+  }, []);
+  const tecla = (k: string) => <kbd className="ml-2 hidden rounded border border-black/15 px-1.5 font-mono text-[11px] opacity-60 lg:inline">{k}</kbd>;
   return (
     <div className="mx-auto grid max-w-xl gap-4 pb-40">
       <AhoraMismo inicial={inicial} />
@@ -101,11 +122,11 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
             <a href={actual.whatsapp} target="_blank" rel="noreferrer" aria-disabled={ocupado}
               onClick={(e) => { if (ocupado) { e.preventDefault(); return; } void marcar("contactado", `Enviado a ${actual.nombre}. Sigue el próximo.`); }}
               className={`inline-flex min-h-14 items-center justify-center rounded-2xl bg-[#25d366] text-[16px] font-medium text-black ${ocupado ? "pointer-events-none opacity-60" : ""}`}>
-              Enviar por WhatsApp
+              Enviar por WhatsApp{tecla("E")}
             </a>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={saltar} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] disabled:opacity-50">Saltar</button>
-              <button type="button" onClick={() => void marcar("descartado", `${actual.nombre} quedó descartado.`)} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] text-[#a33a0b] disabled:opacity-50">Descartar</button>
+              <button type="button" onClick={saltar} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] disabled:opacity-50">Saltar{tecla("S")}</button>
+              <button type="button" onClick={() => void marcar("descartado", `${actual.nombre} quedó descartado.`)} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] text-[#a33a0b] disabled:opacity-50">Descartar{tecla("D")}</button>
             </div>
           </div>
         </div>

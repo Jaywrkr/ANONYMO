@@ -50,6 +50,25 @@ try {
   exigir(!(await p.locator("[data-aviso-trabajo]").first().isVisible().catch(() => false)), "la espera se libera al llegar la respuesta");
   exigir(busqueda(p).get("ver") === "ajustes", `después de cambiar quién aprueba sigue en Ajustes (${p.url().replace(B, "")})`);
 
+  // Ctrl K (sistema/77): una paleta para ir a cualquier lado escribiendo.
+  await p.goto(`${B}/estudio`);
+  await p.keyboard.press("Control+k");
+  const paleta = p.getByRole("dialog", { name: "Ir a" });
+  exigir(await paleta.isVisible().catch(() => false) || await paleta.waitFor({ timeout: 3000 }).then(() => true, () => false), "Ctrl K abre la paleta");
+  await p.keyboard.type("cafe");
+  await p.keyboard.press("Enter");
+  await p.waitForURL(/estudio\/cafe-lento$/, { timeout: 15000 }).catch(() => {});
+  exigir(/estudio\/cafe-lento$/.test(p.url()), "escribir el proyecto y Enter lleva a él");
+  await p.keyboard.press("Control+k");
+  await paleta.waitFor({ timeout: 3000 });
+  await p.keyboard.type("palabra que no existe");
+  exigir(/Buscar «palabra que no existe» en la biblioteca/.test(await paleta.innerText()), "si nada coincide, ofrece buscar en la biblioteca");
+  await p.keyboard.press("Escape");
+  exigir(!(await paleta.isVisible().catch(() => false)), "Esc la cierra");
+  await p.keyboard.press("a");
+  exigir(await p.getByRole("dialog", { name: "Chat con Atlas", exact: true }).waitFor({ timeout: 5000 }).then(() => true, () => false), "la tecla A abre a Atlas");
+  await p.keyboard.press("Escape");
+
   // 4 · El Taller: cerrado en el día a día, abierto cuando estás en una de sus páginas.
   await p.goto(`${B}/estudio`);
   exigir(!(await p.locator("aside details").evaluate((d) => d.open)), "el Taller está cerrado en el inicio");
@@ -82,7 +101,7 @@ try {
   await m.goto(`${B}/estudio/cafe-lento?ver=ajustes`);
   const pestanas = m.locator("#pestanas-proyecto a");
   await pestanas.first().waitFor({ timeout: 15000 });
-  exigir((await pestanas.count()) === 7, `las 7 pestañas del proyecto están en celular (${await pestanas.count()})`);
+  exigir((await pestanas.count()) === 8, `las 8 pestañas del proyecto (con Calidad) están en celular (${await pestanas.count()})`);
   exigir(!(await m.locator("text=Más opciones del proyecto").count()), "ya no hay «Más opciones del proyecto»");
   const actual = m.getByRole("navigation", { name: "Secciones del proyecto" }).locator("[aria-current=page]");
   const caja = await actual.boundingBox();
