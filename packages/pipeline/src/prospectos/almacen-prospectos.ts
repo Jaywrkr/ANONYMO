@@ -13,15 +13,23 @@ const local = () => join(carpeta(), REL);
 
 const vacia = (): ListaProspectos => ({ actualizado: new Date().toISOString(), firma: FIRMA_INICIAL, prospectos: {} });
 
-export async function leerProspectos(): Promise<ListaProspectos> {
-  let texto: string | undefined;
+/** El texto tal como está guardado (o undefined si no hay lista todavía). */
+async function leerTexto(): Promise<string | undefined> {
   if (nubeActiva()) {
     const b = await leerSuelto(REL);
-    texto = b ? Buffer.from(b).toString("utf8") : undefined;
-  } else if (existsSync(local())) texto = readFileSync(local(), "utf8");
+    return b ? Buffer.from(b).toString("utf8") : undefined;
+  }
+  return existsSync(local()) ? readFileSync(local(), "utf8") : undefined;
+}
+
+const desdeTexto = (texto?: string): ListaProspectos => {
   if (!texto) return vacia();
   const l = JSON.parse(texto) as ListaProspectos;
   return { ...vacia(), ...l, prospectos: l.prospectos ?? {} };
+};
+
+export async function leerProspectos(): Promise<ListaProspectos> {
+  return desdeTexto(await leerTexto());
 }
 
 async function guardar(l: ListaProspectos) {
@@ -33,12 +41,20 @@ async function guardar(l: ListaProspectos) {
   renameSync(`${local()}.tmp`, local());
 }
 
-/** Lee lo último guardado, cambia y guarda: así Jay y Luna no se pisan entre clics. */
-export async function cambiarProspectos<T>(fn: (l: ListaProspectos) => T | Promise<T>): Promise<{ lista: ListaProspectos; valor: T }> {
-  const l = await leerProspectos();
-  const valor = await fn(l);
-  await guardar(l);
-  return { lista: l, valor };
+/** Lee lo último guardado, cambia y guarda: así Jay, Luna y las muestras no se pisan entre clics.
+ *  Antes de guardar vuelve a leer: si alguien guardó en el medio, repite el cambio sobre lo nuevo (sistema/78). */
+export async function cambiarProspectos<T>(fn: (l: ListaProspectos) => T | Promise<T>, intentos = 4): Promise<{ lista: ListaProspectos; valor: T }> {
+  for (let i = 0; ; i++) {
+    const antes = await leerTexto();
+    const l = desdeTexto(antes);
+    const valor = await fn(l);
+    if (i < intentos - 1 && (await leerTexto()) !== antes) {
+      await new Promise((r) => setTimeout(r, 40 + Math.random() * 120));
+      continue;
+    }
+    await guardar(l);
+    return { lista: l, valor };
+  }
 }
 
 /** Suma lo que trajo Google. Si ya estaba, actualiza estrellas, reseñas y contacto sin tocar su estado ni notas. */

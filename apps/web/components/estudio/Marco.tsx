@@ -101,7 +101,7 @@ const I = {
 const enClientes = (ruta: string) => ruta.startsWith("/estudio/clientes") || ruta.startsWith("/estudio/cliente/");
 
 /** Páginas del Taller: herramientas para mejorar la casa, no para el trabajo de cada día. */
-const TALLER = ["/estudio/criterio", "/estudio/banco", "/estudio/conexiones", "/estudio/analitica"];
+const TALLER = ["/estudio/estado", "/estudio/criterio", "/estudio/banco", "/estudio/conexiones", "/estudio/analitica"];
 
 /** Pide permiso para avisar con notificaciones del navegador (una vez). */
 function PermisoAvisos() {
@@ -217,6 +217,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="ml-auto transition group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
           </summary>
           <div className="grid gap-0.5 pl-3">
+            <Link href="/estudio/estado" onClick={alIr} className={fila(ruta === "/estudio/estado")} aria-current={ruta === "/estudio/estado" ? "page" : undefined}>Estado del sistema</Link>
             <Link href="/estudio/criterio" onClick={alIr} className={fila(ruta === "/estudio/criterio")} aria-current={ruta === "/estudio/criterio" ? "page" : undefined}>Criterio de la casa</Link>
             <Link href="/estudio/banco" onClick={alIr} className={fila(ruta === "/estudio/banco")} aria-current={ruta === "/estudio/banco" ? "page" : undefined}>Banco de calibración</Link>
             <Link href="/estudio/conexiones" onClick={alIr} className={fila(ruta === "/estudio/conexiones")} aria-current={ruta === "/estudio/conexiones" ? "page" : undefined}>Conexiones del estudio</Link>

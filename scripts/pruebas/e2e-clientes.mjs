@@ -157,7 +157,7 @@ try {
   exigir(new URL(p.url()).pathname === "/estudio/cliente/sonrisa-sin-web", "y se queda en la ficha");
   await p.reload();
   exigir((await p.inputValue("textarea[name=notas]")) === "Prefiere que lo llamen en la tarde.", "las notas quedan guardadas en la nube");
-  exigir(await p.locator("section[aria-labelledby=t-datos]").locator("text=Prefiere que lo llamen en la tarde.").first().isVisible(), "y se leen sin abrir el formulario");
+  exigir(await p.locator("section[aria-labelledby=t-datos] dl").getByText("Prefiere que lo llamen en la tarde.").waitFor({ timeout: 10000 }).then(() => true, () => false), "y se leen sin abrir el formulario");
   await p.screenshot({ path: join(capturas, "5-ficha.png"), fullPage: true });
   await p.goto(`${B}/estudio/clientes/nuevos`);
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");

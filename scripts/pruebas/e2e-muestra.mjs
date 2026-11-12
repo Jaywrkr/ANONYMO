@@ -130,6 +130,8 @@ try {
   // 6a · En computadora, la tanda se despacha con el teclado (sistema/77): S salta sin tocar nada.
   await p.goto(`${B}/estudio/clientes/tanda`);
   const primero = (await p.locator("article h2").innerText()).trim();
+  await p.waitForLoadState("networkidle").catch(() => {});
+  await p.locator("article").click({ position: { x: 5, y: 5 } }).catch(() => {});
   await p.keyboard.press("s");
   exigir(await p.locator("article h2").filter({ hasNotText: primero }).waitFor({ timeout: 5000 }).then(() => true, () => false), "la tecla S salta al siguiente");
   exigir(await p.locator("a:has-text('Enviar por WhatsApp') kbd").isVisible(), "los botones muestran su tecla");
