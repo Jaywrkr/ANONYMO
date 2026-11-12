@@ -25,7 +25,7 @@ export default async function Pagina() {
         </div>
       </div>
       <PestanasClientes actual="cartera" cartera={fichas.length} nuevos={nuevos} />
-      <p className="mt-5 max-w-2xl text-[15px] text-medio">
+      <p className="mt-5 hidden max-w-2xl text-[15px] text-medio md:block">
         Cada ficha junta lo que hay de un cliente: de dónde vino, sus pedidos y proyectos, sus videos, su marca, su contacto y tus notas. Se arma sola con el nombre del cliente; los prospectos de Imán entran cuando responden.
       </p>
       {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
@@ -35,7 +35,8 @@ export default async function Pagina() {
         {fichas.map((f) => (
           <li key={f.id}>
             <Link href={`/estudio/cliente/${f.id}`} className="flex min-h-16 items-center gap-4 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">
-              <i aria-hidden className="h-9 w-9 shrink-0 rounded-xl" style={{ background: f.kits[0]?.color ?? "#e9e4dc" }} />
+              {/* Las iniciales (sistema/75): el cuadro vacío no decía nada. Con kit de marca, toma su color. */}
+              <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[13px] font-medium" style={{ background: f.kits[0]?.color ?? "#e9e4dc", color: f.kits[0]?.color ? "#fff" : "#5d5a55" }}>{f.nombre.split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || f.nombre.slice(0, 1).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-medium">{f.nombre}</span>
                 <span className="block truncate text-[13px] text-suave">{resumenFicha(f)}</span>

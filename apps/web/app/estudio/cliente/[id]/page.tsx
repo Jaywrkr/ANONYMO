@@ -33,7 +33,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
     <div className="px-5 pb-20 pt-7 md:px-10">
       <p className="text-[13px]"><Link href="/estudio/clientes" className="text-medio underline-offset-4 hover:underline">← Clientes</Link></p>
       <div className="mt-3 flex items-center gap-4">
-        <i aria-hidden className="h-12 w-12 shrink-0 rounded-2xl" style={{ background: f.kits[0]?.color ?? "#e9e4dc" }} />
+        <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[16px] font-medium" style={{ background: f.kits[0]?.color ?? "#e9e4dc", color: f.kits[0]?.color ? "#fff" : "#5d5a55" }}>{f.nombre.split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || f.nombre.slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0">
           <h1 className={`${serif} text-[clamp(34px,4vw,48px)] leading-none`}>{f.nombre}</h1>
           <p className="mt-1 text-[14px] text-medio">{resumenFicha(f)}</p>
@@ -78,7 +78,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <h2 id="t-marca" className="text-[13px] text-suave">Marca y contenido</h2>
             {f.kits.length ? f.kits.map((k) => <p key={k.id} className="mt-2 flex items-center gap-2 text-[14px]"><i aria-hidden className="h-4 w-4 rounded" style={{ background: k.color }} />Kit de marca para video: <Link href="/estudio/video/marcas" className="underline">{k.nombre}</Link></p>)
               : <p className="mt-2 text-[14px] text-medio">Sin kit de marca todavía. <Link href="/estudio/video/marcas" className="underline">Crear uno</Link> (logo, color y música para sus videos).</p>}
-            <p className="mt-2 text-[13px] text-suave">El contenido mensual de redes llega con su propio departamento (fase 4 del mapa).</p>
+            <p className="mt-2 text-[13px] text-suave">El contenido mensual para redes todavía no está en el estudio.</p>
           </section>
 
           <section className={tarjeta} aria-labelledby="t-historia">

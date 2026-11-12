@@ -13,7 +13,7 @@ try{
  assert.match(await tarjeta.innerText(),/Verificado · por aprobar/);
  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=390));
  console.log('✓ móvil con clave: búsqueda, fase y avances sin desbordamiento');
- await tarjeta.getByRole('link',{name:'Requisitos y comprobaciones'}).click();await p.waitForURL(/control-prueba\/calidad/);
+ await tarjeta.getByRole('link',{name:'Calidad',exact:true}).click();await p.waitForURL(/control-prueba\/calidad/);
  await p.getByRole('heading',{name:'Requisitos y calidad',exact:true}).waitFor();
  await p.locator('img[alt="index.html a 390 píxeles"]').waitFor();
  const imagen=await p.locator('img[alt="index.html a 390 píxeles"]').getAttribute('src');

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import {pendientes as avisosPendientes} from "@/lib/pendientes";
 import { InicioMovil } from "@/components/estudio/InicioMovil";
+import { AhoraMismo } from "@/components/estudio/clientes/AhoraMismo";
+import { vistaLista, type VistaLista } from "@/lib/clientes";
+import { baseUrl } from "@/lib/base";
 import { estadoEntrega, TEXTO_CALIDAD } from "@anonymo/pipeline";
-import { AGENTES, agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
-import { leerEntrega, listar, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
+import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
+import { leerEntrega, leerProspectos, listar, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
 import { Cara, fechaLarga, hace, saludo } from "@/components/estudio/piezas";
 import { FilaProyecto } from "@/components/estudio/FilaProyecto";
 import { Confirmar } from "@/components/estudio/Confirmar";
@@ -70,9 +73,6 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
   const mes = new Date().toISOString().slice(0, 7);
   const gastoMes = proyectos.reduce((s, p) => s + Object.values(p.costos ?? {}).flat().filter((u) => !u.estimado && u.fecha.startsWith(mes)).reduce((a, u) => a + u.usd, 0), 0);
 
-  // Cada día un agente distinto dice su frase.
-  const dia = Math.floor((Date.now() - 5 * 3600_000) / 86400_000);
-  const delDia = AGENTES[dia % AGENTES.length];
   const resumen = pendientes
     ? `Tienes ${pendientes === 1 ? "una cosa" : `${pendientes} cosas`} por decidir.`
     : trabajando.length ? `El equipo está trabajando en ${trabajando.length === 1 ? "un proyecto" : `${trabajando.length} proyectos`}.`
@@ -86,7 +86,11 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
     actualizado:p.actualizado,generadas:Object.values(p.tareas).filter(e=>e==='lista').length,total:p.plan.tareas.length,
     entregas:p.plan.tareas.map(t=>leerEntrega(p.pedido.id,t)).filter(e=>!!e).sort((a,b)=>b.creado.localeCompare(a.creado)).slice(0,4).map(e=>({titulo:e.titulo,resumen:e.dice,href:`/estudio/${p.pedido.id}/${e.tarea.replace('.','-')}`,calidad:TEXTO_CALIDAD[estadoEntrega(p,e)]})),
   }));
+  // Quién está viendo su muestra o quiere su web (sistema/75): lo más urgente del día va arriba del inicio.
+  let prospectos: VistaLista["prospectos"] = [];
+  try { prospectos = vistaLista(await leerProspectos(), await baseUrl()).prospectos; } catch { /* sin lista, sin aviso */ }
   return (<>
+    <div className="px-4 pt-5 empty:hidden md:px-10"><AhoraMismo inicial={prospectos} /></div>
     {!completa&&<InicioMovil proyectos={moviles} nombre={nombreYo} error={errorNube} avisos={avisosMoviles.avisos} pendientes={avisosMoviles.avisos.length+Math.max(0,avisosMoviles.solicitudes-1)}/>}
     <div className={completa?"":"hidden lg:block"}>
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
@@ -94,14 +98,9 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
         <div className="min-w-0">
           <p className="text-[13px] text-suave">{fechaLarga()}</p>
           <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1.02]`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
-          <p className="mt-3 flex items-center gap-2 text-[14px] text-medio">
-            <Cara id={delDia.id} tam={26} />
-            <span>Hoy habla {delDia.nombre}: <span className="font-serif text-[17px] italic text-tinta">«{delDia.frase}»</span></span>
-          </p>
         </div>
         <div className="flex gap-2">
           <Link href="/estudio/biblioteca?buscar=1" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Buscar <kbd className="font-mono text-[10px] text-suave">Ctrl K</kbd></Link>
-          <Link href="/estudio/nuevo" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-tinta px-5 text-[13px] font-medium text-white hover:bg-black">+ Nuevo pedido</Link>
         </div>
       </div>
 
@@ -168,10 +167,11 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
               </Grupo>
             )}
 
-            <Grupo id="trabajando" titulo="El equipo está trabajando" cuenta={trabajando.length} ayuda="No tienes que hacer nada: te avisa cuando termine la fase.">
-              {trabajando.length === 0 && <p className="text-[14px] text-suave">Nadie está trabajando ahora.</p>}
-              {trabajando.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
-            </Grupo>
+            {trabajando.length > 0 && (
+              <Grupo id="trabajando" titulo="El equipo está trabajando" cuenta={trabajando.length} ayuda="No tienes que hacer nada: te avisa cuando termine la fase.">
+                {trabajando.map(({ p, m, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={`/estudio/${p.pedido.id}`} caras={caras} />)}
+              </Grupo>
+            )}
 
             {enPausa.length > 0 && (
               <Grupo id="pausa" titulo="En pausa" cuenta={enPausa.length} ayuda="Nadie trabaja en estos hasta que los reanudes.">

@@ -137,7 +137,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
 
       {/* AHORA: qué toca y qué viene después. Siempre una sola acción principal. */}
       {!p.papelera && p.estado !== "plan" && (
-        <section aria-label="Ahora" className={`mt-6 overflow-hidden rounded-[22px] ${m.tono === "toca" || m.tono === "cortado" ? "bg-tinta text-white" : m.tono === "listo" ? "bg-[#e7f5ec]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]"}`}>
+        <section aria-label="Ahora" className={`mt-6 overflow-hidden rounded-[22px] ${ver ? "hidden lg:block" : ""} ${m.tono === "toca" || m.tono === "cortado" ? "bg-tinta text-white" : m.tono === "listo" ? "bg-[#e7f5ec]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]"}`}>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-5 p-6 md:p-8">
             <div className={`min-w-[min(100%,20rem)] flex-1 ${m.revision ? "basis-full" : ""}`}>
               <p className={`flex items-center gap-2 text-[12px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/60" : "text-suave"}`}>
@@ -308,12 +308,12 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                       const en = leerEntrega(id, t);
                       const est = p.tareas[t];
                       return (
-                        <Link key={t} href={`/estudio/${id}/${t.replace(".", "-")}`} className={`${tarjeta} flex flex-col !p-0 transition hover:-translate-y-0.5 ${est === "por-empezar" ? "opacity-70" : ""}`}>
+                        <Link key={t} href={`/estudio/${id}/${t.replace(".", "-")}`} className={`${tarjeta} flex flex-col !p-0 transition hover:-translate-y-0.5 ${est === "por-empezar" || (est === "rehacer" && !en) ? "opacity-70" : ""}`}>
                           <span className="block p-5">
                             <span className="flex items-center gap-2">
                               <Cara id={a.id} tam={26} apagado={est === "por-empezar"} titulo={false} />
                               <span className="text-[13px] font-medium">{a.nombre}</span>
-                              <span className={`ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-[11px] ${CHIP_TAREA[est]}`}>{en ? TEXTO_CALIDAD[estadoEntrega(p,en)] : ESTADO_TAREA[est]}</span>
+                              <span className={`ml-auto inline-flex h-6 items-center rounded-full px-2.5 text-[11px] ${CHIP_TAREA[est]}`}>{en ? TEXTO_CALIDAD[estadoEntrega(p,en)] : est === "rehacer" ? "Por empezar" : ESTADO_TAREA[est]}</span>
                             </span>
                             <span className={`${serif} mt-3 block text-[23px] leading-[1.08]`}>{c.entrega}</span>
                             {en?.datos?.cortada ? <span className="mt-2 inline-flex rounded-full bg-[#fff1e6] px-2.5 py-1 text-[11px] text-[#b2450f]">Quedó cortada</span> : null}

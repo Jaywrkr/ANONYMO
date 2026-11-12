@@ -29,7 +29,7 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
         <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-medio">
           Lo que hablaste con el cliente, como se lo contarías a un socio. Atlas decide qué hace falta y quién trabaja. Nadie empieza hasta que tú lo digas.
         </p>
-        <ol aria-label="Cómo sigue" className="mt-6 grid gap-2 sm:grid-cols-3">
+        <ol aria-label="Cómo sigue" className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
           {[["1", "Lo cuentas", "Aquí, en tus palabras."], ["2", "Atlas arma el plan", "Quién trabaja, qué entrega y cuánto cuesta."], ["3", "Tú dices «que empiecen»", "Nadie trabaja antes."]].map(([n, t, d], i) => (
             <li key={n} className={`rounded-2xl p-4 ${i === 0 ? "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]" : "bg-[#f4f1eb]"}`}>
               <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] ${i === 0 ? "bg-tinta text-white" : "bg-white text-medio"}`}>{n}</span>

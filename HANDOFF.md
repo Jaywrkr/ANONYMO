@@ -4,6 +4,8 @@ Para quien siga el desarrollo (Codex u otro agente de código). Escrito el 29 de
 Primero lee [README.md](README.md) (qué hay y cómo correrlo) y [AGENTS.md](AGENTS.md) (reglas del repo).
 
 
+**Trabajo 0.76 para revisión (sistema/75-interfaz-revisada):** revisión de interfaz en 390 y 1360 px (ver la fila en `docs/mejoras.md`). `app/estudio/page.tsx` lee los prospectos para «Ahora mismo». `InicioMovil` sin «Últimos avances», «Preguntar a Atlas» ni «Requisitos y comprobaciones»: queda el último avance y el enlace «Calidad» (`e2e-calidad-movil` ajustada). La versión y «?» viven en `Barra` (Marco.tsx).
+
 **Trabajo 0.75 para revisión (sistema/74-celular-ordenado):** `ClientesNuevos.tsx` reordenado (acción primero; buscar y ajustes plegados; filtros extra tras «Filtros» en celular; tarjeta con tres botones). Ojo: las grillas que contienen tarjetas usan `grid-cols-[minmax(0,1fr)]`, si no, el contenido estira la página en 390 px. `avisarCelulares(a, solo?)` devuelve `{ enviados, fallas }` y escribe `[avisos]` en el registro; `AvisosCelular` explica el resultado, detecta claves cambiadas y vuelve a suscribir. `e2e-clientes` revisa el orden en celular.
 
 **Trabajo 0.74 para revisión (sistema/73-ajustes-en-su-lugar):** en `ClientesNuevos.tsx` los ajustes van arriba en un panel (`Fila`: título, ayuda, campo y su botón); se abre solo sin número. «Bajar CSV» junto a los filtros. Pruebas: `e2e-clientes` y `e2e-muestra` ajustadas.

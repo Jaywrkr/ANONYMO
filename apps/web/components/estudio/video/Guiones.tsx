@@ -75,7 +75,7 @@ export function Guiones({ inicial, clienteInicial = "" }: { inicial: Guion[]; cl
           <textarea rows={3} value={pedido} onChange={(e) => setPedido(e.target.value)} maxLength={2000} placeholder="Por ejemplo: un reel para el lanzamiento de ANONYMO, que muestre que somos una agencia con agentes de IA" className={campo} />
         </label>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <label className="grid gap-1.5 text-[13px] font-medium">Cliente <span className="font-normal text-suave">· opcional</span>
+          <label className="grid gap-1.5 text-[13px] font-medium"><span>Cliente <span className="font-normal text-suave">· opcional</span></span>
             <input value={cliente} onChange={(e) => setCliente(e.target.value)} maxLength={80} className={campo} />
           </label>
           <label className="grid gap-1.5 text-[13px] font-medium">Duración

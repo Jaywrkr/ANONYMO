@@ -152,7 +152,7 @@ function Campana({ avisos, alIr }: { avisos: AvisoCampana[]; alIr?: () => void }
   );
 }
 
-function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, avisos }: Omit<Props, "children"> & { activo?: EspacioBarra; ruta: string; alIr?: () => void }) {
+function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, alAyuda, avisos }: Omit<Props, "children"> & { activo?: EspacioBarra; ruta: string; alIr?: () => void; alAyuda?: () => void }) {
   const enInicio = ruta === "/estudio";
   return (
     <nav aria-label="Estudio" className="flex h-full flex-col gap-5 text-tinta">
@@ -202,7 +202,8 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
       </div>
 
       <div className="mt-auto grid gap-0.5">
-        <span className="px-2.5 text-[11px] text-medio lg:hidden"><Version/></span>
+        {/* La versión y los atajos van en la barra (sistema/75): flotando tapaban el contenido. */}
+        <span className="flex items-center gap-2 px-2.5 text-[11px] text-medio"><Version/>{alAyuda && <button type="button" onClick={alAyuda} className="hidden h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] text-tinta/60 shadow-[0_0_0_1px_rgba(26,24,22,.12)] hover:text-tinta lg:inline-flex" aria-label="Atajos de teclado">?</button>}</span>
         <Link href="/estudio?vista=completa" onClick={alIr} className={`${fila(false)} lg:hidden`}>Vista completa del estudio</Link>
         {/* El Taller (sistema/68): lo que mejora la casa, separado del trabajo diario. Abierto si estás en una de sus páginas. */}
         <details open={TALLER.some((t) => ruta.startsWith(t))} className="group">
@@ -270,7 +271,7 @@ export function Marco({ children, ...props }: Props) {
   return (
     <div className="estudio-marco flex min-h-dvh gap-2 p-2" style={{ background: activo?.marco ?? MARCO_TODO }}>
       <aside className="sticky top-2 hidden h-[calc(100dvh-16px)] w-[236px] shrink-0 py-2 lg:block">
-        <Barra {...props} activo={activo} ruta={ruta} />
+        <Barra {...props} activo={activo} ruta={ruta} alAyuda={() => setAyuda(true)} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -293,10 +294,6 @@ export function Marco({ children, ...props }: Props) {
         )}
 
         {ayuda && <Ayuda cerrar={() => setAyuda(false)} />}
-        <div className="pointer-events-none fixed bottom-2.5 right-4 z-40 hidden items-center gap-3 lg:flex">
-          <button type="button" onClick={() => setAyuda(true)} className="pointer-events-auto hidden h-6 w-6 items-center justify-center rounded-full bg-white/70 font-mono text-[11px] text-tinta/60 shadow-[0_0_0_1px_rgba(26,24,22,.08)] hover:text-tinta lg:inline-flex" aria-label="Atajos de teclado">?</button>
-          <Version className="rounded-full bg-white/70 px-2.5 py-1 shadow-[0_0_0_1px_rgba(26,24,22,.06)] backdrop-blur" />
-        </div>
         {/* Barra de abajo en celular (sistema/68): los departamentos, un pedido nuevo al centro y Atlas. */}
         <nav aria-label="Accesos móviles" className="fixed inset-x-2 bottom-2 z-40 grid grid-cols-5 rounded-2xl border border-borde bg-carta/95 p-1 pb-[max(4px,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
           <Link href="/estudio" aria-current={ruta === "/estudio" ? "page" : undefined} className={abajo(ruta === "/estudio")}>

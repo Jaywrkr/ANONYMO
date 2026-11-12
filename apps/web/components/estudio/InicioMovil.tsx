@@ -1,5 +1,4 @@
 'use client';
-import {AbrirAtlas} from './AbrirAtlas';
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {SeguimientoMovil} from './SeguimientoMovil';
@@ -28,12 +27,13 @@ export function InicioMovil({proyectos,nombre,error,avisos=[],pendientes=0}:{pro
    <div className="flex items-center gap-2 text-[12px] text-medio"><i className={`h-2 w-2 rounded-full ${p.estado==='en-curso'?'late bg-vivo':p.toca?'bg-urgente':'bg-suave'}`}/>{p.fase}</div>
    <Link href={`/estudio/${p.id}`} className="mt-2 block break-words font-serif text-[31px] leading-tight">{p.nombre}</Link>
    <p className="mt-2 text-[14px] leading-snug">{p.texto}</p>
-   <p className="mt-2 text-[12px] text-medio">Actualizado {new Date(p.actualizado).toLocaleString("es-EC",{timeZone:"America/Guayaquil",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
-   <p className="mt-1 text-[12px] text-medio">{p.generadas} de {p.total} entregas generadas · la calidad se revisa por separado</p>
-   <Link href={p.href} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] text-white">{p.accion} →</Link>
-   {p.entregas.length>0&&<div className="mt-4 grid gap-3 border-t border-borde pt-4"><p className="text-[12px] text-medio">Últimos avances</p>{p.entregas.slice(0,2).map(e=><Link href={e.href} key={e.href} className="block min-w-0 rounded-xl bg-[#f6f3ee] p-3"><strong className="block text-[14px]">{e.titulo}</strong><span className="mt-1 block text-[12px] text-medio">{e.calidad}</span><span className="mt-1 line-clamp-2 block text-[13px]">{e.resumen}</span></Link>)}</div>}
-   <AbrirAtlas id={p.id} className="mt-2 flex min-h-11 items-center text-[13px] underline">Preguntar a Atlas</AbrirAtlas>
-   <Link href={`/estudio/${p.id}/calidad`} className="mt-2 flex min-h-11 items-center text-[13px] underline">Requisitos y comprobaciones</Link>
+   {/* Tarjeta corta (sistema/75): una línea de estado, el último avance y la acción. Atlas está en la barra de abajo. */}
+   <p className="mt-2 text-[12px] text-medio">{p.generadas} de {p.total} entregas · {new Date(p.actualizado).toLocaleString("es-EC",{timeZone:"America/Guayaquil",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
+   {p.entregas[0]&&<Link href={p.entregas[0].href} className="mt-3 flex min-w-0 items-center gap-2 rounded-xl bg-[#f6f3ee] px-3 py-2 text-[13px]"><span className="min-w-0 flex-1 truncate">Último: <strong className="font-medium">{p.entregas[0].titulo}</strong></span><span className="shrink-0 text-[12px] text-medio">{p.entregas[0].calidad}</span></Link>}
+   <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <Link href={p.href} className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] text-white">{p.accion} →</Link>
+    <Link href={`/estudio/${p.id}/calidad`} className="inline-flex min-h-11 items-center text-[13px] text-medio underline underline-offset-4">Calidad</Link>
+   </div>
   </article>)}</div>
   {!encontrados.length&&<p className="py-8 text-[14px] text-medio">{q?'No hay coincidencias en este resumen. Usa «Buscar todo» para buscar dentro de las entregas.':'No hay proyectos en este grupo.'}</p>}
  </div>;

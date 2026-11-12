@@ -361,7 +361,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
             <button key={f} role="tab" aria-selected={formato === f} disabled={!listo} onClick={() => setFormato(f)} className={chip(formato === f)}>{f}</button>
           ))}
         </div>
-        <div className="mx-auto mt-3 w-full" style={{ maxWidth: formato === "9:16" ? 340 : formato === "1:1" ? 420 : 520 }}>
+        <div className="mx-auto mt-3 w-full" style={{ maxWidth: formato === "9:16" ? "min(340px, calc(58svh * 9 / 16))" : formato === "1:1" ? "min(420px, 58svh)" : 520 }}>
           <div className="relative w-full overflow-hidden rounded-[14px] bg-noche" style={{ aspectRatio: formato.replace(":", " / "), containerType: "size" }}>
             {fuente && t.estado !== "subiendo" ? (
               <video ref={video} src={fuente} playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" style={{ transform: cerrado ? `scale(${ZOOM})` : undefined }} onPlay={() => setSonando(true)} onPause={() => { if (cierreDesde.current === null) { setSonando(false); pararMusica(); } }} onClick={tocar} />
