@@ -86,6 +86,20 @@ try {
   await p.reload();
   exigir(!/Recordatorio/.test(await p.locator("article").innerText()), "el recordatorio no se repite");
 
+  // 1b · Jay cambia el precio de este negocio antes de que vea la propuesta (sistema/82).
+  await p.goto(`${B}/estudio/clientes/nuevos`);
+  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  const vega = p.locator("ul[aria-label=Negocios] li", { hasText: "Notaría Vega" });
+  await vega.getByRole("button", { name: "Más", exact: true }).click();
+  await vega.getByLabel("Precio de su web").fill("45000");
+  exigir(await vega.getByLabel("Precio de su web").inputValue() === "4500", "el precio no deja escribir más de 4 cifras");
+  await vega.getByLabel("Precio de su web").fill("450");
+  await vega.locator("button:has-text('Guardar precio')").click();
+  exigir(await espera(p.locator("[role=status]:has-text('Su propuesta ahora dice USD 450 + IVA')")), "cambiar el precio dice qué pasó");
+  exigir(await vega.locator("button:has-text('Volver a USD 390')").count() === 1, "y deja volver al precio normal");
+  const fuera0 = await p.evaluate(async () => (await fetch("/estudio/clientes/seg-uno", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ precio: 39000 }) })).status);
+  exigir(fuera0 === 400, "un precio fuera de rango no entra");
+
   // 2 · La propuesta, como el negocio.
   const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await atajarWa(cel);
@@ -93,7 +107,7 @@ try {
   n.on("pageerror", (e) => fallas.push(`error en la propuesta: ${e.message}`));
   const rp = await n.goto(propuesta);
   exigir(rp?.status() === 200 && /Notaría Vega/.test(await n.locator("h1").innerText()), "la propuesta abre con el nombre del negocio");
-  exigir(await n.locator("text=USD 390 + IVA").count() >= 1 && await n.locator("text=Lista en 7 días").count() === 1 && await n.locator("text=50 % al aceptar").count() >= 1, "dice precio, plazo y forma de pago");
+  exigir(await n.locator("text=USD 450 + IVA").count() >= 1 && !(await n.locator("text=USD 390 + IVA").count()) && await n.locator("text=Lista en 7 días").count() === 1 && await n.locator("text=50 % al aceptar").count() >= 1, "dice su precio (el que puso Jay), plazo y forma de pago");
   exigir(await n.locator("text=USD 19 + IVA").count() >= 1 && await n.locator("text=Sesión de fotos con Luna").count() === 1, "y el plan mensual y los extras");
   exigir((await n.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");
   exigir(await n.evaluate(() => document.documentElement.scrollWidth) <= 392, "la propuesta cabe en celular");
@@ -116,7 +130,7 @@ try {
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
   const ahora = p.locator("section[aria-label='Ahora mismo']");
   const cobro = await ahora.locator("a:has-text('Cobrar el 50 %')").getAttribute("href");
-  exigir(!!cobro && cobro.includes("593991110010") && decodeURIComponent(cobro).includes("USD 195 + IVA (50 %)"), "ofrece cobrar el 50 % con el mensaje listo");
+  exigir(!!cobro && cobro.includes("593991110010") && decodeURIComponent(cobro).includes("USD 225 + IVA (50 %)"), "ofrece cobrar el 50 % de su precio con el mensaje listo");
   exigir((await ahora.locator("a:has-text('Crear el pedido')").getAttribute("href"))?.startsWith("/estudio/nuevo?"), "y crear el pedido de un toque");
   exigir(await p.locator("ul[aria-label=Negocios] li", { hasText: "Notaría Vega" }).locator("text=Aceptó la propuesta").count() >= 1, "y la tarjeta lo marca");
   exigir(await p.evaluate(() => document.documentElement.scrollWidth) <= 392, "el escritorio sigue cabiendo en celular");

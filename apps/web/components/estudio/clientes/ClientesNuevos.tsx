@@ -344,6 +344,8 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
   const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null);
   const [mensaje, setMensaje] = useState(p.mensaje);
   const [notas, setNotas] = useState(p.notas);
+  const [monto, setMonto] = useState(String(p.precio));
+  useEffect(() => setMonto(String(p.precio)), [p.precio]);
   const [copiado, setCopiado] = useState(false);
   useEffect(() => setMensaje(p.mensaje), [p.mensaje]);
   useEffect(() => setNotas(p.notas), [p.notas]);
@@ -396,6 +398,7 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
                 {p.tipoWeb === "ok" && !p.motivos.length && <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{TIPO_WEB.ok}, sin problemas claros</span>}
                 {p.motivos.map((m) => <span key={m} className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{m}</span>)}
                 {p.buenaFama && <span className="rounded-md bg-[#fff1d6] px-2 py-0.5 text-[11px] text-[#8a5a00]">Muy buena fama</span>}
+                {p.fotos > 0 && <span className="rounded-md bg-[#e8e5ff] px-2 py-0.5 text-[11px] text-[#3b2bb5]">Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`}</span>}
                 {p.acepto ? <span className="rounded-md bg-[#17714a] px-2 py-0.5 text-[11px] text-white">Aceptó la propuesta</span>
                   : p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
                   : p.vistas > 0 && <span className="rounded-md bg-[#e6f6ee] px-2 py-0.5 text-[11px] text-[#17714a]">Vio su muestra {p.vistas === 1 ? "1 vez" : `${p.vistas} veces`}</span>}
@@ -452,6 +455,25 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>
           </label>
           {/* La propuesta (sistema/80): precio y «Aceptar». Va sola en el recordatorio; aquí para mandarla antes si preguntan el precio. */}
+          {/* Su precio (sistema/82): se cambia antes de mandar la propuesta; la muestra, la propuesta y el cobro lo usan. */}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <label htmlFor={`precio-${p.id}`} className="text-suave">Precio de su web</label>
+            <span className="inline-flex min-h-10 items-center rounded-full bg-hueso/70 pl-3 text-medio">USD
+              <input id={`precio-${p.id}`} inputMode="numeric" value={monto} disabled={ocupado} onChange={(e) => setMonto(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                className="w-16 bg-transparent px-2 text-[14px] text-tinta outline-none" aria-describedby={`precio-ayuda-${p.id}`} />
+            </span>
+            <span className="text-suave">+ IVA</span>
+            <button type="button" disabled={ocupado || !monto || Number(monto) === p.precio} onClick={() => void cambiar({ precio: Number(monto) }, "Guardando el precio", `Su propuesta ahora dice USD ${Number(monto)} + IVA.`)} className={botonChico}>Guardar precio</button>
+            {p.precioPropio && <button type="button" disabled={ocupado} onClick={() => void cambiar({ precio: null }, "Volviendo al precio normal", `Su propuesta vuelve a USD ${p.precioOferta} + IVA.`)} className="text-[12px] text-medio underline underline-offset-4">Volver a USD {p.precioOferta}</button>}
+            <span id={`precio-ayuda-${p.id}`} className="w-full text-[12px] text-suave">{p.precioPropio ? "Precio puesto a mano." : "Es el precio normal."} Cambia en su muestra, su propuesta y el mensaje de cobro.{p.acepto ? " Ojo: ya aceptó la propuesta con el precio que vio." : ""}</span>
+          </div>
+          {p.fotos > 0 && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+              <span>Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`} a su muestra.</span>
+              <a href={p.muestra} target="_blank" rel="noreferrer" className="underline underline-offset-4">Verlas ↗</a>
+              <button type="button" disabled={ocupado} onClick={() => void cambiar({ quitarFotos: true }, "Quitando las fotos", "Su muestra vuelve a verse sin fotos.")} className="text-[12px] text-[#a33a0b] underline underline-offset-4">Quitarlas de la muestra</button>
+            </p>
+          )}
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
             <a href={p.propuesta} target="_blank" rel="noreferrer" className="underline underline-offset-4">Su propuesta ↗</a>
             <span className="text-[12px] text-suave">{p.vistasPropuesta ? `La abrió ${p.vistasPropuesta === 1 ? "1 vez" : `${p.vistasPropuesta} veces`}` : "Todavía no la abre"}{p.seguimiento ? " · recordatorio enviado" : p.tocaSeguimiento ? " · le toca el recordatorio (en la tanda)" : ""}</span>

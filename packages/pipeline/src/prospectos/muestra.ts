@@ -174,6 +174,27 @@ export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "muestra">, fir
   return `Hola de nuevo. ${vio} Si les interesa, aquí está la propuesta con precio, plazos y lo que incluye: ${propuesta}\n\nSi no es el momento, no hay problema. ¡Gracias!\n\n${firma}`;
 }
 
+// Fotos del negocio (sistema/82): las sube el propio negocio desde su muestra, y la muestra se rehace con ellas.
+export const FOTOS_MAX = 3;
+export const FOTO_BYTES_MAX = 1_500_000;
+/** Dónde vive cada foto en la nube privada. `n` va de 1 a FOTOS_MAX. */
+export const rutaFoto = (idDeMuestra: string, n: number) => `_fotos/${idDeMuestra}/${n}.jpg`;
+/** Un JPEG de verdad (empieza con FF D8 FF) y de tamaño razonable. El navegador ya la achica antes de subirla. */
+export const fotoValida = (b: Uint8Array) => b.length > 1000 && b.length <= FOTO_BYTES_MAX && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+
+/** El negocio subió la foto `n`. Devuelve si hay que avisar (solo la primera vez). */
+export function anotarFoto(p: Prospecto, n: number, total?: number, ahora = new Date()) {
+  const primera = !p.fotos;
+  // La última de una tanda fija cuántas quedan: si antes había 3 y ahora sube 1, se ve solo la nueva.
+  p.fotos = Math.min(FOTOS_MAX, total && n === total ? total : Math.max(p.fotos ?? 0, n));
+  if (primera) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Subió fotos a su muestra" });
+  p.actualizado = ahora.toISOString();
+  return { avisar: primera };
+}
+
+/** Lo que cuesta la web de este negocio: su precio a mano o el de la oferta (sistema/82). */
+export const precioDe = (p: Pick<Prospecto, "precio">, deOferta: number) => p.precio ?? deOferta;
+
 /** El mensaje para cobrar el primer pago a quien aceptó (sistema/81). No lleva datos bancarios: los pasa Jay en el chat. */
 export function mensajeCobro(nombre: string, firma: string, total: number, conIva: boolean) {
   const mitad = Math.round(total / 2);

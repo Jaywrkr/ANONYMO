@@ -62,6 +62,10 @@ export interface Prospecto {
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
   /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la mitad «sereno» y la mitad «grafico», para comparar cuál responde mejor. */
   plantilla?: PlantillaMuestra;
+  /** El precio de su web si no es el de la oferta (sistema/82), en dólares sin IVA. Lo pone Jay antes de mandar la propuesta. */
+  precio?: number;
+  /** Cuántas fotos subió el negocio a su muestra (sistema/82). Viven en `_fotos/<id de muestra>/` en la nube privada. */
+  fotos?: number;
   /** Cuándo se le mandó el seguimiento (sistema/80): un solo recordatorio a los 3 días sin respuesta. */
   seguimiento?: string;
   /** Lo que pasó con su propuesta (sistema/80): cuántas veces la abrió y cuándo tocó «Aceptar». */

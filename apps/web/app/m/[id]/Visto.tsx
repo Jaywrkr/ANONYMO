@@ -2,10 +2,50 @@
 
 // Lo que hace la muestra en el navegador del negocio (sistema/72): avisa que la abrió, responde a los botones de ejemplo
 // y deja la barra «Quiero esta web». Solo corre en un navegador de verdad: la vista previa de WhatsApp no la cuenta.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-export function Visto({ id, nombre, numero, oferta }: { id: string; nombre: string; numero?: string; oferta: { dias: number; precio: string } }) {
+/** Achica la foto en el navegador (lado mayor 1600 px, JPEG): sube rápido con datos del celular y no pesa en la nube. */
+async function achicar(archivo: File): Promise<Blob> {
+  const img = await createImageBitmap(archivo, { imageOrientation: "from-image" } as ImageBitmapOptions);
+  const e = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const lienzo = document.createElement("canvas");
+  lienzo.width = Math.round(img.width * e); lienzo.height = Math.round(img.height * e);
+  lienzo.getContext("2d")!.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+  for (const q of [0.82, 0.7, 0.55]) {
+    const b = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", q));
+    if (b && b.size <= 1_400_000) return b;
+  }
+  throw new Error("Esa foto es demasiado grande. Prueba con otra.");
+}
+
+export function Visto({ id, nombre, numero, oferta, fotos = 0, fotosMax = 3 }: { id: string; nombre: string; numero?: string; oferta: { dias: number; precio: string }; fotos?: number; fotosMax?: number }) {
   const [aviso, setAviso] = useState("");
+  const [subiendo, setSubiendo] = useState("");
+  const entrada = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  // El negocio pone hasta 3 fotos suyas y la muestra se rehace con ellas (sistema/82).
+  async function subir(lista: FileList | null) {
+    const archivos = Array.from(lista ?? []).filter((a) => a.type.startsWith("image/")).slice(0, fotosMax);
+    if (!archivos.length || subiendo) return;
+    try {
+      for (let i = 0; i < archivos.length; i++) {
+        setSubiendo(`Subiendo foto ${i + 1} de ${archivos.length}…`);
+        const r = await fetch(`/m/${id}/fotos/${i + 1}?de=${archivos.length}`, { method: "POST", headers: { "content-type": "image/jpeg" }, body: await achicar(archivos[i]!) });
+        if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error ?? "No se pudo subir la foto. Vuelve a intentar.");
+      }
+      setAviso(archivos.length === 1 ? "Listo: tu foto ya está en la página." : `Listo: tus ${archivos.length} fotos ya están en la página.`);
+      router.refresh();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      setAviso((e as Error).message);
+    } finally {
+      setSubiendo("");
+      if (entrada.current) entrada.current.value = "";
+      window.setTimeout(() => setAviso(""), 5000);
+    }
+  }
   const [yendo, setYendo] = useState(false);
 
   useEffect(() => {
@@ -37,10 +77,14 @@ export function Visto({ id, nombre, numero, oferta }: { id: string; nombre: stri
     <>
       {aviso && <p role="status" className="fixed inset-x-4 bottom-32 z-50 mx-auto max-w-md rounded-2xl bg-[#1a1816] px-4 py-3 text-center text-[14px] text-white shadow-lg">{aviso}</p>}
       <aside aria-label="Sobre esta muestra" className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-3xl bg-[#1a1816] px-5 py-4 text-white shadow-[0_12px_40px_rgba(0,0,0,.25)]">
-        <p className="min-w-0 flex-1 text-[13px] leading-snug text-white/80">
+        <p className="min-w-0 basis-full text-[13px] leading-snug text-white/80 sm:flex-1 sm:basis-0">
           <span className="font-medium text-white">¿Te gusta? Esta puede ser tu web.</span> Lista en {oferta.dias} días · {oferta.precio}. Hecha por ANONYMO.
         </p>
-        <button type="button" onClick={quiero} disabled={yendo} className="min-h-11 rounded-full bg-[#25d366] px-5 text-[14px] font-medium text-black disabled:opacity-60">
+        <input ref={entrada} type="file" accept="image/*" multiple hidden aria-label="Elegir fotos" onChange={(e) => void subir(e.target.files)} />
+        <button type="button" onClick={() => entrada.current?.click()} disabled={!!subiendo} className="min-h-11 flex-1 rounded-full px-4 text-[13px] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.35)] disabled:opacity-60 sm:flex-none">
+          {subiendo || (fotos ? "Cambiar mis fotos" : "Verla con mis fotos")}
+        </button>
+        <button type="button" onClick={quiero} disabled={yendo} className="min-h-11 flex-1 rounded-full bg-[#25d366] px-5 text-[14px] font-medium text-black disabled:opacity-60 sm:flex-none">
           {yendo ? "Abriendo WhatsApp…" : "Quiero esta web"}
         </button>
       </aside>

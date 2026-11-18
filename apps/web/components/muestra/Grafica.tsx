@@ -15,7 +15,7 @@ function Seccion({ n, titulo, k, children, id }: { n: number; titulo: string; k:
   );
 }
 
-export function Grafica({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
+export function Grafica({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; fotos?: string[] }) {
   const datos = [
     c.estrellas ? [`${c.estrellas.toLocaleString("es-EC")} ★`, "en Google"] : null,
     c.resenas ? [`${c.resenas}`, "reseñas"] : null,
@@ -36,6 +36,12 @@ export function Grafica({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
           <button type="button" data-demo className="min-h-12 px-6 text-[15px] font-medium" style={{ background: k.tinta === k.sobreAcento ? k.fondo : k.tinta, color: k.tinta === k.sobreAcento ? k.tinta : k.fondo }}>Agendar por WhatsApp ↗</button>
         </div>
       </section>
+
+      {fotos[0] && (
+        // Su foto a todo el ancho, pegada a la portada de color: el contraste es la gracia de esta plantilla.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={fotos[0]} alt={c.nombre} data-foto className="block aspect-[4/3] w-full object-cover md:aspect-[21/9]" />
+      )}
 
       <Seccion n={1} titulo="Lo que hacemos" k={k} id="servicios">
         <ol>
@@ -76,6 +82,13 @@ export function Grafica({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
           ))}
         </div>
       </Seccion>
+
+      {fotos.length > 1 && (
+        <div className="grid gap-px sm:grid-cols-2" style={{ borderTop: `1px solid ${k.linea}`, background: k.linea }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {fotos.slice(1).map((f) => <img key={f} src={f} alt={c.nombre} data-foto loading="lazy" className={`aspect-[4/3] w-full object-cover ${fotos.length === 2 ? "sm:col-span-2 sm:aspect-[21/9]" : ""}`} />)}
+        </div>
+      )}
 
       <Seccion n={4} titulo="Visítanos" k={k} id="visitanos">
         <div className="grid gap-10 md:grid-cols-2">

@@ -12,7 +12,7 @@ function nombreConCursiva(n: string) {
   return <>{p.slice(0, -1).join(" ")} <em className="italic">{p.at(-1)}</em></>;
 }
 
-export function Serena({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
+export function Serena({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; fotos?: string[] }) {
   const razones = RAZONES[c.tono];
   return (
     <div style={{ background: k.fondo, color: k.tinta }} className="min-h-screen pb-36">
@@ -37,9 +37,12 @@ export function Serena({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
       </section>
 
       {/* La imagen grande sin fotos ajenas: color, luz y la inicial. Cuando sea su web, aquí va su foto. */}
-      <section className="mx-auto mt-12 max-w-6xl px-5 md:px-10" aria-hidden>
+      <section className="mx-auto mt-12 max-w-6xl px-5 md:px-10" aria-hidden={!fotos[0]}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] sm:aspect-[16/8]" style={{ background: `radial-gradient(120% 120% at 15% 0%, ${k.suave} 0%, ${k.acento} 75%, ${k.tinta} 120%)` }}>
-          <span className="absolute -bottom-[0.18em] right-6 select-none leading-none opacity-90" style={{ ...serif, fontSize: "clamp(14rem, 34vw, 30rem)", color: k.fondo }}>{iniciales(c.nombre).slice(0, 1)}</span>
+          {/* Con su foto, la portada es su negocio; sin foto, color, luz y la inicial. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {fotos[0] ? <img src={fotos[0]} alt={`${c.nombre}`} data-foto className="absolute inset-0 h-full w-full object-cover" /> : null}
+          <span hidden={!!fotos[0]} className="absolute -bottom-[0.18em] right-6 select-none leading-none opacity-90" style={{ ...serif, fontSize: "clamp(14rem, 34vw, 30rem)", color: k.fondo }}>{iniciales(c.nombre).slice(0, 1)}</span>
           <div className="absolute bottom-5 left-5 rounded-2xl px-5 py-4 text-[13px] backdrop-blur" style={{ background: `${k.fondo}e6`, color: k.tinta }}>
             <p className="uppercase tracking-[.14em]" style={{ color: k.acento }}>{c.hoy === "Cerrado" ? "Hoy" : "Abierto hoy"}</p>
             <p className="mt-1">{c.hoy}</p>
@@ -80,6 +83,13 @@ export function Serena({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
           ))}
         </div>
       </section>
+
+      {fotos.length > 1 && (
+        <section className="mx-auto mt-6 grid max-w-6xl gap-4 px-5 sm:grid-cols-2 md:px-10" aria-label="Fotos">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {fotos.slice(1).map((f) => <img key={f} src={f} alt={c.nombre} data-foto loading="lazy" className={`aspect-[4/3] w-full rounded-[28px] object-cover ${fotos.length === 2 ? "sm:col-span-2 sm:aspect-[16/7]" : ""}`} />)}
+        </section>
+      )}
 
       <section id="visitanos" className="mx-5 mt-24 grid max-w-6xl gap-px overflow-hidden rounded-[28px] md:mx-auto md:grid-cols-2" style={{ background: k.linea }}>
         <div className="p-8 md:p-12" style={{ background: k.fondo }}>

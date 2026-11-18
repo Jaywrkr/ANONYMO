@@ -4,7 +4,7 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { buscarPorMuestra, idMuestraValido, leerProspectos, numeroInternacional, OFERTA, precio } from "@anonymo/pipeline";
+import { buscarPorMuestra, idMuestraValido, leerProspectos, numeroInternacional, OFERTA, precio, precioDe } from "@anonymo/pipeline";
 import { portalActivo } from "@/lib/estudio";
 import { Aceptar } from "./Aceptar";
 
@@ -18,7 +18,7 @@ async function cargar(id: string) {
   const l = await leerProspectos();
   const p = buscarPorMuestra(l.prospectos, id);
   if (!p || p.estado === "descartado") return undefined;
-  return { nombre: p.nombre, acepto: !!p.propuesta?.acepto, numero: numeroInternacional(l.numero) };
+  return { nombre: p.nombre, monto: precioDe(p, OFERTA.web.precio), acepto: !!p.propuesta?.acepto, numero: numeroInternacional(l.numero) };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -56,7 +56,7 @@ export default async function Propuesta({ params }: Props) {
         <section aria-label="Precio" className="mt-10 grid gap-6 rounded-[28px] bg-white p-6 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:grid-cols-[1fr_auto] md:p-8">
           <div>
             <p className="text-[14px] font-medium">{web.nombre}</p>
-            <p style={serif} className="mt-1 text-[48px] leading-none">{precio(web.precio)}</p>
+            <p style={serif} className="mt-1 text-[48px] leading-none">{precio(d.monto)}</p>
             <p className="mt-2 text-[14px] text-[#5d5a55]">Lista en {web.dias} días · {web.rondas} rondas de cambios · {web.pago}</p>
           </div>
           <ul className="grid content-start gap-2 text-[14px] leading-snug md:max-w-xs">

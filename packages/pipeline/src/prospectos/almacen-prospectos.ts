@@ -78,7 +78,12 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
 /** Los que tienen web y todavía no se revisaron. */
 export const porRevisar = (l: ListaProspectos) => Object.values(l.prospectos).filter((p) => p.web && !p.revision);
 
-export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean }
+export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean; precio?: number | null; quitarFotos?: boolean }
+
+/** Un precio a mano: dólares enteros, dentro de lo razonable para no mandar un cero de más. */
+export const PRECIO_MIN = 100;
+export const PRECIO_MAX = 5000;
+export const precioValido = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= PRECIO_MIN && n <= PRECIO_MAX;
 
 export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   const ahora = new Date().toISOString();
@@ -89,6 +94,12 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   if (c.notas !== undefined) p.notas = c.notas.slice(0, 2000) || undefined;
   if (c.mensaje !== undefined) p.mensaje = c.mensaje ? c.mensaje.slice(0, 2000) : undefined;
   if (c.proyecto) p.proyecto = c.proyecto;
+  if (c.precio !== undefined && (c.precio ?? undefined) !== p.precio) {
+    if (c.precio !== null && !precioValido(c.precio)) throw new Error(`El precio va entre ${PRECIO_MIN} y ${PRECIO_MAX} dólares, sin centavos.`);
+    p.precio = c.precio ?? undefined;
+    anotar(c.precio === null ? "Su propuesta volvió al precio de la oferta" : `Su propuesta pasó a USD ${c.precio}`);
+  }
+  if (c.quitarFotos && p.fotos) { p.fotos = undefined; anotar("Se quitaron las fotos de su muestra"); }
   if (c.seguimiento && !p.seguimiento) { p.seguimiento = ahora; anotar("Se le mandó el seguimiento"); }
   if (c.plantilla && c.plantilla !== p.plantilla) { p.plantilla = c.plantilla; anotar(`Su muestra pasó a «${PLANTILLAS_MUESTRA[c.plantilla].nombre}»`); }
   p.actualizado = new Date().toISOString();

@@ -4,7 +4,7 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { buscarPorMuestra, contenidoMuestra, idMuestraValido, leerProspectos, numeroInternacional, OFERTA, precio } from "@anonymo/pipeline";
+import { buscarPorMuestra, contenidoMuestra, idMuestraValido, leerProspectos, FOTOS_MAX, numeroInternacional, OFERTA, precio, precioDe } from "@anonymo/pipeline";
 import { MuestraVariante } from "@/components/muestra/MuestraVariante";
 import { portalActivo } from "@/lib/estudio";
 import { Visto } from "./Visto";
@@ -18,7 +18,10 @@ async function cargar(id: string) {
   const l = await leerProspectos();
   const p = buscarPorMuestra(l.prospectos, id);
   if (!p || p.estado === "descartado") return undefined;
-  return { c: contenidoMuestra(p), numero: numeroInternacional(l.numero) };
+  // El sello de tiempo hace que el navegador pida la foto nueva cuando el negocio la cambia.
+  const sello = encodeURIComponent(p.actualizado.slice(0, 19));
+  const fotos = Array.from({ length: Math.min(p.fotos ?? 0, FOTOS_MAX) }, (_, i) => `/m/${id}/fotos/${i + 1}?v=${sello}`);
+  return { c: contenidoMuestra(p), numero: numeroInternacional(l.numero), monto: precioDe(p, OFERTA.web.precio), fotos };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -38,11 +41,11 @@ export default async function Muestra({ params }: Props) {
   const { id } = await params;
   const d = await cargar(id);
   if (!d) notFound();
-  const { c, numero } = d;
+  const { c, numero, monto, fotos } = d;
   return (
     <>
-      <MuestraVariante c={c} />
-      <Visto id={id} nombre={c.nombre} numero={numero} oferta={{ dias: OFERTA.web.dias, precio: precio(OFERTA.web.precio) }} />
+      <MuestraVariante c={c} fotos={fotos} />
+      <Visto id={id} nombre={c.nombre} fotos={fotos.length} fotosMax={FOTOS_MAX} numero={numero} oferta={{ dias: OFERTA.web.dias, precio: precio(monto) }} />
     </>
   );
 }

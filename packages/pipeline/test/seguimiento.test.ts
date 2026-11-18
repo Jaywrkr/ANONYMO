@@ -1,7 +1,7 @@
 // Seguimiento a los 3 días y propuesta con «Aceptar» (sistema/80).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
+import { anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
 
 const dia = 24 * 60 * 60 * 1000;
 const base = (x: Partial<Prospecto> = {}): Prospecto => ({
@@ -70,4 +70,32 @@ test("el cobro pide la mitad y la tabla de plantillas cuenta solo lo enviado (si
   const b = base({ id: "b", plantilla: "grafico", muestra: { vistas: 1 } });
   const c = base({ id: "c", plantilla: "grafico", estado: "nuevo", historial: [] });
   assert.deepEqual(resultadosPlantillas([a, b, c]), { sereno: { enviadas: 1, abiertas: 1, quieren: 1, aceptaron: 1 }, grafico: { enviadas: 1, abiertas: 1, quieren: 0, aceptaron: 0 } });
+});
+
+test("el precio a mano manda en la propuesta y el cobro; fuera de rango no entra (sistema/82)", () => {
+  const p = base();
+  assert.equal(precioDe(p, 390), 390);
+  aplicarCambio(p, { precio: 450 }, "jay");
+  assert.equal(precioDe(p, 390), 450);
+  assert.ok(p.historial!.some((h) => h.que === "Su propuesta pasó a USD 450"));
+  assert.throws(() => aplicarCambio(p, { precio: 39000 }, "jay"), /entre 100 y 5000/);
+  assert.ok(!precioValido(199.5) && !precioValido("390") && precioValido(100));
+  aplicarCambio(p, { precio: null }, "jay");
+  assert.equal(p.precio, undefined);
+});
+
+test("las fotos del negocio: solo JPEG de tamaño razonable, y la última de la tanda fija cuántas quedan (sistema/82)", () => {
+  const jpg = new Uint8Array(5000); jpg.set([0xff, 0xd8, 0xff]);
+  assert.ok(fotoValida(jpg));
+  assert.ok(!fotoValida(new Uint8Array(5000)), "sin cabecera de JPEG no entra");
+  assert.ok(!fotoValida(new Uint8Array(2_000_000).fill(0xff)), "muy pesada no entra");
+  assert.equal(rutaFoto("notaria-vega-3baf66", 2), "_fotos/notaria-vega-3baf66/2.jpg");
+  const p = base();
+  assert.deepEqual(anotarFoto(p, 1, 3), { avisar: true });
+  anotarFoto(p, 2, 3); anotarFoto(p, 3, 3);
+  assert.equal(p.fotos, 3);
+  assert.deepEqual(anotarFoto(p, 1, 1), { avisar: false });
+  assert.equal(p.fotos, 1, "si vuelve a subir una sola, queda una");
+  aplicarCambio(p, { quitarFotos: true }, "jay");
+  assert.equal(p.fotos, undefined);
 });

@@ -58,6 +58,11 @@ Cada rubro tiene su paleta. Para cambiarla en un negocio: «Más» → «Plantil
 - Cuando alguien acepta la propuesta, «Ahora mismo» ofrece **Cobrar el 50 %** (abre su WhatsApp con el monto) y **Crear el pedido**.
 - Clientes → Plantillas → **Cuál funciona mejor**: enviadas, abiertas, «quiero» y aceptadas por plantilla. Espera unas 40 enviadas antes de decidir.
 
+## Precio y fotos (sistema/82)
+
+- **Precio por negocio**: «Más» → «Precio de su web». Cámbialo antes de mandar la propuesta. Vale para su muestra, su propuesta y el mensaje de cobro.
+- **Fotos**: en su muestra, el negocio toca «Verla con mis fotos» y sube hasta 3. La página se rehace con ellas y te suena el celular. Si alguna no va, «Más» → «Quitarlas de la muestra».
+
 ## Puntaje (0 a 100)
 
 Sin IA, reglas fijas en `packages/pipeline/src/prospectos/puntaje.ts`:

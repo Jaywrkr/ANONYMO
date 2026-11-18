@@ -119,12 +119,28 @@ try {
   exigir(await ahora.locator("a:has-text('Llamar')").getAttribute("href") === "tel:0991110001", "y deja llamarle de un toque");
   exigir(await p.locator("ul[aria-label=Negocios] li", { hasText: "Barbería Don Bigote" }).locator("text=Vio su muestra 1 vez").count() === 1, "la tarjeta dice que vio su muestra");
 
+  // 4b · El negocio pone sus fotos y la muestra se rehace con ellas (sistema/82).
+  exigir(!(await m.locator("img[data-foto]").count()), "sin fotos, la muestra se resuelve con color y tipografía");
+  await m.setInputFiles("input[aria-label='Elegir fotos']", ["scripts/pruebas/imagen.png", "scripts/pruebas/imagen.png"]);
+  exigir(await espera(m.locator("[role=status]:has-text('tus 2 fotos ya están en la página')")), "subir fotos dice qué pasó");
+  exigir(await espera(m.locator("img[data-foto]").nth(1)), "y la muestra ya las enseña");
+  const foto = await m.evaluate(async () => { const r = await fetch(document.querySelector("img[data-foto]").src); return { s: r.status, t: r.headers.get("content-type"), n: (await r.arrayBuffer()).byteLength }; });
+  exigir(foto.s === 200 && foto.t === "image/jpeg" && foto.n > 3000 && foto.n < 1_500_000, `la foto llega achicada y en JPEG (${foto.n} bytes)`);
+  exigir(await m.locator("button:has-text('Cambiar mis fotos')").count() === 1 && await m.evaluate(() => document.documentElement.scrollWidth) <= 392, "el botón pasa a «Cambiar mis fotos» y sigue cabiendo en celular");
+  const mala = await m.evaluate(async (u) => (await fetch(u, { method: "POST", body: new Uint8Array(5000) })).status, `${enlace}/fotos/1`);
+  const cuarta = await m.evaluate(async (u) => (await fetch(u, { method: "POST", body: new Uint8Array(5000) })).status, `${enlace}/fotos/4`);
+  exigir(mala === 400 && cuarta === 404, "lo que no es una foto no entra, ni una cuarta");
+  exigir(await esperarAvisos(3), "y a Jay le suena el celular: subió sus fotos");
+  await m.evaluate(() => document.querySelectorAll("img[data-foto]").forEach((i) => { i.loading = "eager"; }));
+  await m.waitForTimeout(600);
+  await m.screenshot({ path: join(capturas, "1b-con-fotos.png"), fullPage: true });
+
   // 5 · «Quiero esta web».
   await m.locator("button:has-text('Quiero esta web')").click();
   await m.waitForURL(/wa\.me/, { timeout: 10000 }).catch(() => {});
   const aAnonymo = wa.find((u) => u.includes("wa.me/593995550000"));
   exigir(!!aAnonymo && decodeURIComponent(aAnonymo).includes("vi la idea de web para Barbería Don Bigote"), "«Quiero esta web» abre el WhatsApp de ANONYMO con el mensaje listo");
-  exigir(await esperarAvisos(3), "y vuelve a sonar el celular");
+  exigir(await esperarAvisos(4), "y vuelve a sonar el celular");
   await negocio.close();
   await p.reload();
   exigir(/Barbería Don Bigote quiere su web/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "el escritorio lo pone primero: quiere su web");
