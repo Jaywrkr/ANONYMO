@@ -43,6 +43,8 @@ export interface Prospecto {
   web?: string;
   telefono?: string;
   mapa?: string;
+  /** Su horario en Google, una línea por día empezando en lunes (sistema/81). */
+  horario?: string[];
   revision?: RevisionWeb;
   estado: EstadoProspecto;
   notas?: string;
@@ -58,7 +60,24 @@ export interface Prospecto {
   historial?: { cuando: string; que: string; por?: string }[];
   /** Lo que pasó con su muestra (sistema/72): cuántas veces la abrió y si tocó «Quiero esta web». */
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
+  /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la mitad «sereno» y la mitad «grafico», para comparar cuál responde mejor. */
+  plantilla?: PlantillaMuestra;
+  /** El precio de su web si no es el de la oferta (sistema/82), en dólares sin IVA. Lo pone Jay antes de mandar la propuesta. */
+  precio?: number;
+  /** Cuántas fotos subió el negocio a su muestra (sistema/82). Viven en `_fotos/<id de muestra>/` en la nube privada. */
+  fotos?: number;
+  /** Cuándo se le mandó el seguimiento (sistema/80): un solo recordatorio a los 3 días sin respuesta. */
+  seguimiento?: string;
+  /** Lo que pasó con su propuesta (sistema/80): cuántas veces la abrió y cuándo tocó «Aceptar». */
+  propuesta?: { vistas: number; ultima?: string; acepto?: string };
 }
+
+/** Las dos variantes de la muestra (sistema/79): calma premium o grilla gráfica. */
+export type PlantillaMuestra = "sereno" | "grafico";
+export const PLANTILLAS_MUESTRA: Record<PlantillaMuestra, { nombre: string; idea: string }> = {
+  sereno: { nombre: "Sereno", idea: "Papel cálido, serif liviana con una palabra en cursiva, bloques redondeados. Calma premium." },
+  grafico: { nombre: "Gráfico", idea: "Grilla suiza, secciones numeradas, un bloque de color fuerte y listas con líneas." },
+};
 
 export interface ListaProspectos {
   actualizado: string;

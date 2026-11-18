@@ -157,7 +157,7 @@ try {
   exigir(new URL(p.url()).pathname === "/estudio/cliente/sonrisa-sin-web", "y se queda en la ficha");
   await p.reload();
   exigir((await p.inputValue("textarea[name=notas]")) === "Prefiere que lo llamen en la tarde.", "las notas quedan guardadas en la nube");
-  exigir(await p.locator("section[aria-labelledby=t-datos]").locator("text=Prefiere que lo llamen en la tarde.").first().isVisible(), "y se leen sin abrir el formulario");
+  exigir(await p.locator("section[aria-labelledby=t-datos] dl").getByText("Prefiere que lo llamen en la tarde.").waitFor({ timeout: 10000 }).then(() => true, () => false), "y se leen sin abrir el formulario");
   await p.screenshot({ path: join(capturas, "5-ficha.png"), fullPage: true });
   await p.goto(`${B}/estudio/clientes/nuevos`);
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
@@ -176,7 +176,7 @@ try {
   exigir(ancho <= 392, `en celular no se sale de la pantalla (${ancho}px)`);
   // Orden en celular (sistema/74): la tanda antes que la lista, buscar plegado, tres botones por tarjeta en una fila.
   exigir(!(await m.locator("section[aria-label='Buscar negocios']").count()) && await m.locator("button:has-text('Buscar más negocios')").count() === 1, "en celular buscar queda plegado");
-  const filas = await m.locator("ul[aria-label=Negocios] > li").first().evaluate((li) => [...li.querySelectorAll(":scope > div:nth-child(2) > *")].map((x) => Math.round(x.getBoundingClientRect().top)));
+  const filas = await m.locator("ul[aria-label=Negocios] > li").first().evaluate((li) => [...li.querySelectorAll("[data-acciones] > *")].map((x) => Math.round(x.getBoundingClientRect().top)));
   exigir(filas.length === 3 && new Set(filas).size === 1, `cada tarjeta muestra sus tres botones en una sola fila (${filas.join(",")})`);
   exigir(!(await m.locator("select[aria-label='Tipo de web']").isVisible()) && await m.locator("button:has-text('Filtros')").isVisible(), "los filtros extra van en «Filtros»");
   await m.screenshot({ path: join(capturas, "4-celular.png"), fullPage: true });

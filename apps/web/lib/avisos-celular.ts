@@ -1,7 +1,7 @@
 // Avisos al celular de Jay y Luna (sistema/72), con Web Push. Las claves VAPID las pone Jay en Vercel:
 // VAPID_PUBLICA y VAPID_PRIVADA (se generan con `npx web-push generate-vapid-keys`). Sin ellas, no se avisa y nada se rompe.
 import webpush from "web-push";
-import { leerCelulares, quitarCelulares } from "@anonymo/pipeline";
+import { anotarError, leerCelulares, quitarCelulares } from "@anonymo/pipeline";
 
 export const clavePublicaAvisos = () => process.env.VAPID_PUBLICA || undefined;
 const listos = () => !!(process.env.VAPID_PUBLICA && process.env.VAPID_PRIVADA);
@@ -40,5 +40,6 @@ export async function avisarCelulares(a: Aviso, solo?: string): Promise<{ enviad
     }
   }));
   if (vencidos.length) await quitarCelulares(vencidos).catch(() => {});
+  if (fallas.length) await anotarError("Avisos al celular", fallas.map((x) => `${x.status || "sin respuesta"} ${x.detalle}`.trim()).join(" · "));
   return { enviados, fallas };
 }

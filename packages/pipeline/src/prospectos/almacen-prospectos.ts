@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { join } from "node:path";
 import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
-import { ESTADOS_PROSPECTO, FIRMA_INICIAL, type EstadoProspecto, type ListaProspectos, type Prospecto } from "./tipos.ts";
+import { ESTADOS_PROSPECTO, FIRMA_INICIAL, PLANTILLAS_MUESTRA, type EstadoProspecto, type ListaProspectos, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
 import type { Lugar } from "./buscar-lugares.ts";
 
 export const CARPETA_PROSPECTOS = "_prospectos";
@@ -13,15 +13,23 @@ const local = () => join(carpeta(), REL);
 
 const vacia = (): ListaProspectos => ({ actualizado: new Date().toISOString(), firma: FIRMA_INICIAL, prospectos: {} });
 
-export async function leerProspectos(): Promise<ListaProspectos> {
-  let texto: string | undefined;
+/** El texto tal como está guardado (o undefined si no hay lista todavía). */
+async function leerTexto(): Promise<string | undefined> {
   if (nubeActiva()) {
     const b = await leerSuelto(REL);
-    texto = b ? Buffer.from(b).toString("utf8") : undefined;
-  } else if (existsSync(local())) texto = readFileSync(local(), "utf8");
+    return b ? Buffer.from(b).toString("utf8") : undefined;
+  }
+  return existsSync(local()) ? readFileSync(local(), "utf8") : undefined;
+}
+
+const desdeTexto = (texto?: string): ListaProspectos => {
   if (!texto) return vacia();
   const l = JSON.parse(texto) as ListaProspectos;
   return { ...vacia(), ...l, prospectos: l.prospectos ?? {} };
+};
+
+export async function leerProspectos(): Promise<ListaProspectos> {
+  return desdeTexto(await leerTexto());
 }
 
 async function guardar(l: ListaProspectos) {
@@ -33,12 +41,20 @@ async function guardar(l: ListaProspectos) {
   renameSync(`${local()}.tmp`, local());
 }
 
-/** Lee lo último guardado, cambia y guarda: así Jay y Luna no se pisan entre clics. */
-export async function cambiarProspectos<T>(fn: (l: ListaProspectos) => T | Promise<T>): Promise<{ lista: ListaProspectos; valor: T }> {
-  const l = await leerProspectos();
-  const valor = await fn(l);
-  await guardar(l);
-  return { lista: l, valor };
+/** Lee lo último guardado, cambia y guarda: así Jay, Luna y las muestras no se pisan entre clics.
+ *  Antes de guardar vuelve a leer: si alguien guardó en el medio, repite el cambio sobre lo nuevo (sistema/78). */
+export async function cambiarProspectos<T>(fn: (l: ListaProspectos) => T | Promise<T>, intentos = 4): Promise<{ lista: ListaProspectos; valor: T }> {
+  for (let i = 0; ; i++) {
+    const antes = await leerTexto();
+    const l = desdeTexto(antes);
+    const valor = await fn(l);
+    if (i < intentos - 1 && (await leerTexto()) !== antes) {
+      await new Promise((r) => setTimeout(r, 40 + Math.random() * 120));
+      continue;
+    }
+    await guardar(l);
+    return { lista: l, valor };
+  }
 }
 
 /** Suma lo que trajo Google. Si ya estaba, actualiza estrellas, reseñas y contacto sin tocar su estado ni notas. */
@@ -49,7 +65,7 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
     const ya = l.prospectos[x.id];
     if (ya) {
       const webCambio = (ya.web ?? "") !== (x.web ?? "");
-      Object.assign(ya, { nombre: x.nombre, direccion: x.direccion, estrellas: x.estrellas, resenas: x.resenas, web: x.web, telefono: x.telefono, mapa: x.mapa });
+      Object.assign(ya, { nombre: x.nombre, direccion: x.direccion, estrellas: x.estrellas, resenas: x.resenas, web: x.web, telefono: x.telefono, mapa: x.mapa, horario: x.horario ?? ya.horario });
       if (webCambio) ya.revision = undefined;
       continue;
     }
@@ -62,7 +78,12 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
 /** Los que tienen web y todavía no se revisaron. */
 export const porRevisar = (l: ListaProspectos) => Object.values(l.prospectos).filter((p) => p.web && !p.revision);
 
-export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string }
+export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean; precio?: number | null; quitarFotos?: boolean }
+
+/** Un precio a mano: dólares enteros, dentro de lo razonable para no mandar un cero de más. */
+export const PRECIO_MIN = 100;
+export const PRECIO_MAX = 5000;
+export const precioValido = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= PRECIO_MIN && n <= PRECIO_MAX;
 
 export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   const ahora = new Date().toISOString();
@@ -73,6 +94,14 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   if (c.notas !== undefined) p.notas = c.notas.slice(0, 2000) || undefined;
   if (c.mensaje !== undefined) p.mensaje = c.mensaje ? c.mensaje.slice(0, 2000) : undefined;
   if (c.proyecto) p.proyecto = c.proyecto;
+  if (c.precio !== undefined && (c.precio ?? undefined) !== p.precio) {
+    if (c.precio !== null && !precioValido(c.precio)) throw new Error(`El precio va entre ${PRECIO_MIN} y ${PRECIO_MAX} dólares, sin centavos.`);
+    p.precio = c.precio ?? undefined;
+    anotar(c.precio === null ? "Su propuesta volvió al precio de la oferta" : `Su propuesta pasó a USD ${c.precio}`);
+  }
+  if (c.quitarFotos && p.fotos) { p.fotos = undefined; anotar("Se quitaron las fotos de su muestra"); }
+  if (c.seguimiento && !p.seguimiento) { p.seguimiento = ahora; anotar("Se le mandó el seguimiento"); }
+  if (c.plantilla && c.plantilla !== p.plantilla) { p.plantilla = c.plantilla; anotar(`Su muestra pasó a «${PLANTILLAS_MUESTRA[c.plantilla].nombre}»`); }
   p.actualizado = new Date().toISOString();
   p.por = por;
 }

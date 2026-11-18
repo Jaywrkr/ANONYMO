@@ -1,5 +1,5 @@
 // Cambia el estado, las notas o el mensaje de un negocio (sistema/66).
-import { aplicarCambio, cambiarProspectos, ESTADOS_PROSPECTO, type CambioProspecto, type EstadoProspecto } from "@anonymo/pipeline";
+import { aplicarCambio, cambiarProspectos, ESTADOS_PROSPECTO, PRECIO_MAX, PRECIO_MIN, precioValido, type CambioProspecto, type EstadoProspecto } from "@anonymo/pipeline";
 import { mal, permiso, vistaProspecto } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 
@@ -17,6 +17,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     cambio.estado = c.estado as EstadoProspecto;
   }
   if (typeof c.notas === "string") cambio.notas = c.notas;
+  if (c.seguimiento === true) cambio.seguimiento = true;
+  if (typeof c.precio === "number" || c.precio === null) {
+    if (c.precio !== null && !precioValido(c.precio)) return mal(`El precio va entre ${PRECIO_MIN} y ${PRECIO_MAX} dólares, sin centavos.`);
+    cambio.precio = c.precio as number | null;
+  }
+  if (c.quitarFotos === true) cambio.quitarFotos = true;
+  if (c.plantilla === "sereno" || c.plantilla === "grafico") cambio.plantilla = c.plantilla;
   if (typeof c.mensaje === "string" || c.mensaje === null) cambio.mensaje = c.mensaje as string | null;
   try {
     const { lista, valor: x } = await cambiarProspectos((l) => {

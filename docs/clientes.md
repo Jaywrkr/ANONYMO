@@ -35,6 +35,34 @@ El escritorio de **Imán** (Ventas) dentro del estudio. Busca negocios que neces
 5. **WhatsApp** abre el chat con el mensaje escrito y marca el negocio como contactado. «Más» deja editar el mensaje y las notas.
 6. Cuando el negocio responde y hay trato, **Convertir en pedido** abre «Cuéntale a Atlas» con el negocio y lo que Imán encontró.
 
+## Plantillas de la muestra (sistema/79)
+
+Cada muestra sale con una de dos plantillas, mitad y mitad, para ver cuál convence más:
+
+- **Sereno**: calma premium. Titular con serif, bloque de color con la inicial, servicios numerados, cierre con el nombre grande.
+- **Gráfico**: grilla y color. Portada a todo color con el nombre gigante, secciones «1:» a «4:», cifras entre corchetes.
+
+Cada rubro tiene su paleta. Para cambiarla en un negocio: «Más» → «Plantilla de su muestra». Para verlas todas: Clientes → **Plantillas**. Los ejemplos con datos inventados se abren sin entrar al estudio (`/m/ejemplo/<rubro>/<plantilla>`) y no los indexa Google.
+
+## Recordatorio y propuesta (sistema/80)
+
+- A los **3 días** sin respuesta, la tanda pone primero el recordatorio: un mensaje corto con el enlace a su **propuesta**. Se manda una sola vez y no cuenta para el tope diario.
+- La propuesta (`/p/<id>`) dice precio, plazo, qué incluye, cómo sigue, el plan mensual y los extras. Sale de `packages/pipeline/src/oferta.ts`.
+- Cuando el negocio la abre, suena el celular. Si toca **Aceptar**, suena otra vez, pasa a «Respondió», queda primero en «Ahora mismo» y se abre el WhatsApp de ANONYMO con «acepto la propuesta». Lo siguiente es cobrar el 50 % y convertirlo en pedido.
+- En cada negocio, «Más» → «Su propuesta» para mandarla antes si preguntan el precio.
+
+## Cerrar la venta (sistema/81)
+
+- La muestra lleva el **horario real** del negocio (el de Google). Si Google no lo tiene, va uno de ejemplo y la franja de arriba lo dice.
+- En el recordatorio de la tanda, **Ya respondió** lo pasa a «Respondió» y no se le recuerda.
+- Cuando alguien acepta la propuesta, «Ahora mismo» ofrece **Cobrar el 50 %** (abre su WhatsApp con el monto) y **Crear el pedido**.
+- Clientes → Plantillas → **Cuál funciona mejor**: enviadas, abiertas, «quiero» y aceptadas por plantilla. Espera unas 40 enviadas antes de decidir.
+
+## Precio y fotos (sistema/82)
+
+- **Precio por negocio**: «Más» → «Precio de su web». Cámbialo antes de mandar la propuesta. Vale para su muestra, su propuesta y el mensaje de cobro.
+- **Fotos**: en su muestra, el negocio toca «Verla con mis fotos» y sube hasta 3. La página se rehace con ellas y te suena el celular. Si alguna no va, «Más» → «Quitarlas de la muestra».
+
 ## Puntaje (0 a 100)
 
 Sin IA, reglas fijas en `packages/pipeline/src/prospectos/puntaje.ts`:

@@ -330,7 +330,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
         </div>
       </section>
 
-      <ul className="grid grid-cols-[minmax(0,1fr)] gap-3" aria-label="Negocios">
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:gap-2" aria-label="Negocios">
         {!vista.length && <li className="py-10 text-center text-[14px] text-medio">{lista.length ? "Nada con estos filtros." : "Toca «Buscar más negocios», elige rubros y dile a Imán que busque."}</li>}
         {vista.map((p) => <Tarjeta key={p.id} p={p} listo={listo} alCambiar={reemplazar} tope={p.estado === "nuevo" && quedan === 0 ? tope : undefined} />)}
       </ul>
@@ -344,6 +344,8 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
   const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null);
   const [mensaje, setMensaje] = useState(p.mensaje);
   const [notas, setNotas] = useState(p.notas);
+  const [monto, setMonto] = useState(String(p.precio));
+  useEffect(() => setMonto(String(p.precio)), [p.precio]);
   const [copiado, setCopiado] = useState(false);
   useEffect(() => setMensaje(p.mensaje), [p.mensaje]);
   useEffect(() => setNotas(p.notas), [p.notas]);
@@ -380,21 +382,25 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
   const color = colorOportunidad(p.puntaje);
 
   return (
-    <li className={`rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] ${p.estado === "descartado" ? "opacity-50" : ""} ${p.estado === "cliente" ? "shadow-[0_0_0_2px_#17714a]" : ""}`} aria-busy={!!guardando}>
-      <div className="flex gap-4">
-        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium ${pendiente ? "bg-hueso text-suave" : color}`} aria-label={pendiente ? "Puntaje pendiente" : `Puntaje ${p.puntaje} de 100`}>
+    <li className={`rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:px-4 md:py-3 ${p.estado === "descartado" ? "opacity-50" : ""} ${p.estado === "cliente" ? "shadow-[0_0_0_2px_#17714a]" : ""}`} aria-busy={!!guardando}>
+      {/* En computadora es una fila (sistema/77): datos a la izquierda, acciones a la derecha. En celular, tarjeta. */}
+      <div className="md:flex md:items-center md:gap-4">
+      <div className="flex gap-4 md:min-w-0 md:flex-1 md:items-center">
+        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium md:h-12 md:w-12 md:text-[17px] ${pendiente ? "bg-hueso text-suave" : color}`} aria-label={pendiente ? "Puntaje pendiente" : `Puntaje ${p.puntaje} de 100`}>
           {pendiente ? "…" : <span className="grid place-items-center leading-none">{p.puntaje}<span className="mt-1 text-[9px] font-normal opacity-75">oportunidad</span></span>}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[16px] font-medium">{p.nombre}</p>
           <p className="text-[13px] text-suave">{p.rubro} · {p.ciudad}{p.estrellas ? ` · ★ ${p.estrellas} (${p.resenas})` : " · sin reseñas"}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 md:mt-1">
             {pendiente ? <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-suave">Revisando la web…</span> : (
               <>
                 {p.tipoWeb === "ok" && !p.motivos.length && <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{TIPO_WEB.ok}, sin problemas claros</span>}
                 {p.motivos.map((m) => <span key={m} className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{m}</span>)}
                 {p.buenaFama && <span className="rounded-md bg-[#fff1d6] px-2 py-0.5 text-[11px] text-[#8a5a00]">Muy buena fama</span>}
-                {p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
+                {p.fotos > 0 && <span className="rounded-md bg-[#e8e5ff] px-2 py-0.5 text-[11px] text-[#3b2bb5]">Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`}</span>}
+                {p.acepto ? <span className="rounded-md bg-[#17714a] px-2 py-0.5 text-[11px] text-white">Aceptó la propuesta</span>
+                  : p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
                   : p.vistas > 0 && <span className="rounded-md bg-[#e6f6ee] px-2 py-0.5 text-[11px] text-[#17714a]">Vio su muestra {p.vistas === 1 ? "1 vez" : `${p.vistas} veces`}</span>}
               </>
             )}
@@ -408,7 +414,7 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
       </div>
 
       {/* Tres botones a la vista (sistema/74); el resto, en «Más». */}
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
+      <div data-acciones className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap md:mt-0 md:shrink-0 md:flex-nowrap">
         {tope ? <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-hueso px-3 text-[13px] text-medio" title="Mañana sigue la tanda">Tope de hoy: {tope}</span> : p.whatsapp ? (
           <a href={p.whatsapp} target="_blank" rel="noreferrer" aria-disabled={ocupado}
             onClick={() => { if (p.estado === "nuevo") void cambiar({ estado: "contactado" }, "Marcando como contactado", "Marcado como contactado."); }}
@@ -418,6 +424,7 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
         ) : <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-hueso px-3 text-[13px] text-suave">Sin teléfono</span>}
         <a href={p.muestra} target="_blank" rel="noreferrer" className={`${botonChico} min-h-10`}>Muestra ↗</a>
         <button type="button" onClick={() => setAbierta(!abierta)} aria-expanded={abierta} className={`${botonChico} min-h-10`}>{abierta ? "Cerrar" : "Más"}</button>
+      </div>
       </div>
 
       {(guardando || resultado) && (
@@ -435,6 +442,42 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             {p.web && <a href={p.web} target="_blank" rel="noreferrer" className={botonChico}>Su web</a>}
             {p.mapa && <a href={p.mapa} target="_blank" rel="noreferrer" className={botonChico}>Mapa</a>}
           </div>
+          {/* La plantilla de su muestra (sistema/79): se cambia aquí y la muestra se ve distinta al instante. */}
+          <label className="flex flex-wrap items-center gap-2 text-[13px]">
+            <span className="text-suave">Plantilla de su muestra</span>
+            <select value={p.plantilla} disabled={ocupado} aria-label="Plantilla"
+              onChange={(e) => void cambiar({ plantilla: e.target.value }, "Cambiando la plantilla", `Su muestra ahora es «${e.target.value === "grafico" ? "Gráfico" : "Sereno"}».`)}
+              className={selector}>
+              <option value="sereno">Sereno · calma premium</option>
+              <option value="grafico">Gráfico · grilla y color</option>
+            </select>
+            {!p.plantillaElegida && <span className="text-[12px] text-suave">(salió sola; puedes cambiarla)</span>}
+            <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>
+          </label>
+          {/* La propuesta (sistema/80): precio y «Aceptar». Va sola en el recordatorio; aquí para mandarla antes si preguntan el precio. */}
+          {/* Su precio (sistema/82): se cambia antes de mandar la propuesta; la muestra, la propuesta y el cobro lo usan. */}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <label htmlFor={`precio-${p.id}`} className="text-suave">Precio de su web</label>
+            <span className="inline-flex min-h-10 items-center rounded-full bg-hueso/70 pl-3 text-medio">USD
+              <input id={`precio-${p.id}`} inputMode="numeric" value={monto} disabled={ocupado} onChange={(e) => setMonto(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                className="w-16 bg-transparent px-2 text-[14px] text-tinta outline-none" aria-describedby={`precio-ayuda-${p.id}`} />
+            </span>
+            <span className="text-suave">+ IVA</span>
+            <button type="button" disabled={ocupado || !monto || Number(monto) === p.precio} onClick={() => void cambiar({ precio: Number(monto) }, "Guardando el precio", `Su propuesta ahora dice USD ${Number(monto)} + IVA.`)} className={botonChico}>Guardar precio</button>
+            {p.precioPropio && <button type="button" disabled={ocupado} onClick={() => void cambiar({ precio: null }, "Volviendo al precio normal", `Su propuesta vuelve a USD ${p.precioOferta} + IVA.`)} className="text-[12px] text-medio underline underline-offset-4">Volver a USD {p.precioOferta}</button>}
+            <span id={`precio-ayuda-${p.id}`} className="w-full text-[12px] text-suave">{p.precioPropio ? "Precio puesto a mano." : "Es el precio normal."} Cambia en su muestra, su propuesta y el mensaje de cobro.{p.acepto ? " Ojo: ya aceptó la propuesta con el precio que vio." : ""}</span>
+          </div>
+          {p.fotos > 0 && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+              <span>Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`} a su muestra.</span>
+              <a href={p.muestra} target="_blank" rel="noreferrer" className="underline underline-offset-4">Verlas ↗</a>
+              <button type="button" disabled={ocupado} onClick={() => void cambiar({ quitarFotos: true }, "Quitando las fotos", "Su muestra vuelve a verse sin fotos.")} className="text-[12px] text-[#a33a0b] underline underline-offset-4">Quitarlas de la muestra</button>
+            </p>
+          )}
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+            <a href={p.propuesta} target="_blank" rel="noreferrer" className="underline underline-offset-4">Su propuesta ↗</a>
+            <span className="text-[12px] text-suave">{p.vistasPropuesta ? `La abrió ${p.vistasPropuesta === 1 ? "1 vez" : `${p.vistasPropuesta} veces`}` : "Todavía no la abre"}{p.seguimiento ? " · recordatorio enviado" : p.tocaSeguimiento ? " · le toca el recordatorio (en la tanda)" : ""}</span>
+          </p>
           <label className="grid gap-1.5">
             <span className="text-[12px] text-suave">Mensaje{p.mensajePropio ? " · escrito a mano" : " · lo arma Imán"}</span>
             <textarea rows={6} value={mensaje} onChange={(e) => setMensaje(e.target.value)} disabled={ocupado} className="rounded-xl bg-hueso/60 p-3 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />

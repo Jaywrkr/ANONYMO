@@ -1,6 +1,6 @@
 // Criterio de la casa y lo que saben los agentes (sistema/54).
 // Jay y Luna escriben su estándar; todos los agentes y el revisor lo leen antes de cada entrega.
-import { OFICIO, PLANTILLAS, leerCriterio, type Disciplina } from "@anonymo/pipeline";
+import { CRITERIO_PROPUESTO, OFICIO, PLANTILLAS, leerCriterio, type Disciplina } from "@anonymo/pipeline";
 import { exigirEstudio, serif } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
 import { accionCriterio } from "@/app/estudio/acciones";
@@ -30,11 +30,29 @@ export default async function Pagina() {
       <form action={accionCriterio} className="mt-6 grid max-w-3xl gap-3 rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
         <input type="hidden" name="revision" value={c.revision} />
         <label htmlFor="criterio" className="text-[14px] font-medium">Nuestro estándar</label>
-        <textarea id="criterio" name="texto" rows={9} defaultValue={c.texto} required minLength={20} maxLength={4000}
+        <textarea key={c.revision} id="criterio" name="texto" rows={9} defaultValue={c.texto} required minLength={20} maxLength={4000}
           className="w-full rounded-xl bg-[#f6f3ee] px-4 py-3 text-[14px] leading-relaxed outline-none focus:bg-white focus:shadow-[0_0_0_1.5px_#1a1816]" />
         <p className="text-[12px] text-suave">Una idea por línea. Ejemplos: estudios o webs que admiran, lo que nunca quieren ver, cómo debe sonar la agencia. {c.fecha ? `Última vez: ${new Date(c.fecha).toLocaleString("es-EC", { timeZone: "America/Guayaquil", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}${c.quien ? ` por ${c.quien === "luna" ? "Luna" : "Jay"}` : ""}.` : "Es el texto inicial: cámbialo cuando quieras."}</p>
         <div><Enviar className="inline-flex min-h-12 items-center rounded-full bg-tinta px-7 text-[14px] font-medium text-white" texto="Guardar criterio" trabajando="Guardando…" /></div>
       </form>
+
+      {c.texto !== CRITERIO_PROPUESTO && (
+        <details className="mt-4 max-w-3xl rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)]" data-propuesta>
+          <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2">
+            <span className="text-[15px] font-medium">Propuesta de criterio: 10 reglas con ejemplos</span>
+            <span className="text-[12px] text-suave">Armada con lo que guardas en MyMind y el tablero «Criterio de la casa» de Savee.</span>
+          </summary>
+          <ol className="mt-3 grid gap-2 text-[14px] leading-relaxed text-medio">
+            {CRITERIO_PROPUESTO.split("\n").map((l) => <li key={l}>{l}</li>)}
+          </ol>
+          <p className="mt-3 text-[12px] text-suave">Revísala en 15 minutos: cambia lo que no sea tuyo. Al usarla reemplaza el texto de arriba; lo puedes seguir editando.</p>
+          <form action={accionCriterio} className="mt-3">
+            <input type="hidden" name="revision" value={c.revision} />
+            <input type="hidden" name="texto" value={CRITERIO_PROPUESTO} />
+            <Enviar className="inline-flex min-h-11 items-center rounded-full px-6 text-[14px] font-medium shadow-[inset_0_0_0_1px_#1a1816]" texto="Usar esta propuesta" trabajando="Guardando…" />
+          </form>
+        </details>
+      )}
 
       <h2 className={`${serif} mt-12 text-[28px]`}>Lo que saben los agentes.</h2>
       <p className="mt-2 max-w-2xl text-[14px] text-medio">El estándar de oficio de cada disciplina. Lo leen antes de trabajar y el revisor califica con la misma lista.</p>

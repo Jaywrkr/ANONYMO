@@ -2,7 +2,7 @@
 import { leerProspectos } from "@anonymo/pipeline";
 import { mal, permiso, vistaLista } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
-import { viendoAhora } from "@/lib/tanda";
+import { calientes, viendoAhora } from "@/lib/tanda";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function GET() {
   if (p.error) return p.error;
   try {
     const l = vistaLista(await leerProspectos(), await baseUrl());
-    return Response.json({ ahora: viendoAhora(l.prospectos), quieren: l.prospectos.filter((x) => x.quiere && x.estado !== "cliente" && x.estado !== "descartado") }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ ahora: viendoAhora(l.prospectos), quieren: calientes(l.prospectos) }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return mal((e as Error).message, 502);
   }

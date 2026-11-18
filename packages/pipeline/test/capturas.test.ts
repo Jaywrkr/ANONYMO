@@ -19,6 +19,14 @@ const falso = (vistos: string[] = []): Browser => ({
     close: async () => {},
   }),
   close: async () => {},
+  isConnected: () => true,
+}) as unknown as Browser;
+
+/** Un navegador que se cae en la primera referencia, como pasó en Vercel con un sitio muy pesado. */
+const queSeCae = (): Browser => ({
+  newContext: async () => { throw new Error("browser.newContext: Target page, context or browser has been closed"); },
+  close: async () => {},
+  isConnected: () => false,
 }) as unknown as Browser;
 
 test("qué se captura de cada referencia", () => {
@@ -56,6 +64,18 @@ test("los pasos capturan, registran, suben cada imagen y siguen con relevo; los 
   assert.throws(() => iniciarCapturas({ disciplina: "identidad" }), /No falta ninguna/, "si ya están todas, lo dice");
   assert.equal(motivoCaptura(new Error("page.goto: Timeout 45000ms exceeded.")), "El sitio tardó demasiado en abrir.");
   assert.equal(motivoCaptura(new Error("net::ERR_NAME_NOT_RESOLVED")), "La dirección no existe o cambió.");
+});
+
+test("si un sitio tumba el navegador, solo falla ese y se sigue con otro navegador (sistema/82)", async () => {
+  const c = iniciarCapturas({ disciplina: "web", quien: "jay" });
+  let abiertos = 0;
+  const r = await pasoCapturas({ plazo: Date.now() + 100 * 80_000, navegador: async () => (abiertos++ === 0 ? queSeCae() : falso()) });
+  assert.equal(r.terminado, true);
+  const u = ultimasCapturas()!;
+  assert.equal(u.hechas.length, c.pendientes.length);
+  assert.equal(u.hechas.filter((h) => /demasiado pesado/.test(h.error ?? "")).length, 1, "solo falla la que lo tumbó");
+  assert.equal(abiertos, 2, "se abre un navegador nuevo y sirve para las demás");
+  assert.ok(u.hechas.filter((h) => h.ok).length >= 15, "las demás se capturan");
 });
 
 test("Jay y Luna cambian los enlaces de los que sale la captura", () => {

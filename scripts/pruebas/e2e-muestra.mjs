@@ -17,7 +17,8 @@ const exigir = (ok, texto) => { console.log(`${ok ? "✓" : "✗"} ${texto}`); i
 const espera = (loc, ms = 20000) => loc.waitFor({ timeout: ms }).then(() => true, () => false);
 
 const LUGARES = [
-  { id: "muestra-uno", displayName: { text: "Barbería Don Bigote" }, rating: 4.9, userRatingCount: 150, nationalPhoneNumber: "099 111 0001", googleMapsUri: "https://maps.google.com/?cid=11", formattedAddress: "Calle Larga 7-41, Cuenca" },
+  { id: "muestra-uno", displayName: { text: "Barbería Don Bigote" }, rating: 4.9, userRatingCount: 150, nationalPhoneNumber: "099 111 0001", googleMapsUri: "https://maps.google.com/?cid=11", formattedAddress: "Calle Larga 7-41, Cuenca",
+    regularOpeningHours: { weekdayDescriptions: ["lunes: 10:00–20:00", "martes: 10:00–20:00", "miércoles: 10:00–20:00", "jueves: 10:00–20:00", "viernes: 10:00–20:00", "sábado: 10:00–20:00", "domingo: 10:00–20:00"] } },
   { id: "muestra-dos", displayName: { text: "Barbería La Navaja" }, rating: 4.3, userRatingCount: 12, nationalPhoneNumber: "099 111 0002" },
 ];
 const avisos = [];
@@ -97,7 +98,8 @@ try {
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
   exigir(await m.locator("text=Idea de web para Barbería Don Bigote, hecha por ANONYMO").count() === 1, "dice que es una idea y quién la hizo");
-  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() === 1 && await m.locator("text=4,9 en Google").count() === 1, "con su dirección y su fama");
+  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() === 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
+  exigir(await m.getByText("Lunes a domingo").count() === 1 && await m.getByText("10:00 – 20:00").count() >= 1 && await m.getByText("Los textos son de ejemplo.").count() === 1, "lleva su horario real de Google y solo los textos se dicen de ejemplo");
   exigir(await m.locator("text=USD 390 + IVA").count() === 1 && await m.locator("text=Lista en 7 días").count() === 1, "la barra dice plazo y precio");
   exigir((await m.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");
   exigir(!(await m.locator("text=Puntaje").count()) && !(await m.locator("text=Sin web").count()), "no muestra nada interno");
@@ -117,15 +119,64 @@ try {
   exigir(await ahora.locator("a:has-text('Llamar')").getAttribute("href") === "tel:0991110001", "y deja llamarle de un toque");
   exigir(await p.locator("ul[aria-label=Negocios] li", { hasText: "Barbería Don Bigote" }).locator("text=Vio su muestra 1 vez").count() === 1, "la tarjeta dice que vio su muestra");
 
+  // 4b · El negocio pone sus fotos y la muestra se rehace con ellas (sistema/82).
+  exigir(!(await m.locator("img[data-foto]").count()), "sin fotos, la muestra se resuelve con color y tipografía");
+  await m.setInputFiles("input[aria-label='Elegir fotos']", ["scripts/pruebas/imagen.png", "scripts/pruebas/imagen.png"]);
+  exigir(await espera(m.locator("[role=status]:has-text('tus 2 fotos ya están en la página')")), "subir fotos dice qué pasó");
+  exigir(await espera(m.locator("img[data-foto]").nth(1)), "y la muestra ya las enseña");
+  const foto = await m.evaluate(async () => { const r = await fetch(document.querySelector("img[data-foto]").src); return { s: r.status, t: r.headers.get("content-type"), n: (await r.arrayBuffer()).byteLength }; });
+  exigir(foto.s === 200 && foto.t === "image/jpeg" && foto.n > 3000 && foto.n < 1_500_000, `la foto llega achicada y en JPEG (${foto.n} bytes)`);
+  exigir(await m.locator("button:has-text('Cambiar mis fotos')").count() === 1 && await m.evaluate(() => document.documentElement.scrollWidth) <= 392, "el botón pasa a «Cambiar mis fotos» y sigue cabiendo en celular");
+  const mala = await m.evaluate(async (u) => (await fetch(u, { method: "POST", body: new Uint8Array(5000) })).status, `${enlace}/fotos/1`);
+  const cuarta = await m.evaluate(async (u) => (await fetch(u, { method: "POST", body: new Uint8Array(5000) })).status, `${enlace}/fotos/4`);
+  exigir(mala === 400 && cuarta === 404, "lo que no es una foto no entra, ni una cuarta");
+  exigir(await esperarAvisos(3), "y a Jay le suena el celular: subió sus fotos");
+  await m.evaluate(() => document.querySelectorAll("img[data-foto]").forEach((i) => { i.loading = "eager"; }));
+  await m.waitForTimeout(600);
+  await m.screenshot({ path: join(capturas, "1b-con-fotos.png"), fullPage: true });
+
   // 5 · «Quiero esta web».
   await m.locator("button:has-text('Quiero esta web')").click();
   await m.waitForURL(/wa\.me/, { timeout: 10000 }).catch(() => {});
   const aAnonymo = wa.find((u) => u.includes("wa.me/593995550000"));
   exigir(!!aAnonymo && decodeURIComponent(aAnonymo).includes("vi la idea de web para Barbería Don Bigote"), "«Quiero esta web» abre el WhatsApp de ANONYMO con el mensaje listo");
-  exigir(await esperarAvisos(3), "y vuelve a sonar el celular");
+  exigir(await esperarAvisos(4), "y vuelve a sonar el celular");
   await negocio.close();
   await p.reload();
   exigir(/Barbería Don Bigote quiere su web/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "el escritorio lo pone primero: quiere su web");
+
+  // 5b · Plantillas (sistema/79): cada muestra sale con una de dos, y Jay puede cambiarla.
+  const tarjetaDon = p.locator("ul[aria-label=Negocios] li", { hasText: "Barbería Don Bigote" });
+  await tarjetaDon.getByRole("button", { name: "Más", exact: true }).click();
+  const sel = tarjetaDon.locator("select[aria-label=Plantilla]");
+  const antesPl = await sel.inputValue();
+  const otra = antesPl === "sereno" ? "grafico" : "sereno";
+  await sel.selectOption(otra);
+  exigir(await espera(p.locator("[role=status]:has-text('Su muestra ahora es')")), "cambiar la plantilla dice qué pasó");
+  const m2 = await (await nav.newContext()).newPage();
+  await m2.goto(enlace);
+  exigir(await m2.locator(`[data-plantilla=${otra}]`).count() === 1, `la muestra ya se ve en «${otra}»`);
+  exigir(await m2.evaluate(() => document.documentElement.scrollWidth) <= 1300, "y no se desborda");
+  await m2.context().close();
+  await p.goto(`${B}/estudio/clientes/plantillas`);
+  exigir(await p.locator("iframe").count() === 8, "la página de plantillas muestra las 8 (4 rubros × 2)");
+  exigir(/Todavía no hay muestras enviadas/.test(await p.locator("section[aria-label='Cuál funciona mejor']").innerText()), "y dice que aún no hay con qué comparar");
+  const ej = await (await nav.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  const rEj = await ej.goto(`${B}/m/ejemplo/salud/grafico`);
+  exigir(rEj?.status() === 200 && await ej.locator("[data-plantilla=grafico]").count() === 1 && await ej.evaluate(() => document.documentElement.scrollWidth) <= 392, "el ejemplo público abre y cabe en celular");
+  exigir((await ej.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "y Google no lo indexa");
+  const rMal = await ej.goto(`${B}/m/ejemplo/nada/raro`);
+  exigir(rMal?.status() === 404, "un ejemplo que no existe da 404");
+  await ej.context().close();
+
+  // 6a · En computadora, la tanda se despacha con el teclado (sistema/77): S salta sin tocar nada.
+  await p.goto(`${B}/estudio/clientes/tanda`);
+  const primero = (await p.locator("article h2").innerText()).trim();
+  await p.waitForLoadState("networkidle").catch(() => {});
+  await p.locator("article").click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await p.keyboard.press("s");
+  exigir(await p.locator("article h2").filter({ hasNotText: primero }).waitFor({ timeout: 5000 }).then(() => true, () => false), "la tecla S salta al siguiente");
+  exigir(await p.locator("a:has-text('Enviar por WhatsApp') kbd").isVisible(), "los botones muestran su tecla");
 
   // 6 · La tanda en el celular, de uno en uno.
   const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });
@@ -140,7 +191,7 @@ try {
   const enviar = t.locator("a:has-text('Enviar por WhatsApp')");
   const caja = await enviar.boundingBox();
   const encima = caja && await t.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("a")?.textContent, { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 });
-  exigir(encima === "Enviar por WhatsApp" && caja.y + caja.height <= 844, "el botón de enviar se ve y no lo tapa la barra del celular");
+  exigir(encima?.startsWith("Enviar por WhatsApp") && caja.y + caja.height <= 844, "el botón de enviar se ve y no lo tapa la barra del celular");
   await t.screenshot({ path: join(capturas, "2-tanda.png") });
   await t.click("button:has-text('Saltar')");
   exigir(/Barbería La Navaja/.test(await tarjeta.innerText()), "Saltar pasa al siguiente");

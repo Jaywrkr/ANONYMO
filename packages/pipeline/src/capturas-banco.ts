@@ -130,8 +130,17 @@ export async function pasoCapturas(o: { plazo: number; navegador: () => Promise<
       let res: ResultadoCaptura;
       if (!r) res = { ref: id, nombre: id, ok: false, error: "La referencia ya no está en el banco." };
       else {
-        try { nav ??= await o.navegador(); res = { ref: id, nombre: r.nombre, ok: true, archivos: await capturarReferencia(nav, r, o) }; }
-        catch (e) { res = { ref: id, nombre: r.nombre, ok: false, error: motivoCaptura(e) }; }
+        // Un sitio muy pesado puede tumbar el navegador del servidor (sistema/82). Antes, todas las que seguían fallaban en cadena
+        // con «browser has been closed»: ahora se abre otro navegador y solo falla la que lo tumbó.
+        try {
+          if (nav && !nav.isConnected()) { await nav.close().catch(() => {}); nav = undefined; }
+          nav ??= await o.navegador();
+          res = { ref: id, nombre: r.nombre, ok: true, archivos: await capturarReferencia(nav, r, o) };
+        } catch (e) {
+          const murio = !!nav && !nav.isConnected() || /has been closed|Target closed|browser has disconnected|crash/i.test(String((e as Error)?.message ?? e));
+          if (murio) { await nav?.close().catch(() => {}); nav = undefined; }
+          res = { ref: id, nombre: r.nombre, ok: false, error: murio ? "El sitio es demasiado pesado para el navegador del servidor. Pon la imagen o la página del caso en «Detalle y criterios»." : motivoCaptura(e) };
+        }
       }
       c.pendientes.shift(); c.hechas.push(res);
       await guardarEstado(res.archivos ?? []);

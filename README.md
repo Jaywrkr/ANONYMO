@@ -132,6 +132,8 @@ Todas están explicadas en `.env.example`. Las principales:
 | `RESEND_API_KEY`, `AVISOS_CORREO`, `AVISOS_WEBHOOK` | Avisos por correo o webhook |
 | `GOOGLE_PLACES_API_KEY` | Clientes nuevos: búsqueda en Google Maps (Places API nueva) |
 | `VAPID_PUBLICA`, `VAPID_PRIVADA`, `VAPID_CORREO` | Avisos al celular cuando un negocio abre su muestra. Se crean con `npx web-push generate-vapid-keys` |
+| `CRON_SECRET` | La copia diaria de prospectos, fichas, guiones y celulares (Vercel la manda al llamar `/api/respaldo`). Cualquier texto largo |
+| `GOOGLE_CUPO_DIA` | Opcional: el cupo diario de Google que muestra «Estado del sistema» (por defecto 200) |
 | `ANONYMO_URL` | Dirección pública del estudio para los enlaces que salen por WhatsApp (si no, la del navegador) |
 | `ANONYMO_PLAZO_MS`, `ANONYMO_MARGEN_MS` | Duración de cada vuelta (pruebas) |
 
