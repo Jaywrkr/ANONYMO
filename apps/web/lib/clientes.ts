@@ -1,5 +1,5 @@
 // Ayudas del escritorio de Imán, clientes nuevos (sistema/66).
-import { ESTADOS_PROSPECTO, contactadoEn, idFicha, idMuestra, mensajeCobro, mensajeSeguimiento, OFERTA, precioDe, plantillaDe, tocaSeguimiento, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
+import { ESTADOS_PROSPECTO, contactadoEn, idFicha, idMuestra, colorDe, mensajeCobro, mensajeSeguimiento, nombreDe, OFERTA, precioDe, tonoDe, plantillaDe, tocaSeguimiento, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
 
 export const mal = (error: string, status = 400) => Response.json({ error }, { status, headers: { "cache-control": "no-store" } });
@@ -21,7 +21,7 @@ export function vistaProspecto(p: Prospecto, firma: string, base: string) {
   const seguir = mensajeSeguimiento(p, firma, muestra, propuesta);
   const mensaje = p.mensaje ?? mensajeInicial(p, firma, new Date(), muestra);
   const ficha = idFicha(p.nombre);
-  const q = new URLSearchParams({ q: pedidoDesdeProspecto(p), cliente: p.nombre.slice(0, 80), ficha, prospecto: p.id });
+  const q = new URLSearchParams({ q: pedidoDesdeProspecto(p, new Date(), base), cliente: nombreDe(p).slice(0, 80), ficha, prospecto: p.id });
   // Tiene ficha cuando ya hay relación o se volvió pedido (sistema/70).
   const conFicha = !!p.proyecto || ["respondio", "reunion", "cliente"].includes(p.estado);
   return {
@@ -62,6 +62,12 @@ export function vistaProspecto(p: Prospecto, firma: string, base: string) {
     /** Su plantilla (sistema/79) y si alguien la eligió a mano. */
     plantilla: plantillaDe(p),
     plantillaElegida: !!p.plantilla,
+    /** El color de su muestra y de dónde salió (sistema/85): a mano, de su web o de su rubro. */
+    color: colorDe(p, tonoDe(p.rubro)).color,
+    colorOrigen: colorDe(p, tonoDe(p.rubro)).origen,
+    /** Cómo se le llama en su muestra y en los mensajes (sistema/83). */
+    nombreMuestra: nombreDe(p),
+    alias: p.alias ?? "",
     /** Su precio (sistema/82): el que se puso a mano o el de la oferta. */
     precio: precioDe(p, OFERTA.web.precio),
     precioPropio: p.precio !== undefined,
@@ -76,7 +82,7 @@ export function vistaProspecto(p: Prospecto, firma: string, base: string) {
     vistasPropuesta: p.propuesta?.vistas ?? 0,
     acepto: p.propuesta?.acepto,
     /** Para quien aceptó (sistema/81): el WhatsApp con el pedido del primer pago. */
-    whatsappCobro: p.propuesta?.acepto ? enlaceWhatsapp(p.telefono, mensajeCobro(p.nombre, firma, precioDe(p, OFERTA.web.precio), OFERTA.iva)) : undefined,
+    whatsappCobro: p.propuesta?.acepto ? enlaceWhatsapp(p.telefono, mensajeCobro(nombreDe(p), firma, precioDe(p, OFERTA.web.precio), OFERTA.iva)) : undefined,
   };
 }
 export type VistaProspecto = ReturnType<typeof vistaProspecto>;

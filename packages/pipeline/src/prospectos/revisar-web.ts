@@ -1,5 +1,6 @@
 // Revisa la web de un negocio sin abrir un navegador (sistema/66): si existe, si abre, si sirve en celular y si está vieja.
 import type { RevisionWeb } from "./tipos.ts";
+import { colorEnHtml } from "./paleta.ts";
 
 const REDES: [RegExp, string][] = [
   [/instagram\.com/i, "Instagram"],
@@ -44,7 +45,7 @@ export function leerHtml(html: string, urlFinal: string, ms: number, hoy = new D
   const anios = [...html.matchAll(/(?:©|&copy;|copyright)\s*(?:\d{4}\s*[-–]\s*)?(20\d{2})/gi)]
     .map((m) => Number(m[1]))
     .filter((y) => y >= 2000 && y <= hoy.getFullYear());
-  return { estado: "ok", https: urlFinal.startsWith("https://"), celular, titulo, hechaCon, anio: anios.length ? Math.max(...anios) : undefined, ms, sonda: leerSonda(html) };
+  return { estado: "ok", https: urlFinal.startsWith("https://"), celular, titulo, hechaCon, anio: anios.length ? Math.max(...anios) : undefined, ms, sonda: leerSonda(html), ...(colorEnHtml(html) ? { color: colorEnHtml(html) } : {}) };
 }
 
 export async function revisarWeb(url: string, f: typeof fetch = fetch, esperaMs = 10_000): Promise<RevisionWeb> {

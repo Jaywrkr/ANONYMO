@@ -98,7 +98,7 @@ try {
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
   exigir(await m.locator("text=Idea de web para Barbería Don Bigote, hecha por ANONYMO").count() === 1, "dice que es una idea y quién la hizo");
-  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() === 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
+  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() >= 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
   exigir(await m.getByText("Lunes a domingo").count() === 1 && await m.getByText("10:00 – 20:00").count() >= 1 && await m.getByText("Los textos son de ejemplo.").count() === 1, "lleva su horario real de Google y solo los textos se dicen de ejemplo");
   exigir(await m.locator("text=USD 390 + IVA").count() === 1 && await m.locator("text=Lista en 7 días").count() === 1, "la barra dice plazo y precio");
   exigir((await m.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");
@@ -159,7 +159,7 @@ try {
   exigir(await m2.evaluate(() => document.documentElement.scrollWidth) <= 1300, "y no se desborda");
   await m2.context().close();
   await p.goto(`${B}/estudio/clientes/plantillas`);
-  exigir(await p.locator("iframe").count() === 8, "la página de plantillas muestra las 8 (4 rubros × 2)");
+  exigir(await p.locator("iframe").count() === 5, "la página de plantillas muestra las 5");
   exigir(/Todavía no hay muestras enviadas/.test(await p.locator("section[aria-label='Cuál funciona mejor']").innerText()), "y dice que aún no hay con qué comparar");
   const ej = await (await nav.newContext({ viewport: { width: 390, height: 844 } })).newPage();
   const rEj = await ej.goto(`${B}/m/ejemplo/salud/grafico`);

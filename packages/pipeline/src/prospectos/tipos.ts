@@ -25,6 +25,8 @@ export type RevisionWeb =
       ms: number;
       /** Lo que Sonda leyó en la web (sistema/71): para personalizar el primer mensaje. */
       sonda?: { descripcion?: string; secciones: string[]; redes: string[] };
+      /** El color de marca que se ve en su web (sistema/85). */
+      color?: string;
     };
 
 /** Cuántos negocios nuevos se escriben por día, como máximo: WhatsApp castiga los envíos masivos (sistema/71). */
@@ -60,8 +62,12 @@ export interface Prospecto {
   historial?: { cuando: string; que: string; por?: string }[];
   /** Lo que pasó con su muestra (sistema/72): cuántas veces la abrió y si tocó «Quiero esta web». */
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
-  /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la mitad «sereno» y la mitad «grafico», para comparar cuál responde mejor. */
+  /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la se reparten parejo entre las cinco, para comparar cuál responde mejor. */
   plantilla?: PlantillaMuestra;
+  /** El color de su marca si Jay lo puso a mano (sistema/85): #RRGGBB. Si no hay, va el de su web o el de su rubro. */
+  color?: string;
+  /** Cómo se le llama en su muestra, su propuesta y los mensajes si el nombre corto que sale solo no convence (sistema/83). */
+  alias?: string;
   /** El precio de su web si no es el de la oferta (sistema/82), en dólares sin IVA. Lo pone Jay antes de mandar la propuesta. */
   precio?: number;
   /** Cuántas fotos subió el negocio a su muestra (sistema/82). Viven en `_fotos/<id de muestra>/` en la nube privada. */
@@ -73,11 +79,17 @@ export interface Prospecto {
 }
 
 /** Las dos variantes de la muestra (sistema/79): calma premium o grilla gráfica. */
-export type PlantillaMuestra = "sereno" | "grafico";
+export type PlantillaMuestra = "sereno" | "grafico" | "mosaico" | "revista" | "noche";
 export const PLANTILLAS_MUESTRA: Record<PlantillaMuestra, { nombre: string; idea: string }> = {
-  sereno: { nombre: "Sereno", idea: "Papel cálido, serif liviana con una palabra en cursiva, bloques redondeados. Calma premium." },
-  grafico: { nombre: "Gráfico", idea: "Grilla suiza, secciones numeradas, un bloque de color fuerte y listas con líneas." },
+  grafico: { nombre: "Color", idea: "Un marco del color de la marca, el nombre enorme, tarjetas redondeadas y un sello con su nota de Google." },
+  sereno: { nombre: "Sereno", idea: "Papel claro, una serif suave y grande al centro y la imagen dentro de un arco. Calma y confianza." },
+  mosaico: { nombre: "Mosaico", idea: "Todo en fichas redondeadas, como una app: nombre, nota, horario y servicios, cada uno en su ficha." },
+  revista: { nombre: "Revista", idea: "Blanco, negro y el color de la marca. Titular condensado, líneas gruesas y una cinta de servicios que corre." },
+  noche: { nombre: "Noche", idea: "Fondo oscuro con un resplandor del color de la marca y fichas de vidrio. Elegante y nocturna." },
 };
+/** En qué orden se reparten solas. */
+export const ORDEN_PLANTILLAS: PlantillaMuestra[] = ["grafico", "sereno", "mosaico", "revista", "noche"];
+export const esPlantilla = (x: unknown): x is PlantillaMuestra => typeof x === "string" && x in PLANTILLAS_MUESTRA;
 
 export interface ListaProspectos {
   actualizado: string;

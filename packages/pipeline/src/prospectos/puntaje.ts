@@ -1,5 +1,9 @@
 // Cuánto vale la pena escribirle a un negocio (0 a 100) y qué decirle (sistema/66). Sin IA: reglas fijas.
 import type { Prospecto } from "./tipos.ts";
+import { nombreDe } from "./nombre.ts";
+import { PLANTILLAS_MUESTRA, type PlantillaMuestra } from "./tipos.ts";
+import { contenidoMuestra, idMuestra, precioDe } from "./muestra.ts";
+import { OFERTA } from "../oferta.ts";
 
 export interface Puntaje {
   puntaje: number;
@@ -64,7 +68,7 @@ export function mensajeInicial(p: Prospecto, firma: string, hoy = new Date(), mu
   else problema = `Vi su web y creo que puede verse mucho más profesional y traerles más ${SALUD.test(p.rubro) ? "pacientes" : "clientes"}.`;
   // Con muestra (sistema/72) el enlace va en el primer mensaje: es lo que hace que contesten.
   const oferta = muestra ? `Les preparé una idea de cómo podría verse su web, sin compromiso: ${muestra}` : "Les preparé una idea de cómo podría verse su web. ¿Se la puedo enviar por aquí?";
-  return `Hola, ¿qué tal? Vi ${p.nombre} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}`;
+  return `Hola, ¿qué tal? Vi ${nombreDe(p)} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}`;
 }
 
 /** Solo los dígitos, con el código de Ecuador: «099 123 4567» → «593991234567». */
@@ -84,9 +88,44 @@ export function enlaceWhatsapp(telefono: string | undefined, texto: string) {
 }
 
 /** Lo que se le cuenta a Atlas al convertir un prospecto en pedido. */
-export function pedidoDesdeProspecto(p: Prospecto, hoy = new Date()) {
+/** Cómo está armada cada plantilla, para que quien haga la web final parta de lo que el cliente ya vio (sistema/85). */
+const ESTRUCTURA: Record<PlantillaMuestra, string> = {
+  grafico: "marco del color de la marca con un panel de papel redondeado adentro; nombre enorme centrado en Bricolage Grotesque extra negrita; imagen grande con fichas flotando (abierto hoy, dirección) y un sello redondo con la nota de Google; servicios que se abren al tocar; frase grande sobre el color; tres tarjetas de «por qué aquí»; cierre oscuro con el nombre gigante",
+  sereno: "papel claro; nombre grande centrado en Fraunces (serif suave, liviana); imagen dentro de un arco con dos fichas apoyadas (horario de hoy y nota de Google); frase en cursiva; servicios en lista con líneas finas; razones en un bloque suave; mucho aire",
+  mosaico: "todo en fichas redondeadas sobre un fondo suave, como una app: ficha del nombre, ficha de imagen, ficha de nota de Google, ficha de horario y un botón de WhatsApp que ocupa una ficha; servicios en cuatro fichas; tipografía Bricolage Grotesque extra negrita",
+  revista: "blanco, negro y el color de la marca; titular condensado enorme alineado a la izquierda (Bricolage Grotesque, ancho 75); líneas gruesas de 3 px, esquinas rectas; imagen ancha con el horario en una esquina; una cinta del color de la marca con los servicios corriendo",
+  noche: "fondo oscuro con un resplandor del color de la marca detrás del nombre; nombre centrado en Fraunces liviana; fichas de vidrio para horario y nota; botón principal con brillo; servicios en tarjetas oscuras",
+};
+
+/**
+ * El pedido que arranca de un prospecto. Lleva lo que Imán encontró y, desde sistema/85, la muestra que el cliente ya vio:
+ * su plantilla, sus colores, sus servicios, su horario, sus fotos y lo acordado. La web final parte de ahí, no de cero.
+ * `base` es la dirección del estudio (para los enlaces a la muestra y a las fotos).
+ */
+export function pedidoDesdeProspecto(p: Prospecto, hoy = new Date(), base = "") {
   const { motivos } = puntuar(p, hoy);
+  const c = contenidoMuestra(p, hoy);
   const fama = p.estrellas ? `${p.estrellas} estrellas con ${p.resenas} reseñas en Google` : "sin reseñas en Google";
   const web = p.web ? `Su web actual es ${p.web} (${motivos.join(", ").toLowerCase() || "se puede mejorar"}).` : "No tiene web.";
-  return `Una web para ${p.nombre}, ${p.rubro} en ${p.ciudad} (${fama}). ${web} Lo encontró Imán en clientes nuevos.${p.notas ? ` Notas: ${p.notas}` : ""}`;
+  const id = idMuestra(p);
+  const k = c.paleta;
+  const deDonde = c.colorOrigen === "mano" ? "el color de su marca" : c.colorOrigen === "web" ? "sacado de su web actual" : "todavía no sabemos su color: es el de su rubro; pregúntale si tiene uno";
+  const lineas = [
+    `Una web para ${c.nombre}, ${p.rubro} en ${p.ciudad} (${fama}). ${web} Lo encontró Imán en clientes nuevos.`,
+    c.nombre !== p.nombre ? `En Google se llama «${p.nombre}».` : "",
+    "",
+    "PARTE DE SU MUESTRA. El cliente ya vio esta idea y le gustó: la web final debe reconocerse como la misma, mejorada con sus datos reales.",
+    base ? `- Muestra: ${base}/m/${id}` : "",
+    `- Plantilla «${PLANTILLAS_MUESTRA[c.plantilla].nombre}»: ${ESTRUCTURA[c.plantilla]}.`,
+    `- Colores (${deDonde}): marca ${k.bloque}, fondo ${k.fondo}, texto ${k.tinta}, botones ${k.acento}.`,
+    `- Servicios que vio (${c.propia ? "algunos salen de su web" : "son de ejemplo: confírmalos con el cliente"}): ${c.servicios.join(", ")}.`,
+    `- Horario${c.horarioReal ? " (el de Google)" : " (de ejemplo: pídeselo)"}: ${c.horario.map(([d, h]) => `${d} ${h}`).join("; ")}.`,
+    c.direccion ? `- Dirección: ${c.direccion}.` : "",
+    p.telefono ? `- WhatsApp y teléfono: ${p.telefono}.` : "",
+    p.mapa ? `- Google Maps: ${p.mapa}` : "",
+    p.fotos && base ? `- Fotos que subió el cliente (úsalas): ${Array.from({ length: p.fotos }, (_, i) => `${base}/m/${id}/fotos/${i + 1}`).join(" , ")}` : "- Todavía no subió fotos: pídele 3 (fachada o consultorio, él o su equipo, un detalle de su trabajo).",
+    `- Acordado: ${precioDe(p, OFERTA.web.precio)} dólares + IVA, una página, ${OFERTA.web.dias} días, ${OFERTA.web.rondas} rondas de cambios.${p.propuesta?.acepto ? " Ya aceptó la propuesta." : ""}`,
+    p.notas ? `Notas: ${p.notas}` : "",
+  ];
+  return lineas.filter((l, i) => l || i === 2).join("\n");
 }

@@ -6,6 +6,7 @@ import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { ESTADOS_PROSPECTO, FIRMA_INICIAL, PLANTILLAS_MUESTRA, type EstadoProspecto, type ListaProspectos, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
 import type { Lugar } from "./buscar-lugares.ts";
+import { esColorDeMarca } from "./paleta.ts";
 
 export const CARPETA_PROSPECTOS = "_prospectos";
 const REL = `${CARPETA_PROSPECTOS}/lista/lista.json`;
@@ -78,7 +79,7 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
 /** Los que tienen web y todavía no se revisaron. */
 export const porRevisar = (l: ListaProspectos) => Object.values(l.prospectos).filter((p) => p.web && !p.revision);
 
-export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean; precio?: number | null; quitarFotos?: boolean }
+export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean; precio?: number | null; quitarFotos?: boolean; alias?: string; color?: string | null }
 
 /** Un precio a mano: dólares enteros, dentro de lo razonable para no mandar un cero de más. */
 export const PRECIO_MIN = 100;
@@ -98,6 +99,15 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
     if (c.precio !== null && !precioValido(c.precio)) throw new Error(`El precio va entre ${PRECIO_MIN} y ${PRECIO_MAX} dólares, sin centavos.`);
     p.precio = c.precio ?? undefined;
     anotar(c.precio === null ? "Su propuesta volvió al precio de la oferta" : `Su propuesta pasó a USD ${c.precio}`);
+  }
+  if (c.alias !== undefined && (c.alias.trim() || undefined) !== p.alias) {
+    p.alias = c.alias.replace(/\s+/g, " ").trim().slice(0, 60) || undefined;
+    anotar(p.alias ? `En su muestra ahora se llama «${p.alias}»` : "Su muestra volvió al nombre corto que sale solo");
+  }
+  if (c.color !== undefined && (c.color ?? undefined)?.toUpperCase() !== p.color) {
+    if (c.color !== null && !esColorDeMarca(c.color)) throw new Error("Ese color no sirve de marca: elige uno con color (ni blanco, ni negro, ni gris).");
+    p.color = c.color?.toUpperCase() ?? undefined;
+    anotar(p.color ? `El color de su muestra pasó a ${p.color}` : "Su muestra volvió al color que sale solo");
   }
   if (c.quitarFotos && p.fotos) { p.fotos = undefined; anotar("Se quitaron las fotos de su muestra"); }
   if (c.seguimiento && !p.seguimiento) { p.seguimiento = ahora; anotar("Se le mandó el seguimiento"); }

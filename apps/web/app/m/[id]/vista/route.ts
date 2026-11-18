@@ -1,6 +1,6 @@
 // El negocio abrió su muestra o tocó «Quiero esta web» (sistema/72): se anota en su historial y suena el celular de Jay y Luna.
 // Si quien la abre es Jay o Luna con sesión en el estudio, no cuenta.
-import { anotarError, anotarQuiere, anotarVista, buscarPorMuestra, cambiarProspectos, idMuestraValido } from "@anonymo/pipeline";
+import { anotarError, nombreDe, anotarQuiere, anotarVista, buscarPorMuestra, cambiarProspectos, idMuestraValido } from "@anonymo/pipeline";
 import { portalActivo, quienEsta } from "@/lib/estudio";
 import { avisarCelulares } from "@/lib/avisos-celular";
 import { BOT, frenar, nada } from "@/lib/freno";
@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const p = buscarPorMuestra(l.prospectos, id);
       if (!p || p.estado === "descartado") return undefined;
       const r = accion === "quiere" ? anotarQuiere(p) : anotarVista(p);
-      return { ...r, nombre: p.nombre, telefono: p.telefono, quiere: accion === "quiere" };
+      return { ...r, nombre: nombreDe(p), telefono: p.telefono, quiere: accion === "quiere" };
     });
     if (valor?.avisar) {
       await avisarCelulares(valor.quiere

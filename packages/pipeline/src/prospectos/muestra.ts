@@ -2,7 +2,10 @@
 // Se abre en /m/<id>. Cada vez que el negocio la abre, queda anotado y Jay recibe un aviso.
 import { createHash } from "node:crypto";
 import { slug } from "../solicitudes.ts";
-import { GRUPOS_RUBRO, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
+import { GRUPOS_RUBRO, ORDEN_PLANTILLAS, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
+import { colorDe, paletaDe, type Paleta, type Tono } from "./paleta.ts";
+export type { Tono } from "./paleta.ts";
+import { nombreDe } from "./nombre.ts";
 
 /** El id de la muestra: el nombre y una huella del lugar. No hace falta guardarlo: siempre sale igual. */
 export function idMuestra(p: Pick<Prospecto, "id" | "nombre">) {
@@ -16,7 +19,6 @@ export function buscarPorMuestra<T extends Pick<Prospecto, "id" | "nombre">>(pro
   return Object.values(prospectos).find((p) => idMuestra(p) === id);
 }
 
-export type Tono = "salud" | "legal" | "belleza" | "otro";
 
 export function tonoDe(rubro: string): Tono {
   const r = rubro.toLowerCase();
@@ -34,6 +36,36 @@ const SERVICIOS: Record<Tono, string[]> = {
   otro: ["Lo que hacemos", "Cómo trabajamos", "Preguntas frecuentes", "Contacto"],
 };
 
+/** Servicios de ejemplo por oficio (sistema/84): «Ortodoncia» le dice más a un odontólogo que «Tratamientos». Cada uno con su línea. */
+const OFICIOS: [RegExp, [string, string][]][] = [
+  [/odont|dent|ortodon/, [["Limpieza y prevención", "Revisión, limpieza y un plan claro para tu boca."], ["Ortodoncia", "Brackets y alineadores, con controles cada mes."], ["Blanqueamiento", "Resultados que se notan desde la primera sesión."], ["Implantes y coronas", "Recupera tu sonrisa con piezas que duran."]]],
+  [/psic|terap(eu|ia) (individual|de pareja)|psiqu/, [["Terapia individual", "Un espacio para ti, a tu ritmo."], ["Terapia de pareja", "Para volver a entenderse y decidir juntos."], ["Niños y adolescentes", "Acompañamos a tu hijo y a la familia."], ["Sesiones en línea", "Desde donde estés, con la misma atención."]]],
+  [/pediat|neonat/, [["Control del niño sano", "Crecimiento, desarrollo y todas tus preguntas."], ["Vacunas", "El esquema al día, sin filas."], ["Recién nacidos", "Los primeros controles, con calma."], ["Consultas del día", "Si tu hijo amaneció mal, te vemos hoy."]]],
+  [/fisio|rehabil|kinesi|quiropr/, [["Lesiones y esguinces", "Vuelve a moverte sin dolor, paso a paso."], ["Terapia deportiva", "Para entrenar y competir sin recaer."], ["Espalda y cuello", "Alivio y ejercicios para que no vuelva."], ["Después de una cirugía", "Rehabilitación guiada hasta el alta."]]],
+  [/derma|est[eé]tica|piel|l[aá]ser/, [["Consulta dermatológica", "Diagnóstico claro y tratamiento a tu medida."], ["Acné y manchas", "Planes que se sostienen en el tiempo."], ["Medicina estética", "Resultados naturales, sin exagerar."], ["Láser", "Tecnología segura para tu tipo de piel."]]],
+  [/veterin/, [["Consulta general", "Revisión completa de tu mascota."], ["Vacunas y desparasitación", "Su carnet al día."], ["Cirugía", "Con anestesia segura y seguimiento."], ["Peluquería", "Baño y corte sin estrés."]]],
+  [/[oó]ptica|optom|oftalm/, [["Examen visual", "Medimos tu vista con equipos actuales."], ["Lentes y monturas", "Te ayudamos a elegir los tuyos."], ["Lentes de contacto", "Adaptación y controles."], ["Niños", "Revisiones desde la edad escolar."]]],
+  [/m[eé]dic|cl[ií]nica|ginec|cardi|traumat|nutri|gastro|urolog|otorrin|neum/, [["Consulta", "Te escuchamos y te explicamos tu diagnóstico."], ["Exámenes y controles", "Todo coordinado en un solo lugar."], ["Tratamientos", "Un plan claro, con seguimiento."], ["Citas por WhatsApp", "Elige día y hora desde tu celular."]]],
+  [/notar/, [["Escrituras", "Compraventas, hipotecas y promesas."], ["Poderes", "Generales y especiales, el mismo día."], ["Declaraciones juramentadas", "Rápidas y sin vueltas."], ["Reconocimiento de firmas", "Con cita o al paso."]]],
+  [/contab|contador|tribut|auditor/, [["Declaraciones al SRI", "Al día, sin multas ni sustos."], ["Contabilidad mensual", "Tus números claros cada mes."], ["Nómina e IESS", "Roles, aportes y contratos en orden."], ["Crear tu empresa", "Te acompañamos de principio a fin."]]],
+  [/abogad|legal|jur[ií]d|bufete/, [["Familia", "Divorcios, alimentos y tenencia."], ["Contratos y empresas", "Documentos que te protegen."], ["Laboral", "Despidos, liquidaciones y reclamos."], ["Tránsito y penal", "Te defendemos desde el primer momento."]]],
+  [/barber/, [["Corte", "Clásico o moderno, como lo pidas."], ["Barba", "Perfilado, navaja y toalla caliente."], ["Corte y barba", "El servicio completo."], ["Niños", "Con paciencia y buen pulso."]]],
+  [/spa|masaj/, [["Masajes", "Relajantes, descontracturantes y deportivos."], ["Faciales", "Limpieza profunda e hidratación."], ["Rituales para dos", "Un regalo que se recuerda."], ["Tarjetas de regalo", "Para quien necesita una pausa."]]],
+  [/u[ñn]as|manic/, [["Manicure", "Tradicional, semipermanente y acrílicas."], ["Pedicure", "Cuidado completo para tus pies."], ["Diseños", "A mano, a tu gusto."], ["Cejas y pestañas", "Perfilado, lifting y extensiones."]]],
+  [/peluquer|sal[oó]n|belleza|estilis/, [["Corte y peinado", "Para todos los días o para tu evento."], ["Color", "Tintes, mechas y balayage."], ["Tratamientos", "Keratina, hidratación y reparación."], ["Maquillaje", "Social, novias y quinceañeras."]]],
+  [/gimnas|gym|crossfit|pilates|yoga/, [["Clases", "Horarios desde temprano hasta la noche."], ["Entrenamiento personal", "Un plan hecho para ti."], ["Planes", "Mensual, trimestral y por clase."], ["Primera clase", "Ven a probar sin compromiso."]]],
+];
+
+/** Los servicios de ejemplo de este oficio, o undefined si no lo conocemos (entonces van los del rubro en general). */
+export const serviciosDeOficio = (rubro: string) => OFICIOS.find(([re]) => re.test(rubro.toLowerCase()))?.[1];
+
+const DETALLE_TONO: Record<Tono, string[]> = {
+  salud: ["Revisión completa y plan claro desde el primer día.", "Explicados paso a paso.", "Te acompañamos después de cada sesión.", "Elige día y hora desde tu celular."],
+  legal: ["Una primera reunión para entender tu caso.", "Documentos en orden y a tiempo.", "Te representamos con criterio y cercanía.", "Agenda en línea, sin llamadas."],
+  belleza: ["Hechos a tu medida, con calma.", "Combinaciones pensadas para ti.", "Lo mejor del mes, con precio especial.", "Escoge tu turno en un minuto."],
+  otro: ["Lo que mejor sabemos hacer.", "Simple, claro y a tiempo.", "Lo que siempre nos preguntan.", "Escríbenos y te respondemos hoy."],
+};
+
 const BAJADA: Record<Tono, (rubro: string, ciudad: string) => string> = {
   salud: (r, c) => `${r} en ${c}. Agenda tu cita en un minuto, sin llamar.`,
   legal: (r, c) => `${r} en ${c}. Te explicamos tu caso con claridad desde la primera reunión.`,
@@ -47,11 +79,14 @@ const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** La plantilla elegida, o una fija por negocio (mitad y mitad) para poder comparar cuál responde mejor. */
 export function plantillaDe(p: Pick<Prospecto, "id" | "plantilla">): PlantillaMuestra {
   if (p.plantilla) return p.plantilla;
-  return parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 2), 16) % 2 ? "grafico" : "sereno";
+  return ORDEN_PLANTILLAS[parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 4), 16) % ORDEN_PLANTILLAS.length]!;
 }
 
 export interface ContenidoMuestra {
   plantilla: PlantillaMuestra;
+  /** Sus colores: los del negocio si se conocen, o los de su rubro (sistema/85). */
+  paleta: Paleta;
+  colorOrigen: "mano" | "web" | "rubro";
   nombre: string;
   rubro: string;
   ciudad: string;
@@ -61,6 +96,8 @@ export interface ContenidoMuestra {
   /** Lo que dicen de sí mismos en su web, si Sonda lo encontró. */
   propia: boolean;
   servicios: string[];
+  /** Una línea por servicio, en el mismo orden («» si el servicio salió de su propia web). */
+  detalles: string[];
   estrellas?: number;
   resenas: number;
   telefono?: string;
@@ -106,11 +143,17 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
   const propias = (sonda?.secciones ?? [])
     .map((s) => s.trim())
     .filter((s) => s.length >= 3 && s.length <= 40 && !GENERICAS.test(s) && s.toLowerCase() !== p.nombre.toLowerCase());
-  const servicios = [...propias, ...SERVICIOS[tono].filter((s) => !propias.includes(s))].slice(0, 4);
+  const oficio = serviciosDeOficio(p.rubro) ?? SERVICIOS[tono].map((s, i): [string, string] => [s, DETALLE_TONO[tono][i] ?? ""]);
+  const pares: [string, string][] = [...propias.map((s): [string, string] => [s, ""]), ...oficio.filter(([s]) => !propias.includes(s))].slice(0, 4);
+  const servicios = pares.map(([s]) => s);
   const descripcion = sonda?.descripcion?.trim();
+  const plantilla = plantillaDe(p);
+  const { color, origen } = colorDe(p, tono);
   return {
-    plantilla: plantillaDe(p),
-    nombre: p.nombre,
+    plantilla,
+    paleta: paletaDe(plantilla, tono, color),
+    colorOrigen: origen,
+    nombre: nombreDe(p),
     rubro: mayuscula(p.rubro),
     ciudad: p.ciudad,
     direccion: p.direccion,
@@ -118,6 +161,7 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
     bajada: descripcion && descripcion.length <= 180 ? descripcion : BAJADA[tono](mayuscula(p.rubro), p.ciudad),
     propia: !!descripcion,
     servicios,
+    detalles: pares.map(([, d]) => d),
     estrellas: p.estrellas,
     resenas: p.resenas ?? 0,
     telefono: p.telefono,
@@ -169,8 +213,8 @@ export function tocaSeguimiento(p: Prospecto, ahora = new Date()) {
 }
 
 /** El recordatorio: corto, sin presión, con la muestra y la propuesta. */
-export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "muestra">, firma: string, muestra: string, propuesta: string) {
-  const vio = p.muestra?.vistas ? "Vi que alcanzaron a abrir la idea de web que les preparé." : `Hace unos días les mandé una idea de web para ${p.nombre}: ${muestra}`;
+export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "alias" | "muestra">, firma: string, muestra: string, propuesta: string) {
+  const vio = p.muestra?.vistas ? "Vi que alcanzaron a abrir la idea de web que les preparé." : `Hace unos días les mandé una idea de web para ${nombreDe(p)}: ${muestra}`;
   return `Hola de nuevo. ${vio} Si les interesa, aquí está la propuesta con precio, plazos y lo que incluye: ${propuesta}\n\nSi no es el momento, no hay problema. ¡Gracias!\n\n${firma}`;
 }
 
@@ -204,7 +248,7 @@ export function mensajeCobro(nombre: string, firma: string, total: number, conIv
 /** Cómo le va a cada plantilla (sistema/81): de las muestras enviadas, cuántas se abrieron, pidieron la web y aceptaron. */
 export function resultadosPlantillas(prospectos: Prospecto[]) {
   const fila = () => ({ enviadas: 0, abiertas: 0, quieren: 0, aceptaron: 0 });
-  const r: Record<PlantillaMuestra, ReturnType<typeof fila>> = { sereno: fila(), grafico: fila() };
+  const r = Object.fromEntries(ORDEN_PLANTILLAS.map((x) => [x, fila()])) as Record<PlantillaMuestra, ReturnType<typeof fila>>;
   for (const p of prospectos) {
     if (!contactadoEn(p)) continue;
     const f = r[plantillaDe(p)];

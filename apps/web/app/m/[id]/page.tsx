@@ -1,7 +1,5 @@
 // La muestra de un prospecto (sistema/72): una idea de su web, hecha por ANONYMO con lo que ya se sabe del negocio.
 // Es pública (llega por WhatsApp), no se indexa y no muestra nada interno: ni puntaje, ni notas, ni lo que falla en su web.
-import "@fontsource/instrument-serif/latin-400.css";
-import "@fontsource/instrument-serif/latin-400-italic.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { buscarPorMuestra, contenidoMuestra, idMuestraValido, leerProspectos, FOTOS_MAX, numeroInternacional, OFERTA, precio, precioDe } from "@anonymo/pipeline";

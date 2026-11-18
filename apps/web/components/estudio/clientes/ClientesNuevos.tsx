@@ -46,6 +46,8 @@ async function pedir<T>(url: string, metodo: string, cuerpo?: unknown): Promise<
   return j;
 }
 
+const NOMBRE_PLANTILLA: Record<string, string> = { grafico: "Color · marco de color y nombre enorme", sereno: "Sereno · calma y confianza", mosaico: "Mosaico · todo en fichas, como una app", revista: "Revista · blanco, negro y su color", noche: "Noche · oscura y elegante" };
+
 export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clavePublica }: { inicial: VistaLista; hayClave: boolean; grupos: Grupo[]; ciudades: string[]; tope: number; clavePublica?: string }) {
   const [listo, setListo] = useState(false);
   const [lista, setLista] = useState(inicial.prospectos);
@@ -344,6 +346,10 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
   const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null);
   const [mensaje, setMensaje] = useState(p.mensaje);
   const [notas, setNotas] = useState(p.notas);
+  const [tinte, setTinte] = useState(p.color);
+  useEffect(() => setTinte(p.color), [p.color]);
+  const [alias, setAlias] = useState(p.nombreMuestra);
+  useEffect(() => setAlias(p.nombreMuestra), [p.nombreMuestra]);
   const [monto, setMonto] = useState(String(p.precio));
   useEffect(() => setMonto(String(p.precio)), [p.precio]);
   const [copiado, setCopiado] = useState(false);
@@ -446,15 +452,32 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
           <label className="flex flex-wrap items-center gap-2 text-[13px]">
             <span className="text-suave">Plantilla de su muestra</span>
             <select value={p.plantilla} disabled={ocupado} aria-label="Plantilla"
-              onChange={(e) => void cambiar({ plantilla: e.target.value }, "Cambiando la plantilla", `Su muestra ahora es «${e.target.value === "grafico" ? "Gráfico" : "Sereno"}».`)}
+              onChange={(e) => void cambiar({ plantilla: e.target.value }, "Cambiando la plantilla", `Su muestra ahora es «${NOMBRE_PLANTILLA[e.target.value] ?? e.target.value}».`)}
               className={selector}>
-              <option value="sereno">Sereno · calma premium</option>
-              <option value="grafico">Gráfico · grilla y color</option>
+              {Object.entries(NOMBRE_PLANTILLA).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
             </select>
             {!p.plantillaElegida && <span className="text-[12px] text-suave">(salió sola; puedes cambiarla)</span>}
             <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>
           </label>
           {/* La propuesta (sistema/80): precio y «Aceptar». Va sola en el recordatorio; aquí para mandarla antes si preguntan el precio. */}
+          {/* Sus colores (sistema/85): se respeta el color del negocio; si no se sabe, va el de su rubro. */}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <label htmlFor={`color-${p.id}`} className="text-suave">Color de su marca</label>
+            <input id={`color-${p.id}`} type="color" value={tinte} disabled={ocupado} onChange={(e) => setTinte(e.target.value.toUpperCase())} className="h-10 w-12 cursor-pointer rounded-lg bg-transparent" />
+            <span className="font-mono text-[12px] text-medio">{tinte}</span>
+            <button type="button" disabled={ocupado || tinte === p.color} onClick={() => void cambiar({ color: tinte }, "Guardando el color", `Su muestra ahora usa ${tinte}.`)} className={botonChico}>Guardar color</button>
+            {p.colorOrigen === "mano" && <button type="button" disabled={ocupado} onClick={() => void cambiar({ color: null }, "Volviendo al color que sale solo", "Vuelve el color que sale solo.")} className="text-[12px] text-medio underline underline-offset-4">Usar el que sale solo</button>}
+            <span className="w-full text-[12px] text-suave">{p.colorOrigen === "mano" ? "Puesto a mano." : p.colorOrigen === "web" ? "Lo sacamos de su web." : "No sabemos su color: va el de su rubro. Si lo ves en su Instagram o su letrero, ponlo aquí."}</span>
+          </div>
+          {/* Cómo se le llama (sistema/83): el nombre de Google suele venir largo; aquí va el corto, y se puede corregir. */}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <label htmlFor={`alias-${p.id}`} className="text-suave">Nombre en su muestra</label>
+            <input id={`alias-${p.id}`} value={alias} maxLength={60} disabled={ocupado} onChange={(e) => setAlias(e.target.value)}
+              className="min-h-10 min-w-0 flex-1 rounded-full bg-hueso/70 px-4 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
+            <button type="button" disabled={ocupado || alias.trim().length < 3 || alias.trim() === p.nombreMuestra} onClick={() => void cambiar({ alias }, "Guardando el nombre", `En su muestra y en los mensajes ahora es «${alias.trim()}».`)} className={botonChico}>Guardar nombre</button>
+            {p.alias && <button type="button" disabled={ocupado} onClick={() => void cambiar({ alias: "" }, "Volviendo al nombre que sale solo", "Vuelve el nombre corto que sale solo.")} className="text-[12px] text-medio underline underline-offset-4">Usar el que sale solo</button>}
+            <span className="w-full text-[12px] text-suave">Así se le nombra en la muestra, la propuesta y los mensajes. Si editaste el mensaje a mano, cámbialo ahí también.</span>
+          </div>
           {/* Su precio (sistema/82): se cambia antes de mandar la propuesta; la muestra, la propuesta y el cobro lo usan. */}
           <div className="flex flex-wrap items-center gap-2 text-[13px]">
             <label htmlFor={`precio-${p.id}`} className="text-suave">Precio de su web</label>
