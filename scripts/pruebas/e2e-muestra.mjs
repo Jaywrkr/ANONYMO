@@ -98,7 +98,7 @@ try {
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
   exigir(await m.locator("text=Idea de web para Barbería Don Bigote, hecha por ANONYMO").count() === 1, "dice que es una idea y quién la hizo");
-  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() === 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
+  exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() >= 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
   exigir(await m.getByText("Lunes a domingo").count() === 1 && await m.getByText("10:00 – 20:00").count() >= 1 && await m.getByText("Los textos son de ejemplo.").count() === 1, "lleva su horario real de Google y solo los textos se dicen de ejemplo");
   exigir(await m.locator("text=USD 390 + IVA").count() === 1 && await m.locator("text=Lista en 7 días").count() === 1, "la barra dice plazo y precio");
   exigir((await m.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");

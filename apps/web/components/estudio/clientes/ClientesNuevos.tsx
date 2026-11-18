@@ -448,10 +448,10 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
           <label className="flex flex-wrap items-center gap-2 text-[13px]">
             <span className="text-suave">Plantilla de su muestra</span>
             <select value={p.plantilla} disabled={ocupado} aria-label="Plantilla"
-              onChange={(e) => void cambiar({ plantilla: e.target.value }, "Cambiando la plantilla", `Su muestra ahora es «${e.target.value === "grafico" ? "Gráfico" : "Sereno"}».`)}
+              onChange={(e) => void cambiar({ plantilla: e.target.value }, "Cambiando la plantilla", `Su muestra ahora es «${e.target.value === "grafico" ? "Color" : "Sereno"}».`)}
               className={selector}>
-              <option value="sereno">Sereno · calma premium</option>
-              <option value="grafico">Gráfico · grilla y color</option>
+              <option value="sereno">Sereno · calma y confianza</option>
+              <option value="grafico">Color · marco de color y nombre enorme</option>
             </select>
             {!p.plantillaElegida && <span className="text-[12px] text-suave">(salió sola; puedes cambiarla)</span>}
             <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>

@@ -35,6 +35,36 @@ const SERVICIOS: Record<Tono, string[]> = {
   otro: ["Lo que hacemos", "Cómo trabajamos", "Preguntas frecuentes", "Contacto"],
 };
 
+/** Servicios de ejemplo por oficio (sistema/84): «Ortodoncia» le dice más a un odontólogo que «Tratamientos». Cada uno con su línea. */
+const OFICIOS: [RegExp, [string, string][]][] = [
+  [/odont|dent|ortodon/, [["Limpieza y prevención", "Revisión, limpieza y un plan claro para tu boca."], ["Ortodoncia", "Brackets y alineadores, con controles cada mes."], ["Blanqueamiento", "Resultados que se notan desde la primera sesión."], ["Implantes y coronas", "Recupera tu sonrisa con piezas que duran."]]],
+  [/psic|terap(eu|ia) (individual|de pareja)|psiqu/, [["Terapia individual", "Un espacio para ti, a tu ritmo."], ["Terapia de pareja", "Para volver a entenderse y decidir juntos."], ["Niños y adolescentes", "Acompañamos a tu hijo y a la familia."], ["Sesiones en línea", "Desde donde estés, con la misma atención."]]],
+  [/pediat|neonat/, [["Control del niño sano", "Crecimiento, desarrollo y todas tus preguntas."], ["Vacunas", "El esquema al día, sin filas."], ["Recién nacidos", "Los primeros controles, con calma."], ["Consultas del día", "Si tu hijo amaneció mal, te vemos hoy."]]],
+  [/fisio|rehabil|kinesi|quiropr/, [["Lesiones y esguinces", "Vuelve a moverte sin dolor, paso a paso."], ["Terapia deportiva", "Para entrenar y competir sin recaer."], ["Espalda y cuello", "Alivio y ejercicios para que no vuelva."], ["Después de una cirugía", "Rehabilitación guiada hasta el alta."]]],
+  [/derma|est[eé]tica|piel|l[aá]ser/, [["Consulta dermatológica", "Diagnóstico claro y tratamiento a tu medida."], ["Acné y manchas", "Planes que se sostienen en el tiempo."], ["Medicina estética", "Resultados naturales, sin exagerar."], ["Láser", "Tecnología segura para tu tipo de piel."]]],
+  [/veterin/, [["Consulta general", "Revisión completa de tu mascota."], ["Vacunas y desparasitación", "Su carnet al día."], ["Cirugía", "Con anestesia segura y seguimiento."], ["Peluquería", "Baño y corte sin estrés."]]],
+  [/[oó]ptica|optom|oftalm/, [["Examen visual", "Medimos tu vista con equipos actuales."], ["Lentes y monturas", "Te ayudamos a elegir los tuyos."], ["Lentes de contacto", "Adaptación y controles."], ["Niños", "Revisiones desde la edad escolar."]]],
+  [/m[eé]dic|cl[ií]nica|ginec|cardi|traumat|nutri|gastro|urolog|otorrin|neum/, [["Consulta", "Te escuchamos y te explicamos tu diagnóstico."], ["Exámenes y controles", "Todo coordinado en un solo lugar."], ["Tratamientos", "Un plan claro, con seguimiento."], ["Citas por WhatsApp", "Elige día y hora desde tu celular."]]],
+  [/notar/, [["Escrituras", "Compraventas, hipotecas y promesas."], ["Poderes", "Generales y especiales, el mismo día."], ["Declaraciones juramentadas", "Rápidas y sin vueltas."], ["Reconocimiento de firmas", "Con cita o al paso."]]],
+  [/contab|contador|tribut|auditor/, [["Declaraciones al SRI", "Al día, sin multas ni sustos."], ["Contabilidad mensual", "Tus números claros cada mes."], ["Nómina e IESS", "Roles, aportes y contratos en orden."], ["Crear tu empresa", "Te acompañamos de principio a fin."]]],
+  [/abogad|legal|jur[ií]d|bufete/, [["Familia", "Divorcios, alimentos y tenencia."], ["Contratos y empresas", "Documentos que te protegen."], ["Laboral", "Despidos, liquidaciones y reclamos."], ["Tránsito y penal", "Te defendemos desde el primer momento."]]],
+  [/barber/, [["Corte", "Clásico o moderno, como lo pidas."], ["Barba", "Perfilado, navaja y toalla caliente."], ["Corte y barba", "El servicio completo."], ["Niños", "Con paciencia y buen pulso."]]],
+  [/spa|masaj/, [["Masajes", "Relajantes, descontracturantes y deportivos."], ["Faciales", "Limpieza profunda e hidratación."], ["Rituales para dos", "Un regalo que se recuerda."], ["Tarjetas de regalo", "Para quien necesita una pausa."]]],
+  [/u[ñn]as|manic/, [["Manicure", "Tradicional, semipermanente y acrílicas."], ["Pedicure", "Cuidado completo para tus pies."], ["Diseños", "A mano, a tu gusto."], ["Cejas y pestañas", "Perfilado, lifting y extensiones."]]],
+  [/peluquer|sal[oó]n|belleza|estilis/, [["Corte y peinado", "Para todos los días o para tu evento."], ["Color", "Tintes, mechas y balayage."], ["Tratamientos", "Keratina, hidratación y reparación."], ["Maquillaje", "Social, novias y quinceañeras."]]],
+  [/gimnas|gym|crossfit|pilates|yoga/, [["Clases", "Horarios desde temprano hasta la noche."], ["Entrenamiento personal", "Un plan hecho para ti."], ["Planes", "Mensual, trimestral y por clase."], ["Primera clase", "Ven a probar sin compromiso."]]],
+];
+
+/** Los servicios de ejemplo de este oficio, o undefined si no lo conocemos (entonces van los del rubro en general). */
+export const serviciosDeOficio = (rubro: string) => OFICIOS.find(([re]) => re.test(rubro.toLowerCase()))?.[1];
+
+const DETALLE_TONO: Record<Tono, string[]> = {
+  salud: ["Revisión completa y plan claro desde el primer día.", "Explicados paso a paso.", "Te acompañamos después de cada sesión.", "Elige día y hora desde tu celular."],
+  legal: ["Una primera reunión para entender tu caso.", "Documentos en orden y a tiempo.", "Te representamos con criterio y cercanía.", "Agenda en línea, sin llamadas."],
+  belleza: ["Hechos a tu medida, con calma.", "Combinaciones pensadas para ti.", "Lo mejor del mes, con precio especial.", "Escoge tu turno en un minuto."],
+  otro: ["Lo que mejor sabemos hacer.", "Simple, claro y a tiempo.", "Lo que siempre nos preguntan.", "Escríbenos y te respondemos hoy."],
+};
+
 const BAJADA: Record<Tono, (rubro: string, ciudad: string) => string> = {
   salud: (r, c) => `${r} en ${c}. Agenda tu cita en un minuto, sin llamar.`,
   legal: (r, c) => `${r} en ${c}. Te explicamos tu caso con claridad desde la primera reunión.`,
@@ -62,6 +92,8 @@ export interface ContenidoMuestra {
   /** Lo que dicen de sí mismos en su web, si Sonda lo encontró. */
   propia: boolean;
   servicios: string[];
+  /** Una línea por servicio, en el mismo orden («» si el servicio salió de su propia web). */
+  detalles: string[];
   estrellas?: number;
   resenas: number;
   telefono?: string;
@@ -107,7 +139,9 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
   const propias = (sonda?.secciones ?? [])
     .map((s) => s.trim())
     .filter((s) => s.length >= 3 && s.length <= 40 && !GENERICAS.test(s) && s.toLowerCase() !== p.nombre.toLowerCase());
-  const servicios = [...propias, ...SERVICIOS[tono].filter((s) => !propias.includes(s))].slice(0, 4);
+  const oficio = serviciosDeOficio(p.rubro) ?? SERVICIOS[tono].map((s, i): [string, string] => [s, DETALLE_TONO[tono][i] ?? ""]);
+  const pares: [string, string][] = [...propias.map((s): [string, string] => [s, ""]), ...oficio.filter(([s]) => !propias.includes(s))].slice(0, 4);
+  const servicios = pares.map(([s]) => s);
   const descripcion = sonda?.descripcion?.trim();
   return {
     plantilla: plantillaDe(p),
@@ -119,6 +153,7 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
     bajada: descripcion && descripcion.length <= 180 ? descripcion : BAJADA[tono](mayuscula(p.rubro), p.ciudad),
     propia: !!descripcion,
     servicios,
+    detalles: pares.map(([, d]) => d),
     estrellas: p.estrellas,
     resenas: p.resenas ?? 0,
     telefono: p.telefono,

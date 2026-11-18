@@ -77,8 +77,8 @@ export interface Prospecto {
 /** Las dos variantes de la muestra (sistema/79): calma premium o grilla gráfica. */
 export type PlantillaMuestra = "sereno" | "grafico";
 export const PLANTILLAS_MUESTRA: Record<PlantillaMuestra, { nombre: string; idea: string }> = {
-  sereno: { nombre: "Sereno", idea: "Papel cálido, serif liviana con una palabra en cursiva, bloques redondeados. Calma premium." },
-  grafico: { nombre: "Gráfico", idea: "Grilla suiza, secciones numeradas, un bloque de color fuerte y listas con líneas." },
+  sereno: { nombre: "Sereno", idea: "Papel claro, una serif suave y grande al centro y la imagen dentro de un arco. Calma y confianza." },
+  grafico: { nombre: "Color", idea: "Un marco del color de la marca, el nombre enorme, tarjetas redondeadas y un sello con su nota de Google." },
 };
 
 export interface ListaProspectos {

@@ -1,6 +1,4 @@
 // Una plantilla con un negocio de ejemplo (sistema/79): para verla en el estudio y para mostrarla sin datos reales.
-import "@fontsource/instrument-serif/latin-400.css";
-import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import type { PlantillaMuestra, Tono } from "@anonymo/pipeline";
 import { MuestraVariante } from "@/components/muestra/MuestraVariante";
