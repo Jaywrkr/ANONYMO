@@ -26,7 +26,7 @@ export function Serena({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; f
 
       <section className="mx-auto max-w-6xl px-5 pt-10 md:px-10 md:pt-16">
         <p className="text-[12px] uppercase tracking-[.18em]" style={{ color: k.acento }}>{c.rubro} — {c.ciudad}</p>
-        <h1 style={serif} className="mt-5 max-w-5xl text-[56px] leading-[.95] md:text-[104px]">{nombreConCursiva(c.nombre)}</h1>
+        <h1 style={serif} className={`mt-5 max-w-5xl leading-[.97] ${c.nombre.length > 34 ? "text-[38px] md:text-[68px]" : c.nombre.length > 20 ? "text-[46px] md:text-[84px]" : "text-[56px] md:text-[104px]"}`}>{nombreConCursiva(c.nombre)}</h1>
         <div className="mt-8 grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
           <p className="max-w-xl text-[18px] leading-relaxed" style={{ color: k.texto }}>{c.bajada}</p>
           <div className="flex flex-wrap gap-3">

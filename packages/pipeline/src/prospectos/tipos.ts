@@ -62,6 +62,8 @@ export interface Prospecto {
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
   /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la mitad «sereno» y la mitad «grafico», para comparar cuál responde mejor. */
   plantilla?: PlantillaMuestra;
+  /** Cómo se le llama en su muestra, su propuesta y los mensajes si el nombre corto que sale solo no convence (sistema/83). */
+  alias?: string;
   /** El precio de su web si no es el de la oferta (sistema/82), en dólares sin IVA. Lo pone Jay antes de mandar la propuesta. */
   precio?: number;
   /** Cuántas fotos subió el negocio a su muestra (sistema/82). Viven en `_fotos/<id de muestra>/` en la nube privada. */

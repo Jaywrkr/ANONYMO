@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { slug } from "../solicitudes.ts";
 import { GRUPOS_RUBRO, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
+import { nombreDe } from "./nombre.ts";
 
 /** El id de la muestra: el nombre y una huella del lugar. No hace falta guardarlo: siempre sale igual. */
 export function idMuestra(p: Pick<Prospecto, "id" | "nombre">) {
@@ -110,7 +111,7 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
   const descripcion = sonda?.descripcion?.trim();
   return {
     plantilla: plantillaDe(p),
-    nombre: p.nombre,
+    nombre: nombreDe(p),
     rubro: mayuscula(p.rubro),
     ciudad: p.ciudad,
     direccion: p.direccion,
@@ -169,8 +170,8 @@ export function tocaSeguimiento(p: Prospecto, ahora = new Date()) {
 }
 
 /** El recordatorio: corto, sin presión, con la muestra y la propuesta. */
-export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "muestra">, firma: string, muestra: string, propuesta: string) {
-  const vio = p.muestra?.vistas ? "Vi que alcanzaron a abrir la idea de web que les preparé." : `Hace unos días les mandé una idea de web para ${p.nombre}: ${muestra}`;
+export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "alias" | "muestra">, firma: string, muestra: string, propuesta: string) {
+  const vio = p.muestra?.vistas ? "Vi que alcanzaron a abrir la idea de web que les preparé." : `Hace unos días les mandé una idea de web para ${nombreDe(p)}: ${muestra}`;
   return `Hola de nuevo. ${vio} Si les interesa, aquí está la propuesta con precio, plazos y lo que incluye: ${propuesta}\n\nSi no es el momento, no hay problema. ¡Gracias!\n\n${firma}`;
 }
 

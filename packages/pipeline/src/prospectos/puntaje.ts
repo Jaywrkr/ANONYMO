@@ -1,5 +1,6 @@
 // Cuánto vale la pena escribirle a un negocio (0 a 100) y qué decirle (sistema/66). Sin IA: reglas fijas.
 import type { Prospecto } from "./tipos.ts";
+import { nombreDe } from "./nombre.ts";
 
 export interface Puntaje {
   puntaje: number;
@@ -64,7 +65,7 @@ export function mensajeInicial(p: Prospecto, firma: string, hoy = new Date(), mu
   else problema = `Vi su web y creo que puede verse mucho más profesional y traerles más ${SALUD.test(p.rubro) ? "pacientes" : "clientes"}.`;
   // Con muestra (sistema/72) el enlace va en el primer mensaje: es lo que hace que contesten.
   const oferta = muestra ? `Les preparé una idea de cómo podría verse su web, sin compromiso: ${muestra}` : "Les preparé una idea de cómo podría verse su web. ¿Se la puedo enviar por aquí?";
-  return `Hola, ¿qué tal? Vi ${p.nombre} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}`;
+  return `Hola, ¿qué tal? Vi ${nombreDe(p)} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}`;
 }
 
 /** Solo los dígitos, con el código de Ecuador: «099 123 4567» → «593991234567». */

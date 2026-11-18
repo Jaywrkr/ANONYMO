@@ -4,7 +4,7 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { buscarPorMuestra, idMuestraValido, leerProspectos, numeroInternacional, OFERTA, precio, precioDe } from "@anonymo/pipeline";
+import { buscarPorMuestra, idMuestraValido, leerProspectos, nombreDe, numeroInternacional, OFERTA, precio, precioDe } from "@anonymo/pipeline";
 import { portalActivo } from "@/lib/estudio";
 import { Aceptar } from "./Aceptar";
 
@@ -18,7 +18,7 @@ async function cargar(id: string) {
   const l = await leerProspectos();
   const p = buscarPorMuestra(l.prospectos, id);
   if (!p || p.estado === "descartado") return undefined;
-  return { nombre: p.nombre, monto: precioDe(p, OFERTA.web.precio), acepto: !!p.propuesta?.acepto, numero: numeroInternacional(l.numero) };
+  return { nombre: nombreDe(p), monto: precioDe(p, OFERTA.web.precio), acepto: !!p.propuesta?.acepto, numero: numeroInternacional(l.numero) };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

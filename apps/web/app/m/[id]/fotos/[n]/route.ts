@@ -1,6 +1,6 @@
 // Las fotos que el negocio pone en su muestra (sistema/82).
 // POST: el negocio sube una (ya achicada a JPEG en su navegador). GET: la muestra la enseña. Viven en la nube privada, no en Vercel.
-import { anotarError, anotarFoto, buscarPorMuestra, cambiarProspectos, fotoValida, FOTO_BYTES_MAX, FOTOS_MAX, idMuestraValido, leerProspectos, leerSuelto, rutaFoto, subirSuelto } from "@anonymo/pipeline";
+import { anotarError, nombreDe, anotarFoto, buscarPorMuestra, cambiarProspectos, fotoValida, FOTO_BYTES_MAX, FOTOS_MAX, idMuestraValido, leerProspectos, leerSuelto, rutaFoto, subirSuelto } from "@anonymo/pipeline";
 import { portalActivo } from "@/lib/estudio";
 import { avisarCelulares } from "@/lib/avisos-celular";
 import { BOT, frenar } from "@/lib/freno";
@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await subirSuelto(rutaFoto(id, k), b, "image/jpeg");
     const { valor } = await cambiarProspectos((l) => {
       const p = buscarPorMuestra(l.prospectos, id);
-      return p ? { ...anotarFoto(p, k, total), nombre: p.nombre } : undefined;
+      return p ? { ...anotarFoto(p, k, total), nombre: nombreDe(p) } : undefined;
     });
     if (valor?.avisar) await avisarCelulares({ titulo: `${valor.nombre} subió sus fotos`, texto: "Está armando su muestra con sus propias fotos. Buen momento para escribirle.", url: "/estudio/clientes/tanda" });
     return Response.json({ ok: true }, { headers: { "cache-control": "no-store" } });

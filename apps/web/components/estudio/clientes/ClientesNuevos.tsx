@@ -344,6 +344,8 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
   const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null);
   const [mensaje, setMensaje] = useState(p.mensaje);
   const [notas, setNotas] = useState(p.notas);
+  const [alias, setAlias] = useState(p.nombreMuestra);
+  useEffect(() => setAlias(p.nombreMuestra), [p.nombreMuestra]);
   const [monto, setMonto] = useState(String(p.precio));
   useEffect(() => setMonto(String(p.precio)), [p.precio]);
   const [copiado, setCopiado] = useState(false);
@@ -455,6 +457,15 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             <Link href="/estudio/clientes/plantillas" className="text-[12px] text-medio underline underline-offset-4">Ver las plantillas</Link>
           </label>
           {/* La propuesta (sistema/80): precio y «Aceptar». Va sola en el recordatorio; aquí para mandarla antes si preguntan el precio. */}
+          {/* Cómo se le llama (sistema/83): el nombre de Google suele venir largo; aquí va el corto, y se puede corregir. */}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <label htmlFor={`alias-${p.id}`} className="text-suave">Nombre en su muestra</label>
+            <input id={`alias-${p.id}`} value={alias} maxLength={60} disabled={ocupado} onChange={(e) => setAlias(e.target.value)}
+              className="min-h-10 min-w-0 flex-1 rounded-full bg-hueso/70 px-4 text-[14px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]" />
+            <button type="button" disabled={ocupado || alias.trim().length < 3 || alias.trim() === p.nombreMuestra} onClick={() => void cambiar({ alias }, "Guardando el nombre", `En su muestra y en los mensajes ahora es «${alias.trim()}».`)} className={botonChico}>Guardar nombre</button>
+            {p.alias && <button type="button" disabled={ocupado} onClick={() => void cambiar({ alias: "" }, "Volviendo al nombre que sale solo", "Vuelve el nombre corto que sale solo.")} className="text-[12px] text-medio underline underline-offset-4">Usar el que sale solo</button>}
+            <span className="w-full text-[12px] text-suave">Así se le nombra en la muestra, la propuesta y los mensajes. Si editaste el mensaje a mano, cámbialo ahí también.</span>
+          </div>
           {/* Su precio (sistema/82): se cambia antes de mandar la propuesta; la muestra, la propuesta y el cobro lo usan. */}
           <div className="flex flex-wrap items-center gap-2 text-[13px]">
             <label htmlFor={`precio-${p.id}`} className="text-suave">Precio de su web</label>

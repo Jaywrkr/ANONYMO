@@ -5,3 +5,4 @@ export * from "./revisar-web.ts";
 export * from "./buscar-lugares.ts";
 export * from "./almacen-prospectos.ts";
 export * from "./muestra.ts";
+export * from "./nombre.ts";

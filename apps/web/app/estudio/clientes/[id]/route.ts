@@ -23,6 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     cambio.precio = c.precio as number | null;
   }
   if (c.quitarFotos === true) cambio.quitarFotos = true;
+  if (typeof c.alias === "string") cambio.alias = c.alias;
   if (c.plantilla === "sereno" || c.plantilla === "grafico") cambio.plantilla = c.plantilla;
   if (typeof c.mensaje === "string" || c.mensaje === null) cambio.mensaje = c.mensaje as string | null;
   try {

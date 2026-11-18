@@ -1,6 +1,6 @@
 // El negocio abrió su propuesta o tocó «Aceptar» (sistema/80): se anota en su historial y suena el celular de Jay y Luna.
 // Si quien la abre es Jay o Luna con sesión en el estudio, no cuenta. Mismo freno que la muestra.
-import { anotarError, anotarPropuesta, buscarPorMuestra, cambiarProspectos, idMuestraValido } from "@anonymo/pipeline";
+import { anotarError, anotarPropuesta, nombreDe, buscarPorMuestra, cambiarProspectos, idMuestraValido } from "@anonymo/pipeline";
 import { portalActivo, quienEsta } from "@/lib/estudio";
 import { avisarCelulares } from "@/lib/avisos-celular";
 import { BOT, frenar, nada } from "@/lib/freno";
@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { valor } = await cambiarProspectos((l) => {
       const p = buscarPorMuestra(l.prospectos, id);
       if (!p || p.estado === "descartado") return undefined;
-      return { ...anotarPropuesta(p, accion), nombre: p.nombre };
+      return { ...anotarPropuesta(p, accion), nombre: nombreDe(p) };
     });
     if (valor?.avisar) {
       await avisarCelulares(accion === "acepto"

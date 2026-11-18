@@ -78,7 +78,7 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
 /** Los que tienen web y todavía no se revisaron. */
 export const porRevisar = (l: ListaProspectos) => Object.values(l.prospectos).filter((p) => p.web && !p.revision);
 
-export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean; precio?: number | null; quitarFotos?: boolean }
+export interface CambioProspecto { estado?: EstadoProspecto; notas?: string; mensaje?: string | null; proyecto?: string; plantilla?: PlantillaMuestra; seguimiento?: boolean; precio?: number | null; quitarFotos?: boolean; alias?: string }
 
 /** Un precio a mano: dólares enteros, dentro de lo razonable para no mandar un cero de más. */
 export const PRECIO_MIN = 100;
@@ -98,6 +98,10 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
     if (c.precio !== null && !precioValido(c.precio)) throw new Error(`El precio va entre ${PRECIO_MIN} y ${PRECIO_MAX} dólares, sin centavos.`);
     p.precio = c.precio ?? undefined;
     anotar(c.precio === null ? "Su propuesta volvió al precio de la oferta" : `Su propuesta pasó a USD ${c.precio}`);
+  }
+  if (c.alias !== undefined && (c.alias.trim() || undefined) !== p.alias) {
+    p.alias = c.alias.replace(/\s+/g, " ").trim().slice(0, 60) || undefined;
+    anotar(p.alias ? `En su muestra ahora se llama «${p.alias}»` : "Su muestra volvió al nombre corto que sale solo");
   }
   if (c.quitarFotos && p.fotos) { p.fotos = undefined; anotar("Se quitaron las fotos de su muestra"); }
   if (c.seguimiento && !p.seguimiento) { p.seguimiento = ahora; anotar("Se le mandó el seguimiento"); }

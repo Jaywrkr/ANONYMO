@@ -1,7 +1,7 @@
 // Seguimiento a los 3 días y propuesta con «Aceptar» (sistema/80).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
+import { nombreCorto, nombreDe, mensajeInicial, anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
 
 const dia = 24 * 60 * 60 * 1000;
 const base = (x: Partial<Prospecto> = {}): Prospecto => ({
@@ -98,4 +98,31 @@ test("las fotos del negocio: solo JPEG de tamaño razonable, y la última de la 
   assert.equal(p.fotos, 1, "si vuelve a subir una sola, queda una");
   aplicarCambio(p, { quitarFotos: true }, "jay");
   assert.equal(p.fotos, undefined);
+});
+
+test("los nombres de Google se acortan para la muestra y los mensajes (sistema/83)", () => {
+  const casos: [string, string][] = [
+    ["Dr.JUAN CARLOS AVILA CARRERA. Medico, Psicologo Clinico, Master en Psicofarmacologia en Cuenca Ecuador", "Dr. Juan Carlos Avila Carrera"],
+    ["SKIN CLINIC • DERMATOLOGÍA, MEDICINA ESTÉTICA AVANZADA Y LÁSER • TIENDA DERMATOLÓGICA•", "Skin Clinic"],
+    ["Psicóloga María Agusta Vega | Psicoterapia individual", "Psicóloga María Agusta Vega"],
+    ["Dra. Karina Díaz I Kadira I Medicina Estética", "Dra. Karina Díaz"],
+    ["ZAHOFER | Ortodoncia en Cuenca", "Zahofer"],
+    ["Pediatra Stephany Galindo - Cuenca", "Pediatra Stephany Galindo"],
+    ['Cuenca "SMILE Factory" Odontología Integral Especializada', "Smile Factory"],
+    ["Neumóloga pediatra Dra. Angela Pesántez Abril", "Dra. Angela Pesántez Abril"],
+    ["Clínica de Especialidades ALELI", "Clínica de Especialidades Aleli"],
+    ["Fisioterapia EN MOVIMIENTO", "Fisioterapia en Movimiento"],
+    ["Dentalcenter Odontología Cuenca", "Dentalcenter Odontología"],
+    // Los que ya están bien no se tocan.
+    ["Barbería Don Bigote", "Barbería Don Bigote"], ["Dr. Paul Escalante Canto", "Dr. Paul Escalante Canto"], ["SPA Luna", "SPA Luna"], ["Notaría Vega", "Notaría Vega"],
+  ];
+  for (const [de, a] of casos) assert.equal(nombreCorto(de), a);
+  assert.ok(casos.every(([de]) => nombreCorto(de).length <= 48));
+  const p = base({ nombre: casos[0]![0] });
+  assert.match(mensajeInicial(p, "Jay"), /Vi Dr\. Juan Carlos Avila Carrera en Google Maps/);
+  assert.equal(contenidoMuestra(p).nombre, "Dr. Juan Carlos Avila Carrera");
+  aplicarCambio(p, { alias: "  Dr. Juan Carlos Ávila " }, "jay");
+  assert.equal(nombreDe(p), "Dr. Juan Carlos Ávila", "lo que escribe Jay manda");
+  aplicarCambio(p, { alias: "" }, "jay");
+  assert.equal(p.alias, undefined);
 });

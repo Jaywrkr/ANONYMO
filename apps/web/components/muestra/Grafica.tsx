@@ -29,7 +29,8 @@ export function Grafica({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
           <nav className="hidden gap-6 md:flex"><a href="#servicios">Servicios</a><a href="#datos">Datos</a><a href="#visitanos">Visítanos</a></nav>
           <button type="button" data-demo className="min-h-10 rounded-none px-4 text-[13px] font-medium" style={{ background: k.sobreAcento, color: k.acento }}>Agendar →</button>
         </header>
-        <h1 className="break-words text-[clamp(56px,12.5vw,190px)] font-medium leading-[.88] tracking-[-0.045em]">{c.nombre}</h1>
+        {/* El tamaño baja con el largo del nombre (sistema/83): uno largo no puede comerse la pantalla. */}
+        <h1 className={`break-words font-medium leading-[.9] tracking-[-0.045em] ${c.nombre.length > 34 ? "text-[clamp(36px,6.4vw,96px)]" : c.nombre.length > 20 ? "text-[clamp(44px,9vw,136px)]" : "text-[clamp(56px,12.5vw,190px)]"}`}>{c.nombre}</h1>
         <div className="grid gap-6 md:grid-cols-[1fr_1.2fr_auto] md:items-end">
           <p className="text-[13px] uppercase tracking-[.08em] opacity-80">{c.rubro} · {c.ciudad}</p>
           <p className="max-w-lg text-[18px] leading-snug">{c.bajada}</p>
@@ -109,7 +110,7 @@ export function Grafica({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
       {/* El nombre gigante al final: la firma de la página. */}
       <footer className="overflow-hidden" style={{ background: k.tinta, color: k.fondo }}>
         <div className="flex justify-between px-5 pt-6 text-[12px] md:px-10"><span>© {new Date().getFullYear()} {c.nombre}</span><span>{c.ciudad}</span></div>
-        <p aria-hidden className="mt-6 break-words px-5 pb-6 text-[clamp(56px,12.5vw,190px)] font-medium leading-[.85] tracking-[-0.045em] md:px-10">{c.nombre}</p>
+        <p aria-hidden className={`mt-6 break-words px-5 pb-6 font-medium leading-[.88] tracking-[-0.045em] md:px-10 ${c.nombre.length > 34 ? "text-[clamp(36px,6.4vw,96px)]" : c.nombre.length > 20 ? "text-[clamp(44px,9vw,136px)]" : "text-[clamp(56px,12.5vw,190px)]"}`}>{c.nombre}</p>
       </footer>
     </div>
   );
