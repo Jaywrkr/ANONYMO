@@ -10,6 +10,8 @@ export interface Lugar {
   web?: string;
   telefono?: string;
   mapa?: string;
+  /** El horario que el negocio tiene en Google (sistema/81), una línea por día: «lunes: 9:00–18:00». */
+  horario?: string[];
 }
 
 const CAMPOS = [
@@ -23,6 +25,8 @@ const CAMPOS = [
   "places.internationalPhoneNumber",
   "places.googleMapsUri",
   "places.businessStatus",
+  // Mismo precio que el teléfono y las estrellas (Text Search Enterprise): no sube el costo.
+  "places.regularOpeningHours.weekdayDescriptions",
   "nextPageToken",
 ].join(",");
 
@@ -43,6 +47,7 @@ interface RespuestaPlaces {
     internationalPhoneNumber?: string;
     googleMapsUri?: string;
     businessStatus?: string;
+    regularOpeningHours?: { weekdayDescriptions?: string[] };
   }[];
   nextPageToken?: string;
   error?: { message?: string };
@@ -77,6 +82,7 @@ export async function buscarLugares(busqueda: string, ciudad: string, paginas = 
         web: p.websiteUri,
         telefono: p.internationalPhoneNumber ?? p.nationalPhoneNumber,
         mapa: p.googleMapsUri,
+        horario: p.regularOpeningHours?.weekdayDescriptions?.length === 7 ? p.regularOpeningHours.weekdayDescriptions.map((d) => d.slice(0, 80)) : undefined,
       });
     }
     pagina = j.nextPageToken;

@@ -9,7 +9,7 @@ export function MuestraVariante({ c }: { c: ContenidoMuestra }) {
   return (
     <div className="font-sans" data-plantilla={c.plantilla}>
       <p className="px-5 py-2 text-center text-[12px]" style={{ background: k.tinta, color: k.fondo }}>
-        Idea de web para {c.nombre}, hecha por ANONYMO. Los textos y el horario son de ejemplo.
+        Idea de web para {c.nombre}, hecha por ANONYMO. {c.horarioReal ? "Los textos son de ejemplo." : "Los textos y el horario son de ejemplo."}
       </p>
       {c.plantilla === "grafico" ? <Grafica c={c} k={k} /> : <Serena c={c} k={k} />}
     </div>

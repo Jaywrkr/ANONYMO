@@ -51,6 +51,13 @@ Cada rubro tiene su paleta. Para cambiarla en un negocio: «Más» → «Plantil
 - Cuando el negocio la abre, suena el celular. Si toca **Aceptar**, suena otra vez, pasa a «Respondió», queda primero en «Ahora mismo» y se abre el WhatsApp de ANONYMO con «acepto la propuesta». Lo siguiente es cobrar el 50 % y convertirlo en pedido.
 - En cada negocio, «Más» → «Su propuesta» para mandarla antes si preguntan el precio.
 
+## Cerrar la venta (sistema/81)
+
+- La muestra lleva el **horario real** del negocio (el de Google). Si Google no lo tiene, va uno de ejemplo y la franja de arriba lo dice.
+- En el recordatorio de la tanda, **Ya respondió** lo pasa a «Respondió» y no se le recuerda.
+- Cuando alguien acepta la propuesta, «Ahora mismo» ofrece **Cobrar el 50 %** (abre su WhatsApp con el monto) y **Crear el pedido**.
+- Clientes → Plantillas → **Cuál funciona mejor**: enviadas, abiertas, «quiero» y aceptadas por plantilla. Espera unas 40 enviadas antes de decidir.
+
 ## Puntaje (0 a 100)
 
 Sin IA, reglas fijas en `packages/pipeline/src/prospectos/puntaje.ts`:

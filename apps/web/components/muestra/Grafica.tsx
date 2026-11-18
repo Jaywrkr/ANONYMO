@@ -1,7 +1,7 @@
 // Muestra «Gráfico» (sistema/79): grilla suiza. Un bloque de color fuerte, secciones numeradas, listas con líneas
 // y el nombre gigante al final. Referencias: Obys (New Layer Capital), Virtu Legal, St Kilda (Savee → ANONYMO → Muestras).
 import type { ContenidoMuestra } from "@anonymo/pipeline";
-import { DETALLE, FRASE, HORARIO_EJEMPLO, RAZONES, type Paleta } from "./estilos";
+import { DETALLE, FRASE, RAZONES, type Paleta } from "./estilos";
 
 function Seccion({ n, titulo, k, children, id }: { n: number; titulo: string; k: Paleta; children: React.ReactNode; id?: string }) {
   return (
@@ -88,7 +88,7 @@ export function Grafica({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
             </div>
           </div>
           <dl className="grid content-start">
-            {HORARIO_EJEMPLO.map(([d, h]) => <div key={d} className="flex justify-between gap-4 py-3 text-[16px]" style={{ borderTop: `1px solid ${k.linea}` }}><dt style={{ color: k.texto }}>{d}</dt><dd>{h}</dd></div>)}
+            {c.horario.map(([d, h]) => <div key={d} className="flex justify-between gap-4 py-3 text-[16px]" style={{ borderTop: `1px solid ${k.linea}` }}><dt style={{ color: k.texto }}>{d}</dt><dd className="text-right">{h}</dd></div>)}
           </dl>
         </div>
       </Seccion>

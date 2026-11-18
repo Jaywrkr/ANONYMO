@@ -65,7 +65,7 @@ export function sumarLugares(l: ListaProspectos, lugares: Lugar[], rubro: string
     const ya = l.prospectos[x.id];
     if (ya) {
       const webCambio = (ya.web ?? "") !== (x.web ?? "");
-      Object.assign(ya, { nombre: x.nombre, direccion: x.direccion, estrellas: x.estrellas, resenas: x.resenas, web: x.web, telefono: x.telefono, mapa: x.mapa });
+      Object.assign(ya, { nombre: x.nombre, direccion: x.direccion, estrellas: x.estrellas, resenas: x.resenas, web: x.web, telefono: x.telefono, mapa: x.mapa, horario: x.horario ?? ya.horario });
       if (webCambio) ya.revision = undefined;
       continue;
     }

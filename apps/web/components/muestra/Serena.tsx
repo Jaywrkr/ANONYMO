@@ -1,7 +1,7 @@
 // Muestra «Sereno» (sistema/79): calma premium. Papel cálido, serif liviana con una palabra en cursiva,
 // bloques redondeados y mucho aire. Referencias: Aesop, Oura, Monist, Radiant (Savee → ANONYMO → Muestras).
 import type { ContenidoMuestra } from "@anonymo/pipeline";
-import { DETALLE, FRASE, HORARIO_EJEMPLO, RAZONES, iniciales, type Paleta } from "./estilos";
+import { DETALLE, FRASE, RAZONES, iniciales, type Paleta } from "./estilos";
 
 const serif = { fontFamily: "'Instrument Serif', Georgia, serif" };
 
@@ -41,8 +41,8 @@ export function Serena({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
         <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] sm:aspect-[16/8]" style={{ background: `radial-gradient(120% 120% at 15% 0%, ${k.suave} 0%, ${k.acento} 75%, ${k.tinta} 120%)` }}>
           <span className="absolute -bottom-[0.18em] right-6 select-none leading-none opacity-90" style={{ ...serif, fontSize: "clamp(14rem, 34vw, 30rem)", color: k.fondo }}>{iniciales(c.nombre).slice(0, 1)}</span>
           <div className="absolute bottom-5 left-5 rounded-2xl px-5 py-4 text-[13px] backdrop-blur" style={{ background: `${k.fondo}e6`, color: k.tinta }}>
-            <p className="uppercase tracking-[.14em]" style={{ color: k.acento }}>Abierto hoy</p>
-            <p className="mt-1">{HORARIO_EJEMPLO[0][1]}</p>
+            <p className="uppercase tracking-[.14em]" style={{ color: k.acento }}>{c.hoy === "Cerrado" ? "Hoy" : "Abierto hoy"}</p>
+            <p className="mt-1">{c.hoy}</p>
           </div>
         </div>
       </section>
@@ -92,7 +92,7 @@ export function Serena({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
           <p className="text-[12px] uppercase tracking-[.18em]" style={{ color: k.acento }}>Visítanos</p>
           <p className="mt-3 text-[17px]">{c.direccion || c.ciudad}</p>
           <dl className="mt-6 grid gap-2 text-[15px]">
-            {HORARIO_EJEMPLO.map(([d, h]) => <div key={d} className="flex justify-between gap-4 pb-2" style={{ borderBottom: `1px solid ${k.linea}` }}><dt style={{ color: k.texto }}>{d}</dt><dd>{h}</dd></div>)}
+            {c.horario.map(([d, h]) => <div key={d} className="flex justify-between gap-4 pb-2" style={{ borderBottom: `1px solid ${k.linea}` }}><dt style={{ color: k.texto }}>{d}</dt><dd className="text-right">{h}</dd></div>)}
           </dl>
           {c.mapa ? <a href={c.mapa} target="_blank" rel="noreferrer" className="mt-6 inline-block text-[15px] underline underline-offset-4">Abrir en Google Maps</a> : null}
         </div>

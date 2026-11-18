@@ -43,6 +43,8 @@ export interface Prospecto {
   web?: string;
   telefono?: string;
   mapa?: string;
+  /** Su horario en Google, una línea por día empezando en lunes (sistema/81). */
+  horario?: string[];
   revision?: RevisionWeb;
   estado: EstadoProspecto;
   notas?: string;

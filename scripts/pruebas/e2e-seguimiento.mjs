@@ -27,6 +27,7 @@ const prospecto = (id, nombre, telefono, estado, contactado) => ({
 const lista = {
   actualizado: new Date().toISOString(), firma: "Jay, de ANONYMO", numero: "099 555 0000",
   prospectos: {
+    "seg-cero": prospecto("seg-cero", "Notaría Calla", "099 111 0009", "contactado", 5),
     "seg-uno": prospecto("seg-uno", "Notaría Vega", "099 111 0010", "contactado", 4),
     "seg-dos": prospecto("seg-dos", "Notaría Ayer", "099 111 0011", "contactado", 1),
     "seg-tres": prospecto("seg-tres", "Notaría Nueva", "099 111 0012", "nuevo"),
@@ -65,6 +66,10 @@ try {
   // 1 · La tanda empieza por el recordatorio.
   await p.goto(`${B}/estudio/clientes/tanda`);
   const tarjeta = p.locator("article");
+  // El más antiguo ya contestó por WhatsApp: se anota y no se le recuerda (sistema/81).
+  exigir(/Notaría Calla/.test(await tarjeta.innerText()) && /hace 5 días/.test(await tarjeta.innerText()), "primero el recordatorio más antiguo");
+  await p.click("button:has-text('Ya respondió')");
+  exigir(await espera(p.locator("[role=status]:has-text('Notaría Calla queda como «Respondió»')")), "«Ya respondió» lo anota y no le recuerda");
   exigir(/Notaría Vega/.test(await tarjeta.innerText()) && /Recordatorio · le escribiste hace 4 días/.test(await tarjeta.innerText()), "la tanda empieza por el recordatorio de hace 4 días");
   const texto = await tarjeta.innerText();
   const propuesta = texto.match(/http:\/\/127\.0\.0\.1:3100\/p\/[a-z0-9-]+/)?.[0];
@@ -109,8 +114,18 @@ try {
   await p.goto(`${B}/estudio/clientes/nuevos`);
   exigir(/Notaría Vega aceptó la propuesta/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "«Ahora mismo» dice quién aceptó la propuesta");
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  const ahora = p.locator("section[aria-label='Ahora mismo']");
+  const cobro = await ahora.locator("a:has-text('Cobrar el 50 %')").getAttribute("href");
+  exigir(!!cobro && cobro.includes("593991110010") && decodeURIComponent(cobro).includes("USD 195 + IVA (50 %)"), "ofrece cobrar el 50 % con el mensaje listo");
+  exigir((await ahora.locator("a:has-text('Crear el pedido')").getAttribute("href"))?.startsWith("/estudio/nuevo?"), "y crear el pedido de un toque");
   exigir(await p.locator("ul[aria-label=Negocios] li", { hasText: "Notaría Vega" }).locator("text=Aceptó la propuesta").count() >= 1, "y la tarjeta lo marca");
   exigir(await p.evaluate(() => document.documentElement.scrollWidth) <= 392, "el escritorio sigue cabiendo en celular");
+
+  // 4 · La tabla de plantillas cuenta lo enviado.
+  await p.goto(`${B}/estudio/clientes/plantillas`);
+  const tabla = p.locator("section[aria-label='Cuál funciona mejor']");
+  exigir(await tabla.locator("tbody tr").count() === 2 && /Aceptaron/.test(await tabla.innerText()) && /Con 3 enviadas todavía es pronto/.test(await tabla.innerText()), "la tabla compara las dos plantillas con lo enviado");
+  exigir(await p.evaluate(() => document.documentElement.scrollWidth) <= 392, "y cabe en celular");
 
   const fuera = await nav.newContext();
   exigir((await (await fuera.newPage()).goto(`${B}/p/no-existe-123`))?.status() === 404, "una propuesta que no existe da 404");

@@ -65,11 +65,43 @@ export interface ContenidoMuestra {
   resenas: number;
   telefono?: string;
   mapa?: string;
+  /** El horario, ya agrupado («Lunes a viernes», «9:00 – 18:00»). Si no es el de Google, es de ejemplo y la muestra lo dice. */
+  horario: [string, string][];
+  horarioReal: boolean;
+  /** Lo de hoy en Cuenca: «9:00 – 18:00» o «Cerrado». */
+  hoy: string;
 }
 
+export const HORARIO_EJEMPLO: [string, string][] = [["Lunes a viernes", "9:00 – 18:00"], ["Sábado", "9:00 – 13:00"]];
+const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+/** «lunes: 9:00–13:00, 15:00–19:00» → «9:00 – 13:00 y 15:00 – 19:00». */
+const horasDe = (linea: string) => {
+  const h = linea.slice(linea.indexOf(":") + 1).trim().replace(/[\u2009\u202f]/g, " ").replace(/\s*[–-]\s*/g, " – ").replace(/,\s*/g, " y ");
+  return /cerrado|closed/i.test(h) || !h ? "Cerrado" : /24 horas|open 24/i.test(h) ? "Abierto 24 horas" : h;
+};
+
+/** Agrupa los días seguidos con las mismas horas: 7 líneas de Google quedan en 2 o 3. Los días cerrados no se listan. */
+export function agruparHorario(dias?: string[]): [string, string][] | undefined {
+  if (!dias || dias.length !== 7) return undefined;
+  const horas = dias.map(horasDe);
+  const grupos: [string, string][] = [];
+  for (let i = 0; i < 7; ) {
+    let j = i;
+    while (j + 1 < 7 && horas[j + 1] === horas[i]) j++;
+    if (horas[i] !== "Cerrado") grupos.push([j === i ? DIAS[i]! : j === i + 1 ? `${DIAS[i]} y ${DIAS[j]!.toLowerCase()}` : `${DIAS[i]} a ${DIAS[j]!.toLowerCase()}`, horas[i]!]);
+    i = j + 1;
+  }
+  return grupos.length ? grupos : undefined;
+}
+
+/** El día de la semana en Cuenca, lunes = 0. */
+const diaCuenca = (ahora: Date) => (new Date(ahora.toLocaleString("en-US", { timeZone: "America/Guayaquil" })).getDay() + 6) % 7;
+
 /** Lo que muestra la página: nada inventado sobre el negocio salvo textos de ejemplo, que se dicen como tales. */
-export function contenidoMuestra(p: Prospecto): ContenidoMuestra {
+export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMuestra {
   const tono = tonoDe(p.rubro);
+  const real = agruparHorario(p.horario);
   const sonda = p.revision?.estado === "ok" ? p.revision.sonda : undefined;
   const propias = (sonda?.secciones ?? [])
     .map((s) => s.trim())
@@ -90,6 +122,9 @@ export function contenidoMuestra(p: Prospecto): ContenidoMuestra {
     resenas: p.resenas ?? 0,
     telefono: p.telefono,
     mapa: p.mapa,
+    horario: real ?? HORARIO_EJEMPLO,
+    horarioReal: !!real,
+    hoy: real ? horasDe(p.horario![diaCuenca(ahora)]!) : HORARIO_EJEMPLO[0]![1],
   };
 }
 
@@ -137,6 +172,27 @@ export function tocaSeguimiento(p: Prospecto, ahora = new Date()) {
 export function mensajeSeguimiento(p: Pick<Prospecto, "nombre" | "muestra">, firma: string, muestra: string, propuesta: string) {
   const vio = p.muestra?.vistas ? "Vi que alcanzaron a abrir la idea de web que les preparé." : `Hace unos días les mandé una idea de web para ${p.nombre}: ${muestra}`;
   return `Hola de nuevo. ${vio} Si les interesa, aquí está la propuesta con precio, plazos y lo que incluye: ${propuesta}\n\nSi no es el momento, no hay problema. ¡Gracias!\n\n${firma}`;
+}
+
+/** El mensaje para cobrar el primer pago a quien aceptó (sistema/81). No lleva datos bancarios: los pasa Jay en el chat. */
+export function mensajeCobro(nombre: string, firma: string, total: number, conIva: boolean) {
+  const mitad = Math.round(total / 2);
+  return `¡Gracias por aceptar la propuesta! Para empezar la web de ${nombre}, el primer pago es USD ${mitad}${conIva ? " + IVA" : ""} (50 %). ¿Te paso los datos para la transferencia?\n\n${firma}`;
+}
+
+/** Cómo le va a cada plantilla (sistema/81): de las muestras enviadas, cuántas se abrieron, pidieron la web y aceptaron. */
+export function resultadosPlantillas(prospectos: Prospecto[]) {
+  const fila = () => ({ enviadas: 0, abiertas: 0, quieren: 0, aceptaron: 0 });
+  const r: Record<PlantillaMuestra, ReturnType<typeof fila>> = { sereno: fila(), grafico: fila() };
+  for (const p of prospectos) {
+    if (!contactadoEn(p)) continue;
+    const f = r[plantillaDe(p)];
+    f.enviadas++;
+    if (p.muestra?.vistas) f.abiertas++;
+    if (p.muestra?.quiere) f.quieren++;
+    if (p.propuesta?.acepto) f.aceptaron++;
+  }
+  return r;
 }
 
 /** Abrió su propuesta o tocó «Aceptar». Devuelve si hay que avisar. */

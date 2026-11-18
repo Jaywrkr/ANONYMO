@@ -35,9 +35,9 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
   const reemplazar = (p: VistaProspecto) => setLista((l) => l.map((x) => (x.id === p.id ? p : x)));
   const siguiente = () => { setCola((c) => c.slice(1)); setVerTodo(false); };
 
-  async function marcar(estado: "contactado" | "descartado", hecho: string) {
+  async function marcar(estado: "contactado" | "descartado" | "respondio", hecho: string) {
     if (!actual || ocupado) return;
-    setGuardando(estado === "contactado" ? "Marcando como enviado" : "Descartando");
+    setGuardando(estado === "contactado" ? "Marcando como enviado" : estado === "respondio" ? "Anotando que respondió" : "Descartando");
     setAviso(null);
     try {
       // Un recordatorio no cambia el estado: solo anota que se mandó.
@@ -132,7 +132,9 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
               className={`inline-flex min-h-14 items-center justify-center rounded-2xl bg-[#25d366] text-[16px] font-medium text-black ${ocupado ? "pointer-events-none opacity-60" : ""}`}>
               {esSeguir ? "Enviar recordatorio" : "Enviar por WhatsApp"}{tecla("E")}
             </a>
-            <div className="grid grid-cols-2 gap-2">
+            <div className={`grid gap-2 ${esSeguir ? "grid-cols-3" : "grid-cols-2"}`}>
+              {/* Si ya contestó por WhatsApp, no se le recuerda (sistema/81). */}
+              {esSeguir && <button type="button" onClick={() => void marcar("respondio", `${actual.nombre} queda como «Respondió». No se le recuerda.`)} disabled={ocupado} className="min-h-11 rounded-2xl bg-[#e6f6ee] text-[14px] text-[#17714a] disabled:opacity-50">Ya respondió</button>}
               <button type="button" onClick={saltar} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] disabled:opacity-50">Saltar{tecla("S")}</button>
               <button type="button" onClick={() => void marcar("descartado", `${actual.nombre} quedó descartado.`)} disabled={ocupado} className="min-h-11 rounded-2xl bg-hueso text-[14px] text-[#a33a0b] disabled:opacity-50">Descartar{tecla("D")}</button>
             </div>

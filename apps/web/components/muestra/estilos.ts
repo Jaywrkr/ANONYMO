@@ -53,7 +53,6 @@ export const DETALLE: Record<Tono, string[]> = {
 };
 
 /** Horario de ejemplo: la muestra lo dice como ejemplo hasta tener el real. */
-export const HORARIO_EJEMPLO = [["Lunes a viernes", "9:00 – 18:00"], ["Sábado", "9:00 – 13:00"]] as const;
 
 export const iniciales = (n: string) =>
   n.split(/\s+/).filter((w) => /^[A-ZÁÉÍÓÚÑ]/i.test(w) && w.length > 2).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || n.slice(0, 1).toUpperCase();
