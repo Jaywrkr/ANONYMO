@@ -102,6 +102,14 @@ try {
   const fuera0 = await p.evaluate(async () => (await fetch("/estudio/clientes/seg-uno", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ precio: 39000 }) })).status);
   exigir(fuera0 === 400, "un precio fuera de rango no entra");
 
+  // 1c · Su color (sistema/85): Jay pone el de su marca y la muestra lo usa.
+  const col = await p.evaluate(async () => { const r = await fetch("/estudio/clientes/seg-uno", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ color: "#C2185B", plantilla: "revista" }) }); return { s: r.status, j: await r.json() }; });
+  exigir(col.s === 200 && col.j.prospecto.color === "#C2185B" && col.j.prospecto.colorOrigen === "mano", "Jay pone el color de la marca del negocio");
+  const gris = await p.evaluate(async () => (await fetch("/estudio/clientes/seg-uno", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ color: "#FFFFFF" }) })).status);
+  exigir(gris === 400, "un blanco o un gris no entra como color de marca");
+  const pedidoTxt = decodeURIComponent(col.j.prospecto.pedido.replace(/\+/g, " "));
+  exigir(pedidoTxt.includes("PARTE DE SU MUESTRA") && pedidoTxt.includes("Plantilla «Revista»"), "el pedido de este negocio ya lleva su muestra");
+
   // 2 · La propuesta, como el negocio.
   const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await atajarWa(cel);
@@ -134,6 +142,12 @@ try {
   const cobro = await ahora.locator("a:has-text('Cobrar el 50 %')").getAttribute("href");
   exigir(!!cobro && cobro.includes("593991110010") && decodeURIComponent(cobro).includes("USD 225 + IVA (50 %)"), "ofrece cobrar el 50 % de su precio con el mensaje listo");
   exigir((await ahora.locator("a:has-text('Crear el pedido')").getAttribute("href"))?.startsWith("/estudio/nuevo?"), "y crear el pedido de un toque");
+  // El pedido parte de la muestra que el negocio vio (sistema/85).
+  const nuevo = await ctx.newPage();
+  await nuevo.goto(B + await ahora.locator("a:has-text('Crear el pedido')").getAttribute("href"));
+  const cuenta = await nuevo.locator("textarea").first().inputValue();
+  exigir(cuenta.includes("PARTE DE SU MUESTRA") && cuenta.includes("Plantilla «Revista»") && cuenta.includes("el color de su marca") && cuenta.includes("450 dólares + IVA") && cuenta.includes("Ya aceptó la propuesta"), "«Cuéntale a Atlas» ya trae su plantilla, sus colores y lo acordado");
+  await nuevo.close();
   exigir(await p.locator("ul[aria-label=Negocios] li", { hasText: "Notaría Vega" }).locator("text=Aceptó la propuesta").count() >= 1, "y la tarjeta lo marca");
   exigir(await p.evaluate(() => document.documentElement.scrollWidth) <= 392, "el escritorio sigue cabiendo en celular");
 
@@ -145,7 +159,7 @@ try {
   await largo.getByRole("button", { name: "Más", exact: true }).click();
   exigir(await largo.getByLabel("Nombre en su muestra").inputValue() === "Dr. Juan Carlos Avila Carrera", "el estudio propone un nombre corto");
   exigir((await largo.locator("textarea").first().inputValue()).includes("Vi Dr. Juan Carlos Avila Carrera en Google Maps"), "y el mensaje lo usa");
-  for (const pl of ["sereno", "grafico"]) {
+  for (const pl of ["grafico", "sereno", "mosaico", "revista", "noche"]) {
     await p.evaluate(async (x) => { await fetch("/estudio/clientes/seg-largo", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ plantilla: x }) }); }, pl);
     const v = await (await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
     await v.goto(enlaceLargo);
@@ -161,7 +175,7 @@ try {
   // 4 · La tabla de plantillas cuenta lo enviado.
   await p.goto(`${B}/estudio/clientes/plantillas`);
   const tabla = p.locator("section[aria-label='Cuál funciona mejor']");
-  exigir(await tabla.locator("tbody tr").count() === 2 && /Aceptaron/.test(await tabla.innerText()) && /Con 3 enviadas todavía es pronto/.test(await tabla.innerText()), "la tabla compara las dos plantillas con lo enviado");
+  exigir(await tabla.locator("tbody tr").count() === 5 && /Aceptaron/.test(await tabla.innerText()) && /Con 3 enviadas todavía es pronto/.test(await tabla.innerText()), "la tabla compara las cinco plantillas con lo enviado");
   exigir(await p.evaluate(() => document.documentElement.scrollWidth) <= 392, "y cabe en celular");
 
   const fuera = await nav.newContext();

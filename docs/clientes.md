@@ -35,14 +35,21 @@ El escritorio de **Imán** (Ventas) dentro del estudio. Busca negocios que neces
 5. **WhatsApp** abre el chat con el mensaje escrito y marca el negocio como contactado. «Más» deja editar el mensaje y las notas.
 6. Cuando el negocio responde y hay trato, **Convertir en pedido** abre «Cuéntale a Atlas» con el negocio y lo que Imán encontró.
 
-## Plantillas de la muestra (sistema/79)
+## Plantillas de la muestra
 
-Cada muestra sale con una de dos plantillas, mitad y mitad, para ver cuál convence más:
+Cada muestra sale con una de cinco plantillas, repartidas parejo, para ver cuál convence más:
 
-- **Sereno**: calma premium. Titular con serif, bloque de color con la inicial, servicios numerados, cierre con el nombre grande.
-- **Gráfico**: grilla y color. Portada a todo color con el nombre gigante, secciones «1:» a «4:», cifras entre corchetes.
+- **Color**: marco del color de la marca, nombre enorme, sello con su nota de Google.
+- **Sereno**: papel claro, serif suave al centro, la imagen en un arco.
+- **Mosaico**: todo en fichas redondeadas, como una app.
+- **Revista**: blanco, negro y su color; titular condensado y una cinta de servicios.
+- **Noche**: oscura, con un resplandor de su color.
 
-Cada rubro tiene su paleta. Para cambiarla en un negocio: «Más» → «Plantilla de su muestra». Para verlas todas: Clientes → **Plantillas**. Los ejemplos con datos inventados se abren sin entrar al estudio (`/m/ejemplo/<rubro>/<plantilla>`) y no los indexa Google.
+Para cambiarla en un negocio: «Más» → «Plantilla de su muestra». Para verlas: Clientes → **Plantillas**.
+
+**Colores**: se respeta el color del negocio. Sale de su web si la tiene; si lo ves en su Instagram o su letrero, ponlo en «Más» → «Color de su marca»; si no se sabe, va el de su rubro.
+
+**De la muestra al pedido**: «Crear el pedido» le cuenta a Atlas la plantilla, los colores, los servicios, el horario, las fotos y lo acordado, para que la web final parta de lo que el cliente ya vio.
 
 ## Recordatorio y propuesta (sistema/80)
 

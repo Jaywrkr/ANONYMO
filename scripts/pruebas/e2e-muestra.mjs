@@ -159,7 +159,7 @@ try {
   exigir(await m2.evaluate(() => document.documentElement.scrollWidth) <= 1300, "y no se desborda");
   await m2.context().close();
   await p.goto(`${B}/estudio/clientes/plantillas`);
-  exigir(await p.locator("iframe").count() === 8, "la página de plantillas muestra las 8 (4 rubros × 2)");
+  exigir(await p.locator("iframe").count() === 5, "la página de plantillas muestra las 5");
   exigir(/Todavía no hay muestras enviadas/.test(await p.locator("section[aria-label='Cuál funciona mejor']").innerText()), "y dice que aún no hay con qué comparar");
   const ej = await (await nav.newContext({ viewport: { width: 390, height: 844 } })).newPage();
   const rEj = await ej.goto(`${B}/m/ejemplo/salud/grafico`);

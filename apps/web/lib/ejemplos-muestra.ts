@@ -1,5 +1,5 @@
 // Negocios de ejemplo para ver las plantillas (sistema/79). Ficticios: ningún dato real.
-import { contenidoMuestra, type PlantillaMuestra, type Prospecto, type Tono } from "@anonymo/pipeline";
+import { contenidoMuestra, ORDEN_PLANTILLAS, type PlantillaMuestra, type Prospecto, type Tono } from "@anonymo/pipeline";
 
 const BASE: Record<Tono, Pick<Prospecto, "nombre" | "rubro" | "direccion" | "estrellas" | "resenas" | "telefono">> = {
   salud: { nombre: "Clínica Dental Sonrisa", rubro: "odontólogo", direccion: "Av. Solano 3-45, Cuenca", estrellas: 4.9, resenas: 128, telefono: "099 000 0001" },
@@ -9,7 +9,7 @@ const BASE: Record<Tono, Pick<Prospecto, "nombre" | "rubro" | "direccion" | "est
 };
 
 export const TONOS: Tono[] = ["salud", "legal", "belleza", "otro"];
-export const VARIANTES: PlantillaMuestra[] = ["sereno", "grafico"];
+export const VARIANTES: PlantillaMuestra[] = ORDEN_PLANTILLAS;
 
 export function ejemploMuestra(tono: Tono, plantilla: PlantillaMuestra) {
   const b = BASE[tono];

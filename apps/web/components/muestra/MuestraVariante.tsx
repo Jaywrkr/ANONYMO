@@ -3,21 +3,26 @@ import "@fontsource-variable/bricolage-grotesque/wdth.css";
 import "@fontsource-variable/fraunces/soft.css";
 import "@fontsource-variable/fraunces/soft-italic.css";
 import type { ContenidoMuestra } from "@anonymo/pipeline";
-import { PALETAS } from "./estilos";
 import { EstilosMuestra } from "./Cielo";
 import { Serena } from "./Serena";
 import { Grafica } from "./Grafica";
+import { Mosaico } from "./Mosaico";
+import { Revista } from "./Revista";
+import { Noche } from "./Noche";
+
+const VARIANTE = { grafico: Grafica, sereno: Serena, mosaico: Mosaico, revista: Revista, noche: Noche } as const;
 
 /** `fotos`: las direcciones de las fotos que subió el negocio (sistema/82). Sin fotos, un cielo de color hace de imagen. */
 export function MuestraVariante({ c, fotos = [] }: { c: ContenidoMuestra; fotos?: string[] }) {
-  const k = PALETAS[c.plantilla][c.tono];
+  const k = c.paleta;
+  const Variante = VARIANTE[c.plantilla];
   return (
     <div className="font-sans" data-plantilla={c.plantilla}>
       <EstilosMuestra />
-      <p className="px-5 py-2 text-center text-[12px] leading-snug" style={{ background: k.tinta, color: k.fondo }}>
+      <p className="px-5 py-2 text-center text-[12px] leading-snug" style={{ background: "#141414", color: "#f4f4f2" }}>
         Idea de web para {c.nombre}, hecha por ANONYMO. {c.horarioReal ? "Los textos son de ejemplo." : "Los textos y el horario son de ejemplo."}
       </p>
-      {c.plantilla === "grafico" ? <Grafica c={c} k={k} fotos={fotos} /> : <Serena c={c} k={k} fotos={fotos} />}
+      <Variante c={c} k={k} fotos={fotos} />
     </div>
   );
 }

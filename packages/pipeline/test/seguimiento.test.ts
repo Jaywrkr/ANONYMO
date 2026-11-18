@@ -1,7 +1,7 @@
 // Seguimiento a los 3 días y propuesta con «Aceptar» (sistema/80).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nombreCorto, nombreDe, mensajeInicial, anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
+import { colorDe, colorEnHtml, contraste, esColorDeMarca, paletaDe, pedidoDesdeProspecto, ORDEN_PLANTILLAS, COLOR_RUBRO, nombreCorto, nombreDe, mensajeInicial, anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
 
 const dia = 24 * 60 * 60 * 1000;
 const base = (x: Partial<Prospecto> = {}): Prospecto => ({
@@ -69,7 +69,10 @@ test("el cobro pide la mitad y la tabla de plantillas cuenta solo lo enviado (si
   const a = base({ id: "a", plantilla: "sereno", muestra: { vistas: 2, quiere: "2026-11-02T00:00:00Z" }, propuesta: { vistas: 1, acepto: "2026-11-03T00:00:00Z" } });
   const b = base({ id: "b", plantilla: "grafico", muestra: { vistas: 1 } });
   const c = base({ id: "c", plantilla: "grafico", estado: "nuevo", historial: [] });
-  assert.deepEqual(resultadosPlantillas([a, b, c]), { sereno: { enviadas: 1, abiertas: 1, quieren: 1, aceptaron: 1 }, grafico: { enviadas: 1, abiertas: 1, quieren: 0, aceptaron: 0 } });
+  const r = resultadosPlantillas([a, b, c]);
+  assert.deepEqual(r.sereno, { enviadas: 1, abiertas: 1, quieren: 1, aceptaron: 1 });
+  assert.deepEqual(r.grafico, { enviadas: 1, abiertas: 1, quieren: 0, aceptaron: 0 });
+  assert.deepEqual(Object.keys(r).sort(), ["grafico", "mosaico", "noche", "revista", "sereno"]);
 });
 
 test("el precio a mano manda en la propuesta y el cobro; fuera de rango no entra (sistema/82)", () => {
@@ -125,4 +128,47 @@ test("los nombres de Google se acortan para la muestra y los mensajes (sistema/8
   assert.equal(nombreDe(p), "Dr. Juan Carlos Ávila", "lo que escribe Jay manda");
   aplicarCambio(p, { alias: "" }, "jay");
   assert.equal(p.alias, undefined);
+});
+
+test("se respeta el color del negocio; si no se sabe, va el de su rubro (sistema/85)", () => {
+  assert.ok(esColorDeMarca("#C2185B") && !esColorDeMarca("#FFFFFF") && !esColorDeMarca("#111111") && !esColorDeMarca("#808080") && !esColorDeMarca("rojo"));
+  assert.equal(colorEnHtml('<meta name="theme-color" content="#c2185b">'), "#C2185B");
+  assert.equal(colorEnHtml('<meta name="theme-color" content="#ffffff"><style>a{color:#0a7}b{background:#0a7}i{border-color:#00aa77}u{color:#333}</style>'), "#00AA77", "si el theme-color es blanco, el que más repite su CSS");
+  assert.equal(colorEnHtml("<p>sin colores</p>"), undefined);
+  const p = base();
+  assert.deepEqual(colorDe(p, "salud"), { color: COLOR_RUBRO.salud, origen: "rubro" });
+  p.revision = { estado: "ok", https: true, celular: true, titulo: "x", ms: 100, color: "#C2185B" };
+  assert.deepEqual(colorDe(p, "salud"), { color: "#C2185B", origen: "web" });
+  aplicarCambio(p, { color: "#ff6600" }, "jay");
+  assert.deepEqual(colorDe(p, "salud"), { color: "#FF6600", origen: "mano" }, "lo que pone Jay manda");
+  assert.throws(() => aplicarCambio(p, { color: "#ffffff" }, "jay"), /no sirve de marca/);
+  assert.equal(contenidoMuestra(p).colorOrigen, "mano");
+  aplicarCambio(p, { color: null }, "jay");
+  assert.equal(colorDe(p, "salud").origen, "web");
+});
+
+test("cada plantilla saca de cualquier color una paleta que se lee (sistema/85)", () => {
+  for (const color of ["#C2185B", "#FF6600", "#FFD400", "#00AA77", "#1E3FCF", "#6A1B9A", "#8B5A2B", COLOR_RUBRO.salud, COLOR_RUBRO.legal, COLOR_RUBRO.belleza, COLOR_RUBRO.otro]) {
+    for (const pl of ORDEN_PLANTILLAS) {
+      const k = paletaDe(pl, "salud", color);
+      const donde = `${pl} con ${color}`;
+      assert.ok(contraste(k.fondo, k.tinta) >= 7, `texto sobre fondo en ${donde}`);
+      assert.ok(contraste(k.bloque, k.sobreBloque) >= 4.5, `texto sobre el color de marca en ${donde}: ${contraste(k.bloque, k.sobreBloque).toFixed(1)}`);
+      assert.ok(contraste(k.acento, k.sobreAcento) >= 4.5, `texto sobre el botón en ${donde}: ${contraste(k.acento, k.sobreAcento).toFixed(1)}`);
+      assert.ok(contraste(k.fondo, k.texto) >= 4.5, `texto secundario en ${donde}`);
+    }
+  }
+  assert.notDeepEqual(paletaDe("grafico", "salud", "#C2185B"), paletaDe("grafico", "salud"), "con su color, la paleta cambia");
+  assert.deepEqual(paletaDe("grafico", "salud", COLOR_RUBRO.salud), paletaDe("grafico", "salud"), "con el color del rubro, va la afinada a mano");
+});
+
+test("el pedido parte de la muestra que el cliente ya vio (sistema/85)", () => {
+  const p = base({ plantilla: "revista", color: "#C2185B", fotos: 2, precio: 450, horario: Array(7).fill("x: 9:00–18:00"), propuesta: { vistas: 1, acepto: "2026-11-03T00:00:00Z" }, mapa: "https://maps.google.com/?cid=1" });
+  const t = pedidoDesdeProspecto(p, new Date("2026-11-16T17:00:00Z"), "https://estudio.example");
+  for (const parte of ["PARTE DE SU MUESTRA", "Plantilla «Revista»", "titular condensado", "el color de su marca", "Ortodoncia", "Lunes a domingo 9:00 – 18:00", "https://estudio.example/m/clinica-dental-sonrisa-", "/fotos/1 , https://estudio.example/m/", "450 dólares + IVA", "Ya aceptó la propuesta", "Av. Solano 1-23"]) assert.ok(t.includes(parte), `falta «${parte}» en:\n${t}`);
+  const sin = pedidoDesdeProspecto(base());
+  assert.match(sin, /todavía no sabemos su color/);
+  assert.match(sin, /pídele 3/);
+  assert.match(sin, /de ejemplo: pídeselo/);
+  assert.ok(sin.length < 1900, "cabe en la dirección del pedido");
 });

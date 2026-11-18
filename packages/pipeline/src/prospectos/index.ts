@@ -6,3 +6,4 @@ export * from "./buscar-lugares.ts";
 export * from "./almacen-prospectos.ts";
 export * from "./muestra.ts";
 export * from "./nombre.ts";
+export * from "./paleta.ts";

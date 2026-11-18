@@ -19,7 +19,7 @@ export default async function Plantillas() {
   await exigirEstudio();
   // Cómo le va a cada una (sistema/81). Si la nube no responde, la página se ve igual sin la tabla.
   const res = await leerProspectos().then((l) => resultadosPlantillas(Object.values(l.prospectos)), () => undefined);
-  const total = res ? res.sereno.enviadas + res.grafico.enviadas : 0;
+  const total = res ? VARIANTES.reduce((n, v) => n + res[v].enviadas, 0) : 0;
   const pct = (n: number, de: number) => (de ? `${Math.round((n / de) * 100)} %` : "—");
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
@@ -27,11 +27,9 @@ export default async function Plantillas() {
       <h1 className={`${serif} text-[40px] leading-none`}>Plantillas de la muestra.</h1>
       <PestanasClientes actual="plantillas" />
       <p className="mt-5 max-w-3xl text-[15px] text-medio">
-        Cada negocio recibe una de las dos. Si no eliges, sale mitad y mitad, para saber cuál hace que respondan más. Para cambiarla: Clientes nuevos → el negocio → «Más» → «Plantilla».
+        Cada negocio recibe una de las cinco, repartidas parejo, para saber cuál hace que respondan más. Los colores son los del negocio si los conocemos; si no, los de su rubro. Para cambiarla: Clientes nuevos → el negocio → «Más» → «Plantilla».
       </p>
-      <dl className="mt-4 grid max-w-3xl gap-1 text-[14px]">
-        {VARIANTES.map((v) => <div key={v}><dt className="inline font-medium">{PLANTILLAS_MUESTRA[v].nombre}: </dt><dd className="inline text-medio">{PLANTILLAS_MUESTRA[v].idea}</dd></div>)}
-      </dl>
+
       {res && (
         <section aria-label="Cuál funciona mejor" className="mt-8 max-w-3xl rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
           <h2 className="text-[15px] font-medium">Cuál funciona mejor</h2>
@@ -61,30 +59,27 @@ export default async function Plantillas() {
           )}
         </section>
       )}
-      <div className="mt-8 grid gap-10">
-        {TONOS.map((t) => (
-          <section key={t} aria-labelledby={`t-${t}`}>
-            <div className="flex flex-wrap items-baseline gap-3">
-              <h2 id={`t-${t}`} className={`${serif} text-[28px] leading-none`}>{NOMBRE_TONO[t]}</h2>
-              {TABLERO[t] && <a href={TABLERO[t]} target="_blank" rel="noreferrer" className="text-[13px] text-medio underline underline-offset-4">Referencias en Savee ↗</a>}
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {VARIANTES.map((v) => (
-                <figure key={v} className="m-0">
-                  <div className="relative h-[520px] overflow-hidden rounded-2xl bg-white shadow-[0_0_0_1px_rgba(26,24,22,.08)]">
-                    {/* Vista de celular a escala: 390 px de ancho. */}
-                    <iframe title={`${NOMBRE_TONO[t]} · ${PLANTILLAS_MUESTRA[v].nombre}`} src={`/m/ejemplo/${t}/${v}`} loading="lazy" className="absolute left-1/2 top-0 h-[1040px] w-[390px] origin-top -translate-x-1/2 scale-50 border-0" />
-                  </div>
-                  <figcaption className="mt-2 flex items-center justify-between text-[14px]">
-                    <span className="font-medium">{PLANTILLAS_MUESTRA[v].nombre}</span>
-                    <Link href={`/m/ejemplo/${t}/${v}`} target="_blank" className="text-medio underline underline-offset-4">Abrir ↗</Link>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </section>
-        ))}
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        {VARIANTES.map((v, i) => {
+          // Cada plantilla se enseña con un rubro distinto; los demás se abren con los enlaces.
+          const t = TONOS[i % TONOS.length]!;
+          return (
+            <figure key={v} className="m-0">
+              <div className="relative h-[520px] overflow-hidden rounded-2xl bg-white shadow-[0_0_0_1px_rgba(26,24,22,.08)]">
+                {/* Vista de celular a escala: 390 px de ancho. */}
+                <iframe title={`${PLANTILLAS_MUESTRA[v].nombre} · ${NOMBRE_TONO[t]}`} src={`/m/ejemplo/${t}/${v}`} loading="lazy" className="absolute left-1/2 top-0 h-[1040px] w-[390px] origin-top -translate-x-1/2 scale-50 border-0" />
+              </div>
+              <figcaption className="mt-2 text-[14px]">
+                <span className="font-medium">{PLANTILLAS_MUESTRA[v].nombre}</span> <span className="text-medio">· {PLANTILLAS_MUESTRA[v].idea}</span>
+                <span className="mt-1 flex flex-wrap gap-x-3 text-[13px]">
+                  {TONOS.map((x) => <Link key={x} href={`/m/ejemplo/${x}/${v}`} target="_blank" className="text-medio underline underline-offset-4">{NOMBRE_TONO[x]} ↗</Link>)}
+                </span>
+              </figcaption>
+            </figure>
+          );
+        })}
       </div>
+      <p className="mt-8 text-[13px] text-medio">Referencias en Savee: {Object.entries(TABLERO).map(([t, u]) => <a key={t} href={u} target="_blank" rel="noreferrer" className="mr-3 underline underline-offset-4">{NOMBRE_TONO[t]} ↗</a>)}</p>
     </div>
   );
 }

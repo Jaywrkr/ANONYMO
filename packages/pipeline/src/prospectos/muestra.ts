@@ -2,7 +2,9 @@
 // Se abre en /m/<id>. Cada vez que el negocio la abre, queda anotado y Jay recibe un aviso.
 import { createHash } from "node:crypto";
 import { slug } from "../solicitudes.ts";
-import { GRUPOS_RUBRO, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
+import { GRUPOS_RUBRO, ORDEN_PLANTILLAS, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
+import { colorDe, paletaDe, type Paleta, type Tono } from "./paleta.ts";
+export type { Tono } from "./paleta.ts";
 import { nombreDe } from "./nombre.ts";
 
 /** El id de la muestra: el nombre y una huella del lugar. No hace falta guardarlo: siempre sale igual. */
@@ -17,7 +19,6 @@ export function buscarPorMuestra<T extends Pick<Prospecto, "id" | "nombre">>(pro
   return Object.values(prospectos).find((p) => idMuestra(p) === id);
 }
 
-export type Tono = "salud" | "legal" | "belleza" | "otro";
 
 export function tonoDe(rubro: string): Tono {
   const r = rubro.toLowerCase();
@@ -78,11 +79,14 @@ const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** La plantilla elegida, o una fija por negocio (mitad y mitad) para poder comparar cuál responde mejor. */
 export function plantillaDe(p: Pick<Prospecto, "id" | "plantilla">): PlantillaMuestra {
   if (p.plantilla) return p.plantilla;
-  return parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 2), 16) % 2 ? "grafico" : "sereno";
+  return ORDEN_PLANTILLAS[parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 4), 16) % ORDEN_PLANTILLAS.length]!;
 }
 
 export interface ContenidoMuestra {
   plantilla: PlantillaMuestra;
+  /** Sus colores: los del negocio si se conocen, o los de su rubro (sistema/85). */
+  paleta: Paleta;
+  colorOrigen: "mano" | "web" | "rubro";
   nombre: string;
   rubro: string;
   ciudad: string;
@@ -143,8 +147,12 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
   const pares: [string, string][] = [...propias.map((s): [string, string] => [s, ""]), ...oficio.filter(([s]) => !propias.includes(s))].slice(0, 4);
   const servicios = pares.map(([s]) => s);
   const descripcion = sonda?.descripcion?.trim();
+  const plantilla = plantillaDe(p);
+  const { color, origen } = colorDe(p, tono);
   return {
-    plantilla: plantillaDe(p),
+    plantilla,
+    paleta: paletaDe(plantilla, tono, color),
+    colorOrigen: origen,
     nombre: nombreDe(p),
     rubro: mayuscula(p.rubro),
     ciudad: p.ciudad,
@@ -240,7 +248,7 @@ export function mensajeCobro(nombre: string, firma: string, total: number, conIv
 /** Cómo le va a cada plantilla (sistema/81): de las muestras enviadas, cuántas se abrieron, pidieron la web y aceptaron. */
 export function resultadosPlantillas(prospectos: Prospecto[]) {
   const fila = () => ({ enviadas: 0, abiertas: 0, quieren: 0, aceptaron: 0 });
-  const r: Record<PlantillaMuestra, ReturnType<typeof fila>> = { sereno: fila(), grafico: fila() };
+  const r = Object.fromEntries(ORDEN_PLANTILLAS.map((x) => [x, fila()])) as Record<PlantillaMuestra, ReturnType<typeof fila>>;
   for (const p of prospectos) {
     if (!contactadoEn(p)) continue;
     const f = r[plantillaDe(p)];

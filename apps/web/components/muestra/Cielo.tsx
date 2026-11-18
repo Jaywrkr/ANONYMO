@@ -13,11 +13,13 @@ export function EstilosMuestra() {
       .muestra-orbe { position: absolute; border-radius: 9999px; filter: blur(48px); animation: muestra-deriva 16s ease-in-out infinite alternate; will-change: transform; }
       .muestra-gira { animation: muestra-gira 28s linear infinite; transform-origin: center; }
       .muestra-entra { animation: muestra-entra .7s cubic-bezier(.16,1,.3,1) both; }
+      @keyframes muestra-cinta { to { transform: translate3d(-50%,0,0); } }
+      .muestra-cinta { display: flex; width: max-content; animation: muestra-cinta 26s linear infinite; }
       .muestra-fila summary { list-style: none; cursor: pointer; }
       .muestra-fila summary::-webkit-details-marker { display: none; }
       .muestra-fila[open] .muestra-mas { transform: rotate(45deg); }
       .muestra-mas { transition: transform .25s ease; }
-      @media (prefers-reduced-motion: reduce) { .muestra-orbe, .muestra-gira, .muestra-entra { animation: none; } }
+      @media (prefers-reduced-motion: reduce) { .muestra-orbe, .muestra-gira, .muestra-entra, .muestra-cinta { animation: none; } }
     `}</style>
   );
 }
@@ -25,7 +27,7 @@ export function EstilosMuestra() {
 export function Cielo({ colores, foto, alt, className = "", style }: { colores: [string, string, string]; foto?: string; alt: string; className?: string; style?: CSSProperties }) {
   const [a, b, c] = colores;
   return (
-    <div className={`relative overflow-hidden ${className}`} style={{ background: b, ...style }}>
+    <div className={`overflow-hidden ${/\babsolute\b/.test(className) ? "" : "relative"} ${className}`} style={{ background: b, ...style }}>
       {foto ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={foto} alt={alt} data-foto className="absolute inset-0 h-full w-full object-cover" />

@@ -1,5 +1,5 @@
 // Cambia el estado, las notas o el mensaje de un negocio (sistema/66).
-import { aplicarCambio, cambiarProspectos, ESTADOS_PROSPECTO, PRECIO_MAX, PRECIO_MIN, precioValido, type CambioProspecto, type EstadoProspecto } from "@anonymo/pipeline";
+import { aplicarCambio, esColorDeMarca, esPlantilla, cambiarProspectos, ESTADOS_PROSPECTO, PRECIO_MAX, PRECIO_MIN, precioValido, type CambioProspecto, type EstadoProspecto } from "@anonymo/pipeline";
 import { mal, permiso, vistaProspecto } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 
@@ -24,7 +24,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (c.quitarFotos === true) cambio.quitarFotos = true;
   if (typeof c.alias === "string") cambio.alias = c.alias;
-  if (c.plantilla === "sereno" || c.plantilla === "grafico") cambio.plantilla = c.plantilla;
+  if (esPlantilla(c.plantilla)) cambio.plantilla = c.plantilla;
+  if (c.color === null || typeof c.color === "string") {
+    if (c.color !== null && !esColorDeMarca(c.color)) return mal("Ese color no sirve de marca: elige uno con color (ni blanco, ni negro, ni gris).");
+    cambio.color = c.color;
+  }
   if (typeof c.mensaje === "string" || c.mensaje === null) cambio.mensaje = c.mensaje as string | null;
   try {
     const { lista, valor: x } = await cambiarProspectos((l) => {
