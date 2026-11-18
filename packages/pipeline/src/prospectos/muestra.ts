@@ -76,10 +76,19 @@ const BAJADA: Record<Tono, (rubro: string, ciudad: string) => string> = {
 const GENERICAS = /^(inicio|home|contacto|cont[aá]ctanos|nosotros|qui[eé]nes somos|men[uú]|blog|galer[ií]a|ubicaci[oó]n|bienvenid)/i;
 const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** La plantilla elegida, o una fija por negocio (mitad y mitad) para poder comparar cuál responde mejor. */
-export function plantillaDe(p: Pick<Prospecto, "id" | "plantilla">): PlantillaMuestra {
+/** Qué plantillas le sirven a cada rubro (sistema/86): «Noche» le queda a una barbería y no a un pediatra. */
+export const PLANTILLAS_DE_RUBRO: Record<Tono, PlantillaMuestra[]> = {
+  salud: ["grafico", "sereno", "mosaico"],
+  legal: ["revista", "sereno", "mosaico"],
+  belleza: ["noche", "grafico", "sereno", "revista"],
+  otro: ["grafico", "mosaico", "revista"],
+};
+
+/** La plantilla elegida, o una fija por negocio, repartida parejo entre las que le sirven a su rubro, para comparar cuál responde mejor. */
+export function plantillaDe(p: Pick<Prospecto, "id" | "plantilla" | "rubro">): PlantillaMuestra {
   if (p.plantilla) return p.plantilla;
-  return ORDEN_PLANTILLAS[parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 4), 16) % ORDEN_PLANTILLAS.length]!;
+  const opciones = PLANTILLAS_DE_RUBRO[tonoDe(p.rubro)];
+  return opciones[parseInt(createHash("sha256").update(`plantilla:${p.id}`).digest("hex").slice(0, 4), 16) % opciones.length]!;
 }
 
 export interface ContenidoMuestra {
