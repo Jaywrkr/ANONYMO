@@ -14,6 +14,12 @@ Después, en el estudio (Menú → Banco de calibración) se ve el mismo informe
 
 Costo estimado: unas 230 calificaciones por ronda con las 4 disciplinas (≈ US$ 3–6 con Sonnet); el informe muestra el costo real.
 
+## Capturas desde GitHub (sistema/86)
+
+El botón «Sacar capturas» del estudio no puede con las webs premiadas: el navegador del servidor se queda sin memoria (probado en producción el 18 nov 2026: 0 de 31). Para eso está **Actions → «Capturas del banco» → Run workflow**, que las saca en una máquina de GitHub y las sube al almacén privado.
+
+Una sola vez, en GitHub → Settings → Secrets and variables → Actions, crea `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` con los mismos valores que en Vercel. Después, en el estudio, «Calibrar web».
+
 ## Cómo leer el informe
 - **Diferencia promedio**: cuántos puntos se aleja, en promedio, la nota del juez de la nota de referencia. Meta ≤ 1.
 - **Bien clasificadas**: premiadas que reciben 9 o más + genéricas y de principiante que reciben 6 o menos. Meta ≥ 90 %.

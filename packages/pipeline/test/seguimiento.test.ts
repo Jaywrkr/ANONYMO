@@ -1,7 +1,7 @@
 // Seguimiento a los 3 días y propuesta con «Aceptar» (sistema/80).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { colorDe, colorEnHtml, contraste, esColorDeMarca, paletaDe, pedidoDesdeProspecto, ORDEN_PLANTILLAS, COLOR_RUBRO, nombreCorto, nombreDe, mensajeInicial, anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
+import { PLANTILLAS_DE_RUBRO, colorDe, colorEnHtml, contraste, esColorDeMarca, paletaDe, pedidoDesdeProspecto, ORDEN_PLANTILLAS, COLOR_RUBRO, nombreCorto, nombreDe, mensajeInicial, anotarFoto, fotoValida, precioDe, precioValido, rutaFoto, agruparHorario, aplicarCambio, anotarPropuesta, contactadoEn, contenidoMuestra, mensajeCobro, mensajeSeguimiento, plantillaDe, resultadosPlantillas, tocaSeguimiento, type Prospecto } from "../src/index.ts";
 
 const dia = 24 * 60 * 60 * 1000;
 const base = (x: Partial<Prospecto> = {}): Prospecto => ({
@@ -47,7 +47,7 @@ test("abrir y aceptar la propuesta queda anotado; aceptar pasa a «Respondió» 
   const c = base({ estado: "reunion" });
   anotarPropuesta(c, "acepto");
   assert.equal(c.estado, "reunion", "si ya estaba más adelante, no retrocede");
-  assert.ok(["sereno", "grafico"].includes(plantillaDe(p)));
+  assert.ok(PLANTILLAS_DE_RUBRO.salud.includes(plantillaDe(p)));
 });
 
 test("el horario de Google se agrupa y la muestra dice lo de hoy (sistema/81)", () => {
@@ -171,4 +171,17 @@ test("el pedido parte de la muestra que el cliente ya vio (sistema/85)", () => {
   assert.match(sin, /pídele 3/);
   assert.match(sin, /de ejemplo: pídeselo/);
   assert.ok(sin.length < 1900, "cabe en la dirección del pedido");
+});
+
+test("a cada rubro le tocan solo las plantillas que le sirven (sistema/86)", () => {
+  const cuenta = new Set<string>();
+  for (let i = 0; i < 60; i++) {
+    const pl = plantillaDe({ id: `lugar-${i}`, rubro: "pediatra" });
+    assert.ok(PLANTILLAS_DE_RUBRO.salud.includes(pl), `a un pediatra no le toca «${pl}»`);
+    cuenta.add(pl);
+    assert.ok(PLANTILLAS_DE_RUBRO.legal.includes(plantillaDe({ id: `lugar-${i}`, rubro: "notaría" })));
+    assert.ok(PLANTILLAS_DE_RUBRO.belleza.includes(plantillaDe({ id: `lugar-${i}`, rubro: "barbería" })));
+  }
+  assert.equal(cuenta.size, 3, "se reparten entre todas las de su rubro");
+  assert.equal(plantillaDe({ id: "x", rubro: "pediatra", plantilla: "noche" }), "noche", "lo que elige Jay manda, aunque no sea de su rubro");
 });

@@ -1,0 +1,52 @@
+# Saca las capturas del banco de calibración en una máquina de GitHub (sistema/86).
+# Por qué aquí y no en el estudio: el navegador del servidor (Vercel) se queda sin memoria con las webs premiadas,
+# que son muy pesadas. Esta máquina tiene memoria de sobra. Se lanza a mano: Actions → «Capturas del banco» → Run workflow.
+# Necesita tres secretos del repo (Settings → Secrets and variables → Actions), los mismos valores que en Vercel:
+# SUPABASE_URL y SUPABASE_SERVICE_KEY (y SUPABASE_BUCKET solo si en Vercel no es «proyectos»). Las capturas van al almacén privado, nunca al repo.
+name: Capturas del banco
+on:
+  workflow_dispatch:
+    inputs:
+      disciplina:
+        description: "Qué capturar"
+        type: choice
+        default: web
+        options: [web, identidad, contenido]
+      todas:
+        description: "Volver a sacar todas (si no, solo las que faltan)"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  capturar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      - run: npx playwright install --with-deps chromium
+      - name: Comprobar que están los secretos
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_KEY" ]; then
+            echo "Faltan los secretos SUPABASE_URL y SUPABASE_SERVICE_KEY en Settings → Secrets and variables → Actions."; exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Sacar capturas
+        run: |
+          # Sin el secreto del bucket, se usa el de siempre («proyectos»).
+          [ -n "$SUPABASE_BUCKET" ] || unset SUPABASE_BUCKET
+          npm run banco:capturar -- --disciplina "${{ inputs.disciplina }}" ${{ inputs.todas && ' ' || '--faltan' }}
+        env:
+          ANONYMO_NUBE: "1"
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_BUCKET: ${{ secrets.SUPABASE_BUCKET }}
