@@ -9,7 +9,7 @@ import { leerProspectos, numeroInternacional, OFERTA, precio } from "@anonymo/pi
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Jay Jaramillo — diseño web en Cuenca",
-  description: "Quién soy, qué he hecho y cómo trabajo. Diseñador e ingeniero en Cuenca, con tres menciones de honor en Awwwards.",
+  description: "Diseñador e ingeniero en Cuenca. Tres menciones de honor en Awwwards y más de 110 mil seguidores en Instagram.",
   robots: { index: false, follow: false },
   openGraph: { title: "Jay Jaramillo — diseño web en Cuenca", description: "Quién soy, qué he hecho y cómo trabajo.", images: [{ url: "/jay/jay.webp", width: 1200, height: 1500 }] },
 };
@@ -18,6 +18,15 @@ const MENCIONES: { sitio: string; cuando?: string; url: string }[] = [
   { sitio: "Minervo", cuando: "abril de 2020", url: "https://www.awwwards.com/sites/minervo" },
   { sitio: "JAYWRKR V3", url: "https://www.awwwards.com/sites/jaywrkr-v3" },
   { sitio: "m|nero studio", url: "https://www.awwwards.com/sites/m-nero-studio" },
+];
+
+const INSTAGRAM = "https://www.instagram.com/jaywrkr/";
+
+/** Lo concreto, arriba: cifra, qué es y dónde se comprueba. «Desde 2011» son 15 años en 2026. */
+const CIFRAS: [string, string, string?][] = [
+  ["3", "menciones de honor en Awwwards", "#menciones"],
+  ["110k", "seguidores en Instagram", "#instagram"],
+  [String(new Date().getFullYear() - 2011), "años trabajando en tecnología"],
 ];
 
 const DATOS: [string, string][] = [
@@ -55,32 +64,57 @@ export default async function Jay() {
             <img src="/jay/jay.webp" alt="Jay Jaramillo, sentado, con camiseta blanca y lentes" width={1200} height={1500} fetchPriority="high" className="h-full w-full object-cover object-[50%_18%]" />
             <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: "linear-gradient(180deg, rgba(12,12,12,0) 0%, rgba(12,12,12,.86) 78%)" }} />
             <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-7">
-              <p className={`${mono} text-white/75`}>Cuenca, Ecuador</p>
-              <h1 className="mt-2 text-[clamp(44px,12vw,76px)] font-normal leading-[.94] tracking-[-0.035em]">Jay Jaramillo</h1>
+              <p className={`${mono} flex flex-wrap items-center gap-x-3 gap-y-1 text-white/80`}><span>Cuenca, Ecuador</span><a href={INSTAGRAM} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-white underline underline-offset-4">@jaywrkr ↗</a></p>
+              <h1 className="text-[clamp(44px,12vw,76px)] font-normal leading-[.94] tracking-[-0.035em]">Jay Jaramillo</h1>
             </div>
           </div>
         </div>
 
         <div className="px-5 pb-28 pt-8 md:px-10 md:pb-24 md:pt-16">
           <p className="max-w-[26ch] text-[clamp(26px,6.4vw,38px)] leading-[1.12] tracking-[-0.025em]">Diseño webs para negocios de Cuenca. Soy quien te escribió por WhatsApp.</p>
-          <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed" style={{ color: "#4a4a47" }}>
-            Es normal desconfiar de un mensaje con un enlace. Por eso esta página: aquí está mi cara, de dónde vengo y trabajo mío que puedes abrir y revisar.
-          </p>
+          {/* Tres cifras concretas, cada una comprobable con un toque. */}
+          <dl data-cifras className="mt-9 grid grid-cols-3 border-y" style={linea}>
+            {CIFRAS.map(([n, t, href], i) => (
+              <div key={t} className={`py-5 ${i ? "border-l pl-3 sm:pl-5" : ""} pr-2`} style={linea}>
+                <dd className="text-[clamp(40px,11.5vw,72px)] font-light leading-[.9] tracking-[-0.05em]">{n}</dd>
+                <dt className={`${mono} mt-3 leading-snug`} style={{ color: "#4a4a47" }}>{href ? <a href={href} target={href.startsWith("#") ? undefined : "_blank"} rel="noreferrer" className="underline underline-offset-4">{t}</a> : t}</dt>
+              </div>
+            ))}
+          </dl>
 
-          <section aria-labelledby="t-menciones" className="mt-14">
-            <h2 id="t-menciones" className={mono} style={{ color: "#6a6a66" }}>Reconocimientos</h2>
-            <p className="mt-3 max-w-[30ch] text-[24px] leading-[1.18] tracking-[-0.02em]">Tres menciones de honor en Awwwards, el premio internacional de diseño web.</p>
-            <ul className="mt-5 border-t" style={linea}>
+          <section id="menciones" aria-labelledby="t-menciones" className="-mx-5 mt-12 scroll-mt-4 px-5 py-9 md:-mx-0 md:px-8 md:py-10" style={{ background: "#0c0c0c", color: "#f4f4f1" }}>
+            <h2 id="t-menciones" className={mono} style={{ color: "#a3a39d" }}>Reconocimientos</h2>
+            <p className="mt-3 max-w-[22ch] text-[clamp(28px,7vw,40px)] font-light leading-[1.06] tracking-[-0.03em]">Mención de honor en Awwwards, tres veces.</p>
+            <p className="mt-3 max-w-[48ch] text-[15px] leading-relaxed" style={{ color: "#a3a39d" }}>Awwwards es el premio internacional de diseño web. Un jurado de diseñadores revisa cada sitio.</p>
+            <ul className="mt-6 border-t" style={{ borderColor: "#34342f" }}>
               {MENCIONES.map((m) => (
-                <li key={m.url} className="border-b" style={linea}>
-                  <a href={m.url} target="_blank" rel="noreferrer" className="flex min-h-14 items-center justify-between gap-4 py-3 text-[16px]">
-                    <span>{m.sitio}{m.cuando ? <span style={{ color: "#6a6a66" }}>, {m.cuando}</span> : null}</span>
-                    <span className={`${mono} shrink-0 underline underline-offset-4`}>Ver en Awwwards ↗</span>
+                <li key={m.url} className="border-b" style={{ borderColor: "#34342f" }}>
+                  <a href={m.url} target="_blank" rel="noreferrer" className="flex min-h-16 items-center justify-between gap-4 py-3">
+                    <span className="text-[19px] tracking-[-0.01em]">{m.sitio}{m.cuando ? <span className={`${mono} ml-3`} style={{ color: "#a3a39d" }}>{m.cuando}</span> : null}</span>
+                    <span className={`${mono} shrink-0 underline underline-offset-4`}>Ver la ficha ↗</span>
                   </a>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[13px] leading-relaxed" style={{ color: "#6a6a66" }}>Las tres con Minervo, mi estudio. Cada enlace abre la ficha en el sitio de Awwwards.</p>
+            <p className={`${mono} mt-4`} style={{ color: "#a3a39d" }}>Las tres con Minervo, mi estudio.</p>
+          </section>
+
+          {/* Instagram: 114 mil seguidores y cuenta verificada el 19 nov 2026. Se dice «más de 110 mil» para que no envejezca. */}
+          <section id="instagram" aria-labelledby="t-instagram" className="mt-14 scroll-mt-4">
+            <h2 id="t-instagram" className={mono} style={{ color: "#6a6a66" }}>Instagram</h2>
+            <a href={INSTAGRAM} target="_blank" rel="noreferrer" className="mt-4 block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/jay/instagram.webp" alt="Seis publicaciones de @jaywrkr: frases cortas en blanco y negro" loading="lazy" width={1384} height={1224} className="w-full" />
+              <span className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+                <span>
+                  <span className="flex items-center gap-2 text-[clamp(30px,8vw,44px)] font-light leading-none tracking-[-0.035em]">@jaywrkr
+                    <svg viewBox="0 0 24 24" aria-label="Cuenta verificada" role="img" className="h-6 w-6 shrink-0"><path fill="#1d9bf0" d="M12 1.5l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 22.500l-2.6-1.9-3.2.1-1-3-2.600-1.9 1-3-1-3 2.600-1.900 1-3 3.200.100z" /><path fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8.300 12.200l2.600 2.600 4.900-5.400" /></svg>
+                  </span>
+                  <span className="mt-2 block text-[16px]" style={{ color: "#4a4a47" }}>Más de 110 mil seguidores. Verdades incómodas, diseñadas simple.</span>
+                </span>
+                <span className={`${mono} underline underline-offset-4`}>Abrir Instagram ↗</span>
+              </span>
+            </a>
           </section>
 
           <section aria-labelledby="t-datos" className="mt-14">
@@ -129,7 +163,7 @@ export default async function Jay() {
 
           <section aria-label="Contacto" className="mt-12 flex flex-wrap gap-2.5">
             {wa && <a href={wa} target="_blank" rel="noreferrer" data-wa className="inline-flex min-h-14 items-center px-7 text-[16px] font-medium" style={{ background: "#25d366", color: "#0a0a0a" }}>Escríbeme por WhatsApp</a>}
-            <a href="https://www.instagram.com/jaywrkr/" target="_blank" rel="noreferrer" className="inline-flex min-h-14 items-center px-6 text-[16px]" style={{ boxShadow: "inset 0 0 0 1.5px #121212" }}>Instagram @jaywrkr ↗</a>
+            <a href={INSTAGRAM} target="_blank" rel="noreferrer" className="inline-flex min-h-14 items-center px-6 text-[16px]" style={{ boxShadow: "inset 0 0 0 1.5px #121212" }}>Instagram @jaywrkr ↗</a>
           </section>
           <p className={`${mono} mt-10`} style={{ color: "#6a6a66" }}>© {new Date().getFullYear()} Jay Jaramillo · ANONYMO</p>
         </div>
