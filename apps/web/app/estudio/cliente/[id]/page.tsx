@@ -40,7 +40,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Link href={nuevoPedido} className={botonLleno}>Nuevo pedido para {f.nombre}</Link>
+        <Link href={nuevoPedido} className={botonLleno}>Nuevo pedido</Link>
         <Link href={subirVideo} className={boton}>Subir un video suyo</Link>
         {tel && <a href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer" className={boton}>WhatsApp</a>}
         {f.contacto.web && <a href={f.contacto.web} target="_blank" rel="noreferrer" className={boton}>Su web</a>}

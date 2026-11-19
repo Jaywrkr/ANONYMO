@@ -39,7 +39,7 @@ export default async function Estado() {
 
   const r = estado.respaldo;
   const reciente = !!r && Date.now() - Date.parse(r.cuando) < 36 * 3600_000;
-  filas.push({ titulo: "Copia diaria", ok: reciente, texto: r ? `Última ${hace(r.cuando)}: ${r.archivos} archivos (ranura ${r.ranura}).` : "Todavía no hay ninguna copia.", arreglo: !process.env.CRON_SECRET ? "Para que se haga sola cada noche, pon CRON_SECRET en Vercel (cualquier texto largo)." : !reciente ? "Haz una copia ahora y revisa los errores de abajo." : undefined });
+  filas.push({ titulo: "Copia diaria", ok: reciente, texto: r ? `Última ${hace(r.cuando)}: ${r.archivos} archivos (ranura ${r.ranura}).` : "Todavía no hay ninguna copia.", arreglo: !process.env.CRON_SECRET ? "Para que se haga sola cada noche, pon CRON_SECRET en Vercel (cualquier texto largo)." : !reciente ? "Haz una copia ahora con el botón de abajo." : undefined });
 
   const malas = filas.filter((f) => !f.ok).length;
   return (

@@ -184,7 +184,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           </div>
           {pendientesPortal.length > 0 && (
             <Link href={`/estudio/${id}?ver=cliente#conversacion`} className={`flex items-center gap-3 border-t px-6 py-3 text-[14px] md:px-8 ${m.tono === "toca" || m.tono === "cortado" ? "border-white/10 hover:bg-white/5" : "border-borde hover:bg-[#faf7f2]"}`}>
-              <i className="h-2 w-2 rounded-full bg-urgente" /> El cliente escribió {pendientesPortal.length === 1 ? "algo" : `${pendientesPortal.length} cosas`} en su portal que falta pasarle al equipo <span className="ml-auto">Ver →</span>
+              <i className="h-2 w-2 rounded-full bg-urgente" /> El cliente escribió {pendientesPortal.length === 1 ? "algo" : `${pendientesPortal.length} cosas`} en su portal que falta pasarle al equipo <span className="ml-auto shrink-0 whitespace-nowrap">Ver →</span>
             </Link>
           )}
         </section>
@@ -587,7 +587,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             <div className={`${tarjeta} grid gap-2 text-[14px]`}>
               <p className={`${serif} text-[22px] leading-tight`}>PDF</p>
               {enLinea ? (
-                <p className="text-medio">En línea todavía no se arma. Desde tu máquina: <code className="rounded bg-[#f4f1eb] px-1.5 py-0.5 font-mono text-[12px]">npm run pipeline -- pdf {id}</code></p>
+                <p className="text-medio">El PDF todavía no se arma desde aquí. Mientras tanto, pídeselo a Jay: lo saca desde su computadora.</p>
               ) : (
                 <p className="flex flex-wrap gap-2"><a href={`/estudio/${id}/pdf`} className={boton}>Para el cliente ↓</a><a href={`/estudio/${id}/pdf?internas=1`} className={boton}>Interno ↓</a></p>
               )}

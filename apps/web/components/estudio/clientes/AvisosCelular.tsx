@@ -97,7 +97,7 @@ export function AvisosCelular({ clavePublica, compacto = false }: { clavePublica
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           {estado === "activo" && <span className="text-[13px] text-[#17714a]">Activados en este celular.</span>}
-          {estado === "apagado" && <button type="button" onClick={() => void activar()} className={`${boton} bg-tinta text-white`}>Avisarme en este celular</button>}
+          {estado === "apagado" && <button type="button" onClick={() => void activar()} className={`${boton} ${compacto ? "shadow-[inset_0_0_0_1px_rgba(26,24,22,.25)]" : "bg-tinta text-white"}`}>Avisarme en este celular</button>}
           {estado === "trabajando" && <span className="text-[13px] text-medio">Un momento…</span>}
           {estado === "activo" && <button type="button" onClick={() => void probar()} className={claro}>Mandar aviso de prueba</button>}
           {nota?.reactivar && estado !== "trabajando" && <button type="button" onClick={() => void activar(true)} className={claro}>Volver a activar</button>}

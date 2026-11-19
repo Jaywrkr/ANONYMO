@@ -54,7 +54,8 @@ export default async function Portal({ params, searchParams }: Props) {
         </div>
 
         <div className="mt-8 flex flex-wrap items-end gap-x-10 gap-y-4">
-          <div className="min-w-0 flex-1">
+          {/* En celular ocupa todo el ancho (sistema/87): al lado de la barra de avance el texto quedaba en una columna de una palabra. */}
+          <div className="w-full min-w-0 md:w-auto md:flex-1">
             <h1 className={`${serif} text-[clamp(42px,6vw,84px)] leading-[0.95]`}>{p.pedido.cliente}</h1>
             <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-medio">{p.pedido.descripcion}</p>
           </div>

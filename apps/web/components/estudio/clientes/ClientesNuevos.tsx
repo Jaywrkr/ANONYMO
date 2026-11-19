@@ -328,7 +328,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
           <label className="flex min-h-10 items-center gap-2 px-2 text-[13px] text-medio">
             <input type="checkbox" checked={filtro.celular} onChange={(e) => setFiltro({ ...filtro, celular: e.target.checked })} /> Solo con celular
           </label>
-          <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico} title="La lista tal como la filtraste">Bajar CSV</button>
+          <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico} title="La lista tal como la filtraste">Bajar la lista</button>
         </div>
       </section>
 

@@ -95,7 +95,7 @@ export default async function Revisar({ params, searchParams }: Props) {
           </div>
 
           {/* Abajo: anterior, pedir un cambio a este agente, siguiente. */}
-          <div className="sticky bottom-0 z-20 rounded-b-[18px] border-t border-borde bg-carta/95 px-5 py-3 backdrop-blur md:px-10">
+          <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-20 rounded-b-[18px] lg:bottom-0 border-t border-borde bg-carta/95 px-5 py-3 backdrop-blur md:px-10">
             <div className="flex flex-wrap items-center gap-2">
               {n > 0 ? <Link href={`${base}?n=${n - 1}`} className={boton}>← Anterior</Link> : <span />}
               <details className="group relative ml-auto">

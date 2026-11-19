@@ -120,7 +120,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
         </section>
       ) : (
         <div className="mt-9 grid gap-10 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="grid content-start gap-10">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-10">
             <Grupo id="te-toca" titulo="Te toca" cuenta={pendientes} ayuda="Lo que espera una decisión tuya. Lo más nuevo arriba.">
               {pendientes === 0 && (
                 <div className="flex items-center gap-4 rounded-[18px] border border-dashed border-borde p-5">

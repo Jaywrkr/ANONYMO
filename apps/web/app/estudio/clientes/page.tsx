@@ -30,11 +30,11 @@ export default async function Pagina() {
       </p>
       {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
 
-      <ul className="mt-6 grid gap-2" aria-label="Clientes">
+      <ul className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-2" aria-label="Clientes">
         {!fichas.length && <li className="py-8 text-[14px] text-medio">Todavía no hay clientes. Aparecen solos al crear un pedido, subir un video para alguien o cuando un prospecto responde.</li>}
         {fichas.map((f) => (
           <li key={f.id}>
-            <Link href={`/estudio/cliente/${f.id}`} className="flex min-h-16 items-center gap-4 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">
+            <Link href={`/estudio/cliente/${f.id}`} className="flex min-h-16 min-w-0 items-center gap-4 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">
               {/* Las iniciales (sistema/75): el cuadro vacío no decía nada. Con kit de marca, toma su color. */}
               <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[13px] font-medium" style={{ background: f.kits[0]?.color ?? "#e9e4dc", color: f.kits[0]?.color ? "#fff" : "#5d5a55" }}>{f.nombre.split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || f.nombre.slice(0, 1).toUpperCase()}</span>
               <span className="min-w-0 flex-1">

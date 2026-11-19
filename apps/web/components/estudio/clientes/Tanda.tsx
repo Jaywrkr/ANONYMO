@@ -83,12 +83,13 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
   const tecla = (k: string) => <kbd className="ml-2 hidden rounded border border-black/15 px-1.5 font-mono text-[11px] opacity-60 lg:inline">{k}</kbd>;
   return (
     <div className="mx-auto grid max-w-xl gap-4 pb-40">
-      <AhoraMismo inicial={inicial} />
+      {/* En celular va primero a quién le escribes (sistema/87); «Ahora mismo» y los avisos quedan debajo de su tarjeta. */}
+      <div className="empty:hidden max-lg:order-last"><AhoraMismo inicial={inicial} /></div>
       <div className="grid gap-2">
         <p className="text-[14px]"><span className="font-medium">{enviadosHoy} de {tope}</span> <span className="text-medio">enviados hoy{actual ? ` · quedan ${cola.length} en la tanda` : ""}</span></p>
         <div className="h-2.5 overflow-hidden rounded-full bg-[#d9d4cb]" aria-hidden><div className="h-full rounded-full bg-[#25d366] transition-all" style={{ width: `${Math.min(100, (enviadosHoy / tope) * 100)}%` }} /></div>
       </div>
-      <AvisosCelular clavePublica={clavePublica} compacto />
+      <div className="empty:hidden max-lg:order-last"><AvisosCelular clavePublica={clavePublica} compacto /></div>
 
       {aviso && <p role="status" className={`rounded-2xl px-4 py-3 text-[14px] ${aviso.ok ? "bg-[#e6f6ee] text-[#17714a]" : "bg-[#fde8e4] text-[#8a1c0c]"}`}>{aviso.texto}</p>}
 
@@ -124,7 +125,7 @@ export function Tanda({ inicial, tope, clavePublica }: { inicial: VistaProspecto
       )}
 
       {actual && !lleno && (
-        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 px-4 lg:bottom-6">
+        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 px-4 lg:bottom-6 lg:left-[236px]">
           <div className="mx-auto grid max-w-xl gap-2 rounded-3xl bg-white/95 p-3 shadow-[0_12px_40px_rgba(26,24,22,.18)] backdrop-blur">
             {guardando && <p role="status" className="text-center text-[13px] text-medio">{guardando}…</p>}
             <a href={enlace} target="_blank" rel="noreferrer" aria-disabled={ocupado}

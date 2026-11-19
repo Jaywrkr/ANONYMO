@@ -15,7 +15,7 @@ export default async function Pagina() {
   try { kits = await listarKits(); } catch (e) { falla = (e as Error).message; }
   return (
     <div className="px-5 py-7 md:px-10">
-      <Link href="/estudio/video" className="inline-flex min-h-11 items-center text-[13px] text-medio hover:text-tinta">← Videos</Link>
+      <Link href="/estudio/video" className="inline-flex min-h-11 items-center text-[13px] text-medio hover:text-tinta">← Video</Link>
       <h1 className={`${serif} text-[40px] leading-none`}>Marcas.</h1>
       <p className="mt-3 max-w-2xl text-[15px] text-medio">El color, el logo y la música de cada cliente. Se eligen en cada video para poner el logo en la esquina, cerrar con el logo y sumar la música, que baja sola cuando alguien habla.</p>
       {falla && <p role="alert" className="mt-3 text-[14px] text-[#a33a0b]">No se pudo leer la lista: {falla}</p>}

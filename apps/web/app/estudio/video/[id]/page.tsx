@@ -19,7 +19,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   const guion = t.guion ? await leerGuion(t.guion).catch(() => undefined) : undefined;
   return (
     <div className="px-5 py-7 md:px-10">
-      <Link href="/estudio/video" className="inline-flex min-h-11 items-center text-[13px] text-medio hover:text-tinta">← Videos</Link>
+      <Link href="/estudio/video" className="inline-flex min-h-11 items-center text-[13px] text-medio hover:text-tinta">← Video</Link>
       <h1 className={`${serif} text-[34px] leading-tight md:text-[40px]`}>{t.nombre}</h1>
       <p className="mt-1 text-[13px] text-suave">{[t.cliente, t.duracion ? `${Math.round(t.duracion)} s` : "", t.ancho && t.alto ? `${t.ancho}×${t.alto}` : ""].filter(Boolean).join(" · ")}</p>
       {/* De dónde viene (sistema/71): el guion de Faro que lee Corte y la ficha del cliente. */}
