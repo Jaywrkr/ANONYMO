@@ -126,7 +126,7 @@ export async function escribirGuion(pedido: string, opciones: { cliente?: string
   const texto = [`## Pedido\n${limpio}`, cliente ? `## Cliente\n${cliente}` : "", `## Duración\n${segundos} segundos (unas ${Math.round(segundos * 2.5)} palabras en total)`].filter(Boolean).join("\n\n");
   let crudo: unknown;
   try {
-    crudo = await pedirEstructura(SISTEMA_FARO, texto, HERRAMIENTA, 2500);
+    crudo = await pedirEstructura(SISTEMA_FARO, texto, HERRAMIENTA, 2500, { origen: "faro", tarea: "guion" });
   } catch (e) {
     throw new Error(`Faro no pudo escribir el guion: ${(e as Error).message}`);
   }

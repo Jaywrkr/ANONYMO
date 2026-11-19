@@ -64,7 +64,7 @@ test("diferencias línea por línea", () => {
 test("duraciones y costos", () => {
   assert.equal(diasDe("3 a 5 días"), 5);
   assert.equal(diasDe("2 semanas"), 14);
-  assert.equal(usd(1_000_000, 0), 3);
+  assert.equal(usd(1_000_000, 0), 2);
   assert.ok(estimar("x".repeat(4000)).estimado);
 });
 

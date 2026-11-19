@@ -49,7 +49,7 @@ export async function revisarSistema(enVivo = false): Promise<Chequeo[]> {
   else {
     try {
       const { preguntarClaude } = await import("./ia.ts");
-      const r = await preguntarClaude("Responde solo: ok", "ok", 5);
+      const r = await preguntarClaude("Responde solo: ok", "ok", 5, { origen: "prueba" });
       c.push({ nombre: "Agentes con IA", nivel: "ok", detalle: `la API respondió (${(r ?? "").trim().slice(0, 10)})` });
     } catch (e) {
       c.push({ nombre: "Agentes con IA", nivel: "falta", detalle: (e as Error).message, arreglo: "Revisa la clave y el modelo (ANTHROPIC_MODEL)." });

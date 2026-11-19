@@ -1,4 +1,5 @@
 import {calibracion,disciplinaBanco,disciplinaDe,rubricaOficio} from './oficio.ts';
+import { anotarGasto, exigirPresupuesto } from './gasto.ts';
 import {corregir} from './juez.ts';
 import {adjuntosReferencias,textoReferencias} from './estandar.ts';
 import {archivosPiezas,leerPieza,validarSvg} from './piezas.ts';
@@ -24,9 +25,10 @@ export function textoJuez(tarea:TareaId,titulo:string,pedido:Pedido,condiciones:
 }
 
 /** Una llamada al juez. Devuelve la respuesta cruda de la API y lo que costó. */
-export async function llamarJuez(mensaje:unknown[],disponible:number,f:typeof fetch=fetch,system='Revisor de calidad. Escribe en español y devuelve un objeto JSON válido. Nunca apruebes por ausencia de pruebas.'){
+export async function llamarJuez(mensaje:unknown[],disponible:number,f:typeof fetch=fetch,system='Revisor de calidad. Escribe en español y devuelve un objeto JSON válido. Nunca apruebes por ausencia de pruebas.',ctx:{proyecto?:string;tarea?:string}={}){
   const clave = claveAnthropic();
   if (!clave) throw new Error('Falta la conexión de IA para revisar la entrega.');
+  await exigirPresupuesto();
   const modelo = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5';
   const respuesta = await f(`${process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com'}/v1/messages`, {
     method:'POST', headers:{'content-type':'application/json','x-api-key':clave,'anthropic-version':'2023-06-01'},
@@ -35,7 +37,7 @@ export async function llamarJuez(mensaje:unknown[],disponible:number,f:typeof fe
   if (!respuesta.ok) throw new Error(`No se pudo completar la revisión (API ${respuesta.status}).`);
   const cuerpo = await respuesta.json() as Parameters<typeof textoDe>[0] & {usage?:{input_tokens?:number;output_tokens?:number}};
   let uso:{entrada:number;salida:number;usd:number}|undefined;
-  if(cuerpo.usage) { const entrada=cuerpo.usage.input_tokens??0,salida=cuerpo.usage.output_tokens??0; uso={entrada,salida,usd:usd(entrada,salida,0,false)}; }
+  if(cuerpo.usage) { const entrada=cuerpo.usage.input_tokens??0,salida=cuerpo.usage.output_tokens??0; const costo=await anotarGasto({origen:'juez',tarea:ctx.tarea,proyecto:ctx.proyecto,modelo:(cuerpo as {model?:string}).model??modelo,entrada,salida,cacheL:(cuerpo.usage as {cache_read_input_tokens?:number}).cache_read_input_tokens,cacheE:(cuerpo.usage as {cache_creation_input_tokens?:number}).cache_creation_input_tokens}); uso={entrada,salida,usd:costo}; }
   if (cuerpo.stop_reason === 'max_tokens') throw new Error('El informe de revisión llegó incompleto.');
   return {cuerpo,uso,texto:textoDe(cuerpo)};
 }
@@ -127,7 +129,7 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
       ...informe.capturas.flatMap((c,i) => [{ type:'text',text:`Captura ${i+1}: ${c.pagina}, ${c.ancho}px, SHA256 ${c.sha256}` }, {type:'image', source:{type:'base64',media_type:'image/jpeg',data:imagenes[i].toString('base64')}}]),
       { type:'text',text: textoJuez(e.tarea,e.titulo,p.pedido,condiciones,p.marca,e.contenido,textos) },
     ];
-    const r = await llamarJuez(mensaje,disponible);
+    const r = await llamarJuez(mensaje,disponible,fetch,undefined,{proyecto:p.pedido.id,tarea:e.tarea});
     if(r.uso)informe.uso=r.uso;
     const cuerpo = r.cuerpo;
     const revision = leerRevision(json(textoDe(cuerpo)),condiciones);

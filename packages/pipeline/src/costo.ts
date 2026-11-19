@@ -2,16 +2,20 @@
 // Precios en USD por millón de tokens: ajústalos a tu plan con las variables de entorno.
 import type { Entrega, Pedido, Plan, Proyecto, TareaId } from "./tipos.ts";
 import { contratoPorId, lecturas } from "./contratos.ts";
+import { PRECIO_BUSQUEDA, precioModelo } from "./gasto.ts";
 
 export interface Uso { entrada: number; salida: number; busquedas: number; usd: number; estimado: boolean }
 
+// Los precios salen del modelo configurado (sistema/91, tabla en gasto.ts). Antes eran 3/15 y 1/5 fijos, que ya no
+// corresponden a ningún modelo vigente, y el costo mostrado salía inflado. Las variables de entorno siguen mandando.
+const principal = precioModelo(process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5");
+const rapido = precioModelo(process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5");
 export const PRECIOS = {
-  entrada: Number(process.env.ANTHROPIC_PRECIO_ENTRADA ?? 3),
-  salida: Number(process.env.ANTHROPIC_PRECIO_SALIDA ?? 15),
-  busqueda: Number(process.env.ANTHROPIC_PRECIO_BUSQUEDA ?? 0.01),
-  // Modelo rápido (tareas livianas y decisiones de Atlas). Revisa los precios de tu modelo en la consola.
-  entradaRapido: Number(process.env.ANTHROPIC_PRECIO_ENTRADA_RAPIDO ?? 1),
-  salidaRapido: Number(process.env.ANTHROPIC_PRECIO_SALIDA_RAPIDO ?? 5),
+  entrada: Number(process.env.ANTHROPIC_PRECIO_ENTRADA ?? principal.entrada),
+  salida: Number(process.env.ANTHROPIC_PRECIO_SALIDA ?? principal.salida),
+  busqueda: PRECIO_BUSQUEDA,
+  entradaRapido: Number(process.env.ANTHROPIC_PRECIO_ENTRADA_RAPIDO ?? rapido.entrada),
+  salidaRapido: Number(process.env.ANTHROPIC_PRECIO_SALIDA_RAPIDO ?? rapido.salida),
 };
 
 export const usd = (entrada: number, salida: number, busquedas = 0, rapido = false) =>
