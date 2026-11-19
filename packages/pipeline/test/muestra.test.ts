@@ -73,3 +73,9 @@ test("solo se aceptan suscripciones https (http local solo en el estudio de prue
   assert.ok(!suscripcionValida({ endpoint: "http://10.0.0.1/push", keys }));
   delete process.env.ANONYMO_AVISOS_PRUEBA;
 });
+
+test("con muestra, el primer mensaje lleva debajo de la firma el enlace a quién escribe (sistema/90)", () => {
+  const m = mensajeInicial(base(), "Jay Jaramillo · ANONYMO", new Date(), "https://estudio.anonymo.ec/m/clinica-x");
+  assert.ok(m.endsWith("Jay Jaramillo · ANONYMO\nQuién soy y qué he hecho: https://estudio.anonymo.ec/jay"));
+  assert.ok(mensajeInicial(base(), "Jay").endsWith("Jay"), "sin muestra no hay enlace");
+});

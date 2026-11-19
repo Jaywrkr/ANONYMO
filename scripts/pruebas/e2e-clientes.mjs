@@ -79,7 +79,7 @@ try {
 
   const tarjeta = p.locator("li:has-text('Sonrisa Sin Web')");
   const wa = await tarjeta.locator("a:has-text('WhatsApp')").getAttribute("href");
-  exigir(wa?.startsWith("https://wa.me/593990000003?text=") && decodeURIComponent(wa).includes("no tienen página web") && decodeURIComponent(wa).includes("Jay · ANONYMO"), "el WhatsApp va al celular con el mensaje y la firma de la casa");
+  exigir(wa?.startsWith("https://wa.me/593990000003?text=") && decodeURIComponent(wa).includes("no tienen página web") && decodeURIComponent(wa).includes("Jay Jaramillo · ANONYMO"), "el WhatsApp va al celular con el mensaje y la firma de la casa");
   await ctx.route("https://wa.me/**", (r) => r.fulfill({ status: 200, body: "whatsapp falso" }));
   const [ventana] = await Promise.all([ctx.waitForEvent("page"), tarjeta.locator("a:has-text('WhatsApp')").click()]);
   await ventana.close();
