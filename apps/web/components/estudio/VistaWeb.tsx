@@ -32,17 +32,17 @@ export function VistaWeb({ base, paginas }: { base: string; paginas: string[] })
         <div className="inline-flex rounded-full bg-[#f1ede6] p-1" role="group" aria-label="Ver en">
           {EQUIPOS.map((x) => (
             <button key={x.id} type="button" onClick={() => setEquipo(x.id)} aria-pressed={equipo === x.id}
-              className={`min-h-9 rounded-full px-4 text-[13px] transition ${equipo === x.id ? "bg-tinta text-white" : "text-medio hover:text-tinta"}`}>{x.nombre}</button>
+              className={`min-h-11 md:min-h-9 rounded-full px-4 text-[13px] transition ${equipo === x.id ? "bg-tinta text-white" : "text-medio hover:text-tinta"}`}>{x.nombre}</button>
           ))}
         </div>
         {paginas.length > 1 && (
           <label className="inline-flex items-center gap-2 text-[13px] text-medio">Página
-            <select value={pagina} onChange={(ev) => setPagina(ev.target.value)} className="min-h-9 rounded-full bg-[#f1ede6] px-3 text-[13px] outline-none">
+            <select value={pagina} onChange={(ev) => setPagina(ev.target.value)} className="min-h-11 md:min-h-9 rounded-full bg-[#f1ede6] px-3 text-[13px] outline-none">
               {paginas.map((p) => <option key={p} value={p}>{p.replace(/\.html$/, "")}</option>)}
             </select>
           </label>
         )}
-        <a href={src} target="_blank" rel="noreferrer" className="ml-auto inline-flex min-h-9 items-center rounded-full px-3 text-[13px] text-medio underline-offset-4 hover:text-tinta hover:underline">Abrir en otra pestaña ↗</a>
+        <a href={src} target="_blank" rel="noreferrer" className="ml-auto inline-flex min-h-11 md:min-h-9 items-center rounded-full px-3 text-[13px] text-medio underline-offset-4 hover:text-tinta hover:underline">Abrir en otra pestaña ↗</a>
       </div>
       <div ref={caja} className={`relative overflow-hidden rounded-[18px] ${equipo === "escritorio" ? "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.08)]" : "bg-[#ebe6dd] py-6"}`} style={{ height: e.alto * escala + (equipo === "escritorio" ? 0 : 48) }}>
         <div className={`mx-auto origin-top-left overflow-hidden ${equipo === "escritorio" ? "" : "rounded-[28px] shadow-[0_0_0_8px_#1a1816,0_20px_50px_-20px_rgba(0,0,0,.5)]"}`} style={{ width: e.ancho * escala, height: e.alto * escala }}>

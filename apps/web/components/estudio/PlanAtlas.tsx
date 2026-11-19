@@ -50,7 +50,7 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
                     const c = contratoPorId(t)!;
                     const a = agentePorId(c.agente)!;
                     return (
-                      <li key={t} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-[#f6f3ee] py-1 pl-1.5 pr-3 text-[13px]">
+                      <li key={t} className="inline-flex min-h-11 md:min-h-9 items-center gap-2 rounded-full bg-[#f6f3ee] py-1 pl-1.5 pr-3 text-[13px]">
                         <Cara id={a.id} tam={24} /> <span><strong className="font-medium">{a.nombre}</strong> · {c.entrega}</span>
                       </li>
                     );
@@ -119,7 +119,7 @@ export function PlanAtlas({ p, conIA }: { p: Proyecto; conIA: boolean }) {
         <div className="grid gap-2">
           <div><Enviar className={`${botonLleno} min-h-12 px-7 text-[14px]`} texto="Que empiecen" trabajando="Arrancando…" proyecto={id} /></div>
           {conIA && (
-            <label className="flex min-h-9 items-center gap-2 text-[12px] text-medio">
+            <label className="flex min-h-11 md:min-h-9 items-center gap-2 text-[12px] text-medio">
               <input type="checkbox" name="motor" value="simulado" className="accent-tinta" /> Probar sin gastar IA (solo arma la estructura)
             </label>
           )}

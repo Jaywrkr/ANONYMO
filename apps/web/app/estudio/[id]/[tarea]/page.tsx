@@ -42,11 +42,11 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
   const fase = FASES.find((f) => f.n === Number(t.split(".")[0]))!;
   const area = AREAS[a.area];
   const mia = responsable(p, fase.n) === yo;
-  const pastilla = (activa: boolean) => `inline-flex min-h-9 items-center rounded-full px-3 text-[13px] transition ${activa ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`;
+  const pastilla = (activa: boolean) => `inline-flex min-h-11 md:min-h-9 items-center rounded-full px-3 text-[13px] transition ${activa ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`;
 
   return (
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
-      <Link href={`/estudio/${id}`} className="inline-flex min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
+      <Link href={`/estudio/${id}`} className="inline-flex min-h-11 md:min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
         <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(id, p.marca).punto }} /> ← {p.pedido.cliente}
       </Link>
       <div className="mt-4 grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -101,7 +101,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
               {anteriores.map((n) => (
                 <span key={n} className="inline-flex items-center gap-0.5">
                   <a href={`${base}?v=${n}`} aria-current={v === String(n) ? "page" : undefined} className={pastilla(v === String(n))}>v{n}</a>
-                  <a href={`${base}?comparar=${n}`} className={`inline-flex min-h-9 items-center px-2 text-[12px] underline underline-offset-4 ${comparar === String(n) ? "text-tinta" : "text-suave"}`}>comparar</a>
+                  <a href={`${base}?comparar=${n}`} className={`inline-flex min-h-11 md:min-h-9 items-center px-2 text-[12px] underline underline-offset-4 ${comparar === String(n) ? "text-tinta" : "text-suave"}`}>comparar</a>
                 </span>
               ))}
             </nav>

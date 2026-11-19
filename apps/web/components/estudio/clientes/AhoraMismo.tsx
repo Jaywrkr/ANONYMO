@@ -30,10 +30,10 @@ export function AhoraMismo({ inicial }: { inicial: VistaProspecto[] }) {
   const fila = (p: VistaProspecto, texto: string) => (
     <li key={p.id} className="flex flex-wrap items-center gap-2">
       <p className="min-w-0 basis-full text-[14px] sm:flex-1 sm:basis-0"><span className="font-medium">{p.nombre}</span> <span className="text-white/70">{texto}</span></p>
-      {p.telefono && <a href={`tel:${p.telefono.replace(/[^\d+]/g, "")}`} className="inline-flex min-h-9 items-center rounded-full bg-white px-4 text-[13px] font-medium text-tinta">Llamar</a>}
-      {p.acepto && p.whatsappCobro && <a href={p.whatsappCobro} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">Cobrar el 50 %</a>}
-      {p.acepto && !p.proyecto && <a href={p.pedido} className="inline-flex min-h-9 items-center rounded-full bg-white px-4 text-[13px] font-medium text-tinta">Crear el pedido</a>}
-      {!p.acepto && sinTexto(p.whatsapp) && <a href={sinTexto(p.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">WhatsApp</a>}
+      {p.telefono && <a href={`tel:${p.telefono.replace(/[^\d+]/g, "")}`} className="inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-white px-4 text-[13px] font-medium text-tinta">Llamar</a>}
+      {p.acepto && p.whatsappCobro && <a href={p.whatsappCobro} target="_blank" rel="noreferrer" className="inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">Cobrar el 50 %</a>}
+      {p.acepto && !p.proyecto && <a href={p.pedido} className="inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-white px-4 text-[13px] font-medium text-tinta">Crear el pedido</a>}
+      {!p.acepto && sinTexto(p.whatsapp) && <a href={sinTexto(p.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">WhatsApp</a>}
     </li>
   );
   return (

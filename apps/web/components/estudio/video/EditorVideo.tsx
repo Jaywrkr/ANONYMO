@@ -468,7 +468,7 @@ export function EditorVideo({ inicial, atlas, kits }: { inicial: TrabajoVideo; a
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Ideas rápidas">
                   {["Más dinámico", "Quita la parte del inicio", "Zoom en cada corte", "Cierra con el logo", "Ponle la música de la marca", "Expórtalo en los tres formatos"].map((x) => (
-                    <button key={x} type="button" disabled={!listo || !!paso} onClick={() => setPedido(x)} className="inline-flex min-h-9 items-center rounded-full bg-hueso px-3 text-[12px] text-medio hover:text-tinta disabled:opacity-40">{x}</button>
+                    <button key={x} type="button" disabled={!listo || !!paso} onClick={() => setPedido(x)} className="inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-hueso px-3 text-[12px] text-medio hover:text-tinta disabled:opacity-40">{x}</button>
                   ))}
                 </div>
               </form>

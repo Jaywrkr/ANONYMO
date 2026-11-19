@@ -220,7 +220,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
                   ))}
                 </ul>
               )}
-              <Link href="/estudio/biblioteca" className="mt-2 inline-flex min-h-9 items-center text-[13px] text-medio hover:text-tinta">Ver todo en la biblioteca →</Link>
+              <Link href="/estudio/biblioteca" className="mt-2 inline-flex min-h-11 md:min-h-9 items-center text-[13px] text-medio hover:text-tinta">Ver todo en la biblioteca →</Link>
             </div>
 
             {/* El gasto en una línea (sistema/76): grande no aporta cuando es poco. */}

@@ -33,7 +33,7 @@ export default async function PropuestaEstudio({ params }: { params: Promise<{ i
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
-      <Link href={`/estudio/${id}`} className="inline-flex min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
+      <Link href={`/estudio/${id}`} className="inline-flex min-h-11 md:min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
         <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(id, p.marca).punto }} /> ← {p.pedido.cliente}
       </Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">

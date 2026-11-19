@@ -30,7 +30,7 @@ export function InicioMovil({proyectos,nombre,error,avisos=[],pendientes=0}:{pro
    <p className="mt-2 text-[14px] leading-snug">{p.texto}</p>
    {/* Tarjeta corta (sistema/75): una línea de estado, el último avance y la acción. Atlas está en la barra de abajo. */}
    <p className="mt-2 text-[12px] text-medio">{p.generadas} de {p.total} entregas · {new Date(p.actualizado).toLocaleString("es-EC",{timeZone:"America/Guayaquil",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
-   {p.entregas[0]&&<Link href={p.entregas[0].href} className="mt-3 flex min-w-0 items-center gap-2 rounded-xl bg-[#f6f3ee] px-3 py-2 text-[13px]"><span className="min-w-0 flex-1 truncate">Último: <strong className="font-medium">{p.entregas[0].titulo}</strong></span><span className="shrink-0 text-[12px] text-medio">{p.entregas[0].calidad}</span></Link>}
+   {p.entregas[0]&&<Link href={p.entregas[0].href} className="mt-3 flex min-h-11 min-w-0 items-center gap-2 rounded-xl bg-[#f6f3ee] px-3 py-2 text-[13px]"><span className="min-w-0 flex-1 truncate">Último: <strong className="font-medium">{p.entregas[0].titulo}</strong></span><span className="shrink-0 text-[12px] text-medio">{p.entregas[0].calidad}</span></Link>}
    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
     <Link href={p.href} className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] text-white">{p.accion} →</Link>
     <Link href={`/estudio/${p.id}/calidad`} className="inline-flex min-h-11 items-center text-[13px] text-medio underline underline-offset-4">Calidad</Link>

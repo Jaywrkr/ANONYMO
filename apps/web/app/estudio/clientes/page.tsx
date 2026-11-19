@@ -55,7 +55,7 @@ export default async function Pagina() {
       <details className="mt-8 max-w-lg">
         <summary className="min-h-11 cursor-pointer text-[14px] text-medio">Agregar un cliente a mano</summary>
         <form action={accionNuevaFicha} className="mt-2 flex flex-wrap gap-2">
-          <input name="nombre" required maxLength={80} placeholder="Nombre del cliente" className={`${campo} min-w-0 flex-1`} />
+          <input name="nombre" required maxLength={80} placeholder="Nombre del cliente" aria-label="Nombre del cliente" className={`${campo} min-w-0 flex-1`} />
           <button className={botonLleno} data-trabajando="Creando la ficha…">Crear ficha</button>
         </form>
       </details>

@@ -72,14 +72,14 @@ export default async function Plantillas() {
               <figcaption className="mt-2 text-[14px]">
                 <span className="font-medium">{PLANTILLAS_MUESTRA[v].nombre}</span> <span className="text-medio">· {PLANTILLAS_MUESTRA[v].idea}</span>
                 <span className="mt-1 flex flex-wrap gap-x-3 text-[13px]">
-                  {TONOS.map((x) => <Link key={x} href={`/m/ejemplo/${x}/${v}`} target="_blank" className="text-medio underline underline-offset-4">{NOMBRE_TONO[x]} ↗</Link>)}
+                  {TONOS.map((x) => <Link key={x} href={`/m/ejemplo/${x}/${v}`} target="_blank" className="inline-flex min-h-11 items-center text-medio underline underline-offset-4 md:min-h-0">{NOMBRE_TONO[x]} ↗</Link>)}
                 </span>
               </figcaption>
             </figure>
           );
         })}
       </div>
-      <p className="mt-8 text-[13px] text-medio">Referencias en Savee: {Object.entries(TABLERO).map(([t, u]) => <a key={t} href={u} target="_blank" rel="noreferrer" className="mr-3 underline underline-offset-4">{NOMBRE_TONO[t]} ↗</a>)}</p>
+      <p className="mt-8 text-[13px] text-medio">Referencias en Savee: {Object.entries(TABLERO).map(([t, u]) => <a key={t} href={u} target="_blank" rel="noreferrer" className="mr-3 inline-flex min-h-11 items-center underline underline-offset-4 md:min-h-0">{NOMBRE_TONO[t]} ↗</a>)}</p>
     </div>
   );
 }

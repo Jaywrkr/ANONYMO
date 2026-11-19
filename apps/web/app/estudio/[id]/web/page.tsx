@@ -33,7 +33,7 @@ export default async function Web({ params, searchParams }: { params: Promise<{ 
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
-      <Link href={`/estudio/${id}`} className="inline-flex min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
+      <Link href={`/estudio/${id}`} className="inline-flex min-h-11 md:min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
         <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: espacio(id, p.marca).punto }} /> ← {p.pedido.cliente}
       </Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
@@ -50,7 +50,7 @@ export default async function Web({ params, searchParams }: { params: Promise<{ 
               <nav aria-label="Versiones" className="flex flex-wrap gap-1">
                 {versiones.map((n) => (
                   <Link key={n} href={`/estudio/${id}/web?v=${n}`} aria-current={n === v ? "page" : undefined}
-                    className={`inline-flex min-h-9 items-center rounded-full px-3 text-[13px] ${n === v ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>v{n}</Link>
+                    className={`inline-flex min-h-11 md:min-h-9 items-center rounded-full px-3 text-[13px] ${n === v ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>v{n}</Link>
                 ))}
               </nav>
             )}

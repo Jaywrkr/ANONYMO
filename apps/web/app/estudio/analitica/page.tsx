@@ -49,7 +49,7 @@ export default async function Analitica({ searchParams }: { searchParams: Promis
         </div>
         <nav aria-label="Período" className="flex gap-1.5">
           {[7, 30, 90].map((d) => (
-            <Link key={d} href={`?dias=${d}`} aria-current={d === dias ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3.5 text-[13px] transition ${d === dias ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>{d} días</Link>
+            <Link key={d} href={`?dias=${d}`} aria-current={d === dias ? "page" : undefined} className={`inline-flex min-h-11 md:min-h-9 items-center rounded-full px-3.5 text-[13px] transition ${d === dias ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>{d} días</Link>
           ))}
         </nav>
       </div>

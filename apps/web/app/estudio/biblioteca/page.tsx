@@ -82,7 +82,7 @@ export default async function Biblioteca({ searchParams }: { searchParams: Promi
           <nav aria-label="Filtrar" className="mt-5 flex flex-wrap gap-1.5">
             {FILTROS.map((f) => (
               <Link key={f.id} href={f.id ? `/estudio/biblioteca?ver=${f.id}` : "/estudio/biblioteca"} aria-current={ver === f.id ? "page" : undefined}
-                className={`inline-flex min-h-9 items-center rounded-full px-3.5 text-[13px] transition ${ver === f.id ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>
+                className={`inline-flex min-h-11 md:min-h-9 items-center rounded-full px-3.5 text-[13px] transition ${ver === f.id ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>
                 {f.nombre}
               </Link>
             ))}
