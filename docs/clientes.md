@@ -47,6 +47,10 @@ Cada muestra sale con una de cinco plantillas, repartidas parejo, para ver cuál
 
 Para cambiarla en un negocio: «Más» → «Plantilla de su muestra». Para verlas: Clientes → **Plantillas**.
 
+**Qué trae cada muestra (sistema/87)**: portada, servicios, la frase, «por qué aquí», **«Así de fácil»** (tres pasos para agendar), **«Lo que dicen»** (su nota real de Google y tres reseñas de ejemplo, marcadas «Ejemplo»), dos espacios que dicen «La foto de tu equipo» y «La foto de tu trabajo» hasta que suba las suyas, **preguntas frecuentes** y «Ven a vernos».
+
+**Movimiento**: el nombre entra palabra por palabra, la imagen se abre y baja más lento que la página, las fichas se mecen, el punto de «abierto hoy» late, un brillo cruza el botón principal, cada sección aparece al llegar a ella, la frase grande se enciende palabra por palabra y la nota de Google cuenta desde cero. Si el celular pide menos movimiento, o el navegador no corre el código, todo se ve quieto y completo: nada depende del movimiento para leerse. Código: `components/muestra/Movimiento.tsx` (al bajar), `Cielo.tsx` (`EstilosMuestra`, `Palabras`, `Lee`, `Cuenta`, `Punto`) y `Secciones.tsx` (las secciones compartidas; cada plantilla las viste con su `Tema`). Para que algo aparezca al bajar se le pone `data-aparece` (o `"escala"`, `"lado"`, `"corta"` para imágenes).
+
 **Colores**: se respeta el color del negocio. Sale de su web si la tiene; si lo ves en su Instagram o su letrero, ponlo en «Más» → «Color de su marca»; si no se sabe, va el de su rubro.
 
 **De la muestra al pedido**: «Crear el pedido» le cuenta a Atlas la plantilla, los colores, los servicios, el horario, las fotos y lo acordado, para que la web final parta de lo que el cliente ya vio.

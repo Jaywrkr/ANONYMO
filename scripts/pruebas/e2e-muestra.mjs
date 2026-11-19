@@ -107,6 +107,22 @@ try {
   exigir(await esperarAvisos(2) && avisos[1].bytes > 0, "al abrirla suena el celular de Jay");
   await m.locator("button:has-text('Agendar por WhatsApp')").first().click();
   exigir(await espera(m.locator("[role=status]:has-text('este botón abrirá tu WhatsApp')"), 3000), "los botones de ejemplo explican qué harán");
+  // La página completa y con movimiento (sistema/87): pasos, reseñas de ejemplo dichas como tales y preguntas; al bajar, todo aparece.
+  exigir(await m.getByRole("heading", { name: "Así de fácil" }).count() === 1 && await m.getByRole("heading", { name: "Preguntas frecuentes" }).count() === 1 && await m.getByText("Estas reseñas son de ejemplo.").count() === 1, "trae los pasos, las preguntas y dice que las reseñas son de ejemplo");
+  const porSalir = () => m.evaluate(() => [...document.querySelectorAll("[data-aparece]:not(.visto)")].filter((e) => e.getBoundingClientRect().left < innerWidth).length);
+  exigir(await m.locator("[data-plantilla].muestra-viva").count() === 1 && await porSalir() > 5, "lo de más abajo espera a que el negocio baje");
+  for (let y = 0, alto = await m.evaluate(() => document.documentElement.scrollHeight); y < alto; y += 500) { await m.evaluate((v) => window.scrollTo(0, v), y); await m.waitForTimeout(120); }
+  await m.waitForTimeout(1300);
+  exigir(await porSalir() === 0, "al bajar aparece todo: nada queda escondido");
+  await m.locator("details:has-text('¿Cómo puedo pagar?') summary").click();
+  exigir(await espera(m.getByText("En efectivo, con transferencia o con tarjeta."), 3000), "las preguntas se abren al tocar");
+  await m.evaluate(() => window.scrollTo(0, 0));
+  const quieto = await nav.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  const q = await quieto.newPage();
+  await q.goto(`${B}/m/ejemplo/salud/sereno`);
+  await q.waitForTimeout(800);
+  exigir(await q.locator(".muestra-viva").count() === 0 && await q.evaluate(() => [...document.querySelectorAll("[data-aparece], .muestra-palabra")].every((e) => getComputedStyle(e).opacity === "1")), "a quien pidió menos movimiento se le muestra todo quieto y a la vista");
+  await quieto.close();
   await m.screenshot({ path: join(capturas, "1-muestra.png"), fullPage: true });
   await m.reload();
   await m.waitForSelector("h1");

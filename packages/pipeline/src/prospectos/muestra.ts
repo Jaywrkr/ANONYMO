@@ -33,7 +33,8 @@ const SERVICIOS: Record<Tono, string[]> = {
   salud: ["Primera consulta", "Tratamientos", "Controles y seguimiento", "Agenda en línea"],
   legal: ["Asesoría inicial", "Trámites y contratos", "Acompañamiento en tu caso", "Agenda tu reunión"],
   belleza: ["Tratamientos", "Paquetes", "Promociones del mes", "Reserva tu turno"],
-  otro: ["Lo que hacemos", "Cómo trabajamos", "Preguntas frecuentes", "Contacto"],
+  // Desde sistema/87 son servicios de verdad: antes eran nombres de secciones y se repetían con el título y con las preguntas frecuentes.
+  otro: ["Trabajos a tu medida", "Asesoría sin costo", "Entregas a tiempo", "Garantía en cada trabajo"],
 };
 
 /** Servicios de ejemplo por oficio (sistema/84): «Ortodoncia» le dice más a un odontólogo que «Tratamientos». Cada uno con su línea. */
@@ -63,7 +64,7 @@ const DETALLE_TONO: Record<Tono, string[]> = {
   salud: ["Revisión completa y plan claro desde el primer día.", "Explicados paso a paso.", "Te acompañamos después de cada sesión.", "Elige día y hora desde tu celular."],
   legal: ["Una primera reunión para entender tu caso.", "Documentos en orden y a tiempo.", "Te representamos con criterio y cercanía.", "Agenda en línea, sin llamadas."],
   belleza: ["Hechos a tu medida, con calma.", "Combinaciones pensadas para ti.", "Lo mejor del mes, con precio especial.", "Escoge tu turno en un minuto."],
-  otro: ["Lo que mejor sabemos hacer.", "Simple, claro y a tiempo.", "Lo que siempre nos preguntan.", "Escríbenos y te respondemos hoy."],
+  otro: ["Nos cuentas qué necesitas y lo hacemos para ti.", "Te decimos qué te conviene antes de que gastes.", "Te damos una fecha y la cumplimos.", "Si algo no queda bien, lo arreglamos."],
 };
 
 const BAJADA: Record<Tono, (rubro: string, ciudad: string) => string> = {

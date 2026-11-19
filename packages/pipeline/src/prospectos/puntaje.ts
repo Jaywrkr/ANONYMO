@@ -117,6 +117,7 @@ export function pedidoDesdeProspecto(p: Prospecto, hoy = new Date(), base = "") 
     "PARTE DE SU MUESTRA. El cliente ya vio esta idea y le gustó: la web final debe reconocerse como la misma, mejorada con sus datos reales.",
     base ? `- Muestra: ${base}/m/${id}` : "",
     `- Plantilla «${PLANTILLAS_MUESTRA[c.plantilla].nombre}»: ${ESTRUCTURA[c.plantilla]}.`,
+    "- Además vio: tres pasos para agendar, reseñas (de ejemplo: usa las suyas de Google), preguntas frecuentes, y todo entrando con movimiento al bajar (el nombre palabra por palabra, la imagen más lenta que la página).",
     `- Colores (${deDonde}): marca ${k.bloque}, fondo ${k.fondo}, texto ${k.tinta}, botones ${k.acento}.`,
     `- Servicios que vio (${c.propia ? "algunos salen de su web" : "son de ejemplo: confírmalos con el cliente"}): ${c.servicios.join(", ")}.`,
     `- Horario${c.horarioReal ? " (el de Google)" : " (de ejemplo: pídeselo)"}: ${c.horario.map(([d, h]) => `${d} ${h}`).join("; ")}.`,

@@ -4,6 +4,7 @@ import "@fontsource-variable/fraunces/soft.css";
 import "@fontsource-variable/fraunces/soft-italic.css";
 import type { ContenidoMuestra } from "@anonymo/pipeline";
 import { EstilosMuestra } from "./Cielo";
+import { Movimiento } from "./Movimiento";
 import { Serena } from "./Serena";
 import { Grafica } from "./Grafica";
 import { Mosaico } from "./Mosaico";
@@ -19,6 +20,7 @@ export function MuestraVariante({ c, fotos = [] }: { c: ContenidoMuestra; fotos?
   return (
     <div className="font-sans" data-plantilla={c.plantilla}>
       <EstilosMuestra />
+      <Movimiento />
       <p className="px-5 py-2 text-center text-[12px] leading-snug" style={{ background: "#141414", color: "#f4f4f2" }}>
         Idea de web para {c.nombre}, hecha por ANONYMO. {c.horarioReal ? "Los textos son de ejemplo." : "Los textos y el horario son de ejemplo."}
       </p>
