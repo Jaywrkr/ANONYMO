@@ -97,7 +97,22 @@ try {
   m.on("pageerror", (e) => fallas.push(`error en la muestra: ${e.message}`));
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
-  exigir(await m.locator("text=Idea de web para Barbería Don Bigote, hecha por ANONYMO").count() === 1, "dice que es una idea y quién la hizo");
+  exigir(/Idea de web para Barbería Don Bigote, hecha por Jay Jaramillo, de ANONYMO/.test(await m.locator("[data-plantilla] > p").first().innerText()) && await m.locator("[data-plantilla] > p a[href='/jay']").count() === 1, "dice que es una idea, quién la hizo y enlaza a su página");
+  // La página de Jay (sistema/90): quién escribe, con foto, reconocimientos comprobables y trabajos.
+  const j = await negocio.newPage();
+  j.on("pageerror", (e) => fallas.push(`error en /jay: ${e.message}`));
+  const rj = await j.goto(`${B}/jay`);
+  exigir(rj.status() === 200 && (await j.locator("h1").innerText()).includes("Jay Jaramillo"), "la página de Jay abre sin sesión");
+  exigir(await j.locator("a[href*='awwwards.com']").count() >= 3 && await j.locator("a[href*='instagram.com/jaywrkr']").count() >= 1, "con sus menciones en Awwwards enlazadas y su Instagram");
+  exigir(await j.locator("a[href^='https://wa.me/593995550000']").count() >= 1, "y un botón de WhatsApp al número de ANONYMO");
+  exigir(!(await j.locator("header nav").count()) && await j.evaluate(() => document.documentElement.scrollWidth) <= 392 && (await j.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "sin el menú de la agencia, cabe en celular y no se indexa");
+  await j.evaluate(() => document.querySelectorAll("img").forEach((i) => { i.loading = "eager"; }));
+  await j.waitForTimeout(700);
+  await j.screenshot({ path: join(capturas, "4-jay-celular.png"), fullPage: true });
+  await j.setViewportSize({ width: 1440, height: 900 });
+  await j.waitForTimeout(400);
+  await j.screenshot({ path: join(capturas, "4-jay-escritorio.png"), fullPage: true });
+  await j.close();
   exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() >= 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
   exigir(await m.getByText("Lunes a domingo").count() === 1 && await m.getByText("10:00 – 20:00").count() >= 1 && await m.getByText("Los textos son de ejemplo.").count() === 1, "lleva su horario real de Google y solo los textos se dicen de ejemplo");
   exigir(await m.locator("text=USD 390 + IVA").count() === 1 && await m.locator("text=Lista en 7 días").count() === 1, "la barra dice plazo y precio");

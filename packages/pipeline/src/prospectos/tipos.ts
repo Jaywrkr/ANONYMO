@@ -119,4 +119,4 @@ export const CIUDADES: Record<string, { lat: number; lng: number }> = {
   Azogues: { lat: -2.7397, lng: -78.8486 },
 };
 
-export const FIRMA_INICIAL = "Jay · ANONYMO";
+export const FIRMA_INICIAL = "Jay Jaramillo · ANONYMO";

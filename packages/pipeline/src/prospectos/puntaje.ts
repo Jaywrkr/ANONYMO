@@ -68,7 +68,10 @@ export function mensajeInicial(p: Prospecto, firma: string, hoy = new Date(), mu
   else problema = `Vi su web y creo que puede verse mucho más profesional y traerles más ${SALUD.test(p.rubro) ? "pacientes" : "clientes"}.`;
   // Con muestra (sistema/72) el enlace va en el primer mensaje: es lo que hace que contesten.
   const oferta = muestra ? `Les preparé una idea de cómo podría verse su web, sin compromiso: ${muestra}` : "Les preparé una idea de cómo podría verse su web. ¿Se la puedo enviar por aquí?";
-  return `Hola, ¿qué tal? Vi ${nombreDe(p)} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}`;
+  // Quién escribe (sistema/90): debajo de la firma va el enlace a la página de Jay, con su trabajo y sus reconocimientos.
+  // Un desconocido con un enlace genera desconfianza; una persona con nombre y trabajo detrás, menos.
+  const quien = muestra?.includes("/m/") ? `\nQuién soy y qué he hecho: ${muestra.split("/m/")[0]}/jay` : "";
+  return `Hola, ¿qué tal? Vi ${nombreDe(p)} en Google Maps.${fama} ${problema} ${oferta}\n\n${firma}${quien}`;
 }
 
 /** Solo los dígitos, con el código de Ecuador: «099 123 4567» → «593991234567». */

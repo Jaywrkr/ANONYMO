@@ -119,7 +119,7 @@ function PiePublico() {
 const esInterna = (ruta: string) => /^\/(estudio|entrar|imprimir)(\/|$)/.test(ruta);
 // La muestra para un prospecto (/m, sistema/72) es la web de otro negocio: sin el marco de ANONYMO.
 // La propuesta (/p, sistema/80) es un documento para un solo negocio: también sin menú.
-const esPortal = (ruta: string) => /^\/(portal|m|p)(\/|$)/.test(ruta);
+const esPortal = (ruta: string) => /^\/(portal|m|p|jay)(\/|$)/.test(ruta);
 
 export function Encabezado() {
   const ruta = usePathname() ?? "";

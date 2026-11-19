@@ -26,7 +26,8 @@ export function MuestraVariante({ c, fotos = [], saludo = false }: { c: Contenid
       <EstilosMuestra />
       {saludo && <Saludo c={c} k={k} />}
       <p className="px-5 py-2 text-center text-[12px] leading-snug" style={{ background: "#141414", color: "#f4f4f2" }}>
-        Idea de web para {c.nombre}, hecha por ANONYMO. {c.horarioReal ? "Los textos son de ejemplo." : "Los textos y el horario son de ejemplo."}
+        {/* Quién la hizo (sistema/90): el nombre lleva a la página de Jay, con su trabajo y sus reconocimientos. */}
+        Idea de web para {c.nombre}, hecha por <a href="/jay" target="_blank" rel="noreferrer" className="underline underline-offset-2">Jay Jaramillo</a>, de ANONYMO. {c.horarioReal ? "Los textos son de ejemplo." : "Los textos y el horario son de ejemplo."}
       </p>
       <Variante c={c} k={k} fotos={fotos} />
     </div>
