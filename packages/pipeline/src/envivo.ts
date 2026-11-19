@@ -7,7 +7,9 @@ export type BloqueApi = { type: string; text?: string; [k: string]: unknown };
 export interface RespuestaEnVivo {
   content: BloqueApi[];
   stop_reason: string;
-  usage: { input_tokens: number; output_tokens: number; server_tool_use?: { web_search_requests?: number } };
+  usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number; server_tool_use?: { web_search_requests?: number } };
+  /** El modelo que de verdad respondió (sistema/91): con él se calcula el costo. */
+  model?: string;
   /** Se cortó porque se acababa el tiempo de la vuelta (no la API). */
   sinTiempo?: boolean;
 }
@@ -15,9 +17,9 @@ export interface RespuestaEnVivo {
 export type FaseVivo = "pensando" | "buscando" | "escribiendo";
 
 /** Lo que va llegando. Se arma en un objeto aparte para no perderlo si la conexión se corta a la mitad. */
-export interface Acumulado { bloques: BloqueApi[]; stop: string; usage: RespuestaEnVivo["usage"]; palabras: number }
+export interface Acumulado { bloques: BloqueApi[]; stop: string; usage: RespuestaEnVivo["usage"]; palabras: number; modelo?: string }
 export const acumulado = (): Acumulado => ({ bloques: [], stop: "", usage: { input_tokens: 0, output_tokens: 0 }, palabras: 0 });
-const respuesta = (a: Acumulado): RespuestaEnVivo => ({ content: a.bloques.filter(Boolean), stop_reason: a.stop, usage: a.usage });
+const respuesta = (a: Acumulado): RespuestaEnVivo => ({ content: a.bloques.filter(Boolean), stop_reason: a.stop, usage: a.usage, model: a.modelo });
 
 /** Lee un stream SSE y arma los bloques tal como los devolvería la API sin streaming. */
 export async function leerStream(
@@ -36,7 +38,9 @@ export async function leerStream(
     switch (ev.type) {
       case "message_start": {
         const u = (ev.message as { usage?: RespuestaEnVivo["usage"] })?.usage;
-        if (u) { usage.input_tokens = u.input_tokens ?? 0; usage.output_tokens = u.output_tokens ?? 0; }
+        if (u) { usage.input_tokens = u.input_tokens ?? 0; usage.output_tokens = u.output_tokens ?? 0; usage.cache_read_input_tokens = u.cache_read_input_tokens ?? 0; usage.cache_creation_input_tokens = u.cache_creation_input_tokens ?? 0; }
+        const mod = (ev.message as { model?: string })?.model;
+        if (mod) acum.modelo = mod;
         break;
       }
       case "content_block_start": {

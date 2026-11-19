@@ -228,7 +228,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
             </div>
 
             {/* El gasto en una línea (sistema/76): grande no aporta cuando es poco. */}
-            <p className="px-1 text-[12px] text-suave">IA este mes: <span className="font-medium text-tinta">${gastoMes.toFixed(2)}</span> · {proyectos.filter((p) => p.estado !== "listo").length} proyectos activos</p>
+            <p className="px-1 text-[12px] text-suave">IA este mes: <span className="font-medium text-tinta">${gastoMes.toFixed(2)}</span> · {proyectos.filter((p) => p.estado !== "listo").length} proyectos activos · <Link href="/estudio/gasto" className="underline underline-offset-4">ver el gasto</Link></p>
           </aside>
         </div>
       )}

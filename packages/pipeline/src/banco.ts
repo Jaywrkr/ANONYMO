@@ -268,7 +268,7 @@ export async function bytesCaptura(archivo: string): Promise<Buffer | undefined>
 // ——— El juez califica a ciegas ———
 /** Un juez recibe el mensaje y el tiempo disponible, y devuelve el texto de su respuesta. */
 export type Juez = (mensaje: unknown[], disponible: number) => Promise<{ texto: string; usd?: number }>;
-export const juezReal: Juez = async (mensaje, disponible) => { const r = await llamarJuez(mensaje, disponible); return { texto: r.texto, usd: r.uso?.usd }; };
+export const juezReal: Juez = async (mensaje, disponible) => { const r = await llamarJuez(mensaje, disponible, fetch, undefined, { tarea: "calibracion" }); return { texto: r.texto, usd: r.uso?.usd }; };
 
 /**
  * Cómo se le presenta una referencia al juez (sistema/57). Sin esto, el juez la trataba como entrega para un cliente:

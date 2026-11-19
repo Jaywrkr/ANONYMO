@@ -1,4 +1,5 @@
 import { textoOficio } from "./oficio.ts";
+import { anotarGasto, exigirPresupuesto } from "./gasto.ts";
 import {textoReferencias,type ReferenciaCreativa} from './estandar.ts';
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
 import {PEDIDO_MARCA,leerPiezas} from "./piezas.ts";
@@ -193,6 +194,8 @@ export const real: Motor = {
   async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, memoria, referencias, marca, parcial, plazo, latido, direccion, directo }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
+    // Con el tope de gasto alcanzado no se llama a la IA (sistema/91).
+    await exigirPresupuesto();
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const buscaEnWeb = c.herramientas?.includes("web");
@@ -337,6 +340,8 @@ export const real: Motor = {
       uso.entrada += res.usage?.input_tokens ?? 0;
       uso.salida += res.usage?.output_tokens ?? 0;
       uso.busquedas += res.usage?.server_tool_use?.web_search_requests ?? 0;
+      // Cada respuesta se anota en el medidor de gasto (sistema/91), con el modelo que de verdad respondió.
+      await anotarGasto({ origen: c.agente, tarea, proyecto: pedido.id, modelo: res.model ?? modelo, entrada: res.usage?.input_tokens ?? 0, salida: res.usage?.output_tokens ?? 0, cacheL: res.usage?.cache_read_input_tokens, cacheE: res.usage?.cache_creation_input_tokens, busquedas: res.usage?.server_tool_use?.web_search_requests });
       fin = res.stop_reason;
       // Sin tiempo, o la conexión se cortó sin terminar: se guarda lo escrito y sigue en otra vuelta.
       if (res.sinTiempo || !res.stop_reason) return { dice: "", necesita: "", contenido: "", modo: "real", pendiente: textoHastaAhora(), uso: { ...uso, usd: usd(uso.entrada, uso.salida, uso.busquedas, rapido), estimado: false } };

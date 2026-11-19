@@ -60,3 +60,4 @@ export * from "./clientes/index.ts";
 export * from "./oferta.ts";
 export * from "./avisos-celular.ts";
 export * from "./estado-sistema.ts";
+export * from "./gasto.ts";

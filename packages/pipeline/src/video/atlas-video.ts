@@ -251,7 +251,7 @@ export async function interpretarPedidoVideo(pedido: string, t: VideoParaAtlas, 
     : texto;
   let crudo: unknown;
   try {
-    crudo = await pedirEstructura<RespuestaAtlasVideo>(SISTEMA_ATLAS_VIDEO, contenido, HERRAMIENTA, 2500);
+    crudo = await pedirEstructura<RespuestaAtlasVideo>(SISTEMA_ATLAS_VIDEO, contenido, HERRAMIENTA, 2500, { origen: "corte", tarea: "video" });
   } catch (e) {
     throw new Error(`Corte no pudo leer el pedido: ${(e as Error).message}`);
   }

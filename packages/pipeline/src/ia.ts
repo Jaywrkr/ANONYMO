@@ -1,3 +1,4 @@
+import { anotarGasto, exigirPresupuesto } from "./gasto.ts";
 // Llamada corta a Claude para decisiones de Atlas (no para entregas). Sin clave, devuelve undefined.
 
 /** Tapa cualquier cosa que parezca una clave antes de mostrar o guardar un mensaje de error. */
@@ -48,9 +49,18 @@ export function textoDe(d: { content?: { type: string; text?: string }[]; stop_r
   return t;
 }
 
-export async function preguntarClaude(sistema: string, usuario: string, maxTokens = 600): Promise<string | undefined> {
+/** `ctx`: quién pregunta y para qué proyecto, para el medidor de gasto (sistema/91). */
+export interface CtxGasto { origen?: string; proyecto?: string; tarea?: string }
+
+type ConUso = { model?: string; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } };
+/** Anota en el medidor lo que costó una respuesta (sistema/91). Antes estas llamadas no se medían. */
+const anotarUso = (d: ConUso, modelo: string, ctx: CtxGasto) =>
+  d.usage ? anotarGasto({ origen: ctx.origen ?? "atlas", tarea: ctx.tarea, proyecto: ctx.proyecto, modelo: d.model ?? modelo, entrada: d.usage.input_tokens ?? 0, salida: d.usage.output_tokens ?? 0, cacheL: d.usage.cache_read_input_tokens, cacheE: d.usage.cache_creation_input_tokens }) : Promise.resolve(0);
+
+export async function preguntarClaude(sistema: string, usuario: string, maxTokens = 600, ctx: CtxGasto = {}): Promise<string | undefined> {
   const clave = claveAnthropic();
   if (!clave) return undefined;
+  await exigirPresupuesto();
   const modelo = process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
   const r = await fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
     method: "POST",
@@ -65,7 +75,9 @@ export async function preguntarClaude(sistema: string, usuario: string, maxToken
     signal: AbortSignal.timeout(60000),
   });
   if (!r.ok) throw new Error(ocultarClaves(`la API respondió ${r.status}: ${(await r.text()).slice(0, 160)}`));
-  return textoDe((await r.json()) as { content: { type: string; text?: string }[]; stop_reason?: string });
+  const d = (await r.json()) as { content: { type: string; text?: string }[]; stop_reason?: string } & ConUso;
+  await anotarUso(d, modelo, ctx);
+  return textoDe(d);
 }
 
 /** Saca el primer objeto JSON de un texto. */
@@ -90,9 +102,11 @@ export async function pedirEstructura<T>(
   usuario: string | unknown[],
   h: { nombre: string; descripcion: string; esquema: Record<string, unknown> },
   maxTokens = 4000,
+  ctx: CtxGasto = {},
 ): Promise<T | undefined> {
   const clave = claveAnthropic();
   if (!clave) return undefined;
+  await exigirPresupuesto();
   const modelo = process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
   const llamar = (forzar: boolean) =>
     fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
@@ -114,7 +128,8 @@ export async function pedirEstructura<T>(
   let r = await llamar(forzable);
   if (forzable && r.status === 400) r = await llamar(false);
   if (!r.ok) throw new Error(ocultarClaves(`la API respondió ${r.status}: ${(await r.text()).slice(0, 160)}`));
-  const d = (await r.json()) as { content?: { type: string; name?: string; input?: unknown; text?: string }[]; stop_reason?: string };
+  const d = (await r.json()) as { content?: { type: string; name?: string; input?: unknown; text?: string }[]; stop_reason?: string } & ConUso;
+  await anotarUso(d, modelo, ctx);
   const uso = d.content?.find((b) => b.type === "tool_use" && b.name === h.nombre);
   if (uso?.input && typeof uso.input === "object") return uso.input as T;
   const desdeTexto = json<T>(textoDe(d));
