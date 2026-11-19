@@ -93,6 +93,15 @@ try {
   await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
   const vega = p.locator("ul[aria-label=Negocios] li", { hasText: "Notaría Vega" });
   await vega.getByRole("button", { name: "Más", exact: true }).click();
+  // El estudio le pone fotos a su muestra (sistema/87): no suena el celular ni cuenta como que el negocio las subió.
+  const antes = avisos.length;
+  await vega.getByLabel(/^Fotos para /).setInputFiles(["scripts/pruebas/imagen.png", "scripts/pruebas/imagen.png"]);
+  exigir(await espera(p.locator("[role=status]:has-text('Su muestra ya tiene las 2 fotos')")), "ponerle fotos desde el estudio dice qué pasó");
+  exigir(await vega.locator("text=Le pusimos 2 fotos.").count() === 1 && await vega.locator("text=Muestra con fotos").count() === 1 && !(await vega.locator("text=Subió 2 fotos").count()), "y la tarjeta dice que las pusimos nosotros");
+  await new Promise((r) => setTimeout(r, 800));
+  exigir(avisos.length === antes, "sin hacer sonar el celular");
+  const sinSesion = await p.evaluate(async () => (await fetch("/estudio/clientes/no-existe/fotos/1", { method: "POST", body: new Uint8Array(5000) })).status);
+  exigir(sinSesion === 400 || sinSesion === 404, "lo que no es una foto no entra");
   await vega.getByLabel("Precio de su web").fill("45000");
   exigir(await vega.getByLabel("Precio de su web").inputValue() === "4500", "el precio no deja escribir más de 4 cifras");
   await vega.getByLabel("Precio de su web").fill("450");
@@ -164,7 +173,7 @@ try {
     const v = await (await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
     await v.goto(enlaceLargo);
     const h1 = v.locator("h1");
-    exigir((await h1.innerText()).replace(/\s+/g, " ") === "Dr. Juan Carlos Avila Carrera" && (await h1.boundingBox()).height < 330 && await v.evaluate(() => document.documentElement.scrollWidth) <= 392, `en «${pl}» el nombre corto entra bien en celular`);
+    exigir((await h1.innerText()).replace(/\s+/g, " ").toLowerCase() === "dr. juan carlos avila carrera" && (await h1.boundingBox()).height < 330 && await v.evaluate(() => document.documentElement.scrollWidth) <= 392, `en «${pl}» el nombre corto entra bien en celular`);
     await v.screenshot({ path: join(capturas, `3-nombre-${pl}.png`) });
     await v.context().close();
   }

@@ -109,7 +109,7 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
     p.color = c.color?.toUpperCase() ?? undefined;
     anotar(p.color ? `El color de su muestra pasó a ${p.color}` : "Su muestra volvió al color que sale solo");
   }
-  if (c.quitarFotos && p.fotos) { p.fotos = undefined; anotar("Se quitaron las fotos de su muestra"); }
+  if (c.quitarFotos && p.fotos) { p.fotos = undefined; delete p.fotosEstudio; anotar("Se quitaron las fotos de su muestra"); }
   if (c.seguimiento && !p.seguimiento) { p.seguimiento = ahora; anotar("Se le mandó el seguimiento"); }
   if (c.plantilla && c.plantilla !== p.plantilla) { p.plantilla = c.plantilla; anotar(`Su muestra pasó a «${PLANTILLAS_MUESTRA[c.plantilla].nombre}»`); }
   p.actualizado = new Date().toISOString();

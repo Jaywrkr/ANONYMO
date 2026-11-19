@@ -104,6 +104,12 @@ try {
   exigir((await m.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");
   exigir(!(await m.locator("text=Puntaje").count()) && !(await m.locator("text=Sin web").count()), "no muestra nada interno");
   exigir(await m.evaluate(() => document.documentElement.scrollWidth) <= 392, "la muestra cabe en celular");
+  // El saludo de entrada (sistema/87): su nombre en una cortina que se levanta sola y no tapa los toques.
+  const saludo = m.locator("[data-saludo]");
+  exigir(await saludo.count() === 1 && /Barbería Don Bigote: hicimos esto para ustedes/.test(await saludo.textContent()) && /4,9 en Google con \d+ reseñas/.test(await saludo.textContent()), "al abrir, la muestra saluda al negocio por su nombre y con su nota de Google");
+  await m.waitForTimeout(1200);
+  await m.screenshot({ path: join(capturas, "0-saludo.png") });
+  exigir(await saludo.evaluate((e) => getComputedStyle(e).pointerEvents === "none"), "y el saludo no tapa los toques");
   exigir(await esperarAvisos(2) && avisos[1].bytes > 0, "al abrirla suena el celular de Jay");
   await m.locator("button:has-text('Agendar por WhatsApp')").first().click();
   exigir(await espera(m.locator("[role=status]:has-text('este botón abrirá tu WhatsApp')"), 3000), "los botones de ejemplo explican qué harán");
@@ -134,6 +140,28 @@ try {
   await m.evaluate(() => document.querySelectorAll("img[data-foto]").forEach((i) => { i.loading = "eager"; }));
   await m.waitForTimeout(600);
   await m.screenshot({ path: join(capturas, "1b-con-fotos.png"), fullPage: true });
+
+  // 4c · El asistente de demostración (sistema/87): contesta con los datos del negocio y enseña el aviso que le llegaría.
+  await m.locator("[data-asistente-abrir]").click();
+  const chat = m.locator("[data-asistente]");
+  exigir(await espera(chat) && /Demostración/.test(await chat.innerText()), "la muestra tiene un asistente para probar, y dice que es una demostración");
+  await chat.locator("button:has-text('¿Qué horario tienen?')").click();
+  exigir(await espera(chat.locator("text=Lunes a domingo: 10:00 – 20:00")), "contesta el horario real del negocio");
+  await chat.getByLabel("Escribe una pregunta").fill("quiero un turno para el sábado");
+  await chat.getByLabel("Enviar").click();
+  exigir(await espera(chat.locator("[data-aviso]")) && /quiero un turno para el sábado/.test(await chat.locator("[data-aviso]").innerText()), "si alguien quiere un turno, enseña el aviso que le llegaría al dueño");
+  await chat.getByLabel("Escribe una pregunta").fill("aceptan tarjeta de crédito?");
+  await chat.getByLabel("Escribe una pregunta").press("Enter");
+  exigir(await espera(chat.locator("text=Eso todavía no lo sé")), "lo que no sabe, no lo inventa");
+  exigir(await m.evaluate(() => document.documentElement.scrollWidth) <= 392, "el asistente cabe en celular");
+  await m.waitForTimeout(500);
+  await m.screenshot({ path: join(capturas, "1c-asistente.png") });
+  await m.keyboard.press("Escape");
+  exigir(!(await chat.count()) && await m.locator("[data-asistente-abrir]").count() === 1, "se cierra con Esc");
+  await m.waitForTimeout(800);
+  exigir(avisos.length === 3, "probar el asistente no hace sonar el celular");
+  await p.reload();
+  exigir(await espera(p.locator("ul[aria-label=Negocios] li", { hasText: "Barbería Don Bigote" }).locator("text=Probó el asistente")), "pero la tarjeta dice que probó el asistente");
 
   // 5 · «Quiero esta web».
   await m.locator("button:has-text('Quiero esta web')").click();

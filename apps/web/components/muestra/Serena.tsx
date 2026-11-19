@@ -2,6 +2,7 @@
 // y mucho aire. Para quien vende calma y confianza.
 import type { ContenidoMuestra } from "@anonymo/pipeline";
 import { FRASE, RAZONES, largoDe, type Paleta } from "./estilos";
+import { Frase } from "./Frase";
 import { Cielo, Estrella, nota } from "./Cielo";
 
 const serif = { fontFamily: "'Fraunces Variable', Georgia, serif", fontVariationSettings: "'SOFT' 100", fontWeight: 340 } as const;
@@ -46,7 +47,7 @@ export function Serena({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; f
       </section>
 
       <section className="mx-auto max-w-4xl px-6 py-20 text-center md:py-32">
-        <p style={{ ...serif, fontStyle: "italic" }} className="text-balance text-[32px] leading-[1.12] tracking-[-0.015em] md:text-[54px]">{FRASE[c.tono]}</p>
+        <Frase texto={FRASE[c.tono]} style={{ ...serif, fontStyle: "italic" }} className="text-balance text-[32px] leading-[1.12] tracking-[-0.015em] md:text-[54px]" />
       </section>
 
       <section id="servicios" className="mx-auto grid max-w-6xl gap-8 px-5 md:grid-cols-[1fr_1.5fr] md:gap-16 md:px-10">

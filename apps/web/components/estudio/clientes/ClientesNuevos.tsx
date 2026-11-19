@@ -1,7 +1,8 @@
 "use client";
 
 // El escritorio de Imán (sistema/66): buscar, revisar webs, filtrar, escribir por WhatsApp y llevar el seguimiento.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { achicar } from "@/lib/achicar";
 import Link from "next/link";
 import { Espera } from "@/components/estudio/video/Espera";
 import type { VistaLista, VistaProspecto } from "@/lib/clientes";
@@ -372,6 +373,31 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
     }
   }
 
+  // El estudio le pone fotos a su muestra (sistema/87): no cuenta como que el negocio las subió.
+  const entradaFotos = useRef<HTMLInputElement>(null);
+  async function ponerFotos(lista: FileList | null) {
+    const archivos = Array.from(lista ?? []).filter((a) => a.type.startsWith("image/")).slice(0, 3);
+    if (!archivos.length) return;
+    setResultado(null);
+    try {
+      let ultimo: VistaProspecto | undefined;
+      for (let i = 0; i < archivos.length; i++) {
+        setGuardando(`Subiendo foto ${i + 1} de ${archivos.length}`);
+        const r = await fetch(`/estudio/clientes/${encodeURIComponent(p.id)}/fotos/${i + 1}?de=${archivos.length}`, { method: "POST", headers: { "content-type": "image/jpeg" }, body: await achicar(archivos[i]!) });
+        const j = (await r.json().catch(() => ({}))) as { prospecto?: VistaProspecto; error?: string };
+        if (!r.ok || !j.prospecto) throw new Error(j.error ?? "No se pudo subir la foto. Vuelve a intentar.");
+        ultimo = j.prospecto;
+      }
+      if (ultimo) alCambiar(ultimo);
+      setResultado({ ok: true, texto: archivos.length === 1 ? "Su muestra ya tiene la foto." : `Su muestra ya tiene las ${archivos.length} fotos.` });
+    } catch (e) {
+      setResultado({ ok: false, texto: (e as Error).message });
+    } finally {
+      setGuardando("");
+      if (entradaFotos.current) entradaFotos.current.value = "";
+    }
+  }
+
   async function copiar() {
     try {
       await navigator.clipboard.writeText(p.mensaje);
@@ -404,7 +430,9 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
                 {p.tipoWeb === "ok" && !p.motivos.length && <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{TIPO_WEB.ok}, sin problemas claros</span>}
                 {p.motivos.map((m) => <span key={m} className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">{m}</span>)}
                 {p.buenaFama && <span className="rounded-md bg-[#fff1d6] px-2 py-0.5 text-[11px] text-[#8a5a00]">Muy buena fama</span>}
-                {p.fotos > 0 && <span className="rounded-md bg-[#e8e5ff] px-2 py-0.5 text-[11px] text-[#3b2bb5]">Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`}</span>}
+                {p.fotos > 0 && !p.fotosEstudio && <span className="rounded-md bg-[#e8e5ff] px-2 py-0.5 text-[11px] text-[#3b2bb5]">Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`}</span>}
+                {p.fotosEstudio && <span className="rounded-md bg-hueso px-2 py-0.5 text-[11px] text-medio">Muestra con fotos</span>}
+                {p.proboAsistente && <span className="rounded-md bg-[#e8e5ff] px-2 py-0.5 text-[11px] text-[#3b2bb5]">Probó el asistente</span>}
                 {p.acepto ? <span className="rounded-md bg-[#17714a] px-2 py-0.5 text-[11px] text-white">Aceptó la propuesta</span>
                   : p.quiere ? <span className="rounded-md bg-[#ff4d2e] px-2 py-0.5 text-[11px] text-white">Quiere su web</span>
                   : p.vistas > 0 && <span className="rounded-md bg-[#e6f6ee] px-2 py-0.5 text-[11px] text-[#17714a]">Vio su muestra {p.vistas === 1 ? "1 vez" : `${p.vistas} veces`}</span>}
@@ -490,13 +518,19 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             {p.precioPropio && <button type="button" disabled={ocupado} onClick={() => void cambiar({ precio: null }, "Volviendo al precio normal", `Su propuesta vuelve a USD ${p.precioOferta} + IVA.`)} className="text-[12px] text-medio underline underline-offset-4">Volver a USD {p.precioOferta}</button>}
             <span id={`precio-ayuda-${p.id}`} className="w-full text-[12px] text-suave">{p.precioPropio ? "Precio puesto a mano." : "Es el precio normal."} Cambia en su muestra, su propuesta y el mensaje de cobro.{p.acepto ? " Ojo: ya aceptó la propuesta con el precio que vio." : ""}</span>
           </div>
-          {p.fotos > 0 && (
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
-              <span>Subió {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`} a su muestra.</span>
-              <a href={p.muestra} target="_blank" rel="noreferrer" className="underline underline-offset-4">Verlas ↗</a>
-              <button type="button" disabled={ocupado} onClick={() => void cambiar({ quitarFotos: true }, "Quitando las fotos", "Su muestra vuelve a verse sin fotos.")} className="text-[12px] text-[#a33a0b] underline underline-offset-4">Quitarlas de la muestra</button>
-            </p>
-          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]" data-fotos>
+            <span className="w-full text-[12px] text-suave">Fotos de su muestra</span>
+            <input ref={entradaFotos} type="file" accept="image/*" multiple hidden aria-label={`Fotos para ${p.nombreMuestra}`} onChange={(e) => void ponerFotos(e.target.files)} />
+            <button type="button" disabled={ocupado} onClick={() => entradaFotos.current?.click()} className={botonChico}>{p.fotos ? "Cambiar las fotos" : "Ponerle fotos"}</button>
+            {p.fotos > 0 && (
+              <>
+                <span>{p.fotosEstudio ? "Le pusimos" : "Subió"} {p.fotos === 1 ? "1 foto" : `${p.fotos} fotos`}.</span>
+                <a href={p.muestra} target="_blank" rel="noreferrer" className="underline underline-offset-4">Verlas ↗</a>
+                <button type="button" disabled={ocupado} onClick={() => void cambiar({ quitarFotos: true }, "Quitando las fotos", "Su muestra vuelve a verse sin fotos.")} className="text-[12px] text-[#a33a0b] underline underline-offset-4">Quitarlas de la muestra</button>
+              </>
+            )}
+            <span className="w-full text-[12px] text-suave">Hasta 3, de su local, su trabajo o su logo (por ejemplo de su Instagram). La primera es la principal. Solo fotos del negocio.</span>
+          </div>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
             <a href={p.propuesta} target="_blank" rel="noreferrer" className="underline underline-offset-4">Su propuesta ↗</a>
             <span className="text-[12px] text-suave">{p.vistasPropuesta ? `La abrió ${p.vistasPropuesta === 1 ? "1 vez" : `${p.vistasPropuesta} veces`}` : "Todavía no la abre"}{p.seguimiento ? " · recordatorio enviado" : p.tocaSeguimiento ? " · le toca el recordatorio (en la tanda)" : ""}</span>

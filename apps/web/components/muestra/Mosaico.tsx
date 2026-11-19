@@ -1,11 +1,12 @@
-// Muestra «Mosaico» (sistema/85): todo en fichas redondeadas, como una app. Cada dato del negocio tiene su ficha:
+// Muestra «Mosaico» (sistema/85; letra Sora desde sistema/87): todo en fichas redondeadas, como una app. Cada dato del negocio tiene su ficha:
 // nombre, imagen, nota, horario, y un botón que ocupa una ficha entera.
 import type { ContenidoMuestra } from "@anonymo/pipeline";
-import { FRASE, RAZONES, largoDe, type Paleta } from "./estilos";
+import { FRASE, RAZONES, TITULAR, largoDe, type Paleta } from "./estilos";
+import { Frase } from "./Frase";
 import { Cielo, Estrella, nota } from "./Cielo";
 
-const titular = { fontFamily: "'Bricolage Grotesque Variable', 'Helvetica Neue', Arial, sans-serif", fontVariationSettings: "'wdth' 100" } as const;
-const TAM = ["text-[clamp(48px,13.5vw,104px)]", "text-[clamp(40px,11vw,84px)]", "text-[clamp(32px,8.6vw,64px)]"];
+const titular = TITULAR.mosaico;
+const TAM = ["text-[clamp(40px,11.4vw,92px)]", "text-[clamp(33px,9.2vw,72px)]", "text-[clamp(27px,7.2vw,54px)]"];
 const ficha = "rounded-[26px] md:rounded-[32px]";
 
 export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; fotos?: string[] }) {
@@ -22,7 +23,7 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
         <section className={`col-span-2 flex flex-col justify-between p-6 md:col-span-4 md:row-span-2 md:min-h-[520px] md:p-10 ${ficha}`} style={{ background: k.fondo }}>
           <p className="text-[15px]" style={{ color: k.texto }}>{c.rubro} en {c.ciudad}</p>
           <div className="mt-10">
-            <h1 style={titular} className={`max-w-[14ch] text-balance font-extrabold leading-[.9] tracking-[-0.045em] ${TAM[largoDe(c.nombre)]}`}>{c.nombre}</h1>
+            <h1 style={titular} className={`max-w-[14ch] text-balance font-bold leading-[.9] tracking-[-0.055em] ${TAM[largoDe(c.nombre)]}`}>{c.nombre}</h1>
             <p className="mt-5 max-w-md text-[17px] leading-snug" style={{ color: k.texto }}>{c.bajada}</p>
           </div>
         </section>
@@ -33,7 +34,7 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
           <section className={`flex flex-col justify-between p-5 md:col-span-2 md:p-7 ${ficha}`} style={{ background: k.bloque, color: k.sobreBloque }} aria-label="Reseñas">
             <p className="flex gap-0.5">{[0, 1, 2, 3, 4].map((i) => <Estrella key={i} className="h-4 w-4" />)}</p>
             <div className="mt-8">
-              <p style={titular} className="text-[56px] font-extrabold leading-none tracking-[-0.05em] md:text-[72px]">{nota(c.estrellas)}</p>
+              <p style={titular} className="text-[56px] font-bold leading-none tracking-[-0.05em] md:text-[72px]">{nota(c.estrellas)}</p>
               <p className="mt-1 text-[13px] opacity-85">{c.resenas} reseñas en Google</p>
             </div>
           </section>
@@ -41,11 +42,11 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
 
         <section className={`flex flex-col justify-between p-5 md:col-span-2 md:p-7 ${c.estrellas ? "" : "col-span-2"} ${ficha}`} style={{ background: k.fondo }} aria-label="Horario de hoy">
           <p className="flex items-center gap-2 text-[13px] font-medium"><span className="h-2.5 w-2.5 rounded-full" style={{ background: c.hoy === "Cerrado" ? "#d1483b" : "#21b866" }} />{c.hoy === "Cerrado" ? "Hoy cerrado" : "Abierto hoy"}</p>
-          <p style={titular} className="mt-8 text-[26px] font-bold leading-[1.05] tracking-[-0.03em] md:text-[32px]">{c.hoy === "Cerrado" ? "Te esperamos mañana" : c.hoy}</p>
+          <p style={titular} className="mt-8 text-[21px] font-bold leading-[1.05] tracking-[-0.03em] md:text-[32px]">{c.hoy === "Cerrado" ? "Te esperamos mañana" : c.hoy}</p>
         </section>
 
         <button type="button" data-demo className={`col-span-2 flex min-h-[112px] items-center justify-between gap-4 px-6 text-left md:col-span-2 md:px-7 ${ficha}`} style={{ background: k.acento, color: k.sobreAcento }}>
-          <span style={titular} className="text-[26px] font-extrabold leading-[1] tracking-[-0.03em] md:text-[30px]">Agendar por WhatsApp</span>
+          <span style={titular} className="text-[26px] font-bold leading-[1] tracking-[-0.03em] md:text-[30px]">Agendar por WhatsApp</span>
           <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full" style={{ background: k.sobreAcento, color: k.acento }}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M9 7h8v8" /></svg>
           </span>
@@ -53,7 +54,7 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
       </div>
 
       <section id="servicios" className="mt-2.5 md:mt-4">
-        <h2 style={titular} className={`px-6 py-7 text-[40px] font-extrabold leading-[.92] tracking-[-0.04em] md:px-10 md:py-10 md:text-[64px] ${ficha}`} >Lo que hacemos</h2>
+        <h2 style={titular} className={`px-6 py-7 text-[40px] font-bold leading-[.92] tracking-[-0.05em] md:px-10 md:py-10 md:text-[64px] ${ficha}`} >Lo que hacemos</h2>
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
           {c.servicios.map((s, i) => (
             <article key={s} className={`flex min-h-[176px] flex-col justify-between p-5 md:min-h-[240px] md:p-7 ${ficha}`} style={{ background: i === 1 ? k.tinta : k.fondo, color: i === 1 ? k.fondo : k.tinta }}>
@@ -68,13 +69,13 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
       </section>
 
       <section className={`mt-2.5 px-6 py-14 md:mt-4 md:px-12 md:py-24 ${ficha}`} style={{ background: k.bloque, color: k.sobreBloque }}>
-        <p style={titular} className="max-w-4xl text-balance text-[32px] font-bold leading-[1.04] tracking-[-0.035em] md:text-[60px]">{FRASE[c.tono]}</p>
+        <Frase texto={FRASE[c.tono]} style={titular} className="max-w-4xl text-balance text-[32px] font-bold leading-[1.04] tracking-[-0.045em] md:text-[60px]" />
       </section>
 
       <section id="nosotros" className="mt-2.5 grid gap-2.5 md:mt-4 md:grid-cols-3 md:gap-4" aria-label="Por qué aquí">
         {razones.map(([t, x]) => (
           <article key={t} className={`p-6 md:p-8 ${ficha}`} style={{ background: k.fondo }}>
-            <p style={titular} className="text-[28px] font-extrabold leading-none tracking-[-0.035em] md:text-[34px]">{t === "De aquí" ? `De ${c.ciudad}` : t}</p>
+            <p style={titular} className="text-[28px] font-bold leading-none tracking-[-0.045em] md:text-[34px]">{t === "De aquí" ? `De ${c.ciudad}` : t}</p>
             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: k.texto }}>{x}</p>
           </article>
         ))}
@@ -89,7 +90,7 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
 
       <section id="visitanos" className="mt-2.5 grid gap-2.5 md:mt-4 md:grid-cols-2 md:gap-4">
         <div className={`p-6 md:p-10 ${ficha}`} style={{ background: k.tinta, color: k.fondo }}>
-          <h2 style={titular} className="text-[40px] font-extrabold leading-[.92] tracking-[-0.04em] md:text-[64px]">Ven a vernos</h2>
+          <h2 style={titular} className="text-[40px] font-bold leading-[.92] tracking-[-0.05em] md:text-[64px]">Ven a vernos</h2>
           <p className="mt-5 text-[19px] leading-snug">{c.direccion || c.ciudad}</p>
           {c.telefono ? <p className="mt-1 text-[15px] opacity-70">{c.telefono}</p> : null}
           <div className="mt-6 flex flex-wrap gap-2.5">
@@ -103,7 +104,7 @@ export function Mosaico({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
       </section>
 
       <footer className={`mt-2.5 px-6 py-8 md:mt-4 md:px-10 ${ficha}`} style={{ background: k.fondo }}>
-        <p aria-hidden style={titular} className={`break-words font-extrabold leading-[.9] tracking-[-0.045em] ${TAM[largoDe(c.nombre)]}`}>{c.nombre}</p>
+        <p aria-hidden style={titular} className={`break-words font-bold leading-[.9] tracking-[-0.055em] ${TAM[largoDe(c.nombre)]}`}>{c.nombre}</p>
         <p className="mt-5 text-[12px]" style={{ color: k.texto }}>© {new Date().getFullYear()} {c.nombre}, {c.ciudad}</p>
       </footer>
     </div>

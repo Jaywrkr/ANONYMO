@@ -2,7 +2,7 @@
 // La dirección sale de lo que hoy se premia en Awwwards (revisado el 18 nov 2026) y de los tableros de Jay en Savee:
 // un marco de color fuerte con un panel redondeado adentro, el nombre enorme, un cielo de color con fichas flotando
 // en vez de una foto de banco, y un cierre con el nombre gigante. Patrones, nunca una copia de un sitio.
-import type { Tono } from "@anonymo/pipeline";
+import type { PlantillaMuestra, Tono } from "@anonymo/pipeline";
 
 export type { Paleta } from "@anonymo/pipeline";
 
@@ -23,3 +23,12 @@ export const RAZONES: Record<Tono, [string, string][]> = {
 
 /** El tamaño del nombre según su largo: uno largo no puede comerse la pantalla. 0 = corto, 1 = medio, 2 = largo. */
 export const largoDe = (nombre: string) => (nombre.length > 34 ? 2 : nombre.length > 20 ? 1 : 0);
+
+/** La letra de los titulares de cada plantilla (sistema/87): cada una tiene la suya, para que las cinco no se parezcan. */
+export const TITULAR: Record<PlantillaMuestra, { fontFamily: string; fontVariationSettings?: string; fontWeight?: number; textTransform?: "uppercase" }> = {
+  grafico: { fontFamily: "'Bricolage Grotesque Variable', 'Helvetica Neue', Arial, sans-serif", fontVariationSettings: "'wdth' 88" },
+  sereno: { fontFamily: "'Fraunces Variable', Georgia, serif", fontVariationSettings: "'SOFT' 100", fontWeight: 340 },
+  mosaico: { fontFamily: "'Sora Variable', 'Helvetica Neue', Arial, sans-serif" },
+  revista: { fontFamily: "'Big Shoulders Display Variable', 'Arial Narrow', Arial, sans-serif", textTransform: "uppercase" },
+  noche: { fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 },
+};

@@ -206,6 +206,15 @@ export function anotarQuiere(p: Prospecto, ahora = new Date()) {
   return { avisar: !ya };
 }
 
+/** Probó el asistente de demostración de su muestra (sistema/87): le interesa más que una web. Se anota una sola vez. */
+export function anotarChat(p: Prospecto, ahora = new Date()) {
+  const m = (p.muestra ??= { vistas: 0 });
+  const ya = !!m.chat;
+  m.chat ??= ahora.toISOString();
+  if (!ya) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Probó el asistente en su muestra" });
+  return { primera: !ya };
+}
+
 // Seguimiento y propuesta (sistema/80).
 
 /** Días sin respuesta antes del único recordatorio. */
@@ -236,13 +245,16 @@ export const rutaFoto = (idDeMuestra: string, n: number) => `_fotos/${idDeMuestr
 export const fotoValida = (b: Uint8Array) => b.length > 1000 && b.length <= FOTO_BYTES_MAX && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 
 /** El negocio subió la foto `n`. Devuelve si hay que avisar (solo la primera vez). */
-export function anotarFoto(p: Prospecto, n: number, total?: number, ahora = new Date()) {
+export function anotarFoto(p: Prospecto, n: number, total?: number, ahora = new Date(), delEstudio = "") {
   const primera = !p.fotos;
   // La última de una tanda fija cuántas quedan: si antes había 3 y ahora sube 1, se ve solo la nueva.
   p.fotos = Math.min(FOTOS_MAX, total && n === total ? total : Math.max(p.fotos ?? 0, n));
-  if (primera) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Subió fotos a su muestra" });
+  // Si las pone el estudio (sistema/87: fotos de su Instagram para una muestra más cuidada), no es una señal del negocio.
+  if (delEstudio) { if (!total || n === total) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "El estudio le puso fotos a su muestra", por: delEstudio }); }
+  else if (primera) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Subió fotos a su muestra" });
+  if (delEstudio) p.fotosEstudio = true; else delete p.fotosEstudio;
   p.actualizado = ahora.toISOString();
-  return { avisar: primera };
+  return { avisar: primera && !delEstudio };
 }
 
 /** Lo que cuesta la web de este negocio: su precio a mano o el de la oferta (sistema/82). */

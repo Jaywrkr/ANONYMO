@@ -42,8 +42,8 @@ export default async function Muestra({ params }: Props) {
   const { c, numero, monto, fotos } = d;
   return (
     <>
-      <MuestraVariante c={c} fotos={fotos} />
-      <Visto id={id} nombre={c.nombre} fotos={fotos.length} fotosMax={FOTOS_MAX} numero={numero} oferta={{ dias: OFERTA.web.dias, precio: precio(monto) }} />
+      <MuestraVariante c={c} fotos={fotos} saludo />
+      <Visto id={id} nombre={c.nombre} c={c} fotos={fotos.length} fotosMax={FOTOS_MAX} numero={numero} oferta={{ dias: OFERTA.web.dias, precio: precio(monto) }} />
     </>
   );
 }
