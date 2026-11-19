@@ -231,3 +231,43 @@ test("probar el asistente se anota una vez, y las fotos del estudio no cuentan c
   assert.equal(p.fotosEstudio, undefined);
   assert.equal(p.fotos, 1);
 });
+
+// sistema/89: el embudo y el marcador de la semana.
+import { etapaDe, lunesDe, marcadorSemana, metaValida } from "../src/prospectos/embudo.ts";
+
+test("cada negocio cae en su etapa y avanza solo con lo que hace", () => {
+  assert.equal(etapaDe({ estado: "nuevo" }), "nuevo");
+  assert.equal(etapaDe({ estado: "contactado" }), "escrito");
+  assert.equal(etapaDe({ estado: "contactado", muestra: { vistas: 2 } }), "abrio");
+  assert.equal(etapaDe({ estado: "respondio", muestra: { vistas: 2 } }), "respondio");
+  assert.equal(etapaDe({ estado: "reunion" }), "respondio");
+  assert.equal(etapaDe({ estado: "contactado", muestra: { vistas: 1, quiere: "2026-11-18T15:00:00Z" } }), "quiere");
+  assert.equal(etapaDe({ estado: "respondio", propuesta: { vistas: 1, acepto: "2026-11-18T15:00:00Z" } as never }), "quiere");
+  assert.equal(etapaDe({ estado: "cliente", muestra: { vistas: 1, quiere: "x" } }), "cliente");
+  assert.equal(etapaDe({ estado: "descartado" }), undefined);
+});
+
+test("el marcador cuenta la semana desde el lunes, en hora de Cuenca, y lleva la racha", () => {
+  // Jueves 19 nov 2026, 12:00 en Cuenca.
+  const ahora = new Date("2026-11-19T17:00:00Z");
+  assert.equal(lunesDe(ahora), "2026-11-16");
+  // Domingo 22 a las 23:30 de Cuenca todavía es la semana del 16.
+  assert.equal(lunesDe(new Date("2026-11-23T04:30:00Z")), "2026-11-16");
+  const p = (id: string, x: object) => ({ id, nombre: id, rubro: "odontólogo", ciudad: "Cuenca", estado: "contactado", creado: "2026-11-01T00:00:00Z", actualizado: "2026-11-01T00:00:00Z", ...x }) as never as Prospecto;
+  const escrito = (cuando: string) => [{ cuando, que: "Pasó a «Contactado»" }];
+  const lista = [
+    p("a", { historial: escrito("2026-11-19T15:00:00Z"), muestra: { vistas: 1, primera: "2026-11-19T16:00:00Z" } }),
+    p("b", { historial: escrito("2026-11-18T15:00:00Z") }),
+    p("c", { historial: escrito("2026-11-17T15:00:00Z") }),
+    // El viernes pasado: no cuenta para esta semana, pero el lunes 16 sin enviar corta la racha antes.
+    p("d", { historial: escrito("2026-11-13T15:00:00Z") }),
+    p("e", { estado: "cliente", precio: 450, historial: [...escrito("2026-11-10T15:00:00Z"), { cuando: "2026-11-18T20:00:00Z", que: "Pasó a «Respondió»" }, { cuando: "2026-11-19T14:00:00Z", que: "Pasó a «Cliente»" }] }),
+  ];
+  const m = marcadorSemana(lista, 390, ahora);
+  assert.deepEqual({ enviados: m.enviados, abrieron: m.abrieron, respondieron: m.respondieron, clientes: m.clientes, dolares: m.dolares, racha: m.racha }, { enviados: 3, abrieron: 1, respondieron: 1, clientes: 1, dolares: 450, racha: 3 });
+  // El fin de semana no corta la racha: viernes y lunes seguidos cuentan 2.
+  const finde = [p("f", { historial: escrito("2026-11-13T15:00:00Z") }), p("g", { historial: escrito("2026-11-16T15:00:00Z") })];
+  assert.equal(marcadorSemana(finde, 390, new Date("2026-11-16T22:00:00Z")).racha, 2);
+  assert.equal(marcadorSemana([], 390, ahora).racha, 0);
+  assert.ok(metaValida(50) && !metaValida(2) && !metaValida(500) && !metaValida(12.5) && !metaValida("50"));
+});

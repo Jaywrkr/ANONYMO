@@ -76,7 +76,7 @@ export function Contar({ inicial = "" }: { inicial?: string }) {
                     type="button"
                     disabled={puesta}
                     onClick={() => agregar(f)}
-                    className={`min-h-9 rounded-full px-3.5 text-[13px] transition ${puesta ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9] hover:text-tinta"}`}
+                    className={`min-h-11 md:min-h-9 rounded-full px-3.5 text-[13px] transition ${puesta ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9] hover:text-tinta"}`}
                   >
                     {puesta ? "✓ " : "+ "}{f.replace(/\.$/, "")}
                   </button>
@@ -86,7 +86,7 @@ export function Contar({ inicial = "" }: { inicial?: string }) {
           </div>
         ))}
         <details className="group">
-          <summary className="inline-flex min-h-9 cursor-pointer list-none items-center text-[13px] text-medio underline underline-offset-4 [&::-webkit-details-marker]:hidden">Más detalles: lo que ya tiene y cómo lo quiere</summary>
+          <summary className="inline-flex min-h-11 md:min-h-9 cursor-pointer list-none items-center text-[13px] text-medio underline underline-offset-4 [&::-webkit-details-marker]:hidden">Más detalles: lo que ya tiene y cómo lo quiere</summary>
           <div className="mt-3 grid gap-3">
             {ATAJOS.slice(1).map((g) => (
           <div key={g.grupo}>
@@ -100,7 +100,7 @@ export function Contar({ inicial = "" }: { inicial?: string }) {
                     type="button"
                     disabled={puesta}
                     onClick={() => agregar(f)}
-                    className={`min-h-9 rounded-full px-3.5 text-[13px] transition ${puesta ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9] hover:text-tinta"}`}
+                    className={`min-h-11 md:min-h-9 rounded-full px-3.5 text-[13px] transition ${puesta ? "bg-tinta text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9] hover:text-tinta"}`}
                   >
                     {puesta ? "✓ " : "+ "}{f.replace(/\.$/, "")}
                   </button>

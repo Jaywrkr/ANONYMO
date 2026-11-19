@@ -50,7 +50,7 @@ export default async function Revisar({ params, searchParams }: Props) {
       {/* Arriba: dónde estás y cuánto falta. */}
       <div className="sticky top-0 z-20 rounded-t-[18px] border-b border-borde bg-carta/95 px-5 py-4 backdrop-blur md:px-10">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Link href={`/estudio/${id}`} className="inline-flex min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
+          <Link href={`/estudio/${id}`} className="inline-flex min-h-11 md:min-h-9 items-center gap-2 text-[13px] text-medio hover:text-tinta">
             <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: e.punto }} /> ← {p.pedido.cliente}
           </Link>
           <p className="text-[13px]"><span className="font-medium">Revisión de {fase}</span> <span className="text-suave">· {leToca === yo ? "te toca a ti" : `la aprueba ${nombreSocio(leToca)}`}</span></p>
@@ -60,14 +60,14 @@ export default async function Revisar({ params, searchParams }: Props) {
               return (
                 <li key={x}>
                   <Link href={`${base}?n=${i}`} aria-current={i === n ? "step" : undefined} title={`${ag.nombre} · ${contratoPorId(x)?.entrega}`}
-                    className={`inline-flex min-h-9 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] transition ${i === n ? "bg-tinta text-white" : i < n ? "bg-[#e7f5ec] text-[#126b43]" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>
+                    className={`inline-flex min-h-11 md:min-h-9 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[12px] transition ${i === n ? "bg-tinta text-white" : i < n ? "bg-[#e7f5ec] text-[#126b43]" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>
                     <Cara id={ag.id} tam={22} titulo={false} /> {i < n ? "✓ " : ""}{ag.nombre}
                   </Link>
                 </li>
               );
             })}
             <li>
-              <Link href={`${base}?n=${total}`} aria-current={decidir ? "step" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3 text-[12px] font-medium transition ${decidir ? "bg-urgente text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>Decidir</Link>
+              <Link href={`${base}?n=${total}`} aria-current={decidir ? "step" : undefined} className={`inline-flex min-h-11 md:min-h-9 items-center rounded-full px-3 text-[12px] font-medium transition ${decidir ? "bg-urgente text-white" : "bg-[#f1ede6] text-medio hover:bg-[#e9e3d9]"}`}>Decidir</Link>
             </li>
           </ol>
         </div>

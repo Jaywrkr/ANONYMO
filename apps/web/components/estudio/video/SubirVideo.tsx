@@ -77,7 +77,7 @@ export function SubirVideo({ maxMb, cliente: clienteInicial = "", guion }: { max
           <button type="button" disabled={!listo} onClick={() => input.current?.click()} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-hueso px-5 text-[13px] font-medium disabled:opacity-40">
             {archivo ? "Elegir otro" : "Elegir video"}
           </button>
-          <input ref={input} type="file" accept={TIPOS} className="sr-only" onChange={(e) => elegir(e.target.files?.[0])} />
+          <input ref={input} type="file" accept={TIPOS} aria-label="Elegir el video" className="sr-only" onChange={(e) => elegir(e.target.files?.[0])} />
         </div>
       </div>
       <label className="mt-4 block text-[12px] text-suave">

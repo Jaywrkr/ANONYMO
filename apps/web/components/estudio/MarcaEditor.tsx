@@ -11,7 +11,7 @@ type Color = { nombre: string; hex: string };
 type Fuente = { nombre: string; uso: string };
 
 const campo = "min-h-11 w-full rounded-xl bg-[#f6f3ee] px-3 text-[14px] outline-none focus:bg-white focus:shadow-[0_0_0_1.5px_#1a1816]";
-const chico = "inline-flex min-h-9 items-center rounded-full bg-[#f1ede6] px-3 text-[13px] text-medio transition hover:bg-[#e9e3d9] hover:text-tinta";
+const chico = "inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-[#f1ede6] px-3 text-[13px] text-medio transition hover:bg-[#e9e3d9] hover:text-tinta";
 
 const valido = (h: string) => /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(h.trim());
 const normal = (h: string) => {
@@ -111,10 +111,10 @@ export function MarcaEditor({ id, marca, imagenes, encontrados }: { id: string; 
                   {i === 0 && <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] ${valido(c.hex) && luz(c.hex) < 0.55 ? "bg-white/20 text-white" : "bg-black/10"}`}>principal</span>}
                 </button>
                 <div className="grid gap-1.5 bg-white p-2.5">
-                  <input aria-label="Nombre del color" value={c.nombre} placeholder="Nombre (ej. Verde menta)" onChange={(e) => setColores((cs) => cs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} className="min-h-9 rounded-lg bg-[#f6f3ee] px-2 text-[13px] outline-none focus:bg-white focus:shadow-[0_0_0_1.5px_#1a1816]" />
+                  <input aria-label="Nombre del color" value={c.nombre} placeholder="Nombre (ej. Verde menta)" onChange={(e) => setColores((cs) => cs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} className="min-h-11 md:min-h-9 rounded-lg bg-[#f6f3ee] px-2 text-[13px] outline-none focus:bg-white focus:shadow-[0_0_0_1.5px_#1a1816]" />
                   <div className="flex items-center gap-1.5">
                     <input type="color" aria-label="Elegir color" value={valido(c.hex) ? normal(c.hex) : "#000000"} onChange={(e) => setColores((cs) => cs.map((x, j) => (j === i ? { ...x, hex: e.target.value } : x)))} className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border-0 bg-transparent p-0" />
-                    <input aria-label="Hex" value={c.hex} onChange={(e) => setColores((cs) => cs.map((x, j) => (j === i ? { ...x, hex: e.target.value } : x)))} className={`min-h-9 min-w-0 flex-1 rounded-lg bg-[#f6f3ee] px-2 font-mono text-[12px] outline-none ${valido(c.hex) ? "" : "text-[#a3260f]"}`} />
+                    <input aria-label="Hex" value={c.hex} onChange={(e) => setColores((cs) => cs.map((x, j) => (j === i ? { ...x, hex: e.target.value } : x)))} className={`min-h-11 md:min-h-9 min-w-0 flex-1 rounded-lg bg-[#f6f3ee] px-2 font-mono text-[12px] outline-none ${valido(c.hex) ? "" : "text-[#a3260f]"}`} />
                     {i > 0 && <button type="button" title="Hacerlo el principal" onClick={() => setColores((cs) => [cs[i], ...cs.filter((_, j) => j !== i)])} className="h-9 w-9 shrink-0 rounded-lg text-[14px] text-suave hover:bg-[#f1ede6] hover:text-tinta">↑</button>}
                     <button type="button" aria-label="Quitar color" onClick={() => setColores((cs) => cs.filter((_, j) => j !== i))} className="h-9 w-9 shrink-0 rounded-lg text-[16px] text-suave hover:bg-[#fde8e4] hover:text-[#a3260f]">×</button>
                   </div>
@@ -133,7 +133,7 @@ export function MarcaEditor({ id, marca, imagenes, encontrados }: { id: string; 
             <p className="text-[12px] text-suave">Encontrados en las entregas del equipo · toca para agregar</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {sinUsar.slice(0, 18).map((e) => (
-                <button type="button" key={e.hex} title={`De ${e.de}`} onClick={() => agregar(e.hex)} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-[#f6f3ee] py-1 pl-1 pr-3 font-mono text-[12px] transition hover:bg-[#ece6dc]">
+                <button type="button" key={e.hex} title={`De ${e.de}`} onClick={() => agregar(e.hex)} className="inline-flex min-h-11 md:min-h-9 items-center gap-2 rounded-full bg-[#f6f3ee] py-1 pl-1 pr-3 font-mono text-[12px] transition hover:bg-[#ece6dc]">
                   <i className="h-7 w-7 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,.08)]" style={{ background: e.hex }} /> {e.hex.toUpperCase()} <span className="font-sans text-suave">· {e.de}</span>
                 </button>
               ))}

@@ -25,7 +25,7 @@ export function ItemsPropuesta({ inicial, enHoras }: { inicial: Item[]; enHoras:
         </div>
       ))}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <button type="button" onClick={() => setItems((xs) => [...xs, { concepto: "", detalle: "", precio: 0 }])} className="inline-flex min-h-9 items-center rounded-full bg-[#f1ede6] px-3 text-[13px] text-medio hover:bg-[#e9e3d9] hover:text-tinta">+ Agregar línea</button>
+        <button type="button" onClick={() => setItems((xs) => [...xs, { concepto: "", detalle: "", precio: 0 }])} className="inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-[#f1ede6] px-3 text-[13px] text-medio hover:bg-[#e9e3d9] hover:text-tinta">+ Agregar línea</button>
         <p className="text-[15px]">Total <span className="ml-2 font-serif text-[30px] tabular-nums">${total.toLocaleString("es-EC")}</span></p>
       </div>
     </div>

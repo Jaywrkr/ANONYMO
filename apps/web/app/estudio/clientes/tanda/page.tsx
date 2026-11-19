@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { leerProspectos, TANDA_DIARIA } from "@anonymo/pipeline";
 import { exigirEstudio, serif } from "@/lib/estudio";
-import { vistaLista, type VistaLista } from "@/lib/clientes";
+import { listaVacia, vistaLista, type VistaLista } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 import { clavePublicaAvisos } from "@/lib/avisos-celular";
 import { Cara } from "@/components/estudio/piezas";
@@ -13,7 +13,7 @@ export const metadata = { title: "La tanda de hoy — Estudio", robots: { index:
 
 export default async function Pagina() {
   await exigirEstudio();
-  let inicial: VistaLista = { firma: "", numero: "", prospectos: [] };
+  let inicial: VistaLista = listaVacia();
   let falla = "";
   try { inicial = vistaLista(await leerProspectos(), await baseUrl()); } catch (e) { falla = (e as Error).message; }
   return (
@@ -24,7 +24,7 @@ export default async function Pagina() {
           <p className="text-[13px] text-suave">Ventas · Imán</p>
           <h1 className={`${serif} text-[34px] leading-none`}>La tanda de hoy.</h1>
         </div>
-        <Link href="/estudio/clientes/nuevos" className="text-[13px] text-medio underline underline-offset-4">Ver la lista</Link>
+        <Link href="/estudio/clientes/nuevos" className="inline-flex min-h-11 items-center text-[13px] text-medio underline underline-offset-4 md:min-h-0">Ver la lista</Link>
       </div>
       {falla && <p role="alert" className="mx-auto mt-4 max-w-xl rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">No se pudo leer la lista: {falla}</p>}
       <div className="mt-6"><Tanda inicial={inicial.prospectos} tope={TANDA_DIARIA} clavePublica={clavePublicaAvisos()} /></div>

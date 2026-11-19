@@ -21,7 +21,7 @@ interface Trabajo { titulo: string; texto: string; avance?: number; desde: numbe
 const caja = "rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)]";
 const chip = (on: boolean) => `min-h-10 rounded-full px-4 text-[13px] transition ${on ? "bg-tinta text-white" : "bg-white text-medio shadow-[inset_0_0_0_1px_var(--color-borde)] hover:text-tinta"}`;
 const selector = "min-h-10 rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]";
-const botonChico = "inline-flex min-h-9 items-center rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] transition hover:shadow-[inset_0_0_0_1px_rgba(26,24,22,.35)] disabled:opacity-50";
+const botonChico = "inline-flex min-h-11 md:min-h-9 items-center rounded-full bg-white px-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] transition hover:shadow-[inset_0_0_0_1px_rgba(26,24,22,.35)] disabled:opacity-50";
 
 export const colorOportunidad = (n: number) => (n >= 85 ? "bg-tinta text-white" : n >= 60 ? "bg-[#5d5a55] text-white" : n >= 40 ? "bg-[#d9d4cb] text-tinta" : "bg-hueso text-medio");
 
@@ -141,6 +141,25 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
     }
   }
 
+  // La meta de mensajes por semana (sistema/89): contra ella se mide el marcador del inicio y del tablero.
+  const [meta, setMeta] = useState(inicial.meta);
+  const [metaEditada, setMetaEditada] = useState(String(inicial.meta));
+  async function guardarMeta() {
+    if (trabajo || Number(metaEditada) === meta) return;
+    setAviso(null);
+    setTrabajo({ titulo: "Guardando la meta", texto: "El marcador de la semana se mide contra ella", desde: Date.now() });
+    try {
+      const j = await pedir<VistaLista>("/estudio/clientes/ajustes", "PATCH", { meta: Number(metaEditada) });
+      setMeta(j.meta);
+      setMetaEditada(String(j.meta));
+      setAviso({ ok: true, texto: `Meta guardada: ${j.meta} mensajes por semana.` });
+    } catch (e) {
+      setAviso({ ok: false, texto: (e as Error).message });
+    } finally {
+      setTrabajo(null);
+    }
+  }
+
   async function guardarNumero() {
     if (trabajo || numeroEditado.trim() === numero) return;
     setAviso(null);
@@ -224,7 +243,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
       {!numero && !ajustes && (
         <p role="note" className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#fff6ee] px-4 py-3 text-[13px] text-[#8a3a0c]">
           <span className="min-w-0 flex-1">Falta tu WhatsApp: sin él, «Quiero esta web» en las muestras no lleva a ningún lado.</span>
-          <button type="button" onClick={() => setAjustes(true)} className="font-medium underline underline-offset-4">Ponerlo</button>
+          <button type="button" onClick={() => setAjustes(true)} className="inline-flex min-h-11 items-center px-1 font-medium underline underline-offset-4 md:min-h-0">Ponerlo</button>
         </p>
       )}
 
@@ -237,6 +256,10 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
           <Fila titulo="Firma de los mensajes" ayuda="Va al final de cada mensaje de WhatsApp.">
             <input value={firmaEditada} onChange={(e) => setFirmaEditada(e.target.value)} maxLength={120} aria-label="Firma de los mensajes" className={campoFila} />
             <button type="button" onClick={guardarFirma} disabled={!listo || !!trabajo || firmaEditada.trim() === firma} className={botonChico}>Guardar</button>
+          </Fila>
+          <Fila titulo="Meta de la semana" ayuda="Cuántos mensajes quieres mandar por semana. Con 10 por día de lunes a viernes son 50.">
+            <input value={metaEditada} onChange={(e) => setMetaEditada(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" aria-label="Meta de mensajes por semana" className={campoFila} />
+            <button type="button" onClick={guardarMeta} disabled={!listo || !!trabajo || !metaEditada || Number(metaEditada) === meta} className={botonChico}>Guardar</button>
           </Fila>
           <Fila titulo="Avisos en este celular" ayuda="Suena cuando un negocio abre su muestra o toca «Quiero esta web».">
             <AvisosCelular clavePublica={clavePublica} />
@@ -449,15 +472,15 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
 
       {/* Tres botones a la vista (sistema/74); el resto, en «Más». */}
       <div data-acciones className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap md:mt-0 md:shrink-0 md:flex-nowrap">
-        {tope ? <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-hueso px-3 text-[13px] text-medio" title="Mañana sigue la tanda">Tope de hoy: {tope}</span> : p.whatsapp ? (
+        {tope ? <span className="inline-flex min-h-11 md:min-h-10 items-center justify-center rounded-full bg-hueso px-3 text-[13px] text-medio" title="Mañana sigue la tanda">Tope de hoy: {tope}</span> : p.whatsapp ? (
           <a href={p.whatsapp} target="_blank" rel="noreferrer" aria-disabled={ocupado}
             onClick={() => { if (p.estado === "nuevo") void cambiar({ estado: "contactado" }, "Marcando como contactado", "Marcado como contactado."); }}
-            className="inline-flex min-h-10 min-w-0 items-center justify-center truncate rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">
+            className="inline-flex min-h-11 md:min-h-10 min-w-0 items-center justify-center truncate rounded-full bg-[#25d366] px-4 text-[13px] font-medium text-black">
             WhatsApp{p.celular ? "" : " (fijo)"}
           </a>
-        ) : <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-hueso px-3 text-[13px] text-suave">Sin teléfono</span>}
-        <a href={p.muestra} target="_blank" rel="noreferrer" className={`${botonChico} min-h-10`}>Muestra ↗</a>
-        <button type="button" onClick={() => setAbierta(!abierta)} aria-expanded={abierta} className={`${botonChico} min-h-10`}>{abierta ? "Cerrar" : "Más"}</button>
+        ) : <span className="inline-flex min-h-11 md:min-h-10 items-center justify-center rounded-full bg-hueso px-3 text-[13px] text-suave">Sin teléfono</span>}
+        <a href={p.muestra} target="_blank" rel="noreferrer" className={`${botonChico} md:min-h-10`}>Muestra ↗</a>
+        <button type="button" onClick={() => setAbierta(!abierta)} aria-expanded={abierta} className={`${botonChico} md:min-h-10`}>{abierta ? "Cerrar" : "Más"}</button>
       </div>
       </div>
 

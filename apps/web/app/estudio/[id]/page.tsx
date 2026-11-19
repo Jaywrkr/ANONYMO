@@ -257,7 +257,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 <span className="text-suave transition group-hover:translate-x-0.5">→</span>
               </Link>
               <details className={`${tarjeta} group`}>
-                <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 text-[13px] font-medium">Lo que pidió el cliente <span className="ml-auto text-suave transition group-open:rotate-45">+</span></summary>
+                <summary className="flex min-h-11 md:min-h-9 cursor-pointer list-none items-center gap-2 text-[13px] font-medium">Lo que pidió el cliente <span className="ml-auto text-suave transition group-open:rotate-45">+</span></summary>
                 <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-medio">{p.pedido.descripcion}</p>
               </details>
               <div className={tarjeta}>
@@ -442,7 +442,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 </div>
               </div>
               <details className={`${tarjeta} group`}>
-                <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 text-[13px] font-medium">Lo que pidió al principio <span className="ml-auto text-suave transition group-open:rotate-45">+</span></summary>
+                <summary className="flex min-h-11 md:min-h-9 cursor-pointer list-none items-center gap-2 text-[13px] font-medium">Lo que pidió al principio <span className="ml-auto text-suave transition group-open:rotate-45">+</span></summary>
                 <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-medio">{p.pedido.descripcion}</p>
               </details>
             </div>

@@ -75,7 +75,7 @@ function BotonAtlas() {
 }
 
 const fila = (activo: boolean) =>
-  `flex min-h-10 items-center gap-2.5 rounded-[10px] px-2.5 text-[13.5px] transition ${activo ? "bg-white/80 font-medium shadow-[0_1px_2px_rgba(26,24,22,.06),inset_0_0_0_1px_rgba(255,255,255,.9)]" : "hover:bg-white/40"}`;
+  `flex min-h-11 items-center gap-2.5 rounded-[10px] px-2.5 text-[13.5px] lg:min-h-10 transition ${activo ? "bg-white/80 font-medium shadow-[0_1px_2px_rgba(26,24,22,.06),inset_0_0_0_1px_rgba(255,255,255,.9)]" : "hover:bg-white/40"}`;
 
 function Icono({ d }: { d: string }) {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
@@ -124,9 +124,9 @@ function Campana({ avisos, alIr }: { avisos: AvisoCampana[]; alIr?: () => void }
   return (
     <div className="relative">
       <button type="button" onClick={() => setAbierta((x) => !x)} aria-expanded={abierta} aria-label={`Pendientes: ${avisos.length}`}
-        className={`relative flex h-9 w-9 items-center justify-center rounded-full transition ${abierta ? "bg-white" : "hover:bg-white/50"}`}>
+        className={`relative flex h-11 w-11 items-center justify-center rounded-full transition lg:h-9 lg:w-9 ${abierta ? "bg-white" : "hover:bg-white/50"}`}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={avisos.length ? "campana" : ""}><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4" /></svg>
-        {avisos.length > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-urgente px-1 text-[10px] font-medium text-white">{avisos.length}</span>}
+        {avisos.length > 0 && <span className="absolute right-0.5 top-0.5 flex h-[18px] lg:-right-0.5 lg:-top-0.5 min-w-[18px] items-center justify-center rounded-full bg-urgente px-1 text-[10px] font-medium text-white">{avisos.length}</span>}
       </button>
       {abierta && (
         <>
@@ -234,7 +234,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
           <span className="text-[13px]">{yo === "luna" ? "Luna" : "Jay"}</span>
           {conSalir && (
             <form action={salir} className="ml-auto">
-              <button className="min-h-9 rounded-full px-3 text-[12px] text-tinta/60 transition hover:bg-white/50 hover:text-tinta">Salir</button>
+              <button className="min-h-11 md:min-h-9 rounded-full px-3 text-[12px] text-tinta/60 transition hover:bg-white/50 hover:text-tinta">Salir</button>
             </form>
           )}
         </div>
@@ -292,7 +292,8 @@ export function Marco({ children, ...props }: Props) {
           {activo && <span className="flex min-w-0 items-center gap-1.5 text-[13px]"><i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: activo.punto }} /><span className="truncate">{activo.nombre}</span></span>}
           <span className="ml-auto"><Campana avisos={props.avisos} /></span>
           <button type="button" onClick={() => setAbierto(true)} aria-expanded={abierto} aria-controls="menu-estudio" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/60 px-4 text-[13px]">
-            Menú {props.tetoca > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] text-white">{props.tetoca}</span>}
+            {/* Sin número aquí (sistema/88): ya lo dicen la campana y «Inicio» en la barra de abajo. Tres veces el mismo número era ruido. */}
+            Menú
           </button>
         </div>
         {abierto && (

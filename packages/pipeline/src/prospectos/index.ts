@@ -8,3 +8,4 @@ export * from "./muestra.ts";
 export * from "./nombre.ts";
 export * from "./paleta.ts";
 export * from "./asistente-demo.ts";
+export * from "./embudo.ts";
