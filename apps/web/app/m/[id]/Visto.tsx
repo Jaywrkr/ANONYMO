@@ -4,22 +4,11 @@
 // y deja la barra «Quiero esta web». Solo corre en un navegador de verdad: la vista previa de WhatsApp no la cuenta.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ContenidoMuestra } from "@anonymo/pipeline";
+import { achicar } from "@/lib/achicar";
+import { Asistente } from "@/components/muestra/Asistente";
 
-/** Achica la foto en el navegador (lado mayor 1600 px, JPEG): sube rápido con datos del celular y no pesa en la nube. */
-async function achicar(archivo: File): Promise<Blob> {
-  const img = await createImageBitmap(archivo, { imageOrientation: "from-image" } as ImageBitmapOptions);
-  const e = Math.min(1, 1600 / Math.max(img.width, img.height));
-  const lienzo = document.createElement("canvas");
-  lienzo.width = Math.round(img.width * e); lienzo.height = Math.round(img.height * e);
-  lienzo.getContext("2d")!.drawImage(img, 0, 0, lienzo.width, lienzo.height);
-  for (const q of [0.82, 0.7, 0.55]) {
-    const b = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", q));
-    if (b && b.size <= 1_400_000) return b;
-  }
-  throw new Error("Esa foto es demasiado grande. Prueba con otra.");
-}
-
-export function Visto({ id, nombre, numero, oferta, fotos = 0, fotosMax = 3 }: { id: string; nombre: string; numero?: string; oferta: { dias: number; precio: string }; fotos?: number; fotosMax?: number }) {
+export function Visto({ id, nombre, c, numero, oferta, fotos = 0, fotosMax = 3 }: { id: string; nombre: string; c: ContenidoMuestra; numero?: string; oferta: { dias: number; precio: string }; fotos?: number; fotosMax?: number }) {
   const [aviso, setAviso] = useState("");
   const [subiendo, setSubiendo] = useState("");
   const entrada = useRef<HTMLInputElement>(null);
@@ -77,6 +66,9 @@ export function Visto({ id, nombre, numero, oferta, fotos = 0, fotosMax = 3 }: {
     <>
       {aviso && <p role="status" className="fixed inset-x-4 bottom-32 z-50 mx-auto max-w-md rounded-2xl bg-[#1a1816] px-4 py-3 text-center text-[14px] text-white shadow-lg">{aviso}</p>}
       <aside aria-label="Sobre esta muestra" className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-3xl bg-[#1a1816] px-5 py-4 text-white shadow-[0_12px_40px_rgba(0,0,0,.25)]">
+        {/* El asistente de demostración (sistema/87): su botón va pegado encima de esta barra. */}
+        <Asistente c={c} lugar="absolute bottom-full right-0 mb-2.5" alQuerer={quiero}
+          alProbar={() => void fetch(`/m/${id}/vista`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ accion: "chat" }), keepalive: true }).catch(() => {})} />
         <p className="min-w-0 basis-full text-[13px] leading-snug text-white/80 sm:flex-1 sm:basis-0">
           <span className="font-medium text-white">¿Te gusta? Esta puede ser tu web.</span> Lista en {oferta.dias} días · {oferta.precio}. Hecha por ANONYMO.
         </p>

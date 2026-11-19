@@ -73,6 +73,10 @@ export function vistaProspecto(p: Prospecto, firma: string, base: string) {
     precioPropio: p.precio !== undefined,
     precioOferta: OFERTA.web.precio,
     fotos: p.fotos ?? 0,
+    /** Las fotos las puso el estudio (sistema/87), no el negocio. */
+    fotosEstudio: !!p.fotosEstudio && !!p.fotos,
+    /** Probó el asistente de demostración de su muestra (sistema/87). */
+    proboAsistente: !!p.muestra?.chat,
     /** Seguimiento y propuesta (sistema/80). */
     propuesta,
     tocaSeguimiento: tocaSeguimiento(p),

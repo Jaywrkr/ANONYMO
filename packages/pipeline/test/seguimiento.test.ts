@@ -185,3 +185,49 @@ test("a cada rubro le tocan solo las plantillas que le sirven (sistema/86)", () 
   assert.equal(cuenta.size, 3, "se reparten entre todas las de su rubro");
   assert.equal(plantillaDe({ id: "x", rubro: "pediatra", plantilla: "noche" }), "noche", "lo que elige Jay manda, aunque no sea de su rubro");
 });
+
+// sistema/87: el asistente de demostración y las fotos que pone el estudio.
+import { PREGUNTAS_DEMO, responderDemo } from "../src/prospectos/asistente-demo.ts";
+import { anotarChat as anotarChat87, anotarFoto as anotarFoto87, contenidoMuestra as contenido87 } from "../src/prospectos/muestra.ts";
+
+test("el asistente de la muestra contesta con los datos del negocio y reconoce a quien quiere una cita", () => {
+  const p = { id: "x1", nombre: "Clínica Dental Sonríe", rubro: "odontólogo", ciudad: "Cuenca", direccion: "Av. Solano 1-23", telefono: "0991234567", mapa: "https://maps.google.com/?cid=1", estrellas: 4.9, resenas: 120, estado: "nuevo", creado: "2026-11-01T00:00:00Z", actualizado: "2026-11-01T00:00:00Z", horario: ["lunes: 9:00–18:00", "martes: 9:00–18:00", "miércoles: 9:00–18:00", "jueves: 9:00–18:00", "viernes: 9:00–18:00", "sábado: Cerrado", "domingo: Cerrado"] } as never;
+  const c = contenido87(p, new Date("2026-11-18T15:00:00Z"));
+  const cita = responderDemo(c, "Hola, quiero una cita para mañana");
+  assert.equal(cita.tema, "cita");
+  assert.match(cita.aviso ?? "", /Quiere agendar.*quiero una cita para mañana/);
+  assert.equal(responderDemo(c, "¿Qué horario tienen?").tema, "horario");
+  assert.match(responderDemo(c, "¿Qué horario tienen?").texto, /Lunes a viernes/);
+  const lugar = responderDemo(c, "¿Dónde quedan?");
+  assert.match(lugar.texto, /Av\. Solano 1-23/);
+  assert.equal(lugar.enlace?.url, "https://maps.google.com/?cid=1");
+  assert.equal(responderDemo(c, "cuánto cuesta una limpieza").tema, "precio");
+  assert.equal(responderDemo(c, "¿Qué servicios tienen?").tema, "servicio");
+  // No da diagnósticos: manda a la persona con el profesional.
+  const duele = responderDemo(c, "me duele una muela, que me tomo?");
+  assert.equal(duele.tema, "consejo");
+  assert.match(duele.texto, /no doy diagnósticos/);
+  // Lo que no sabe, lo dice y lo pasa al dueño: no inventa.
+  assert.equal(responderDemo(c, "aceptan criptomonedas").tema, "otro");
+  assert.equal(responderDemo(c, "").tema, "otro");
+  for (const q of PREGUNTAS_DEMO) assert.notEqual(responderDemo(c, q).tema, "otro", q);
+  const legal = contenido87({ ...(p as object), id: "x2", nombre: "Estudio Jurídico Vega", rubro: "abogado" } as never);
+  assert.match(responderDemo(legal, "me despidieron, tengo derecho a algo?").texto, /no doy consejos legales/);
+});
+
+test("probar el asistente se anota una vez, y las fotos del estudio no cuentan como señal del negocio", () => {
+  const p = { id: "x3", nombre: "Barbería Central", rubro: "barbería", ciudad: "Cuenca", estado: "nuevo", creado: "2026-11-01T00:00:00Z", actualizado: "2026-11-01T00:00:00Z" } as never as import("../src/prospectos/tipos.ts").Prospecto;
+  assert.equal(anotarChat87(p).primera, true);
+  assert.equal(anotarChat87(p).primera, false);
+  assert.equal(p.historial?.filter((h) => h.que === "Probó el asistente en su muestra").length, 1);
+  assert.equal(anotarFoto87(p, 1, 2, new Date(), "jay").avisar, false);
+  assert.equal(anotarFoto87(p, 2, 2, new Date(), "jay").avisar, false);
+  assert.equal(p.fotos, 2);
+  assert.equal(p.fotosEstudio, true);
+  assert.equal(p.historial?.filter((h) => h.que === "El estudio le puso fotos a su muestra").length, 1);
+  assert.ok(!p.historial?.some((h) => h.que === "Subió fotos a su muestra"));
+  // Si después el negocio sube las suyas, ya son suyas.
+  anotarFoto87(p, 1, 1);
+  assert.equal(p.fotosEstudio, undefined);
+  assert.equal(p.fotos, 1);
+});

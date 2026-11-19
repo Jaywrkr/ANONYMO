@@ -61,7 +61,7 @@ export interface Prospecto {
   /** Lo que pasó con este negocio, en orden (sistema/70): lo muestra su ficha de cliente. */
   historial?: { cuando: string; que: string; por?: string }[];
   /** Lo que pasó con su muestra (sistema/72): cuántas veces la abrió y si tocó «Quiero esta web». */
-  muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string };
+  muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string; chat?: string };
   /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la se reparten parejo entre las cinco, para comparar cuál responde mejor. */
   plantilla?: PlantillaMuestra;
   /** El color de su marca si Jay lo puso a mano (sistema/85): #RRGGBB. Si no hay, va el de su web o el de su rubro. */
@@ -72,6 +72,8 @@ export interface Prospecto {
   precio?: number;
   /** Cuántas fotos subió el negocio a su muestra (sistema/82). Viven en `_fotos/<id de muestra>/` en la nube privada. */
   fotos?: number;
+  /** Las fotos las puso el estudio, no el negocio (sistema/87). */
+  fotosEstudio?: boolean;
   /** Cuándo se le mandó el seguimiento (sistema/80): un solo recordatorio a los 3 días sin respuesta. */
   seguimiento?: string;
   /** Lo que pasó con su propuesta (sistema/80): cuántas veces la abrió y cuándo tocó «Aceptar». */

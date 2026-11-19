@@ -2,6 +2,7 @@
 // el nombre enorme, un cielo de color con fichas flotando y un sello con su nota de Google.
 import type { ContenidoMuestra } from "@anonymo/pipeline";
 import { FRASE, RAZONES, largoDe, type Paleta } from "./estilos";
+import { Frase } from "./Frase";
 import { Cielo, Estrella, nota } from "./Cielo";
 
 const titular = { fontFamily: "'Bricolage Grotesque Variable', 'Helvetica Neue', Arial, sans-serif", fontVariationSettings: "'wdth' 88" } as const;
@@ -90,7 +91,7 @@ export function Grafica({ c, k, fotos = [] }: { c: ContenidoMuestra; k: Paleta; 
 
       {/* La frase, sobre el color de la marca */}
       <section className="px-4 py-16 text-center md:py-28" style={{ color: k.sobreBloque }}>
-        <p style={titular} className="mx-auto max-w-4xl text-balance text-[34px] font-bold leading-[1.02] tracking-[-0.035em] md:text-[64px]">{FRASE[c.tono]}</p>
+        <Frase texto={FRASE[c.tono]} style={titular} className="mx-auto max-w-4xl text-balance text-[34px] font-bold leading-[1.02] tracking-[-0.035em] md:text-[64px]" />
       </section>
 
       {/* Por qué aquí: tres tarjetas que se deslizan en el celular */}
