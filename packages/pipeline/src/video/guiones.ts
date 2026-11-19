@@ -118,12 +118,13 @@ export function leerGuionIA(x: unknown) {
 }
 
 /** Faro escribe el guion y queda guardado como borrador. */
-export async function escribirGuion(pedido: string, opciones: { cliente?: string; segundos?: number; por: string }): Promise<Guion> {
+/** `saber`: lo que se sabe del cliente, ya en texto (sistema/92). Con eso el guion suena a ese negocio y no a cualquiera. */
+export async function escribirGuion(pedido: string, opciones: { cliente?: string; segundos?: number; por: string; saber?: string }): Promise<Guion> {
   const limpio = pedido.trim().slice(0, 2000);
   if (limpio.length < 10) throw new Error("Cuéntale a Faro de qué es el video: al menos una frase.");
   const segundos = (DURACIONES_GUION as readonly number[]).includes(Number(opciones.segundos)) ? Number(opciones.segundos) : 30;
   const cliente = opciones.cliente?.trim().slice(0, 80) || undefined;
-  const texto = [`## Pedido\n${limpio}`, cliente ? `## Cliente\n${cliente}` : "", `## Duración\n${segundos} segundos (unas ${Math.round(segundos * 2.5)} palabras en total)`].filter(Boolean).join("\n\n");
+  const texto = [`## Pedido\n${limpio}`, cliente ? `## Cliente\n${cliente}` : "", opciones.saber?.trim() ? `## Lo que sabemos del cliente (úsalo tal cual; no inventes nada más de su negocio)\n${opciones.saber.trim().slice(0, 3000)}` : "", `## Duración\n${segundos} segundos (unas ${Math.round(segundos * 2.5)} palabras en total)`].filter(Boolean).join("\n\n");
   let crudo: unknown;
   try {
     crudo = await pedirEstructura(SISTEMA_FARO, texto, HERRAMIENTA, 2500, { origen: "faro", tarea: "guion" });

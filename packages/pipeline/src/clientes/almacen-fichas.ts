@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { idFicha, type FichaGuardada, type ListaFichas } from "./fichas.ts";
+import { esClaveSaber } from "./saber.ts";
 
 export const CARPETA_CLIENTES = "_clientes";
 const REL = `${CARPETA_CLIENTES}/lista/fichas.json`;
@@ -31,7 +32,7 @@ async function guardar(l: ListaFichas) {
   renameSync(`${local()}.tmp`, local());
 }
 
-export interface CambioFicha { nombre: string; notas?: string; telefono?: string; correo?: string; web?: string; alias?: string[] }
+export interface CambioFicha { nombre: string; notas?: string; telefono?: string; correo?: string; web?: string; alias?: string[]; /** Datos de saber.ts: los que vienen se cambian; uno vacío se borra; los demás quedan. */ saber?: Record<string, string> }
 
 const corto = (x: string | undefined, n: number) => (x ?? "").trim().slice(0, n) || undefined;
 
@@ -44,6 +45,13 @@ export async function guardarFicha(id: string, c: CambioFicha, por: string): Pro
   const ahora = new Date().toISOString();
   const antes = l.fichas[id];
   const alias = [...new Set((c.alias ?? antes?.alias ?? []).map((a) => a.trim()).filter((a) => a && idFicha(a) !== id))].slice(0, 12);
+  // Lo que se sabe del cliente (sistema/92): solo claves conocidas, texto corto, y lo vacío se borra.
+  const saber: Record<string, string> = { ...(antes?.saber ?? {}) };
+  for (const [k, v] of Object.entries(c.saber ?? {})) {
+    if (!esClaveSaber(k)) continue;
+    const limpio = String(v ?? "").trim().slice(0, 1200);
+    if (limpio) saber[k] = limpio; else delete saber[k];
+  }
   const f: FichaGuardada = {
     id,
     nombre,
@@ -52,6 +60,7 @@ export async function guardarFicha(id: string, c: CambioFicha, por: string): Pro
     correo: c.correo !== undefined ? corto(c.correo, 120) : antes?.correo,
     web: c.web !== undefined ? corto(c.web, 200) : antes?.web,
     alias: alias.length ? alias : undefined,
+    saber: Object.keys(saber).length ? saber : undefined,
     creado: antes?.creado ?? ahora,
     actualizado: ahora,
     por,

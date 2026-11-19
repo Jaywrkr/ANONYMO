@@ -2,7 +2,7 @@
 // Lo que Jay y Luna escriben a mano en la ficha de un cliente (sistema/70): notas, contacto y otros nombres.
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { guardarFicha, idFicha, ocultarClaves } from "@anonymo/pipeline";
+import { CLAVES_SABER, guardarFicha, idFicha, ocultarClaves } from "@anonymo/pipeline";
 import { exigirEstudio } from "@/lib/estudio";
 
 const texto = (f: FormData, k: string) => (f.has(k) ? String(f.get(k) ?? "") : undefined);
@@ -42,4 +42,20 @@ export async function accionNuevaFicha(f: FormData) {
   }
   revalidatePath("/estudio/clientes");
   redirect(destino, RedirectType.push);
+}
+
+/** Guarda lo que se sabe del cliente (sistema/92): a quién le habla, qué vende, su tono… Solo cambia los campos que llegan. */
+export async function accionGuardarSaber(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  let destino = `/estudio/cliente/${id}?ok=${encodeURIComponent("Guardado. Mira abajo qué se puede hacer ahora.")}#saber`;
+  try {
+    const saber: Record<string, string> = {};
+    for (const k of CLAVES_SABER) if (f.has(`saber-${k}`)) saber[k] = String(f.get(`saber-${k}`) ?? "");
+    await guardarFicha(id, { nombre: String(f.get("nombre") ?? ""), saber }, yo);
+  } catch (e) {
+    destino = `/estudio/cliente/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#saber`;
+  }
+  revalidatePath(`/estudio/cliente/${id}`);
+  redirect(destino, RedirectType.replace);
 }
