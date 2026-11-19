@@ -152,7 +152,7 @@ try {
   exigir((await p.inputValue("input[name=telefono]")) === "099 000 0003", "el teléfono viene del prospecto");
   await p.click("summary:has-text('Editar contacto y notas')");
   await p.fill("textarea[name=notas]", "Prefiere que lo llamen en la tarde.");
-  await p.click("button:has-text('Guardar')");
+  await p.click("button:text-is('Guardar')");
   exigir(await p.locator("[role=status]:has-text('Ficha guardada')").waitFor({ timeout: 15000 }).then(() => true, () => false), "guardar la ficha dice qué pasó");
   exigir(new URL(p.url()).pathname === "/estudio/cliente/sonrisa-sin-web", "y se queda en la ficha");
   await p.reload();

@@ -14,6 +14,8 @@ export interface FichaGuardada {
   web?: string;
   /** Otros nombres del mismo cliente («Dr. Silva», «Clínica Silva»): sus proyectos y videos entran a esta ficha. */
   alias?: string[];
+  /** Lo que se sabe del cliente y no viene de Imán (sistema/92): a quién le habla, qué vende, su tono… Las claves están en saber.ts. */
+  saber?: Record<string, string>;
   creado: string;
   actualizado: string;
   por?: string;

@@ -1,10 +1,10 @@
 // La ficha de un cliente (sistema/70): todo lo suyo en un lugar, con su historia y lo que escribes a mano.
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { numeroInternacional, puntuar, resumenFicha } from "@anonymo/pipeline";
+import { DATOS, nombreDato, GRUPOS_SABER, NOMBRE_FUENTE, CLAVES_SABER, estadoTareas, numeroInternacional, puntuar, resumenFicha, saberDe } from "@anonymo/pipeline";
 import { exigirEstudio, serif, campo, boton, botonLleno } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
-import { accionGuardarFicha } from "../acciones";
+import { accionGuardarFicha, accionGuardarSaber } from "../acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,11 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
   const tel = numeroInternacional(f.contacto.telefono);
   const nuevoPedido = `/estudio/nuevo?${new URLSearchParams({ cliente: f.nombre, ficha: f.id })}`;
   const subirVideo = `/estudio/video?${new URLSearchParams({ cliente: f.nombre })}`;
+  // Lo que se sabe del cliente y lo que se puede hacer con eso (sistema/92).
+  const saber = saberDe(f);
+  const tareas = estadoTareas(saber);
+  const ORIGEN = { mano: "escrito a mano", maps: "de Google Maps", web: "de su web", marca: "de su kit de marca" } as const;
+  const sabidos = CLAVES_SABER.filter((k) => saber[k]).length;
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
@@ -47,7 +52,55 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
       </div>
       {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+      {/* Qué se puede hacer y qué falta (sistema/92): sin lo mínimo, la tarea no se hace. */}
+      <section id="saber" className={`${tarjeta} mt-8 scroll-mt-6`} aria-labelledby="t-puede">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="t-puede" className="text-[13px] text-suave">Qué se puede hacer con lo que sabemos</h2>
+          <p className="text-[12px] text-suave">{sabidos} de {CLAVES_SABER.length} datos · {tareas.filter((t) => t.listo).length} de {tareas.length} tareas listas</p>
+        </div>
+        <ul className="mt-3 grid gap-2 md:grid-cols-2" data-tareas-saber>
+          {tareas.map((t) => (
+            <li key={t.tarea} data-tarea={t.tarea} data-listo={t.listo ? "si" : "no"} className={`rounded-2xl p-3.5 ${t.listo ? "bg-[#e6f6ee]" : "bg-hueso/70"}`}>
+              <p className="flex items-baseline justify-between gap-3 text-[14.5px] font-medium"><span>{t.regla.nombre}</span><span className={`shrink-0 text-[12px] font-normal ${t.listo ? "text-[#17714a]" : "text-[#a33a0b]"}`}>{t.listo ? "Se puede" : `Faltan ${t.faltan.length}`}</span></p>
+              <p className="mt-0.5 text-[12px] text-suave">La hace {t.regla.quien}</p>
+              {!t.listo && <p className="mt-2 text-[13px] leading-snug">Falta: {t.faltan.map((k) => nombreDato(k)).join(", ")}.</p>}
+              {t.listo && t.mejoraria.length > 0 && <p className="mt-2 text-[13px] leading-snug text-medio">Saldría mejor con: {t.mejoraria.map((k) => nombreDato(k)).join(", ")}.</p>}
+            </li>
+          ))}
+        </ul>
+
+        <details className="group mt-4" open={sabidos < 6}>
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)] [&::-webkit-details-marker]:hidden">Lo que sabemos de {f.nombre}: ver y completar</summary>
+          <form action={accionGuardarSaber} className="mt-4 grid gap-6" data-form-saber>
+            <input type="hidden" name="id" value={f.id} />
+            <input type="hidden" name="nombre" value={f.nombre} />
+            {GRUPOS_SABER.map((grupo) => (
+              <fieldset key={grupo} className="grid gap-3">
+                <legend className="mb-1 text-[13px] font-medium">{grupo}</legend>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {CLAVES_SABER.filter((k) => DATOS[k].grupo === grupo && k !== "nombre").map((k) => {
+                    const d = DATOS[k], v = saber[k];
+                    // Lo que trae Imán se ve y no se pisa por error: si quieres cambiarlo, escribe encima.
+                    const deMano = f.guardada?.saber?.[k] ?? "";
+                    return (
+                      <label key={k} className={`grid content-start gap-1 text-[13px] ${d.largo ? "md:col-span-2" : ""}`}>
+                        <span>{d.nombre} {v ? <span className="text-suave">· {ORIGEN[v.origen]}</span> : <span className="text-[#a33a0b]">· falta</span>}</span>
+                        {d.largo
+                          ? <textarea name={`saber-${k}`} rows={3} maxLength={1200} defaultValue={deMano} placeholder={v && !deMano ? v.valor : d.ayuda} className={campo} />
+                          : <input name={`saber-${k}`} maxLength={200} defaultValue={deMano} placeholder={v && !deMano ? v.valor : d.ayuda} className={campo} />}
+                        {!v && <span className="text-[12px] text-suave">Se puede sacar de: {d.fuentes.map((x) => NOMBRE_FUENTE[x]).join(", ")}.</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+            <div><button className={botonLleno} data-trabajando="Guardando lo que sabemos…">Guardar lo que sabemos</button></div>
+          </form>
+        </details>
+      </section>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
         <div className="grid content-start gap-5">
           <section className={tarjeta} aria-labelledby="t-proyectos">
             <h2 id="t-proyectos" className="text-[13px] text-suave">Pedidos y proyectos · {f.proyectos.length}</h2>
