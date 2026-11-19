@@ -3,7 +3,8 @@ import {pendientes as avisosPendientes} from "@/lib/pendientes";
 import { InicioMovil } from "@/components/estudio/InicioMovil";
 import { AbrirPaleta } from "@/components/estudio/AbrirPaleta";
 import { AhoraMismo } from "@/components/estudio/clientes/AhoraMismo";
-import { vistaLista, type VistaLista } from "@/lib/clientes";
+import { listaVacia, vistaLista, type VistaLista } from "@/lib/clientes";
+import { VentasHoy } from "@/components/estudio/clientes/Ventas";
 import { baseUrl } from "@/lib/base";
 import { estadoEntrega, TEXTO_CALIDAD } from "@anonymo/pipeline";
 import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
@@ -88,10 +89,13 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
     entregas:p.plan.tareas.map(t=>leerEntrega(p.pedido.id,t)).filter(e=>!!e).sort((a,b)=>b.creado.localeCompare(a.creado)).slice(0,4).map(e=>({titulo:e.titulo,resumen:e.dice,href:`/estudio/${p.pedido.id}/${e.tarea.replace('.','-')}`,calidad:TEXTO_CALIDAD[estadoEntrega(p,e)]})),
   }));
   // Quién está viendo su muestra o quiere su web (sistema/75): lo más urgente del día va arriba del inicio.
-  let prospectos: VistaLista["prospectos"] = [];
-  try { prospectos = vistaLista(await leerProspectos(), await baseUrl()).prospectos; } catch { /* sin lista, sin aviso */ }
+  let ventas: VistaLista = listaVacia();
+  try { ventas = vistaLista(await leerProspectos(), await baseUrl()); } catch { /* sin lista, sin aviso */ }
+  const prospectos = ventas.prospectos;
   return (<>
     <div className="px-4 pt-5 empty:hidden md:px-10"><AhoraMismo inicial={prospectos} /></div>
+    {/* Ventas primero (sistema/89): lo que toca hoy, el marcador de la semana y el embudo. Lo que da clientes va arriba de los proyectos. */}
+    <div className="px-4 pt-5 empty:hidden md:px-10"><VentasHoy lista={ventas} /></div>
     {!completa&&<InicioMovil proyectos={moviles} nombre={nombreYo} error={errorNube} avisos={avisosMoviles.avisos} pendientes={avisosMoviles.avisos.length+Math.max(0,avisosMoviles.solicitudes-1)}/>}
     <div className={completa?"":"hidden lg:block"}>
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">

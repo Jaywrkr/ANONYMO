@@ -1,5 +1,5 @@
 // Ayudas del escritorio de Imán, clientes nuevos (sistema/66).
-import { ESTADOS_PROSPECTO, contactadoEn, idFicha, idMuestra, colorDe, mensajeCobro, mensajeSeguimiento, nombreDe, OFERTA, precioDe, tonoDe, plantillaDe, tocaSeguimiento, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
+import { ESTADOS_PROSPECTO, etapaDe, marcadorSemana, META_SEMANA, contactadoEn, idFicha, idMuestra, colorDe, mensajeCobro, mensajeSeguimiento, nombreDe, OFERTA, precioDe, tonoDe, plantillaDe, tocaSeguimiento, enlaceWhatsapp, esCelular, mensajeInicial, pedidoDesdeProspecto, puntuar, type ListaProspectos, type Prospecto } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
 
 export const mal = (error: string, status = 400) => Response.json({ error }, { status, headers: { "cache-control": "no-store" } });
@@ -39,6 +39,8 @@ export function vistaProspecto(p: Prospecto, firma: string, base: string) {
     tipoWeb: !p.web ? "sin" : !p.revision ? "pendiente" : p.revision.estado,
     detalleWeb: p.revision?.estado === "ok" ? [p.revision.hechaCon ?? "web propia", `${(p.revision.ms / 1000).toFixed(1)} s`].join(" · ") : undefined,
     estado: p.estado,
+    /** En qué paso del embudo está (sistema/89). Sin etapa: descartado. */
+    etapa: etapaDe(p),
     notas: p.notas ?? "",
     mensaje,
     mensajePropio: p.mensaje !== undefined,
@@ -94,8 +96,13 @@ export type VistaProspecto = ReturnType<typeof vistaProspecto>;
 export const vistaLista = (l: ListaProspectos, base: string) => ({
   firma: l.firma,
   numero: l.numero ?? "",
+  /** El marcador de la semana y su meta de mensajes (sistema/89). */
+  semana: marcadorSemana(Object.values(l.prospectos), OFERTA.web.precio),
+  meta: l.meta ?? META_SEMANA,
   prospectos: Object.values(l.prospectos).map((p) => vistaProspecto(p, l.firma, base)),
 });
 export type VistaLista = ReturnType<typeof vistaLista>;
+/** La lista cuando no se pudo leer o todavía no hay nada. */
+export const listaVacia = (): VistaLista => ({ firma: "", numero: "", semana: marcadorSemana([], OFERTA.web.precio), meta: META_SEMANA, prospectos: [] });
 
 export const ESTADOS = Object.entries(ESTADOS_PROSPECTO) as [Prospecto["estado"], string][];

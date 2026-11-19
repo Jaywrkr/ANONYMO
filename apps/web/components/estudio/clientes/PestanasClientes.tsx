@@ -1,7 +1,7 @@
 // Clientes tiene dos partes (sistema/70): la cartera (los que ya son clientes o están por serlo) y los nuevos que busca Imán.
 import Link from "next/link";
 
-type Parte = "cartera" | "nuevos" | "plantillas";
+type Parte = "cartera" | "tablero" | "nuevos" | "plantillas";
 
 export function PestanasClientes({ actual, cartera, nuevos }: { actual: Parte; cartera?: number; nuevos?: number }) {
   const t = (id: Parte, href: string, nombre: string, n?: number) => (
@@ -12,8 +12,10 @@ export function PestanasClientes({ actual, cartera, nuevos }: { actual: Parte; c
   );
   return (
     <nav aria-label="Partes de clientes" className="-mx-5 mt-6 border-b border-borde px-5 md:-mx-10 md:px-10">
-      <div className="flex gap-1">
+      <div className="flex gap-1 overflow-x-auto">
         {t("cartera", "/estudio/clientes", "Cartera", cartera)}
+        {/* El tablero (sistema/89): todos los negocios por etapa, de «por escribir» a «cliente». */}
+        {t("tablero", "/estudio/clientes/tablero", "Tablero")}
         {t("nuevos", "/estudio/clientes/nuevos", "Nuevos · Imán", nuevos)}
         {t("plantillas", "/estudio/clientes/plantillas", "Plantillas")}
       </div>

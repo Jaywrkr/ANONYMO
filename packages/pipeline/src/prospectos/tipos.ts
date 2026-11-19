@@ -98,6 +98,8 @@ export interface ListaProspectos {
   firma: string;
   /** El WhatsApp de ANONYMO (sistema/72): adonde escribe quien toca «Quiero esta web» en su muestra. */
   numero?: string;
+  /** Cuántos mensajes por semana se quiere mandar (sistema/89). Sin poner, 50. */
+  meta?: number;
   prospectos: Record<string, Prospecto>;
 }
 

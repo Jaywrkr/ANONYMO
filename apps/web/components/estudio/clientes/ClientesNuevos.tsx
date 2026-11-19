@@ -141,6 +141,25 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
     }
   }
 
+  // La meta de mensajes por semana (sistema/89): contra ella se mide el marcador del inicio y del tablero.
+  const [meta, setMeta] = useState(inicial.meta);
+  const [metaEditada, setMetaEditada] = useState(String(inicial.meta));
+  async function guardarMeta() {
+    if (trabajo || Number(metaEditada) === meta) return;
+    setAviso(null);
+    setTrabajo({ titulo: "Guardando la meta", texto: "El marcador de la semana se mide contra ella", desde: Date.now() });
+    try {
+      const j = await pedir<VistaLista>("/estudio/clientes/ajustes", "PATCH", { meta: Number(metaEditada) });
+      setMeta(j.meta);
+      setMetaEditada(String(j.meta));
+      setAviso({ ok: true, texto: `Meta guardada: ${j.meta} mensajes por semana.` });
+    } catch (e) {
+      setAviso({ ok: false, texto: (e as Error).message });
+    } finally {
+      setTrabajo(null);
+    }
+  }
+
   async function guardarNumero() {
     if (trabajo || numeroEditado.trim() === numero) return;
     setAviso(null);
@@ -237,6 +256,10 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
           <Fila titulo="Firma de los mensajes" ayuda="Va al final de cada mensaje de WhatsApp.">
             <input value={firmaEditada} onChange={(e) => setFirmaEditada(e.target.value)} maxLength={120} aria-label="Firma de los mensajes" className={campoFila} />
             <button type="button" onClick={guardarFirma} disabled={!listo || !!trabajo || firmaEditada.trim() === firma} className={botonChico}>Guardar</button>
+          </Fila>
+          <Fila titulo="Meta de la semana" ayuda="Cuántos mensajes quieres mandar por semana. Con 10 por día de lunes a viernes son 50.">
+            <input value={metaEditada} onChange={(e) => setMetaEditada(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" aria-label="Meta de mensajes por semana" className={campoFila} />
+            <button type="button" onClick={guardarMeta} disabled={!listo || !!trabajo || !metaEditada || Number(metaEditada) === meta} className={botonChico}>Guardar</button>
           </Fila>
           <Fila titulo="Avisos en este celular" ayuda="Suena cuando un negocio abre su muestra o toca «Quiero esta web».">
             <AvisosCelular clavePublica={clavePublica} />

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { leerProspectos, TANDA_DIARIA } from "@anonymo/pipeline";
 import { exigirEstudio, serif } from "@/lib/estudio";
-import { vistaLista, type VistaLista } from "@/lib/clientes";
+import { listaVacia, vistaLista, type VistaLista } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 import { clavePublicaAvisos } from "@/lib/avisos-celular";
 import { Cara } from "@/components/estudio/piezas";
@@ -13,7 +13,7 @@ export const metadata = { title: "La tanda de hoy — Estudio", robots: { index:
 
 export default async function Pagina() {
   await exigirEstudio();
-  let inicial: VistaLista = { firma: "", numero: "", prospectos: [] };
+  let inicial: VistaLista = listaVacia();
   let falla = "";
   try { inicial = vistaLista(await leerProspectos(), await baseUrl()); } catch (e) { falla = (e as Error).message; }
   return (

@@ -173,6 +173,36 @@ try {
   await p.reload();
   exigir(/Barbería Don Bigote quiere su web/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "el escritorio lo pone primero: quiere su web");
 
+  // 5a · Ventas de un vistazo (sistema/89): el inicio dice qué toca hoy, el marcador cuenta la semana y el tablero ordena por etapa.
+  const v = await p.context().newPage();
+  v.on("pageerror", (e) => fallas.push(`error en ventas: ${e.message}`));
+  await v.goto(`${B}/estudio`);
+  const hoyVentas = v.locator("[data-ventas-hoy]");
+  exigir(await espera(hoyVentas) && /Hoy en ventas/.test(await hoyVentas.innerText()) && /de 20 enviados hoy/.test(await hoyVentas.innerText()), "el inicio abre con lo que toca hoy en ventas");
+  exigir(/de 50 mensajes/.test(await v.locator("[data-marcador]").first().innerText()) && /1\s*abrió su muestra/.test(await v.locator("[data-marcador]").first().innerText()), "y con el marcador de la semana: mensajes contra la meta y quién abrió");
+  await v.screenshot({ path: join(capturas, "3-inicio-ventas.png"), fullPage: true });
+  await hoyVentas.locator("a:has-text('Ver el tablero')").click();
+  await v.waitForURL(/clientes\/tablero/);
+  await v.waitForSelector("[data-etapa=cliente]");
+  exigir(await v.locator("[data-etapa]").count() === 6, "el tablero tiene las seis etapas");
+  exigir(await v.locator("[data-etapa=quiere] li", { hasText: "Barbería Don Bigote" }).count() === 1 && /Tocó «Quiero esta web»/.test(await v.locator("[data-etapa=quiere]").innerText()), "quien tocó «Quiero esta web» pasó solo a «Quieren su web»");
+  exigir(!(await v.locator("[data-etapa=nuevo] li", { hasText: "Barbería Don Bigote" }).count()) && !(await v.locator("[data-etapa=escrito] li", { hasText: "Barbería Don Bigote" }).count()), "y ya no está en las etapas anteriores");
+  await v.screenshot({ path: join(capturas, "3-tablero.png"), fullPage: true });
+  await v.setViewportSize({ width: 390, height: 844 });
+  await v.reload();
+  await v.waitForSelector("[data-etapa=cliente]");
+  await v.waitForTimeout(500);
+  exigir(await v.evaluate(() => document.documentElement.scrollWidth) <= 392, "el tablero cabe en celular: las columnas se deslizan dentro");
+  await v.screenshot({ path: join(capturas, "3-tablero-celular.png") });
+  await v.goto(`${B}/estudio`);
+  await v.waitForSelector("[data-ventas-hoy]");
+  await v.waitForTimeout(500);
+  exigir(await v.evaluate(() => document.documentElement.scrollWidth) <= 392, "y el inicio con ventas también cabe en celular");
+  await v.screenshot({ path: join(capturas, "3-inicio-ventas-celular.png") });
+  const meta = await v.evaluate(async () => { const r = await fetch("/estudio/clientes/ajustes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ meta: 30 }) }); const mala = await fetch("/estudio/clientes/ajustes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ meta: 2 }) }); return [r.status, (await r.json()).meta, mala.status]; });
+  exigir(meta[0] === 200 && meta[1] === 30 && meta[2] === 400, "la meta de la semana se puede cambiar, dentro de lo razonable");
+  await v.close();
+
   // 5b · Plantillas (sistema/79): cada muestra sale con una de dos, y Jay puede cambiarla.
   const tarjetaDon = p.locator("ul[aria-label=Negocios] li", { hasText: "Barbería Don Bigote" });
   await tarjetaDon.getByRole("button", { name: "Más", exact: true }).click();
