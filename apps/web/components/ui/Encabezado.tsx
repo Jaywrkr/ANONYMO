@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Reloj } from "./Reloj";
 import { InterruptorMovimiento } from "./Movimiento";
-import { InterruptorNoche } from "./InterruptorNoche";
 import { InterruptorSonido } from "./InterruptorSonido";
 import { enlace, idiomaDeRuta, otroIdioma } from "@/lib/idioma";
 import { T } from "@/lib/textos";
@@ -15,12 +13,13 @@ function useNav() {
   const idioma = idiomaDeRuta(ruta);
   const t = T[idioma];
   const nav: [string, string][] = [
-    [enlace("/agentes", idioma), t.nav.equipo],
-    [enlace("/sala", idioma), t.nav.sala],
-    [enlace("/#como", idioma), t.nav.fases],
-    [enlace("/casos", idioma), t.nav.casos],
+    [enlace("/#trabajo", idioma), t.nav.trabajo],
+    [enlace("/#servicios", idioma), t.nav.hacemos],
+    [enlace("/#nosotros", idioma), t.nav.nosotros],
+    [enlace("/#como", idioma), t.nav.como],
     [enlace("/contacto", idioma), t.nav.contacto],
   ];
+
   return { ruta, idioma, t, nav, otro: otroIdioma(ruta) };
 }
 
@@ -79,13 +78,13 @@ function EncabezadoPublico() {
         <div id="menu-movil" ref={menu} role="dialog" aria-modal="true" aria-label={t.menu} className="fixed inset-0 z-[6] flex flex-col justify-between bg-hueso px-[max(20px,env(safe-area-inset-left))] pb-[max(24px,env(safe-area-inset-bottom))] pt-24 md:hidden">
           <nav aria-label="Menú" className="flex flex-col">
             {NAV.map(([href, t]) => (
-              <Link key={href} href={href} className="display border-b border-linea py-2 text-[56px] normal-case">
+              <Link key={href} href={href} onClick={() => setAbierto(false)} className="display border-b border-linea py-2 text-[clamp(40px,13vw,56px)] normal-case">
                 {t}
               </Link>
             ))}
             <Link href={otro.href} hrefLang={otro.idioma} lang={otro.idioma} className="mt-6 font-mono text-[12px] uppercase tracking-[0.14em] underline underline-offset-4">{t.cambiar}</Link>
           </nav>
-          <p className="text-gris"><Reloj /></p>
+          <p className="text-gris">{t.lugar}</p>
         </div>
       )}
     </header>
@@ -103,10 +102,8 @@ function PiePublico() {
           {NAV.map(([href, t]) => (
             <Link key={href} className="hover:text-tinta" href={href}>{t}</Link>
           ))}
-          <Link className="hover:text-tinta" href="/sistema">{t.nav.sistema}</Link>
           <Link className="hover:text-tinta" href={otro.href} hrefLang={otro.idioma} lang={otro.idioma}>{t.cambiar}</Link>
           <InterruptorMovimiento />
-          <InterruptorNoche />
           <InterruptorSonido />
         </nav>
         <span>{t.lugar}</span>

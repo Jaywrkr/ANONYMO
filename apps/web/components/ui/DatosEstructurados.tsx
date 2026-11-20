@@ -1,7 +1,6 @@
-import { AGENTES } from "@anonymo/agentes";
 import type { Idioma } from "@/lib/idioma";
 
-// schema.org para buscadores (web/18): la agencia, dónde está y qué ofrece.
+// schema.org para buscadores (web/18): la agencia y qué ofrece.
 export function DatosEstructurados({ idioma }: { idioma: Idioma }) {
   const base = (process.env.ANONYMO_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const en = idioma === "en";
@@ -10,19 +9,16 @@ export function DatosEstructurados({ idioma }: { idioma: Idioma }) {
     "@type": "ProfessionalService",
     name: "Anonymo",
     url: en ? `${base}/en` : base,
-    description: en ? "Creative agency in Cuenca, Ecuador: brand, websites, launches and events, with a team of 22 agents." : "Agencia creativa en Cuenca, Ecuador: marca, webs, lanzamientos y eventos, con un equipo de 22 agentes.",
-    areaServed: ["EC", "Worldwide"],
-    address: { "@type": "PostalAddress", addressLocality: "Cuenca", addressRegion: "Azuay", addressCountry: "EC" },
+    description: en ? "Creative agency of two people: design, technology and communication. Websites, brand, apps, content and events." : "Agencia creativa de dos personas: diseño, tecnología y comunicación. Webs, marca, apps, contenido y eventos.",
+    areaServed: "Worldwide",
     founder: [{ "@type": "Person", name: "Jay" }, { "@type": "Person", name: "Luna" }],
     knowsLanguage: ["es", "en"],
     hasOfferCatalog: {
       "@type": "OfferCatalog",
       name: en ? "Services" : "Servicios",
-      itemListElement: (en ? ["Brand strategy", "Naming", "Visual identity", "Websites and 3D", "Launch content", "Events"] : ["Estrategia de marca", "Naming", "Identidad visual", "Webs y 3D", "Contenido de lanzamiento", "Eventos"]).map((n) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: n } })),
+      itemListElement: (en ? ["Websites", "Brand identity", "Apps and business systems", "Games and interactive experiences", "Social media and content", "Video and photography", "Events"] : ["Webs", "Identidad de marca", "Apps y sistemas para empresas", "Juegos y experiencias interactivas", "Redes sociales y contenido", "Video y fotografía", "Eventos"]).map((n) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: n } })),
     },
     numberOfEmployees: { "@type": "QuantitativeValue", value: 2 },
-    slogan: en ? "We work while you sleep." : "Trabajamos mientras duermes.",
-    knowsAbout: AGENTES.map((a) => a.rol),
   };
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datos) }} />;
 }

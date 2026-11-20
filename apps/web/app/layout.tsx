@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.ANONYMO_URL ?? "http://localhost:3000"),
   twitter: { card: "summary_large_image" },
   openGraph: { siteName: "Anonymo", locale: "es_EC", type: "website" },
-  title: "Anonymo — trabajamos mientras duermes",
-  description: "Agencia creativa de Jay y Luna, con un equipo de 22 agentes.",
+  title: "Anonymo — agencia creativa",
+  description: "Diseño, tecnología y comunicación, hechos por dos personas que lo han hecho muchas veces.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

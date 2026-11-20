@@ -10,7 +10,8 @@ import { estaQuieto } from "@/lib/movimiento";
 export function Despertar() {
   const ruta = usePathname() ?? "";
   const en = idiomaDeRuta(ruta) === "en";
-  const interna = /^\/(estudio|entrar|portal|imprimir|m|p|jay)(\/|$)/.test(ruta);
+  // La portada no lleva 3D (web/21): ahí no hay nada que despertar.
+  const interna = ruta === "/" || ruta === "/en" || /^\/(estudio|entrar|portal|imprimir|m|p|jay)(\/|$)/.test(ruta);
   const [n, setN] = useState(0);
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
