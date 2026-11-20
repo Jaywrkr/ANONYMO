@@ -1,12 +1,14 @@
 // La ficha de un cliente (sistema/70): todo lo suyo en un lugar, con su historia y lo que escribes a mano.
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DATOS, nombreDato, GRUPOS_SABER, NOMBRE_FUENTE, CLAVES_SABER, estadoTareas, numeroInternacional, puntuar, resumenFicha, saberDe } from "@anonymo/pipeline";
+import { DATOS, nombreDato, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, estadoTareas, fuentesDe, numeroInternacional, puntuar, resumenFicha, saberDe } from "@anonymo/pipeline";
 import { exigirEstudio, serif, campo, boton, botonLleno } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
-import { accionGuardarFicha, accionGuardarSaber } from "../acciones";
+import { accionAprobarDatos, accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
 
 export const dynamic = "force-dynamic";
+// Leer su web e Instagram puede tardar (sistema/93).
+export const maxDuration = 60;
 
 const tarjeta = "rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05),0_6px_18px_-12px_rgba(40,30,20,.2)]";
 const fecha = (iso: string) => (iso ? new Date(iso).toLocaleString("es-EC", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guayaquil" }) : "");
@@ -33,6 +35,10 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
   const tareas = estadoTareas(saber);
   const ORIGEN = { mano: "escrito a mano", maps: "de Google Maps", web: "de su web", marca: "de su kit de marca" } as const;
   const sabidos = CLAVES_SABER.filter((k) => saber[k]).length;
+  // Su web y su Instagram, y lo último que se leyó de ahí (sistema/93).
+  const fuentes = fuentesDe(saber, g?.web ?? f.contacto.web);
+  const lectura = g?.lectura;
+  const ESTADO_FUENTE = { ok: "leída", fallo: "no se pudo leer", "sin-conexion": "sin conectar" } as const;
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
@@ -68,6 +74,72 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             </li>
           ))}
         </ul>
+
+        {/* La ficha se llena sola (sistema/93): se lee y se propone; nada cuenta hasta que se aprueba. */}
+        <div id="leido" className="mt-4 scroll-mt-6 rounded-2xl bg-hueso/60 p-4" data-buscar-datos>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[14.5px] font-medium">Buscar datos solo</p>
+              <p className="mt-0.5 text-[13px] text-medio">
+                {fuentes.web || fuentes.instagram
+                  ? <>Leemos {[fuentes.web && <span key="w">su web ({fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")})</span>, fuentes.instagram && <span key="i">su Instagram (@{fuentes.instagram})</span>].filter(Boolean).reduce<React.ReactNode[]>((a, x, i) => (i ? [...a, " y ", x] : [x]), [])} y te proponemos lo que encontremos. Nada se guarda hasta que lo apruebes.</>
+                  : "Anota su Instagram abajo o su web en «Contacto y notas» y aquí podrás leerlos."}
+              </p>
+            </div>
+            <form action={accionBuscarDatos}>
+              <input type="hidden" name="id" value={f.id} />
+              <button className={boton} disabled={!fuentes.web && !fuentes.instagram} data-trabajando="Leyendo su web e Instagram…">{lectura ? "Buscar de nuevo" : "Buscar datos"}</button>
+            </form>
+          </div>
+          {lectura && (
+            <div className="mt-4 border-t border-borde pt-4" data-lectura>
+              <ul className="grid gap-1 text-[13px]">
+                {([["Su web", lectura.web], ["Su Instagram", lectura.instagram]] as const).filter(([, e]) => e).map(([n, e]) => (
+                  <li key={n} data-fuente={n} data-estado={e!.estado}>
+                    <span className={e!.estado === "ok" ? "text-[#17714a]" : "text-[#a33a0b]"}>{n}: {ESTADO_FUENTE[e!.estado]}</span>
+                    {e!.estado === "ok" && e!.paginas ? <span className="text-suave"> · {e!.paginas} {e!.paginas === 1 ? "página" : "páginas"}</span> : null}
+                    {e!.motivo && <span className="text-medio"> · {e!.motivo}</span>}
+                    {e!.estado === "sin-conexion" && <span className="text-medio"> Jay la conecta una vez en Vercel (pasos en HANDOFF.md) y desde ahí se lee sola.</span>}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-[12px] text-suave">Leído el {fecha(lectura.cuando)}{lectura.por ? ` por ${lectura.por === "luna" ? "Luna" : "Jay"}` : ""}.</p>
+              {lectura.propuestas.length > 0 ? (
+                <form action={accionAprobarDatos} className="mt-3 grid gap-3" data-form-aprobar>
+                  <input type="hidden" name="id" value={f.id} />
+                  <input type="hidden" name="nombre" value={g?.nombre ?? f.nombre} />
+                  <p className="text-[13px] text-medio">Marca lo que está bien. Puedes corregirlo antes de guardar.</p>
+                  {lectura.propuestas.map((p) => {
+                    const ya = saber[p.clave];
+                    return (
+                      <div key={p.clave} data-propuesta={p.clave} className="grid gap-1.5 rounded-xl bg-white p-3 shadow-[inset_0_0_0_1px_var(--color-borde)] sm:grid-cols-[auto_1fr] sm:gap-x-3">
+                        <input type="checkbox" id={`tomar-${p.clave}`} name={`tomar-${p.clave}`} value="si" defaultChecked={!ya} className="mt-1 h-5 w-5 accent-[#17714a]" />
+                        <div className="grid min-w-0 gap-1">
+                          <label htmlFor={`tomar-${p.clave}`} className="text-[13px] font-medium">{DATOS[p.clave].nombre} <span className="font-normal text-suave">· de {NOMBRE_FUENTE_LEIDA[p.fuente]}{p.detalle ? ` (${p.detalle})` : ""}</span></label>
+                          {ya && <p className="text-[12px] text-[#a33a0b]">Hoy dice otra cosa: {ya.valor.split("\n").join(" · ")}</p>}
+                          {DATOS[p.clave].largo || p.valor.includes("\n")
+                            ? <textarea aria-label={`${DATOS[p.clave].nombre} encontrado`} name={`valor-${p.clave}`} rows={Math.min(6, p.valor.split("\n").length + 1)} maxLength={1200} defaultValue={p.valor} className={campo} />
+                            : <input aria-label={`${DATOS[p.clave].nombre} encontrado`} name={`valor-${p.clave}`} maxLength={200} defaultValue={p.valor} className={campo} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex flex-wrap gap-2">
+                    <button className={botonLleno} name="accion" value="guardar" data-trabajando="Guardando los datos…">Guardar los marcados</button>
+                    <button className={boton} name="accion" value="descartar" data-trabajando="Descartando…">Descartar</button>
+                  </div>
+                </form>
+              ) : (
+                <form action={accionAprobarDatos} className="mt-2 flex flex-wrap items-center gap-3">
+                  <input type="hidden" name="id" value={f.id} />
+                  <input type="hidden" name="nombre" value={g?.nombre ?? f.nombre} />
+                  <p className="text-[13px] text-medio">No encontramos nada que no supiéramos.</p>
+                  <button className={boton} name="accion" value="descartar" data-trabajando="Cerrando…">Cerrar</button>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
 
         <details className="group mt-4" open={sabidos < 6}>
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)] [&::-webkit-details-marker]:hidden">Lo que sabemos de {f.nombre}: ver y completar</summary>

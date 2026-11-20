@@ -3,6 +3,7 @@
 // el contacto y los otros nombres con que se conoce al cliente.
 import { slug } from "../solicitudes.ts";
 import type { Prospecto } from "../prospectos/tipos.ts";
+import type { LecturaFuentes } from "./fuentes.ts";
 
 /** Lo que Jay y Luna escriben a mano en la ficha. */
 export interface FichaGuardada {
@@ -16,6 +17,8 @@ export interface FichaGuardada {
   alias?: string[];
   /** Lo que se sabe del cliente y no viene de Imán (sistema/92): a quién le habla, qué vende, su tono… Las claves están en saber.ts. */
   saber?: Record<string, string>;
+  /** Lo último que se leyó de su web e Instagram (sistema/93): propuestas que esperan aprobación. No cuentan como sabidas. */
+  lectura?: LecturaFuentes;
   creado: string;
   actualizado: string;
   por?: string;
