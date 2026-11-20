@@ -45,7 +45,7 @@ export function Cielo({ colores, foto, alt, className = "", style }: { colores: 
 
 /** Estrellas dibujadas (no el carácter ★, que cambia con cada tipografía). */
 export function Estrella({ className = "", color = "currentColor" }: { className?: string; color?: string }) {
-  return <svg viewBox="0 0 24 24" aria-hidden className={className} fill={color}><path d="M12 2.5l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6L2.5 9.5l6.6-.8z" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden className={className} style={{ fill: color }}><path d="M12 2.5l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6L2.5 9.5l6.6-.8z" /></svg>;
 }
 
 export const nota = (n: number) => n.toLocaleString("es-EC", { minimumFractionDigits: 1, maximumFractionDigits: 1 });

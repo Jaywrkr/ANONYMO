@@ -33,12 +33,12 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
   // Lo que se sabe del cliente y lo que se puede hacer con eso (sistema/92).
   const saber = saberDe(f);
   const tareas = estadoTareas(saber);
-  const ORIGEN = { mano: "escrito a mano", maps: "de Google Maps", web: "de su web", marca: "de su kit de marca" } as const;
+  const ORIGEN = { mano: "escrito a mano", maps: "de Google Maps", web: "de su web", marca: "de su kit de marca", cliente: "lo eligió el negocio en su muestra" } as const;
   const sabidos = CLAVES_SABER.filter((k) => saber[k]).length;
   // Su web y su Instagram, y lo último que se leyó de ahí (sistema/93).
   const fuentes = fuentesDe(saber, g?.web ?? f.contacto.web);
   const lectura = g?.lectura;
-  const ESTADO_FUENTE = { ok: "leída", fallo: "no se pudo leer", "sin-conexion": "sin conectar" } as const;
+  const ESTADO_FUENTE = { ok: "leída", fallo: "no se pudo leer", "a-pedido": "a pedido" } as const;
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
@@ -75,31 +75,31 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
           ))}
         </ul>
 
-        {/* La ficha se llena sola (sistema/93): se lee y se propone; nada cuenta hasta que se aprueba. */}
+        {/* La ficha se llena sola desde su web (sistema/93): se lee y se propone; nada cuenta hasta que se aprueba. Instagram, a pedido desde el Chrome de Jay (sistema/94). */}
         <div id="leido" className="mt-4 scroll-mt-6 rounded-2xl bg-hueso/60 p-4" data-buscar-datos>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[14.5px] font-medium">Buscar datos solo</p>
               <p className="mt-0.5 text-[13px] text-medio">
-                {fuentes.web || fuentes.instagram
-                  ? <>Leemos {[fuentes.web && <span key="w">su web ({fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")})</span>, fuentes.instagram && <span key="i">su Instagram (@{fuentes.instagram})</span>].filter(Boolean).reduce<React.ReactNode[]>((a, x, i) => (i ? [...a, " y ", x] : [x]), [])} y te proponemos lo que encontremos. Nada se guarda hasta que lo apruebes.</>
-                  : "Anota su Instagram abajo o su web en «Contacto y notas» y aquí podrás leerlos."}
+                {fuentes.web
+                  ? <>Leemos su web ({fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")}) y te proponemos lo que encontremos. Nada se guarda hasta que lo apruebes.</>
+                  : "Anota su web en «Contacto y notas» y aquí podrás leerla."}
+                {fuentes.instagram && <> Su Instagram (@{fuentes.instagram}) no se lee solo: pídele a Claude en el chat que lo revise desde tu Chrome.</>}
               </p>
             </div>
             <form action={accionBuscarDatos}>
               <input type="hidden" name="id" value={f.id} />
-              <button className={boton} disabled={!fuentes.web && !fuentes.instagram} data-trabajando="Leyendo su web e Instagram…">{lectura ? "Buscar de nuevo" : "Buscar datos"}</button>
+              <button className={boton} disabled={!fuentes.web} data-trabajando="Leyendo su web…">{lectura ? "Buscar de nuevo" : "Buscar datos"}</button>
             </form>
           </div>
           {lectura && (
             <div className="mt-4 border-t border-borde pt-4" data-lectura>
               <ul className="grid gap-1 text-[13px]">
-                {([["Su web", lectura.web], ["Su Instagram", lectura.instagram]] as const).filter(([, e]) => e).map(([n, e]) => (
+                {([["Su web", lectura.web]] as const).filter(([, e]) => e).map(([n, e]) => (
                   <li key={n} data-fuente={n} data-estado={e!.estado}>
                     <span className={e!.estado === "ok" ? "text-[#17714a]" : "text-[#a33a0b]"}>{n}: {ESTADO_FUENTE[e!.estado]}</span>
                     {e!.estado === "ok" && e!.paginas ? <span className="text-suave"> · {e!.paginas} {e!.paginas === 1 ? "página" : "páginas"}</span> : null}
                     {e!.motivo && <span className="text-medio"> · {e!.motivo}</span>}
-                    {e!.estado === "sin-conexion" && <span className="text-medio"> Jay la conecta una vez en Vercel (pasos en HANDOFF.md) y desde ahí se lee sola.</span>}
                   </li>
                 ))}
               </ul>

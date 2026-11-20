@@ -518,7 +518,7 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
             <span className="font-mono text-[12px] text-medio">{tinte}</span>
             <button type="button" disabled={ocupado || tinte === p.color} onClick={() => void cambiar({ color: tinte }, "Guardando el color", `Su muestra ahora usa ${tinte}.`)} className={botonChico}>Guardar color</button>
             {p.colorOrigen === "mano" && <button type="button" disabled={ocupado} onClick={() => void cambiar({ color: null }, "Volviendo al color que sale solo", "Vuelve el color que sale solo.")} className="text-[12px] text-medio underline underline-offset-4">Usar el que sale solo</button>}
-            <span className="w-full text-[12px] text-suave">{p.colorOrigen === "mano" ? "Puesto a mano." : p.colorOrigen === "web" ? "Lo sacamos de su web." : "No sabemos su color: va el de su rubro. Si lo ves en su Instagram o su letrero, ponlo aquí."}</span>
+            <span className="w-full text-[12px] text-suave">{p.colorOrigen === "cliente" ? "Lo eligió el negocio en su muestra." : p.colorOrigen === "mano" ? "Puesto a mano." : p.colorOrigen === "web" ? "Lo sacamos de su web." : "No sabemos su color: la muestra va en blanco y negro y el negocio puede elegir el suyo. Si lo ves en su Instagram o su letrero, ponlo aquí."}</span>
           </div>
           {/* Cómo se le llama (sistema/83): el nombre de Google suele venir largo; aquí va el corto, y se puede corregir. */}
           <div className="flex flex-wrap items-center gap-2 text-[13px]">

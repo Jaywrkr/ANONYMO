@@ -112,7 +112,7 @@ export function pedidoDesdeProspecto(p: Prospecto, hoy = new Date(), base = "") 
   const web = p.web ? `Su web actual es ${p.web} (${motivos.join(", ").toLowerCase() || "se puede mejorar"}).` : "No tiene web.";
   const id = idMuestra(p);
   const k = c.paleta;
-  const deDonde = c.colorOrigen === "mano" ? "el color de su marca" : c.colorOrigen === "web" ? "sacado de su web actual" : "todavía no sabemos su color: es el de su rubro; pregúntale si tiene uno";
+  const deDonde = c.colorOrigen === "cliente" ? "lo eligió el propio negocio en su muestra" : c.colorOrigen === "mano" ? "el color de su marca" : c.colorOrigen === "web" ? "sacado de su web actual" : "todavía no sabemos su color: su muestra va en blanco y negro; pregúntale cuál es el suyo";
   const lineas = [
     `Una web para ${c.nombre}, ${p.rubro} en ${p.ciudad} (${fama}). ${web} Lo encontró Imán en clientes nuevos.`,
     c.nombre !== p.nombre ? `En Google se llama «${p.nombre}».` : "",

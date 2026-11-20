@@ -61,7 +61,7 @@ export async function accionGuardarSaber(f: FormData) {
   redirect(destino, RedirectType.replace);
 }
 
-/** Lee su web y su Instagram y deja propuestas para aprobar (sistema/93). No cambia lo que se sabe. */
+/** Lee su web y deja propuestas para aprobar (sistema/93). No cambia lo que se sabe. */
 export async function accionBuscarDatos(f: FormData) {
   const yo = await exigirEstudio();
   const id = String(f.get("id") ?? "");
@@ -71,11 +71,11 @@ export async function accionBuscarDatos(f: FormData) {
     if (!ficha) throw new Error("No encontramos ese cliente.");
     const saber = saberDe(ficha);
     const web = ficha.guardada?.web ?? ficha.contacto.web;
-    if (!fuentesDe(saber, web).web && !fuentesDe(saber, web).instagram) throw new Error("Para buscar, anota su Instagram en «Lo que sabemos» o su web en «Contacto y notas».");
+    if (!fuentesDe(saber, web).web) throw new Error("Para buscar, anota su web en «Contacto y notas».");
     const lectura = await leerFuentes({ saber, web });
     await guardarFicha(id, { nombre: ficha.guardada?.nombre ?? ficha.nombre, lectura: { ...lectura, por: yo } }, yo);
     const n = lectura.propuestas.length;
-    const leyo = [lectura.web?.estado === "ok" && "su web", lectura.instagram?.estado === "ok" && "su Instagram"].filter(Boolean).join(" y ");
+    const leyo = lectura.web?.estado === "ok" ? "su web" : "";
     const aviso = n ? `Encontramos ${n} ${n === 1 ? "dato" : "datos"}${leyo ? ` en ${leyo}` : ""}. Revísalos y guarda los que estén bien.` : leyo ? `Leímos ${leyo} y no hay nada nuevo.` : "No pudimos leer nada. Mira abajo por qué.";
     destino = `/estudio/cliente/${id}?ok=${encodeURIComponent(aviso)}#leido`;
   } catch (e) {

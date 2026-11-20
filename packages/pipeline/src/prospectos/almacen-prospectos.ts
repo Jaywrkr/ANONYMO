@@ -107,6 +107,8 @@ export function aplicarCambio(p: Prospecto, c: CambioProspecto, por: string) {
   if (c.color !== undefined && (c.color ?? undefined)?.toUpperCase() !== p.color) {
     if (c.color !== null && !esColorDeMarca(c.color)) throw new Error("Ese color no sirve de marca: elige uno con color (ni blanco, ni negro, ni gris).");
     p.color = c.color?.toUpperCase() ?? undefined;
+    // Lo que pone Jay a mano manda desde ahora sobre lo que eligió el negocio (sistema/94).
+    delete p.colorCliente;
     anotar(p.color ? `El color de su muestra pasó a ${p.color}` : "Su muestra volvió al color que sale solo");
   }
   if (c.quitarFotos && p.fotos) { p.fotos = undefined; delete p.fotosEstudio; anotar("Se quitaron las fotos de su muestra"); }

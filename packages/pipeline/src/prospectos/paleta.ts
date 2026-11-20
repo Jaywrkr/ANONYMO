@@ -74,7 +74,9 @@ export function colorEnHtml(html: string): string | undefined {
 }
 
 /** El color de este negocio, y de dónde salió. */
-export function colorDe(p: Pick<Prospecto, "color" | "revision">, tono: Tono): { color: string; origen: "mano" | "web" | "rubro" } {
+export type OrigenColor = "cliente" | "mano" | "web" | "rubro";
+export function colorDe(p: Pick<Prospecto, "color" | "colorCliente" | "revision">, tono: Tono): { color: string; origen: OrigenColor } {
+  if (p.colorCliente && esColorDeMarca(p.colorCliente)) return { color: p.colorCliente.toUpperCase(), origen: "cliente" };
   if (p.color && esColorDeMarca(p.color)) return { color: p.color.toUpperCase(), origen: "mano" };
   const deWeb = p.revision?.estado === "ok" ? p.revision.color : undefined;
   if (deWeb && esColorDeMarca(deWeb)) return { color: deWeb, origen: "web" };
@@ -132,4 +134,47 @@ export function paletaDe(plantilla: PlantillaMuestra, tono: Tono, color?: string
   const k = RECETA[plantilla](h, s);
   // Ninguna receta se da por buena sin comprobar: con cualquier color de marca, todo texto tiene que leerse.
   return { ...k, sobreBloque: legible(k.bloque, k.sobreBloque), sobreAcento: legible(k.acento, k.sobreAcento), texto: legible(k.fondo, k.texto), tinta: contraste(k.fondo, k.tinta) >= 7 ? k.tinta : sobre(k.fondo, "#FFFFFF", "#0B0B0C") };
+}
+
+/** Las muestras sin color propio (sistema/94): blanco, negro y gris, diseñadas a propósito. Un color equivocado molesta más que ninguno. */
+export const NEUTRAS: Record<PlantillaMuestra, Paleta> = {
+  grafico: { fondo: "#F4F4F2", tinta: "#111111", bloque: "#1A1A1A", sobreBloque: "#F4F4F2", acento: "#FFFFFF", sobreAcento: "#111111", suave: "#E6E6E2", texto: "#4A4A47", linea: "#11111122", cielo: ["#E2E2DE", "#6E6E6A", "#F7F7F5"] },
+  sereno: { fondo: "#F3F3F1", tinta: "#1A1A19", bloque: "#3A3A38", sobreBloque: "#F3F3F1", acento: "#1A1A19", sobreAcento: "#F3F3F1", suave: "#E4E4E0", texto: "#5A5A57", linea: "#1A1A1926", cielo: ["#E4E4E0", "#A6A6A1", "#F1F1EE"] },
+  mosaico: { fondo: "#FAFAF9", tinta: "#0F0F0F", bloque: "#2A2A29", sobreBloque: "#FFFFFF", acento: "#DADAD5", sobreAcento: "#0F0F0F", suave: "#EDEDEA", texto: "#4E4E4B", linea: "#0F0F0F1F", cielo: ["#DCDCD8", "#7A7A76", "#F0F0EC"] },
+  revista: { fondo: "#FAFAF8", tinta: "#0D0D0D", bloque: "#0D0D0D", sobreBloque: "#FAFAF8", acento: "#0D0D0D", sobreAcento: "#FAFAF8", suave: "#ECECE8", texto: "#4F4F4C", linea: "#0D0D0D", cielo: ["#CFCFCB", "#5E5E5A", "#EAEAE6"] },
+  noche: { fondo: "#0C0C0C", tinta: "#F2F2F0", bloque: "#1A1A1A", sobreBloque: "#F2F2F0", acento: "#F2F2F0", sobreAcento: "#0C0C0C", suave: "#151515", texto: "#A3A3A0", linea: "#FFFFFF24", cielo: ["#5A5A58", "#141414", "#8A8A86"] },
+};
+
+/** La paleta de una muestra: con un color de marca, la de ese color; sin color, la neutra. Corre también en el celular del cliente. */
+export function paletaMuestra(plantilla: PlantillaMuestra, tono: Tono, color?: string): Paleta {
+  return color && esColorDeMarca(color) ? paletaDe(plantilla, tono, color) : NEUTRAS[plantilla];
+}
+
+/** Colores para que el negocio pruebe su muestra (sistema/94): todos pasan como color de marca y se leen bien en las cinco plantillas. */
+export const COLORES_PRUEBA: { nombre: string; color: string }[] = [
+  { nombre: "Azul marino", color: "#1B2F6B" },
+  { nombre: "Azul", color: "#1E5BC6" },
+  { nombre: "Celeste", color: "#2A8FC1" },
+  { nombre: "Verde azulado", color: "#0B6E69" },
+  { nombre: "Verde", color: "#2E7D3E" },
+  { nombre: "Vino", color: "#7A1E3A" },
+  { nombre: "Rojo", color: "#C62F2F" },
+  { nombre: "Naranja", color: "#D8641E" },
+  { nombre: "Dorado", color: "#B8892A" },
+  { nombre: "Morado", color: "#5B3A9B" },
+  { nombre: "Rosa", color: "#C24B7E" },
+];
+
+/** El color de marca de una imagen (el logo que sube el negocio), ya reducida a píxeles RGBA: el que más se repite entre los que tienen color. */
+export function colorDeImagen(pixeles: ArrayLike<number>): string | undefined {
+  const cuenta = new Map<string, number>();
+  for (let i = 0; i + 3 < pixeles.length; i += 4) {
+    if (pixeles[i + 3]! < 128) continue;
+    // Se agrupa de a 24 niveles para que los bordes suavizados no partan un mismo color en muchos.
+    const q = (v: number) => Math.min(255, Math.round(v / 24) * 24);
+    const hex = "#" + [pixeles[i]!, pixeles[i + 1]!, pixeles[i + 2]!].map((v) => q(v).toString(16).padStart(2, "0")).join("").toUpperCase();
+    if (esColorDeMarca(hex)) cuenta.set(hex, (cuenta.get(hex) ?? 0) + 1);
+  }
+  const [mejor] = [...cuenta].sort((a, b) => b[1] - a[1]);
+  return mejor && mejor[1] >= 6 ? mejor[0] : undefined;
 }

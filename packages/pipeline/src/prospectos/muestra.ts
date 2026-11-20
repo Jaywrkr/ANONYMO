@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { slug } from "../solicitudes.ts";
 import { GRUPOS_RUBRO, ORDEN_PLANTILLAS, type PlantillaMuestra, type Prospecto } from "./tipos.ts";
-import { colorDe, paletaDe, type Paleta, type Tono } from "./paleta.ts";
+import { colorDe, paletaMuestra, type OrigenColor, type Paleta, type Tono } from "./paleta.ts";
 export type { Tono } from "./paleta.ts";
 import { nombreDe } from "./nombre.ts";
 
@@ -93,9 +93,12 @@ export function plantillaDe(p: Pick<Prospecto, "id" | "plantilla" | "rubro">): P
 
 export interface ContenidoMuestra {
   plantilla: PlantillaMuestra;
-  /** Sus colores: los del negocio si se conocen, o los de su rubro (sistema/85). */
+  /** Sus colores: los del negocio si se conocen; si no, en blanco y negro (sistema/94). */
   paleta: Paleta;
-  colorOrigen: "mano" | "web" | "rubro";
+  /** «rubro»: no se sabe su color y la muestra va neutra. */
+  colorOrigen: OrigenColor;
+  /** El color de marca con que se armó, si hay uno. */
+  color?: string;
   nombre: string;
   rubro: string;
   ciudad: string;
@@ -160,8 +163,9 @@ export function contenidoMuestra(p: Prospecto, ahora = new Date()): ContenidoMue
   const { color, origen } = colorDe(p, tono);
   return {
     plantilla,
-    paleta: paletaDe(plantilla, tono, color),
+    paleta: paletaMuestra(plantilla, tono, origen === "rubro" ? undefined : color),
     colorOrigen: origen,
+    ...(origen === "rubro" ? {} : { color }),
     nombre: nombreDe(p),
     rubro: mayuscula(p.rubro),
     ciudad: p.ciudad,
@@ -213,6 +217,16 @@ export function anotarChat(p: Prospecto, ahora = new Date()) {
   m.chat ??= ahora.toISOString();
   if (!ya) (p.historial ??= []).push({ cuando: ahora.toISOString(), que: "Probó el asistente en su muestra" });
   return { primera: !ya };
+}
+
+/** El negocio eligió su color en la muestra (sistema/94). Avisa solo la primera vez; las demás quedan en su historial. */
+export function anotarColor(p: Prospecto, color: string | null, ahora = new Date()) {
+  const antes = p.colorCliente;
+  const nuevo = color?.toUpperCase();
+  if (nuevo === antes) return { avisar: false };
+  if (nuevo) p.colorCliente = nuevo; else delete p.colorCliente;
+  (p.historial ??= []).push({ cuando: ahora.toISOString(), que: nuevo ? `Eligió su color en la muestra: ${nuevo}` : "Volvió su muestra a blanco y negro" });
+  return { avisar: !antes && !!nuevo };
 }
 
 // Seguimiento y propuesta (sistema/80).

@@ -1,17 +1,17 @@
 // La ficha se llena sola (sistema/93): se lee la web del negocio y su Instagram y se proponen datos con su fuente.
 // La regla de saber.ts se mantiene: nada se inventa y nada cuenta hasta que Jay o Luna lo aprueban.
-// Sin IA y sin costo: la web se lee como texto; Instagram, con la API oficial de Meta (Business Discovery),
-// que solo funciona con la cuenta de ANONYMO conectada (INSTAGRAM_TOKEN e INSTAGRAM_CUENTA_ID en Vercel).
+// Sin IA y sin costo: la web se lee como texto. Instagram no se lee solo (Jay no quiere la API de Meta, sistema/94):
+// cuando hace falta, Claude lo revisa a pedido desde el Chrome de Jay y lo anota en la ficha.
 import { colorEnHtml } from "../prospectos/paleta.ts";
 import { esCelular } from "../prospectos/puntaje.ts";
 import { DATOS, type ClaveSaber, type ValorSaber } from "./saber.ts";
 
-export type FuenteLeida = "web" | "instagram";
+export type FuenteLeida = "web";
 
 /** Un dato encontrado que espera que alguien lo apruebe. */
 export interface PropuestaDato { clave: ClaveSaber; valor: string; fuente: FuenteLeida; /** Dónde salió: «página /servicios», «su biografía». */ detalle?: string }
 
-export interface EstadoFuente { estado: "ok" | "fallo" | "sin-conexion"; motivo?: string; direccion?: string; paginas?: number }
+export interface EstadoFuente { estado: "ok" | "fallo" | "a-pedido"; motivo?: string; direccion?: string; paginas?: number }
 
 /** Lo que se leyó la última vez y lo que se propone. Se guarda en la ficha hasta que se aprueba o se descarta. */
 export interface LecturaFuentes {
@@ -212,60 +212,6 @@ export async function leerWebNegocio(direccion: string, f: typeof fetch = fetch,
   return { estado: { estado: "ok", direccion: portada.final, paginas: todas.length }, propuestas };
 }
 
-/** Las variables para leer Instagram con la API oficial. Sin ellas, Instagram queda «sin conexión». */
-export const instagramConectado = () => !!process.env.INSTAGRAM_TOKEN && !!process.env.INSTAGRAM_CUENTA_ID;
-
-interface Discovery {
-  business_discovery?: {
-    username?: string; name?: string; biography?: string; website?: string; followers_count?: number; media_count?: number;
-    media?: { data?: { caption?: string; media_type?: string; timestamp?: string }[] };
-  };
-  error?: { message?: string; code?: number };
-}
-
-/** Lee una cuenta profesional de Instagram (Business Discovery). Las personales no se pueden leer. */
-export async function leerInstagram(usuario: string, f: typeof fetch = fetch, ahora = new Date()): Promise<{ estado: EstadoFuente; propuestas: PropuestaDato[]; web?: string }> {
-  const u = usuarioInstagram(usuario);
-  if (!u) return { estado: { estado: "fallo", motivo: "No entendimos cuál es su cuenta." }, propuestas: [] };
-  if (!instagramConectado()) return { estado: { estado: "sin-conexion", direccion: `@${u}`, motivo: "Falta conectar la cuenta de Instagram de ANONYMO." }, propuestas: [] };
-  const base = (process.env.INSTAGRAM_API_URL ?? "https://graph.facebook.com/v25.0").replace(/\/$/, "");
-  const campos = `business_discovery.username(${u}){username,name,biography,website,followers_count,media_count,media.limit(24){caption,media_type,timestamp}}`;
-  const url = `${base}/${encodeURIComponent(process.env.INSTAGRAM_CUENTA_ID!)}?fields=${encodeURIComponent(campos)}&access_token=${encodeURIComponent(process.env.INSTAGRAM_TOKEN!)}`;
-  let j: Discovery;
-  try {
-    const r = await f(url, { signal: AbortSignal.timeout(9000) });
-    j = (await r.json()) as Discovery;
-  } catch {
-    return { estado: { estado: "fallo", direccion: `@${u}`, motivo: "Instagram no respondió." }, propuestas: [] };
-  }
-  const d = j.business_discovery;
-  if (!d) {
-    // El código 110/100 de Meta es «no existe o no es una cuenta profesional»; 190 es el permiso vencido. Nunca se muestra el token.
-    const motivo = j.error?.code === 190 ? "El permiso de Instagram venció: hay que conectarlo de nuevo." : "No se pudo leer: la cuenta no existe o no es una cuenta de empresa o creador.";
-    return { estado: { estado: "fallo", direccion: `@${u}`, motivo }, propuestas: [] };
-  }
-  const p: PropuestaDato[] = [];
-  const pon = (clave: ClaveSaber, valor: string | undefined, detalle: string) => { const v = valor?.trim(); if (v) p.push({ clave, valor: v.slice(0, 1200), fuente: "instagram", detalle }); };
-  pon("instagram", `@${d.username ?? u}`, `${d.followers_count ?? 0} seguidores, ${d.media_count ?? 0} publicaciones`);
-  pon("canales", "Instagram", "tiene cuenta de empresa");
-  const bio = d.biography ?? "";
-  pon("celular", celularLocal(bio.match(/(?:\+?593|0)[\s.-]?9[\d\s.-]{8,12}/)?.[0]), "su biografía");
-  const medios = d.media?.data ?? [];
-  const fotos = medios.filter((m) => m.media_type === "IMAGE" || m.media_type === "CAROUSEL_ALBUM").length;
-  if (fotos >= 3) pon("fotos", `${fotos} fotos en sus últimas ${medios.length} publicaciones de Instagram (@${d.username ?? u})`, "sus publicaciones");
-  pon("logo", `Su foto de perfil de Instagram (@${d.username ?? u})`, "su perfil");
-  // Cada cuánto publica hoy: las publicaciones de los últimos 60 días.
-  const recientes = medios.filter((m) => m.timestamp && ahora.getTime() - Date.parse(m.timestamp) <= 60 * 864e5).length;
-  const porSemana = (recientes / 60) * 7;
-  const semana = Math.round(porSemana), mes = Math.max(1, Math.round(recientes / 2));
-  const frecuencia = !recientes ? "No ha publicado en los últimos dos meses"
-    : porSemana >= 1 ? (semana === 1 ? "Hoy publica más o menos una vez por semana" : `Hoy publica unas ${semana} veces por semana`)
-    : mes === 1 ? "Hoy publica más o menos una vez al mes" : `Hoy publica unas ${mes} veces al mes`;
-  if (medios.length) pon("frecuencia", frecuencia, "fechas de sus publicaciones");
-  // El tono no se propone: «cómo habla la marca» es un juicio, no un dato que se pueda leer.
-  return { estado: { estado: "ok", direccion: `@${d.username ?? u}` }, propuestas: p, web: d.website };
-}
-
 /** Qué leer de un cliente: su web y su Instagram, de lo que ya se sabe. */
 export function fuentesDe(saber: Partial<Record<ClaveSaber, ValorSaber>>, web: string | undefined) {
   const w = web?.trim() && !/instagram\.com|facebook\.com|tiktok\.com/i.test(web) ? web.trim() : undefined;
@@ -273,49 +219,29 @@ export function fuentesDe(saber: Partial<Record<ClaveSaber, ValorSaber>>, web: s
   return { web: w, instagram: ig };
 }
 
-/** Lee todo lo que se pueda y arma las propuestas. Solo propone lo que falta o lo que dice otra cosa. */
+/** Lee su web y arma las propuestas. Solo propone lo que falta o lo que dice otra cosa. Su Instagram queda a pedido. */
 export async function leerFuentes(
   entrada: { saber: Partial<Record<ClaveSaber, ValorSaber>>; web?: string },
   f: typeof fetch = fetch,
   ahora = new Date(),
 ): Promise<LecturaFuentes> {
-  let { web, instagram } = fuentesDe(entrada.saber, entrada.web);
+  const { web, instagram } = fuentesDe(entrada.saber, entrada.web);
   const lectura: LecturaFuentes = { cuando: ahora.toISOString(), propuestas: [] };
   const todas: PropuestaDato[] = [];
-  // Instagram primero: si no hay web anotada, su biografía puede traerla.
-  if (instagram) {
-    const r = await leerInstagram(instagram, f, ahora);
-    lectura.instagram = r.estado;
-    todas.push(...r.propuestas);
-    if (!web && r.web && !/instagram\.com|linktr\.ee|facebook\.com/i.test(r.web)) web = r.web;
-  }
   if (web) {
     const r = await leerWebNegocio(web, f);
     lectura.web = r.estado;
     todas.push(...r.propuestas);
-    // Si la web lleva a un Instagram que no conocíamos, se lee también.
-    const igWeb = usuarioInstagram(r.propuestas.find((p) => p.clave === "instagram")?.valor);
-    if (!instagram && igWeb) {
-      const i = await leerInstagram(igWeb, f, ahora);
-      lectura.instagram = i.estado;
-      todas.push(...i.propuestas);
-    }
   }
-  // Un dato por clave: gana Instagram para lo de la marca y la web para lo del negocio. «Canales» junta los dos.
-  const porClave = new Map<ClaveSaber, PropuestaDato>();
-  for (const p of todas) {
-    const ya = porClave.get(p.clave);
-    if (!ya) { porClave.set(p.clave, p); continue; }
-    if (p.clave === "canales") porClave.set("canales", { ...ya, valor: [...new Set([...ya.valor.split(", "), ...p.valor.split(", ")])].join(", "), detalle: "su web y su Instagram" });
-    else if (["horario", "direccion", "servicios", "color"].includes(p.clave) && p.fuente === "web") porClave.set(p.clave, p);
-  }
+  const ig = instagram ?? usuarioInstagram(todas.find((p) => p.clave === "instagram")?.valor);
+  if (ig) lectura.instagram = { estado: "a-pedido", direccion: `@${ig}`, motivo: "Instagram no se lee solo: pídele a Claude en el chat que lo revise desde tu Chrome." };
   // Lo que ya se sabe «cubre» lo leído si dice lo mismo, o si ya trae cada línea (por ejemplo, servicios con uno de más).
-  const cubre = (sabido: string, leido: string) => igual(sabido, leido) || leido.split("\n").every((l) => sabido.split("\n").some((x) => igual(x, l)));
   const igual = (a: string, b: string) => a.toLowerCase().replace(/[^a-z0-9áéíóúñ#]/g, "") === b.toLowerCase().replace(/[^a-z0-9áéíóúñ#]/g, "");
-  lectura.propuestas = [...porClave.values()]
+  const cubre = (sabido: string, leido: string) => igual(sabido, leido) || leido.split("\n").every((l) => sabido.split("\n").some((x) => igual(x, l)));
+  lectura.propuestas = todas
     .filter((p) => DATOS[p.clave] && !(entrada.saber[p.clave] && cubre(entrada.saber[p.clave]!.valor, p.valor)))
     .sort((a, b) => Object.keys(DATOS).indexOf(a.clave) - Object.keys(DATOS).indexOf(b.clave));
   return lectura;
 }
 
-export const NOMBRE_FUENTE_LEIDA: Record<FuenteLeida, string> = { web: "su web", instagram: "su Instagram" };
+export const NOMBRE_FUENTE_LEIDA: Record<FuenteLeida, string> = { web: "su web" };

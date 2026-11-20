@@ -1,7 +1,7 @@
 import "./preparar.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { celularLocal, direccionPermitida, guardarFicha, leerFichas, leerFuentes, leerInstagram, leerPaginaNegocio, leerWebNegocio, usuarioInstagram } from "../src/index.ts";
+import { celularLocal, direccionPermitida, guardarFicha, leerFichas, leerFuentes, leerPaginaNegocio, leerWebNegocio, usuarioInstagram } from "../src/index.ts";
 
 // Una web de negocio de verdad, simplificada: menú, sección de servicios, botón de WhatsApp y datos para Google.
 const PORTADA = `<!doctype html><html><head><meta name="viewport" content="width=device-width">
@@ -17,17 +17,6 @@ const PORTADA = `<!doctype html><html><head><meta name="viewport" content="width
 <a href="https://www.instagram.com/clinica.sonrisa/">Instagram</a><a href="https://facebook.com/clinicasonrisa">Facebook</a>
 </body></html>`;
 const TRATAMIENTOS = `<html><body><h1>Tratamientos</h1><h3>Ortodoncia invisible</h3><h3>Blanqueamiento</h3><h3>Implantes</h3><h3>Carillas de porcelana</h3><h3>Limpieza dental</h3><h2>Agenda tu cita</h2><h3>Llámanos</h3></body></html>`;
-
-const IG = {
-  business_discovery: {
-    username: "clinica.sonrisa", name: "Clínica Sonrisa", biography: "Odontología estética en Cuenca 🦷 Citas: 099 123 4567", website: "https://clinicasonrisa.ec",
-    followers_count: 1200, media_count: 340,
-    media: { data: [
-      ...Array.from({ length: 8 }, (_, i) => ({ media_type: "IMAGE", timestamp: new Date(Date.parse("2026-11-19T12:00:00Z") - i * 7 * 864e5).toISOString(), caption: "x" })),
-      { media_type: "VIDEO", timestamp: "2026-11-10T12:00:00Z" },
-    ] },
-  },
-};
 
 const falso = (rutas: Record<string, string | object>, vistos: string[] = []): typeof fetch => (async (u: string | URL) => {
   const url = String(u);
@@ -86,48 +75,21 @@ test("no se leen direcciones internas", () => {
   assert.equal(direccionPermitida("https://clinicasonrisa.ec", false), true);
 });
 
-test("Instagram sin conectar lo dice; conectado trae lo suyo y nunca muestra la clave", async () => {
-  const antes = { ...process.env };
-  delete process.env.INSTAGRAM_TOKEN;
-  const sin = await leerInstagram("@clinica.sonrisa", falso({}));
-  assert.equal(sin.estado.estado, "sin-conexion");
-  process.env.INSTAGRAM_TOKEN = "token-secreto-de-prueba";
-  process.env.INSTAGRAM_CUENTA_ID = "17841400000000000";
-  process.env.INSTAGRAM_API_URL = "https://graph.prueba";
-  const vistos: string[] = [];
-  const r = await leerInstagram("clinica.sonrisa", falso({ "https://graph.prueba/17841400000000000": IG }, vistos), new Date("2026-11-20T00:00:00Z"));
-  assert.match(vistos[0], /business_discovery\.username\(clinica\.sonrisa\)/);
-  const v = Object.fromEntries(r.propuestas.map((p) => [p.clave, p.valor]));
-  assert.equal(v.celular, "0991234567");
-  assert.match(v.fotos, /^8 fotos/);
-  assert.equal(v.frecuencia, "Hoy publica más o menos una vez por semana");
-  assert.equal(v.tono, undefined, "el tono no se adivina");
-  assert.equal(r.web, "https://clinicasonrisa.ec");
-  const mala = await leerInstagram("personal", falso({ "https://graph.prueba": { error: { code: 190, message: "token-secreto-de-prueba expired" } } }));
-  assert.match(mala.estado.motivo ?? "", /venció/);
-  assert.ok(!JSON.stringify(mala).includes("token-secreto"), "la clave no aparece en lo que se guarda");
-  process.env = antes;
-});
-
-test("se propone solo lo que falta o lo que dice otra cosa, y su Instagram lleva a su web", async () => {
-  const antes = { ...process.env };
-  Object.assign(process.env, { INSTAGRAM_TOKEN: "t", INSTAGRAM_CUENTA_ID: "1", INSTAGRAM_API_URL: "https://graph.prueba" });
-  const f = falso({ "https://graph.prueba/1": IG, "https://clinicasonrisa.ec/tratamientos": TRATAMIENTOS, "https://clinicasonrisa.ec": PORTADA });
-  const l = await leerFuentes({ saber: { instagram: { valor: "@clinica.sonrisa", origen: "mano" }, celular: { valor: "0991234567", origen: "maps" } } }, f, new Date("2026-11-20T00:00:00Z"));
-  assert.equal(l.instagram?.estado, "ok");
-  assert.equal(l.web?.estado, "ok", "la web salió de su biografía");
+test("se propone solo lo que falta o no está cubierto, y su Instagram queda a pedido", async () => {
+  const f = falso({ "https://clinicasonrisa.ec/tratamientos": TRATAMIENTOS, "https://clinicasonrisa.ec": PORTADA });
+  const l = await leerFuentes({ saber: { celular: { valor: "0991234567", origen: "maps" } }, web: "https://clinicasonrisa.ec" }, f);
+  assert.equal(l.web?.estado, "ok");
+  assert.equal(l.instagram?.estado, "a-pedido", "el Instagram que se encontró en su web no se lee solo");
+  assert.equal(l.instagram?.direccion, "@clinica.sonrisa");
   const claves = l.propuestas.map((p) => p.clave);
-  assert.ok(!claves.includes("instagram") && !claves.includes("celular"), "lo que ya se sabe igual no se vuelve a proponer");
-  assert.equal(l.propuestas.find((p) => p.clave === "canales")?.valor, "Instagram, Facebook");
-  assert.equal(l.propuestas.find((p) => p.clave === "servicios")?.fuente, "web");
-  assert.equal(l.propuestas.find((p) => p.clave === "fotos")?.fuente, "instagram");
+  assert.ok(!claves.includes("celular"), "lo que ya se sabe igual no se vuelve a proponer");
+  assert.ok(claves.includes("instagram") && claves.includes("servicios"));
   // Si ya se sabe una lista más larga que incluye la leída, no se vuelve a proponer.
-  const corregido = await leerFuentes({ saber: { instagram: { valor: "@clinica.sonrisa", origen: "mano" }, servicios: { valor: "Ortodoncia invisible\nBlanqueamiento\nImplantes\nCarillas de porcelana\nLimpieza dental\nCoronas", origen: "mano" } } }, f, new Date("2026-11-20T00:00:00Z"));
+  const corregido = await leerFuentes({ saber: { servicios: { valor: "Ortodoncia invisible\nBlanqueamiento\nImplantes\nCarillas de porcelana\nLimpieza dental\nCoronas", origen: "mano" } }, web: "https://clinicasonrisa.ec" }, f);
   assert.ok(!corregido.propuestas.some((p) => p.clave === "servicios"));
-  // Sin web ni Instagram no hay nada que leer.
-  const nada = await leerFuentes({ saber: {} }, f);
-  assert.deepEqual([nada.web, nada.instagram, nada.propuestas.length], [undefined, undefined, 0]);
-  process.env = antes;
+  // Sin web no hay nada que leer, aunque se sepa su Instagram.
+  const nada = await leerFuentes({ saber: { instagram: { valor: "@clinica.sonrisa", origen: "mano" } } }, f);
+  assert.deepEqual([nada.web, nada.instagram?.estado, nada.propuestas.length], [undefined, "a-pedido", 0]);
 });
 
 test("lo leído se guarda en la ficha aparte y se borra al aprobarlo", async () => {
