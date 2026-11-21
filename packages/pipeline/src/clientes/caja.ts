@@ -6,7 +6,7 @@
 // entendió antes de hacerlo. Esta parte no toca la red ni gasta: solo entiende el texto. Corre también en el navegador.
 import type { TareaSaber } from "./saber.ts";
 
-export type AccionCaja = "guion" | "muestra" | "mensaje" | "datos" | "pedido" | "proyecto" | "contenido";
+export type AccionCaja = "guion" | "muestra" | "mensaje" | "datos" | "pedido" | "proyecto" | "cambio" | "contenido";
 export type AgenteCaja = "faro" | "iman" | "atlas";
 
 export interface DefAccion {
@@ -31,7 +31,8 @@ export const ACCIONES_CAJA: Record<AccionCaja, DefAccion> = {
   mensaje: { nombre: "Primer mensaje", agente: "iman", ayuda: "El mensaje de WhatsApp con su muestra, listo para copiar o abrir.", tarea: "mensaje", conCliente: true, sinonimos: ["whatsapp", "escribirle"] },
   datos: { nombre: "Buscar datos en su web", agente: "iman", ayuda: "Lee su web y propone datos para su ficha.", conCliente: true, sinonimos: ["ficha", "buscar", "leer"] },
   pedido: { nombre: "Nuevo pedido", agente: "atlas", ayuda: "Arma un pedido nuevo con lo que escribas.", conCliente: false, sinonimos: ["web", "encargo", "nuevo"] },
-  proyecto: { nombre: "Hablar de su proyecto", agente: "atlas", ayuda: "Abre la conversación de su proyecto con Atlas.", conCliente: true, sinonimos: ["avance", "pregunta", "consulta"] },
+  proyecto: { nombre: "Preguntar por su proyecto", agente: "atlas", ayuda: "Atlas responde con lo que está registrado. Sin pregunta, abre la conversación.", conCliente: true, sinonimos: ["avance", "pregunta", "consulta", "cómo va", "como va"] },
+  cambio: { nombre: "Pedir un cambio en su proyecto", agente: "atlas", ayuda: "Atlas anota el cambio y el equipo lo hace. Pregunta antes.", gasta: true, conCliente: true, sinonimos: ["cambiar", "corregir", "ajuste", "ajustar"] },
   contenido: { nombre: "Mes de contenido", agente: "faro", ayuda: "El calendario del mes, en series. Si no es el próximo mes, escribe cuál.", tarea: "contenido", gasta: true, conCliente: true, sinonimos: ["calendario", "mes", "publicaciones"] },
 };
 export const ORDEN_ACCIONES = Object.keys(ACCIONES_CAJA) as AccionCaja[];
