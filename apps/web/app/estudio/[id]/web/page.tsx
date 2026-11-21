@@ -2,7 +2,7 @@ import Link from "next/link";
 import {ControlCalidad} from "@/components/estudio/ControlCalidad";
 import { notFound } from "next/navigation";
 import { agentePorId } from "@anonymo/agentes";
-import { archivosSitio, existe, leerEntrega, leerMiWeb, leerProyecto, ORDEN_PLANES, PLANES, versionesSitio, type TareaId } from "@anonymo/pipeline";
+import { archivosSitio, existe, leerEntrega, leerMiWeb, leerVisitas, mesDe, resumenVisitas, leerProyecto, ORDEN_PLANES, PLANES, versionesSitio, type TareaId } from "@anonymo/pipeline";
 import { accionWebEnVivo } from "./acciones";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
@@ -25,6 +25,7 @@ export default async function Web({ params, searchParams }: { params: Promise<{ 
   const versiones = versionesSitio(id);
   const { v: vCruda, ok, error } = await searchParams;
   const vivo = leerMiWeb(id);
+  const esteMes = vivo ? resumenVisitas(await leerVisitas(id, mesDe())) : undefined;
   const v = versiones.includes(Number(vCruda)) ? Number(vCruda) : versiones[0];
   const tarea = (p.plan.tareas.find((t) => t.endsWith(".vector")) ?? "4.vector") as TareaId;
   const e = leerEntrega(id, tarea, v);
@@ -70,6 +71,7 @@ export default async function Web({ params, searchParams }: { params: Promise<{ 
                 ? <>En línea con la versión {vivo.base}{vivo.base !== versiones[0] ? ` (hay una v${versiones[0]} más nueva)` : ""}. Plan {PLANES[vivo.plan].nombre}: {PLANES[vivo.plan].editaCliente ? "el cliente la cambia él mismo desde «Mi web» en su portal." : "los cambios los hacen ustedes."}</>
                 : "Al ponerla en vivo, la versión más nueva queda en una dirección pública y el cliente puede cambiarla desde su portal, según su plan. Nada sale hasta que toques el botón."}</p>
               {vivo?.activa && <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]"><a href={`/w/${id}/index.html`} target="_blank" rel="noopener" data-ver-en-vivo className="underline underline-offset-2">Abrir su web ↗</a>{p.portal && <a href={`/portal/${id}/mi-web?t=${p.portal.token}`} target="_blank" rel="noopener" className="underline underline-offset-2">Su «Mi web» ↗</a>}</p>}
+              {vivo && esteMes && <p className="mt-2 text-[13px]"><Link href={`/estudio/${id}/web/informe`} data-ir-informe className="underline underline-offset-2">Este mes: {esteMes.visita} {esteMes.visita === 1 ? "visita" : "visitas"} · {esteMes.whatsapp} por WhatsApp · {esteMes.llamada} llamadas → informe</Link></p>}
             </div>
             <form action={accionWebEnVivo} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={id} />

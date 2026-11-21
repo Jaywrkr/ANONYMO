@@ -185,16 +185,23 @@ var panel=r.querySelector("#mw-panel"),abrir=r.querySelector("#mw-abrir"),msgs=r
 function di(t,yo,html){var e=document.createElement("div");e.className=yo?"mw-yo":"mw-el";if(html)e.innerHTML=html;else e.textContent=t;msgs.appendChild(e);msgs.scrollTop=msgs.scrollHeight;return e}
 function wa(){return D.wa?'<a href="https://wa.me/'+D.wa+'" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>':""}
 var inicio=false;function empezar(){if(inicio)return;inicio=true;di("Hola, soy el asistente de "+D.n+". Pregúntame lo que necesites.");var s=document.createElement("div");s.className="mw-sug";D.p.slice(0,4).forEach(function(p){var b=document.createElement("button");b.type="button";b.textContent=p.pregunta;b.onclick=function(){preguntar(p.pregunta)};s.appendChild(b)});msgs.appendChild(s)}
-function preguntar(t){t=String(t||"").trim();if(!t)return;di(t,true);var m=responder(D.p,t);if(m)di(m.respuesta);else di("",false,"No tengo esa respuesta todavía."+(D.wa?" "+wa()+" y te respondemos.":""))}
+function preguntar(t){t=String(t||"").trim();if(!t)return;di(t,true);if(window.mwMedir)window.mwMedir("pregunta");var m=responder(D.p,t);if(m)di(m.respuesta);else di("",false,"No tengo esa respuesta todavía."+(D.wa?" "+wa()+" y te respondemos.":""))}
 abrir.onclick=function(){var ab=panel.hidden;panel.hidden=!ab;abrir.setAttribute("aria-expanded",String(ab));abrir.textContent=ab?"Cerrar":"Preguntas";if(ab){empezar();q.focus()}};
 r.querySelector("#mw-form").onsubmit=function(ev){ev.preventDefault();preguntar(q.value);q.value=""};
 document.addEventListener("keydown",function(ev){if(ev.key==="Escape"&&!panel.hidden){abrir.click();abrir.focus()}});
 })();`;
 }
 
-/** La página en vivo: la del equipo con los cambios del cliente y, si está encendido, el asistente. */
-export function paginaEnVivo(html: string, e: EstadoMiWeb, pagina: string, rutaAsistente: string) {
-  let salida = aplicarCambios(html, e.paginas[pagina] ?? {}).html;
-  if (asistenteVisible(e)) salida = /<\/body>/i.test(salida) ? salida.replace(/<\/body>/i, `<script src="${rutaAsistente}" defer></script></body>`) : `${salida}<script src="${rutaAsistente}" defer></script>`;
-  return salida;
+/** Lo que mide la web en vivo (sistema/99): una visita por sesión y los clics a WhatsApp o a llamar. Sin cookies. */
+export function scriptMedir(registro: string, pagina: string) {
+  return `<script>(function(){var u=${JSON.stringify(registro)};function m(e,x){try{var b=JSON.stringify(Object.assign({e:e},x||{}));if(!(navigator.sendBeacon&&navigator.sendBeacon(u,new Blob([b],{type:"text/plain"}))))fetch(u,{method:"POST",body:b,keepalive:true})}catch(_){}}window.mwMedir=m;var v=true;try{v=!sessionStorage.getItem("mw-v");sessionStorage.setItem("mw-v","1")}catch(_){}if(v)m("visita",{p:${JSON.stringify(pagina)},r:document.referrer});document.addEventListener("click",function(ev){var a=ev.target&&ev.target.closest&&ev.target.closest("a[href]");if(!a)return;var h=a.getAttribute("href")||"";if(/wa\\.me|api\\.whatsapp\\.com|^whatsapp:/i.test(h))m("whatsapp");else if(/^tel:/i.test(h))m("llamada")},true)})();</script>`;
+}
+
+/** La página en vivo: la del equipo con los cambios del cliente, lo que mide las visitas y, si está encendido, el asistente. */
+export function paginaEnVivo(html: string, e: EstadoMiWeb, pagina: string, rutaAsistente: string, registro?: string) {
+  let extra = registro ? scriptMedir(registro, pagina) : "";
+  if (asistenteVisible(e)) extra += `<script src="${rutaAsistente}" defer></script>`;
+  const salida = aplicarCambios(html, e.paginas[pagina] ?? {}).html;
+  if (!extra) return salida;
+  return /<\/body>/i.test(salida) ? salida.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${extra}</body>`) : `${salida}${extra}`;
 }

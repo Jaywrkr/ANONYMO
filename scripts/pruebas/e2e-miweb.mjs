@@ -37,6 +37,29 @@ try {
   exigir((await fetch(`${B}/w/${ID}`, { redirect: "manual" })).headers.get("location")?.endsWith(`/w/${ID}/index.html`), "la dirección corta lleva a la portada");
   const enlace = await panel.locator("a:has-text('Su «Mi web»')").getAttribute("href");
 
+  // 1b · Informe del mes (sistema/99): una visita desde Google y un clic a WhatsApp. Los robots no cuentan.
+  const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+  const vis = await nav.newContext({ viewport: { width: 390, height: 844 }, userAgent: UA });
+  await vis.route(/wa\.me/, (r) => r.fulfill({ status: 200, body: "whatsapp" }));
+  const vp = await vis.newPage();
+  await vp.goto(`${B}/w/${ID}/index.html`, { referer: "https://www.google.com/" });
+  await vp.waitForTimeout(800);
+  await vp.reload();
+  await vp.waitForTimeout(500);
+  await vp.locator("a[href*='wa.me']").click();
+  await vp.waitForTimeout(1200);
+  await vis.close();
+  await fetch(`${B}/w/${ID}/_registro`, { method: "POST", headers: { "user-agent": "Googlebot/2.1" }, body: JSON.stringify({ e: "visita", p: "index.html" }) });
+  await p.reload();
+  exigir(/Este mes: 1 visita · 1 por WhatsApp · 0 llamadas/.test(await panel.innerText()), "el estudio ve las visitas del mes: recargar no suma y los robots no cuentan");
+  await panel.locator("[data-ir-informe]").click();
+  await p.waitForURL(/web\/informe/);
+  const inf = p.locator("[data-informe-web]");
+  exigir(await espera(inf) && /Google/.test(await inf.innerText()), "el informe dice de dónde llegaron");
+  exigir(/Visitas: 1\nTe escribieron por WhatsApp: 1\nDe cada 100 visitas, 100 te contactaron\./.test(await p.locator("[data-texto-informe]").innerText()), "el texto para el cliente está listo para copiar");
+  await p.screenshot({ path: join(capturas, "0-informe.png"), fullPage: true });
+  await p.goto(`${B}/estudio/${ID}/web`);
+
   // 2 · Con el plan Cuidado, el cliente ve su web pero no la cambia él.
   const cli = await nav.newContext({ viewport: { width: 1280, height: 900 } });
   const c = await cli.newPage();
@@ -44,6 +67,7 @@ try {
   exigir((await c.goto(`${B}${enlace?.replace(/t=[^&]+/, "t=otro")}`))?.status() === 404, "con un enlace falso no se entra");
   await c.goto(`${B}${enlace}`);
   exigir(await espera(c.locator("text=Tu plan incluye cambios hechos por nosotros")) && await c.locator("[data-editor-miweb]").count() === 0, "con Cuidado no hay editor: lo hacemos nosotros");
+  exigir(/Visitas\s*1/.test(await c.locator("[data-informe-cliente]").innerText()), "el cliente ve su informe del mes, también con Cuidado");
   await c.goto(`${B}${enlace?.replace("/mi-web", "")}`);
   exigir(await espera(c.locator("[data-ir-miweb]")), "su portal lleva a «Mi web»");
 
