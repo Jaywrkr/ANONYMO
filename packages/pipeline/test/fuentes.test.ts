@@ -102,3 +102,15 @@ test("lo leído se guarda en la ficha aparte y se borra al aprobarlo", async () 
   assert.equal(g.lectura, undefined);
   assert.equal(g.saber?.servicios, "Implantes");
 });
+
+test("ANONYMO: lo que ya sabe el estudio se propone sin leer ninguna web, y no repite lo que ya está", async () => {
+  const { leerFuentes, PROPIAS_ANONYMO, esAnonymo } = await import("../src/index.ts");
+  assert.ok(esAnonymo("anonymo") && !esAnonymo("consultorio-luz"));
+  const nada = (() => { throw new Error("no debía leer la web"); }) as unknown as typeof fetch;
+  const l = await leerFuentes({ saber: { nombre: { valor: "ANONYMO", origen: "mano" }, canales: { valor: "Instagram", origen: "mano" } }, propias: PROPIAS_ANONYMO }, nada);
+  const claves = l.propuestas.map((p) => p.clave);
+  assert.ok(["rubro", "oferta", "publico", "temas", "tono", "frecuencia", "aprueba"].every((k) => claves.includes(k as never)), claves.join());
+  assert.ok(!claves.includes("canales"), "lo que ya dice igual no se repite");
+  assert.equal(l.web, undefined);
+  assert.ok(l.propuestas.every((p) => p.fuente === "estudio"));
+});

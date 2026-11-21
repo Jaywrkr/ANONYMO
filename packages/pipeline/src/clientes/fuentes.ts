@@ -6,7 +6,7 @@ import { colorEnHtml } from "../prospectos/paleta.ts";
 import { esCelular } from "../prospectos/puntaje.ts";
 import { DATOS, type ClaveSaber, type ValorSaber } from "./saber.ts";
 
-export type FuenteLeida = "web";
+export type FuenteLeida = "web" | "estudio";
 
 /** Un dato encontrado que espera que alguien lo apruebe. */
 export interface PropuestaDato { clave: ClaveSaber; valor: string; fuente: FuenteLeida; /** Dónde salió: «página /servicios», «su biografía». */ detalle?: string }
@@ -221,13 +221,13 @@ export function fuentesDe(saber: Partial<Record<ClaveSaber, ValorSaber>>, web: s
 
 /** Lee su web y arma las propuestas. Solo propone lo que falta o lo que dice otra cosa. Su Instagram queda a pedido. */
 export async function leerFuentes(
-  entrada: { saber: Partial<Record<ClaveSaber, ValorSaber>>; web?: string },
+  entrada: { saber: Partial<Record<ClaveSaber, ValorSaber>>; web?: string; /** Lo que el estudio ya sabe (ANONYMO): va primero. */ propias?: PropuestaDato[] },
   f: typeof fetch = fetch,
   ahora = new Date(),
 ): Promise<LecturaFuentes> {
   const { web, instagram } = fuentesDe(entrada.saber, entrada.web);
   const lectura: LecturaFuentes = { cuando: ahora.toISOString(), propuestas: [] };
-  const todas: PropuestaDato[] = [];
+  const todas: PropuestaDato[] = [...(entrada.propias ?? [])];
   if (web) {
     const r = await leerWebNegocio(web, f);
     lectura.web = r.estado;
@@ -238,10 +238,12 @@ export async function leerFuentes(
   // Lo que ya se sabe «cubre» lo leído si dice lo mismo, o si ya trae cada línea (por ejemplo, servicios con uno de más).
   const igual = (a: string, b: string) => a.toLowerCase().replace(/[^a-z0-9áéíóúñ#]/g, "") === b.toLowerCase().replace(/[^a-z0-9áéíóúñ#]/g, "");
   const cubre = (sabido: string, leido: string) => igual(sabido, leido) || leido.split("\n").every((l) => sabido.split("\n").some((x) => igual(x, l)));
+  // Un dato por clave: gana el primero (lo que ya sabe el estudio, luego la web).
   lectura.propuestas = todas
+    .filter((p, i) => todas.findIndex((x) => x.clave === p.clave) === i)
     .filter((p) => DATOS[p.clave] && !(entrada.saber[p.clave] && cubre(entrada.saber[p.clave]!.valor, p.valor)))
     .sort((a, b) => Object.keys(DATOS).indexOf(a.clave) - Object.keys(DATOS).indexOf(b.clave));
   return lectura;
 }
 
-export const NOMBRE_FUENTE_LEIDA: Record<FuenteLeida, string> = { web: "su web" };
+export const NOMBRE_FUENTE_LEIDA: Record<FuenteLeida, string> = { web: "su web", estudio: "ANONYMO" };

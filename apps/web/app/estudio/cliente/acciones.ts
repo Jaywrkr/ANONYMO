@@ -2,7 +2,7 @@
 // Lo que Jay y Luna escriben a mano en la ficha de un cliente (sistema/70): notas, contacto y otros nombres.
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { CLAVES_SABER, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, saberDe } from "@anonymo/pipeline";
+import { CLAVES_SABER, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 
@@ -71,11 +71,12 @@ export async function accionBuscarDatos(f: FormData) {
     if (!ficha) throw new Error("No encontramos ese cliente.");
     const saber = saberDe(ficha);
     const web = ficha.guardada?.web ?? ficha.contacto.web;
-    if (!fuentesDe(saber, web).web) throw new Error("Para buscar, anota su web en «Contacto y notas».");
-    const lectura = await leerFuentes({ saber, web });
+    const propias = esAnonymo(ficha.id) ? PROPIAS_ANONYMO : undefined;
+    if (!fuentesDe(saber, web).web && !propias) throw new Error("Para buscar, anota su web en «Contacto y notas».");
+    const lectura = await leerFuentes({ saber, web, propias });
     await guardarFicha(id, { nombre: ficha.guardada?.nombre ?? ficha.nombre, lectura: { ...lectura, por: yo } }, yo);
     const n = lectura.propuestas.length;
-    const leyo = lectura.web?.estado === "ok" ? "su web" : "";
+    const leyo = lectura.web?.estado === "ok" ? "su web" : propias ? "lo que ya sabe el estudio" : "";
     const aviso = n ? `Encontramos ${n} ${n === 1 ? "dato" : "datos"}${leyo ? ` en ${leyo}` : ""}. Revísalos y guarda los que estén bien.` : leyo ? `Leímos ${leyo} y no hay nada nuevo.` : "No pudimos leer nada. Mira abajo por qué.";
     destino = `/estudio/cliente/${id}?ok=${encodeURIComponent(aviso)}#leido`;
   } catch (e) {

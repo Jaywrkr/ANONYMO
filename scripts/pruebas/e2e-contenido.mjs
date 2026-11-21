@@ -23,6 +23,10 @@ try {
   p.on("pageerror", (e) => fallas.push(`error en la página: ${e.message}`));
   await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="jay"]', { force: true }); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
 
+  // 0 · Sin ficha, ANONYMO igual aparece y dice cómo empezar.
+  await p.goto(`${B}/estudio/contenido?cliente=anonymo`);
+  exigir(await espera(p.locator("[data-falta-mes]:has-text('ANONYMO todavía no tiene ficha')")) && await p.locator("[data-falta-mes] a").getAttribute("href") === "/estudio/clientes", "sin ficha, ANONYMO dice cómo empezar");
+
   // 1 · ANONYMO con media ficha: el mes no se arma y se dice qué falta, sin gastar.
   await p.goto(`${B}/estudio/clientes`);
   await p.locator("summary:has-text('Agregar un cliente a mano')").click();
@@ -44,14 +48,16 @@ try {
   exigir(await espera(form.locator("[data-falta-mes]")) && /A ANONYMO le falta:.*(temas|cada cuánto|quién aprueba)/i.test(await form.locator("[data-falta-mes]").innerText()), "dice qué le falta a ANONYMO");
   exigir(await form.getByRole("button", { name: "Armar el mes" }).isDisabled() && meses() === antes, "el botón está apagado y no se gasta");
 
-  // 2 · Se completa la ficha: aparece el botón para armar el mes.
+  // 2 · Sin web, «Buscar datos» propone lo que el estudio ya sabe de ANONYMO; se aprueba y la ficha queda completa.
   await p.goto(`${B}/estudio/cliente/anonymo`);
-  // Con 6 datos o más, lo que sabemos viene cerrado: se abre.
-  if (!(await f.locator("[name=saber-temas]").isVisible())) await p.locator("summary:has-text('Lo que sabemos de ANONYMO')").click();
-  await f.locator("[name=saber-temas]").fill("Antes y después de webs\nCómo trabajamos\nErrores de negocios en Instagram");
-  await f.locator("[name=saber-frecuencia]").fill("3 veces por semana");
-  await f.locator("[name=saber-aprueba]").fill("Jay");
-  await f.locator("button:has-text('Guardar lo que sabemos')").click();
+  const buscar = p.locator("[data-buscar-datos]");
+  exigir(/lo que el estudio ya sabe de ANONYMO/.test(await buscar.innerText()) && await buscar.locator("button:has-text('Buscar datos')").isEnabled(), "ANONYMO puede buscar datos sin web");
+  await buscar.locator("button:has-text('Buscar datos')").click();
+  exigir(await espera(p.locator("[role=status]:has-text('lo que ya sabe el estudio')"), 20000), "dice que trajo lo que ya sabe el estudio");
+  const props = await buscar.locator("[data-propuesta]").evaluateAll((xs) => xs.map((x) => x.getAttribute("data-propuesta")));
+  exigir(["temas", "frecuencia", "aprueba"].every((k) => props.includes(k)) && /de ANONYMO \(lo que ya sabe el estudio\)/.test(await buscar.locator("[data-propuesta=temas]").innerText()), `propone lo que faltaba, con su origen (${props.join(", ")})`);
+  exigir(await buscar.locator("[name=tomar-oferta]").isChecked() === false, "lo que ya estaba escrito distinto no se marca solo");
+  await buscar.locator("button:has-text('Guardar los marcados')").click();
   exigir(await espera(p.locator("[data-tarea=contenido][data-listo=si] [data-ir-contenido]")), "con todo, la ficha ofrece armar su mes");
   await p.locator("[data-ir-contenido]").click();
   await p.waitForURL(/estudio\/contenido\?cliente=anonymo/);

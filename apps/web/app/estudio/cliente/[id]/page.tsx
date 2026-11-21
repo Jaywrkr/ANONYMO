@@ -1,7 +1,7 @@
 // La ficha de un cliente (sistema/70): todo lo suyo en un lugar, con su historia y lo que escribes a mano.
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DATOS, nombreDato, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, estadoTareas, fuentesDe, numeroInternacional, puntuar, resumenFicha, saberDe } from "@anonymo/pipeline";
+import { DATOS, nombreDato, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, esAnonymo, estadoTareas, fuentesDe, numeroInternacional, puntuar, resumenFicha, saberDe } from "@anonymo/pipeline";
 import { exigirEstudio, serif, campo, boton, botonLleno } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
 import { accionAprobarDatos, accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
@@ -82,7 +82,8 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <div className="min-w-0">
               <p className="text-[14.5px] font-medium">Buscar datos solo</p>
               <p className="mt-0.5 text-[13px] text-medio">
-                {fuentes.web
+                {esAnonymo(f.id) && <>Te proponemos lo que el estudio ya sabe de ANONYMO{fuentes.web ? " y lo que diga su web" : ""}. Nada se guarda hasta que lo apruebes. </>}
+                {esAnonymo(f.id) ? null : fuentes.web
                   ? <>Leemos su web ({fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")}) y te proponemos lo que encontremos. Nada se guarda hasta que lo apruebes.</>
                   : "Anota su web en «Contacto y notas» y aquí podrás leerla."}
                 {fuentes.instagram && <> Su Instagram (@{fuentes.instagram}) no se lee solo: pídele a Claude en el chat que lo revise desde tu Chrome.</>}
@@ -90,7 +91,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             </div>
             <form action={accionBuscarDatos}>
               <input type="hidden" name="id" value={f.id} />
-              <button className={boton} disabled={!fuentes.web} data-trabajando="Leyendo su web…">{lectura ? "Buscar de nuevo" : "Buscar datos"}</button>
+              <button className={boton} disabled={!fuentes.web && !esAnonymo(f.id)} data-trabajando="Buscando datos…">{lectura ? "Buscar de nuevo" : "Buscar datos"}</button>
             </form>
           </div>
           {lectura && (

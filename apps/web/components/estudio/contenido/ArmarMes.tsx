@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export interface ClienteMes { id: string; nombre: string; falta: string }
+export interface ClienteMes { id: string; nombre: string; falta: string; enlace?: string }
 
 const campo = "min-h-11 w-full rounded-xl bg-hueso/60 px-3 text-[15px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]";
 
@@ -54,7 +54,7 @@ export function ArmarMes({ clientes, meses, inicial }: { clientes: ClienteMes[];
         <textarea value={pedido} onChange={(e) => setPedido(e.target.value.slice(0, 800))} disabled={trabajo} rows={2} placeholder="Ej.: lanzamos un servicio nuevo el 15; hay feriado el 25." className={`${campo} py-2.5`} />
       </label>
       {elegido?.falta && (
-        <p data-falta-mes className="rounded-2xl bg-[#fff1ea] p-3 text-[14px] text-[#8a2f08]">{elegido.falta} <a href={`/estudio/cliente/${elegido.id}#saber`} className="underline">Completar su ficha</a></p>
+        <p data-falta-mes className="rounded-2xl bg-[#fff1ea] p-3 text-[14px] text-[#8a2f08]">{elegido.falta} <a href={elegido.enlace ?? `/estudio/cliente/${elegido.id}#saber`} className="underline">{elegido.enlace ? "Ir a Clientes" : "Completar su ficha"}</a></p>
       )}
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={trabajo || !!elegido?.falta} className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] text-white disabled:opacity-40">{trabajo ? "Faro está armando el mes…" : "Armar el mes"}</button>
