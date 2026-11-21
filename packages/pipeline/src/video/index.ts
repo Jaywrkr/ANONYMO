@@ -7,3 +7,4 @@ export * from "./atlas-video.ts";
 export { medirVideo, rutaFfmpeg, filtrosRender, leerMedida, leerSilencios, umbralSilencio, MEDIDAS, type MarcaRender } from "./ffmpeg.ts";
 export * from "./marcas-video.ts";
 export * from "./guiones.ts";
+export * from "./contenido.ts";

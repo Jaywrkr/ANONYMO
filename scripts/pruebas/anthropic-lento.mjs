@@ -19,6 +19,17 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
       return;
     }
+    // Faro arma el mes de contenido (sistema/96): una pieza por cada fecha que le llega, alternando series y formatos.
+    if (cuerpo.system?.startsWith("Faro arma el mes de contenido")) {
+      const texto = String(cuerpo.messages?.[0]?.content ?? "");
+      const fechas = (texto.split(/## Fechas[^\n]*\n/)[1] ?? "").split("\n").filter((l) => /^\d+\. \d{4}-\d{2}-\d{2}/.test(l));
+      const series = [{ nombre: "Antes y después", para: "Mostrar el trabajo terminado" }, { nombre: "Preguntas de clientes", para: "Responder dudas reales" }, { nombre: "Detrás de cámaras", para: "Que conozcan al equipo" }];
+      const formatos = ["reel", "carrusel", "post", "historia"];
+      const piezas = fechas.map((l, i) => ({ n: i + 1, serie: series[i % 3].nombre, formato: formatos[i % 4], idea: `Idea de prueba ${i + 1}: ${series[i % 3].nombre.toLowerCase()}`, texto: `Texto de prueba ${i + 1}. Escríbenos por WhatsApp para saber más.`, visual: `Toma de prueba ${i + 1}` }));
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_mes", name: "armar_mes", input: { series, piezas } }], usage: { input_tokens: 1200, output_tokens: 3000 } }));
+      return;
+    }
     // Faro escribe guiones (sistema/71): uno fijo de prueba, con el cliente y la duración que le llegan.
     if (cuerpo.system?.startsWith("Faro, contenido de ANONYMO")) {
       const texto = String(cuerpo.messages?.[0]?.content ?? "");

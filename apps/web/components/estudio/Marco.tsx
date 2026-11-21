@@ -92,6 +92,7 @@ const I = {
   buscar: "M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM20 20l-3.5-3.5",
   biblioteca: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z",
   video: "M3 6h12v12H3zM15 10l6-3v10l-6-3",
+  contenido: "M4 6h16v14H4zM4 10h16M9 3v4M15 3v4",
   clientes: "M6 4v8a6 6 0 0 0 12 0V4M6 8h4M14 8h4",
   taller: "M14 7a4 4 0 0 0-5.3 5.3L4 17l3 3 4.7-4.7A4 4 0 0 0 17 10l-2.5 2.5-3-3z",
   atlas: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8M12 8v8",
@@ -174,6 +175,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
         </Link>
         <Link href="/estudio/clientes" onClick={alIr} className={fila(enClientes(ruta))} aria-current={enClientes(ruta) ? "page" : undefined}><Icono d={I.clientes} /> Clientes</Link>
         <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
+        <Link href="/estudio/contenido" onClick={alIr} className={fila(ruta.startsWith("/estudio/contenido"))} aria-current={ruta.startsWith("/estudio/contenido") ? "page" : undefined}><Icono d={I.contenido} /> Contenido</Link>
         {/* Atlas en un solo lugar (sistema/76): antes flotaba y tapaba el contenido. */}
         <button type="button" aria-label="Abrir chat de Atlas" onClick={() => { alIr?.(); window.dispatchEvent(new CustomEvent("anonymo:atlas", { detail: {} })); }} className={`${fila(false)} w-full text-left`}>
           <span aria-hidden className="grid h-4 w-4 place-items-center rounded-full bg-tinta font-serif text-[10px] text-white">A</span> Atlas <kbd className="ml-auto font-mono text-[10px] text-tinta/40">A</kbd>
