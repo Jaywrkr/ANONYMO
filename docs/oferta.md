@@ -21,6 +21,16 @@ Una sola oferta en el primer contacto. Los extras van en la propuesta, nunca en 
 - Un cambio pequeño al mes (precios, horarios, una foto).
 - Informe mensual de visitas y clics a WhatsApp: es lo que prueba que la web trae clientes.
 
+## Planes mensuales (sistema/98, decididos el 21 nov 2026)
+
+| Plan | Precio + IVA | Qué incluye |
+|---|---|---|
+| Cuidado | USD 19 | Hosting, dominio, seguridad, copias, informe mensual y un cambio pequeño al mes hecho por nosotros. |
+| Autónomo | USD 29 | Lo de Cuidado, más «Mi web»: el cliente cambia textos, fotos, horario y precios cuando quiera, y tiene un asistente en su web que responde con sus propias respuestas. |
+| Pro | USD 49 | Lo de Autónomo, más el asistente con IA (con tope de mensajes al mes) y dos cambios al mes hechos por nosotros. |
+
+En el código: `PLANES` en `packages/pipeline/src/oferta.ts`. El asistente con IA del Pro todavía no está hecho.
+
 ## Extras (en la propuesta)
 
 - Sesión de fotos con Luna: USD 150 + IVA.

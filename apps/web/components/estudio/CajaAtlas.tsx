@@ -4,6 +4,7 @@
 // @ elige quién lo hace, # para qué cliente, / qué se hace. Antes de hacer nada muestra lo que entendió;
 // si usa IA pregunta primero; si al cliente le falta algo, lo dice y lleva a su ficha. El resultado llega como tarjeta.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import {
   ACCIONES_CAJA, AGENTES_CAJA, ORDEN_ACCIONES, ORDEN_AGENTES, accionDe, agenteDe, clientesDe, leerCaja, marcaEnCurso, ponerSugerencia,
@@ -59,8 +60,10 @@ export function CajaAtlas({ abrirProyecto }: { abrirProyecto: (id: string) => vo
 
   function poner(valor: string) {
     const r = ponerSugerencia(texto, cursor, valor);
-    setTexto(r.texto);
-    requestAnimationFrame(() => { caja.current?.focus(); caja.current?.setSelectionRange(r.cursor, r.cursor); setCursor(r.cursor); });
+    // Al instante, no en el próximo cuadro: si se sigue escribiendo rápido, el cursor no salta atrás (sistema/98).
+    flushSync(() => { setTexto(r.texto); setCursor(r.cursor); });
+    caja.current?.focus();
+    caja.current?.setSelectionRange(r.cursor, r.cursor);
   }
 
   function agregar(e: Omit<Entrada, "id">) {

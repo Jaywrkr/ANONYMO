@@ -3,7 +3,7 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import { notFound } from "next/navigation";
 import { FASES, agentePorId } from "@anonymo/agentes";
-import { puedeAprobar, contratoPorId, esInterna, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, versionCliente, type TareaId, calendario } from "@anonymo/pipeline";
+import { leerMiWeb, puedeAprobar, contratoPorId, esInterna, existe, leerEntrega, leerProyecto, nubeActiva, tokenValido, versionCliente, type TareaId, calendario } from "@anonymo/pipeline";
 import { FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
 import { botonLleno, campo, portalActivo, serif } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
@@ -64,6 +64,11 @@ export default async function Portal({ params, searchParams }: Props) {
           </div>
         </div>
 
+        {leerMiWeb(id)?.activa && (
+          <a href={`/portal/${id}/mi-web?t=${encodeURIComponent(t!)}`} data-ir-miweb className="mt-6 flex min-h-16 max-w-xl items-center justify-between gap-4 rounded-2xl bg-white px-5 py-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
+            <span><span className="block text-[15px] font-medium">Mi web</span><span className="block text-[13px] text-medio">Tu web ya está en línea. Mira y cambia textos, fotos y tu asistente.</span></span><span aria-hidden>→</span>
+          </a>
+        )}
         {m && <p role="status" className="mt-6 max-w-xl rounded-2xl bg-tinta p-4 text-[15px] text-white">{m}</p>}
 
         {dirs && dirs.opciones.length > 0 && (
