@@ -31,7 +31,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
         </div>
       </div>
       <p className="mt-3 hidden max-w-2xl text-[15px] text-medio md:block">Sube un video de alguien hablando o haciendo algo. Lo escuchamos para quitar los silencios, lo dividimos en partes que puedes quitar con un toque, Corte, nuestro editor, hace lo que le pidas y lo entregamos en 9:16, 1:1 o 16:9.</p>
-      <p className="mt-3"><Link href="/estudio/video/marcas" className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Marcas: logo, colores y música de cada cliente →</Link></p>
+      <p className="mt-3"><Link href="/estudio/video/marcas" className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Marcas: logo, colores y música de cada cliente →</Link> <Link href="/estudio/contenido" className="ml-2 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">El mes de contenido →</Link></p>
       {/* Las dos acciones en el orden del trabajo (sistema/76): primero el guion, después lo grabado. */}
       <div className="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Qué quieres hacer">
         <a href="#guiones" className="flex min-h-20 items-center gap-4 rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">

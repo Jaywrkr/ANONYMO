@@ -111,7 +111,7 @@ try {
 
   // 7 · Lo que no se puede todavía, o lo que falta, se dice sin gastar.
   await caja.fill("/contenido");
-  exigir(await espera(panel.locator("[data-aviso-caja]:has-text('todavía no se puede pedir')")) && await panel.getByRole("button", { name: /Pedirle a Faro|Hacerlo/ }).isDisabled(), "el mes de contenido dice que todavía no");
+  exigir(await espera(panel.locator("[data-aviso-caja]:has-text('Consultorio Dental Prisma le falta')")) && await panel.getByRole("button", { name: /Pedirle a Faro|Hacerlo/ }).isDisabled(), "al mes de contenido le falta lo mínimo del cliente y no gasta");
   await caja.fill("/datos");
   await panel.getByRole("button", { name: "Hacerlo" }).click();
   exigir(await espera(panel.locator("[data-tarjeta] [role=alert]:has-text('No sé la web de Consultorio Dental Prisma')")), "sin su web, lo dice y lleva a su ficha");

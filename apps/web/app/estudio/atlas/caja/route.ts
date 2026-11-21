@@ -3,12 +3,13 @@
 // Si a un cliente le falta lo mínimo para la tarea, no se hace y se dice qué falta (saber.ts).
 import {
   ACCIONES_CAJA, TAREAS_SABER, clienteConFicha, contextoCliente, escribirGuion, estadoTareas, guardarFicha, leerFuentes,
-  idFicha, leerProspectos, nombreDato, nombreDe, ocultarClaves, puedeHacer, saberDe, textoFaltan, type AccionCaja, type Ficha,
+  idFicha, leerProspectos, idMes, leerMesContenido, mesDeTexto, mesPorDefecto, nombreDato, nombreDe, nombreMes, ocultarClaves, puedeHacer, saberDe, textoFaltan, type AccionCaja, type Ficha,
 } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { baseUrl } from "@/lib/base";
 import { mal, permiso, vistaProspecto } from "@/lib/clientes";
 import type { Tarjeta } from "@/lib/caja";
+import { crearMes } from "@/lib/contenido";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -70,6 +71,16 @@ export async function POST(req: Request) {
       const g = await escribirGuion(texto, { cliente: f?.nombre, por: p.yo!, saber: saber && f && clienteConFicha(f) ? contextoCliente(saber, [...TAREAS_SABER.guion.minimo, ...TAREAS_SABER.guion.mejor]) : undefined });
       return Response.json({ tarjeta: { titulo: `Guion: ${g.titulo}`, texto: `Gancho: ${g.gancho}\n\n${g.partes.map((x, i) => `${i + 1}. ${x.texto}`).join("\n")}\n\nCierre: ${g.cierre}`, botones: [{ texto: "Abrir en Video", href: "/estudio/video" }] } satisfies Tarjeta }, sinCache);
     }
+    if (accion === "contenido") {
+      // El mes que se nombra («diciembre») o, si no, el que viene. Lo demás del texto va como pedido especial.
+      const mes = mesDeTexto(texto) ?? mesPorDefecto();
+      const ya = await leerMesContenido(idMes(f!.id, mes));
+      if (ya) return Response.json({ tarjeta: { titulo: `Contenido de ${f!.nombre} · ${nombreMes(mes)}`, texto: "Ese mes ya está armado. Ábrelo para revisarlo.", botones: [{ texto: "Revisar el mes", href: `/estudio/contenido/${ya.id}` }] } satisfies Tarjeta }, sinCache);
+      if (c.confirmado !== true) return Response.json({ confirmar: `Faro va a armar ${nombreMes(mes)} de ${f!.nombre}. Usa IA: unos centavos del saldo. ¿Lo hago?` }, sinCache);
+      const pedido = texto.replace(/\b(?:de |para )?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de \d{4})?\b/gi, "").trim();
+      const m = await crearMes(f!, mes, pedido.length > 3 ? pedido : undefined, p.yo!);
+      return Response.json({ tarjeta: { titulo: `Contenido de ${f!.nombre} · ${nombreMes(mes)}`, texto: `Faro armó ${m.piezas.length} publicaciones en ${m.series.length} series: ${m.series.map((s) => s.nombre).join(", ")}. Revísalas y aprueba las que estén bien.`, botones: [{ texto: "Revisar el mes", href: `/estudio/contenido/${m.id}` }] } satisfies Tarjeta }, sinCache);
+    }
     if (accion === "muestra" || accion === "mensaje") {
       if (!f!.prospecto) return mal(`${f!.nombre} no tiene muestra: las muestras salen de Imán, para negocios nuevos.`, 409);
       const l = await leerProspectos();
@@ -96,7 +107,7 @@ export async function POST(req: Request) {
       return Response.json({ tarjeta: { titulo: `Proyecto de ${f!.nombre}`, texto: "Su conversación con Atlas guarda lo que se avanzó y lo que falta.", botones: [{ texto: "Abrir la conversación", proyecto: pr.id }, { texto: "Ver el proyecto", href: `/estudio/${pr.id}` }] } satisfies Tarjeta }, sinCache);
     }
   } catch (e) {
-    return mal(ocultarClaves((e as Error).message), 502);
+    return mal(ocultarClaves((e as Error).message), (e as { status?: number }).status ?? 502);
   }
   return mal("No entendí qué hacer.");
 }

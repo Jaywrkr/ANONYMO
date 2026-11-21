@@ -71,6 +71,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
               <p className="mt-0.5 text-[12px] text-suave">La hace {t.regla.quien}</p>
               {!t.listo && <p className="mt-2 text-[13px] leading-snug">Falta: {t.faltan.map((k) => nombreDato(k)).join(", ")}.</p>}
               {t.listo && t.mejoraria.length > 0 && <p className="mt-2 text-[13px] leading-snug text-medio">Saldría mejor con: {t.mejoraria.map((k) => nombreDato(k)).join(", ")}.</p>}
+              {t.listo && t.tarea === "contenido" && <a href={`/estudio/contenido?cliente=${id}`} data-ir-contenido className="mt-2 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Armar su mes de contenido</a>}
             </li>
           ))}
         </ul>
