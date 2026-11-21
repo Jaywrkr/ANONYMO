@@ -5,11 +5,13 @@ import {
   ACCIONES_CAJA, PROPIAS_ANONYMO, TAREAS_SABER, clienteConFicha, esAnonymo, contextoCliente, escribirGuion, estadoTareas, guardarFicha, leerFuentes,
   idFicha, leerProspectos, idMes, leerMesContenido, mesDeTexto, mesPorDefecto, nombreDato, nombreDe, nombreMes, ocultarClaves, puedeHacer, saberDe, textoFaltan, type AccionCaja, type Ficha,
 } from "@anonymo/pipeline";
+import { randomUUID } from "node:crypto";
 import { cartera } from "@/lib/cartera";
 import { baseUrl } from "@/lib/base";
 import { mal, permiso, vistaProspecto } from "@/lib/clientes";
 import type { Tarjeta } from "@/lib/caja";
 import { crearMes } from "@/lib/contenido";
+import { consultarProyecto, encargarProyecto } from "@/lib/proyecto-atlas";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -102,10 +104,20 @@ export async function POST(req: Request) {
       const q = new URLSearchParams({ ...(texto ? { q: texto } : {}), ...(f ? { cliente: f.nombre.slice(0, 80), ficha: f.id } : {}) });
       return Response.json({ tarjeta: { titulo: `Nuevo pedido${f ? ` para ${f.nombre}` : ""}`, texto: "Lo dejé escrito. Revísalo y Atlas arma el plan; nadie empieza hasta que tú lo digas.", botones: [{ texto: "Abrir el pedido", href: `/estudio/nuevo?${q}` }] } satisfies Tarjeta }, sinCache);
     }
-    if (accion === "proyecto") {
+    if (accion === "proyecto" || accion === "cambio") {
       const pr = proyectoDe(f!);
       if (!pr) return mal(`${f!.nombre} todavía no tiene un proyecto. Escribe /pedido para armar uno.`, 409);
-      return Response.json({ tarjeta: { titulo: `Proyecto de ${f!.nombre}`, texto: "Su conversación con Atlas guarda lo que se avanzó y lo que falta.", botones: [{ texto: "Abrir la conversación", proyecto: pr.id }, { texto: "Ver el proyecto", href: `/estudio/${pr.id}` }] } satisfies Tarjeta }, sinCache);
+      const botones = [{ texto: "Ver la conversación", proyecto: pr.id }, { texto: "Ver el proyecto", href: `/estudio/${pr.id}` }];
+      if (accion === "proyecto" && texto.length < 4) return Response.json({ tarjeta: { titulo: `Proyecto de ${f!.nombre}`, texto: "Su conversación con Atlas guarda lo que se avanzó y lo que falta. Escribe una pregunta después de /proyecto y te respondo aquí.", botones: [{ texto: "Abrir la conversación", proyecto: pr.id }, { texto: "Ver el proyecto", href: `/estudio/${pr.id}` }] } satisfies Tarjeta }, sinCache);
+      if (accion === "proyecto") {
+        // Solo lectura: Atlas responde con los registros del proyecto y la respuesta queda en su conversación.
+        const m = await consultarProyecto(pr.id, texto, p.yo!, "atlas", randomUUID());
+        return Response.json({ tarjeta: { titulo: `Proyecto de ${f!.nombre}`, texto: m.respuesta, botones } satisfies Tarjeta }, sinCache);
+      }
+      if (texto.length < 8) return mal("Cuéntale a Atlas qué hay que cambiar, en una frase.");
+      if (c.confirmado !== true) return Response.json({ confirmar: `Atlas va a anotar este cambio en el proyecto de ${f!.nombre} y el equipo lo va a hacer. Usa IA. ¿Lo hago?` }, sinCache);
+      const m = await encargarProyecto(pr.id, texto, p.yo!, "atlas", randomUUID(), new URL(req.url).origin);
+      return Response.json({ tarjeta: { titulo: `Cambio en el proyecto de ${f!.nombre}`, texto: m.respuesta, botones } satisfies Tarjeta }, sinCache);
     }
   } catch (e) {
     return mal(ocultarClaves((e as Error).message), (e as { status?: number }).status ?? 502);

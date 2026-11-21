@@ -18,6 +18,7 @@ test("sin acción, hace lo que su agente hace siempre; sin agente, sale de la ac
   assert.equal(leerCaja("@Faro algo sobre blanqueamiento", C).accion, "guion");
   assert.equal(leerCaja("@imán #clinica-sonrisa", C).accion, "muestra");
   assert.equal(leerCaja("/mensaje #clinica-sonrisa", C).agente, "iman");
+  assert.deepEqual([leerCaja("#clinica-sonrisa /cambio otro color", C).accion, leerCaja("#clinica-sonrisa /cambio otro color", C).agente], ["cambio", "atlas"]);
   assert.equal(leerCaja("/datos #anonymo", C).como, "escrita");
 });
 

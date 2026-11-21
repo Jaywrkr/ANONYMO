@@ -83,7 +83,7 @@ try {
   await caja.pressSequentially("/gu");
   await caja.press("Tab");
   await caja.pressSequentially("un video para el día de la madre");
-  exigir((await caja.inputValue()) === "#clinica-sonrisa /guion un video para el día de la madre", "Tab pone el cliente y la acción");
+  { const v = await caja.inputValue(); exigir(v === "#clinica-sonrisa /guion un video para el día de la madre", `Tab pone el cliente y la acción (${v})`); }
   exigir(await espera(panel.locator("[data-aviso-caja]:has-text('A Clínica Sonrisa le falta')")) && await panel.getByRole("button", { name: "Pedirle a Faro" }).isDisabled(), "sin lo mínimo, no se puede pedir y dice qué falta");
   exigir(await panel.locator("[data-aviso-caja] a:has-text('Completar en su ficha')").getAttribute("href") === "/estudio/cliente/clinica-sonrisa#saber", "y lleva a su ficha");
 
@@ -94,6 +94,24 @@ try {
   await panel.getByRole("button", { name: "Abrir la conversación" }).click();
   exigir(await panel.getByRole("tab", { name: "Proyecto" }).getAttribute("aria-selected") === "true" && await panel.getByLabel("Proyecto de la conversación").inputValue() === "clinica-sonrisa", "«Abrir la conversación» pasa a su proyecto");
   await panel.getByRole("tab", { name: "Pedir" }).click();
+
+  // 5b · Preguntar por el proyecto desde la caja: Atlas responde aquí y queda en su conversación (sistema/97).
+  await caja.fill("#clinica-sonrisa /proyecto en qué fase va el proyecto");
+  exigir(/Atlas · Preguntar por su proyecto/.test(await panel.locator("[data-entendi]").innerText()), "entiende que es una pregunta por su proyecto");
+  await panel.getByRole("button", { name: "Hacerlo" }).click();
+  exigir(await panel.locator("[data-tarjeta]").filter({ hasText: "Proyecto de Clínica Sonrisa" }).count() === 1, "al volver de «Proyecto», lo anterior de la caja sigue ahí");
+  const resp = panel.locator("[data-tarjeta]").filter({ hasText: "en qué fase va el proyecto" }).filter({ hasText: "Proyecto de Clínica Sonrisa" });
+  const llego = await espera(resp, 60000);
+  exigir(llego && !/Escribe una pregunta/.test(await resp.innerText()), `Atlas responde la pregunta en la caja${llego ? "" : ` (${(await panel.locator("[data-tarjeta]").last().innerText()).slice(0, 200)})`}`);
+  await resp.getByRole("button", { name: "Ver la conversación" }).click();
+  exigir(await espera(panel.locator("text=en qué fase va el proyecto >> visible=true").first(), 20000), "la pregunta queda en la conversación del proyecto");
+  await panel.getByRole("tab", { name: "Pedir" }).click();
+  // Un cambio: pregunta antes; cancelar no hace nada; con sí, queda anotado.
+  await caja.fill("#clinica-sonrisa /cambio que el botón de reservar diga «Agenda tu cita»");
+  await panel.getByRole("button", { name: "Pedirle a Atlas" }).click();
+  exigir(await espera(panel.getByRole("alertdialog", { name: "Confirmar" })) && /anotar este cambio en el proyecto de Clínica Sonrisa/.test(await panel.getByRole("alertdialog").innerText()), "un cambio pide confirmación");
+  await panel.getByRole("button", { name: "Sí, hazlo" }).click();
+  exigir(await espera(panel.locator("[data-tarjeta]").filter({ hasText: "Cambio en el proyecto de Clínica Sonrisa" }), 60000), "el cambio queda anotado y llega como tarjeta");
 
   // 6 · Imán: su muestra y su mensaje. El cliente se mantiene para lo siguiente.
   await caja.fill("#prisma /muestra");

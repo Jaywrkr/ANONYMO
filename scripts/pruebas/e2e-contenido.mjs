@@ -97,7 +97,7 @@ try {
   await p2.locator("[data-corregir]").click();
   await p2.getByLabel("El texto que se publica").fill("Tu negocio merece una web que venda.");
   await p2.getByRole("button", { name: "Guardar" }).click();
-  const corregida = await espera(p2.locator("text=Tu negocio merece una web que venda."));
+  const corregida = await espera(p2.locator("[role=status]:has-text('Guardado.')")) && await espera(p2.locator("p:has-text('Tu negocio merece una web que venda.')"));
   const estado2 = await p2.getAttribute("data-estado");
   exigir(corregida && estado2 === "propuesta", `corregida a mano, vuelve a «Por revisar» (${estado2}; ${await p2.locator("[role=status],[role=alert]").allInnerTexts()})`);
   await rev.getByRole("button", { name: /^Aprobada \(/ }).click();

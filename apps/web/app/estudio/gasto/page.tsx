@@ -12,7 +12,7 @@ export const metadata = { title: "Gasto en IA — Estudio", robots: { index: fal
 
 const usd = (n: number) => `USD ${n < 1 && n > 0 ? n.toFixed(3) : n.toFixed(2)}`;
 const caja = "rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]";
-const ORIGEN: Record<string, string> = { juez: "Juez de calidad", atlas: "Atlas (planes, encargos, consultas)", faro: "Faro (guiones)", corte: "Corte (video)", prueba: "Prueba de conexión" };
+const ORIGEN: Record<string, string> = { juez: "Juez de calidad", atlas: "Atlas (planes, encargos, consultas)", faro: "Faro (guiones)", corte: "Corte (video)", prueba: "Prueba de conexión", asistente: "Asistentes de las webs (plan Pro)" };
 const nombreOrigen = (o: string) => ORIGEN[o] ?? agentePorId(o)?.nombre ?? o;
 const hora = (iso: string) => new Date(iso).toLocaleString("es-EC", { timeZone: "America/Guayaquil", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 

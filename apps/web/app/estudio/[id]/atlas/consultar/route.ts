@@ -1,8 +1,8 @@
-import {interpretarEncargo,aplicarEncargo,recordarEncargo,leerProyecto,consultarAtlas,conversacionesDe,existe} from '@anonymo/pipeline';
+import {leerProyecto,conversacionesDe,existe} from '@anonymo/pipeline';
 import {quienEsta} from '@/lib/estudio';
-import {lanzar,trabajandoAhora} from '@/lib/trabajo';
+import {consultarProyecto,encargarProyecto} from '@/lib/proyecto-atlas';
 import {agentePorId} from '@anonymo/agentes';
-import {traer,conNube} from '@/lib/nube';
+import {traer} from '@/lib/nube';
 export const dynamic='force-dynamic';
 export const maxDuration=120;
 const activas=new Map<string,{huella:string;promesa:Promise<unknown>}>();
@@ -19,18 +19,9 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
  let accion=previa?.promesa;
  if(!accion){
   accion=(async()=>{
-   if(d.modo==='encargar'){
-    await conNube([id],()=>interpretarEncargo(id,d.pregunta as string,d.agente as string,quien,d.solicitud as string));
-    const resultado=await conNube([id],async()=>{
-     const e=await aplicarEncargo(id,d.solicitud as string);
-     return recordarEncargo(id,{solicitud:e.id,pregunta:d.pregunta as string,agente:d.agente as string,quien,resultado:e.resultado??'El encargo queda guardado.'});
-    });
-    const estado=await conNube([id],()=>leerProyecto(id).estado);
-    if(estado==='en-curso'&&!await trabajandoAhora(id))await lanzar(id,new URL(req.url).origin);
-    return resultado;
-   }
+   if(d.modo==='encargar')return encargarProyecto(id,d.pregunta as string,quien,d.agente as string,d.solicitud as string,new URL(req.url).origin);
    if(d.modo!==undefined&&d.modo!=='consultar')throw new Error('Modo no válido.');
-   return conNube([id],()=>consultarAtlas(id,d.pregunta as string,quien,d.agente as string,d.solicitud as string));
+   return consultarProyecto(id,d.pregunta as string,quien,d.agente as string,d.solicitud as string);
   })();
   activas.set(clave,{huella,promesa:accion});
  }
