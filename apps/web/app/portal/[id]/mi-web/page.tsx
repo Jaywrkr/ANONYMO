@@ -2,7 +2,7 @@
 import "@fontsource/instrument-serif/latin-400.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { existe, leerMiWeb, leerProyecto, leerVisitas, mesAnterior, mesDe, nombreDelMes, PLANES, resumenVisitas, revisarMiWeb, tokenValido } from "@anonymo/pipeline";
+import { existe, leerMiWeb, leerProyecto, leerVisitas, mesAnterior, mesDe, nombreDelMes, PLANES, resumenVisitas, revisarMiWeb, tokenValido, TOPE_IA_MES } from "@anonymo/pipeline";
 import { InformeWeb } from "@/components/estudio/InformeWeb";
 import { portalActivo, serif } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
@@ -39,7 +39,7 @@ export default async function MiWeb({ params, searchParams }: { params: Promise<
           <InformeWeb mes={mes} datos={datos} r={informe} />
         </section>
         {plan.editaCliente ? (
-          <EditorMiWeb id={id} t={t!} paginas={paginas} puedeDeshacer={puedeDeshacer} asistente={plan.asistente ? e.asistente : undefined} conIA={plan.asistente === "ia"} />
+          <EditorMiWeb id={id} t={t!} paginas={paginas} puedeDeshacer={puedeDeshacer} asistente={plan.asistente ? e.asistente : undefined} conIA={plan.asistente === "ia"} sinRespuesta={[...(antes.sinRespuesta ?? []), ...(datos.sinRespuesta ?? [])]} usoIA={datos.ia ?? 0} topeIA={TOPE_IA_MES} />
         ) : (
           <section className="mt-8 rounded-[20px] bg-white p-6 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
             <p className="text-[15px] font-medium">¿Quieres cambiarla tú mismo?</p>

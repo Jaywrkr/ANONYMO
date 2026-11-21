@@ -61,7 +61,7 @@ try {
   await p.goto(`${B}/estudio/${ID}/web`);
 
   // 2 · Con el plan Cuidado, el cliente ve su web pero no la cambia él.
-  const cli = await nav.newContext({ viewport: { width: 1280, height: 900 } });
+  const cli = await nav.newContext({ viewport: { width: 1280, height: 900 }, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15" });
   const c = await cli.newPage();
   c.on("pageerror", (e) => fallas.push(`error en el portal: ${e.message}`));
   exigir((await c.goto(`${B}${enlace?.replace(/t=[^&]+/, "t=otro")}`))?.status() === 404, "con un enlace falso no se entra");
@@ -137,6 +137,25 @@ try {
   await w.getByLabel("Escribe tu pregunta").press("Enter");
   exigir(await espera(w.locator(".mw-el a[href='https://wa.me/593992220001']")), "lo que no sabe lo manda a su WhatsApp");
   await w.screenshot({ path: join(capturas, "1-web-en-vivo.png") });
+
+  // 7b · Lo que no sabía queda anotado para el cliente; con Pro, la IA responde con lo de su web (sistema/100).
+  await w.waitForTimeout(800);
+  await c.reload();
+  const sr = c.locator("[data-sin-respuesta]");
+  exigir(await espera(sr) && /hacen envíos a Quito/.test(await sr.innerText()), "el cliente ve lo que le preguntaron y no tenía escrito");
+  await sr.getByRole("button", { name: "Escribir la respuesta" }).first().click();
+  exigir(await c.locator("[data-asistente]").getByLabel("Pregunta 3").inputValue() === "hacen envíos a Quito", "con un toque queda lista para responder");
+  await p.goto(`${B}/estudio/${ID}/web`);
+  await panel.locator("select[name=plan]").selectOption("pro");
+  await panel.getByRole("button", { name: "Cambiar plan" }).click();
+  await espera(panel.locator("[role=status]:has-text('Plan cambiado a Pro')"));
+  await w.reload();
+  await w.getByRole("button", { name: "Preguntas" }).click();
+  await w.getByLabel("Escribe tu pregunta").fill("tienen parqueadero");
+  await w.getByLabel("Escribe tu pregunta").press("Enter");
+  exigir(await espera(w.locator(".mw-el:has-text('Respuesta de prueba con IA sobre «tienen parqueadero»')"), 30000), "con Pro, lo que no estaba escrito lo responde la IA");
+  await c.reload();
+  exigir(/este mes van 1 de 200/.test(await c.locator("[data-asistente]").innerText()) && /tienen parqueadero[\s\S]*respondió la IA/.test(await c.locator("[data-sin-respuesta]").innerText()), "el cliente ve cuántas van y qué respondió la IA");
 
   // 8 · En el celular, «Mi web» no se sale de la pantalla.
   const m = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

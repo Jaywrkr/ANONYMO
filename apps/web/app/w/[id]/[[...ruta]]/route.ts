@@ -2,7 +2,7 @@
 // Solo existe si Jay o Luna la pusieron en vivo. Sin sesión: es la web pública del negocio.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { carpeta, esRobot, leerRemotoBytes, nubeActiva, origenDe, paginaEnVivo, registrarVisita, REL_MIWEB, rutaSegura, scriptAsistente, asistenteVisible, TIPOS_SITIO, type EstadoMiWeb } from "@anonymo/pipeline";
+import { anotarSinRespuesta, aplicarCambios, carpeta, editablesDe, esRobot, responderConIA, leerRemotoBytes, nubeActiva, origenDe, paginaEnVivo, registrarVisita, REL_MIWEB, rutaSegura, scriptAsistente, asistenteVisible, TIPOS_SITIO, type EstadoMiWeb } from "@anonymo/pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +29,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   let e: EstadoMiWeb | undefined;
   try { e = await estadoDe(id); } catch { return new Response("No disponible", { status: 503 }); }
   if (!e?.activa) return no();
-  const cabeceras = { "cache-control": "public, max-age=30", "x-content-type-options": "nosniff" };
+  // Las páginas y el asistente siempre al día (un cambio del cliente se ve al instante); lo demás, un rato en caché.
+  const cabeceras = { "cache-control": "no-cache", "x-content-type-options": "nosniff" };
   if (r === "_asistente.js") {
     if (!asistenteVisible(e)) return no();
-    return new Response(scriptAsistente(e, e.negocio), { headers: { ...cabeceras, "content-type": "text/javascript; charset=utf-8" } });
+    return new Response(scriptAsistente(e, e.negocio, `/w/${id}/_asistente`), { headers: { ...cabeceras, "content-type": "text/javascript; charset=utf-8" } });
   }
   const ext = r.split(".").pop()?.toLowerCase() ?? "";
   const tipo = TIPOS_SITIO[ext];
@@ -44,7 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const html = paginaEnVivo(Buffer.from(datos).toString("utf8"), e, r, `/w/${id}/_asistente.js`, `/w/${id}/_registro`);
     return new Response(html, { headers: { ...cabeceras, "content-type": tipo } });
   }
-  return new Response(datos as BodyInit, { headers: { ...cabeceras, "content-type": tipo } });
+  return new Response(datos as BodyInit, { headers: { ...cabeceras, "content-type": tipo, "cache-control": foto ? "public, max-age=31536000, immutable" : "public, max-age=300" } });
 }
 
 // Lo que mide la web (sistema/99): una visita o un clic, sin datos de la persona. Los robots no cuentan.
@@ -52,13 +53,36 @@ const EVENTOS = new Set(["visita", "whatsapp", "llamada", "pregunta"]);
 export async function POST(req: Request, { params }: { params: Promise<{ id: string; ruta?: string[] }> }) {
   const { id, ruta } = await params;
   const listo = new Response(null, { status: 204 });
-  if (!/^[a-z0-9][a-z0-9_-]{2,80}$/.test(id) || ruta?.join("/") !== "_registro" || esRobot(req.headers.get("user-agent"))) return listo;
-  let c: { e?: unknown; p?: unknown; r?: unknown };
+  const destino = ruta?.join("/");
+  if (!/^[a-z0-9][a-z0-9_-]{2,80}$/.test(id) || esRobot(req.headers.get("user-agent"))) return destino === "_asistente" ? Response.json({}) : listo;
+  let c: { e?: unknown; p?: unknown; r?: unknown; q?: unknown };
   try { const t = await req.text(); if (t.length > 1000) return listo; c = JSON.parse(t); } catch { return listo; }
+  if (destino === "_asistente") return asistente(id, typeof c.q === "string" ? c.q : "");
+  if (destino !== "_registro") return listo;
+  if (c.e === "sin-respuesta") {
+    try { if ((await estadoDe(id))?.activa && typeof c.q === "string") await anotarSinRespuesta(id, c.q); } catch { /* nunca rompe la web */ }
+    return listo;
+  }
   if (typeof c.e !== "string" || !EVENTOS.has(c.e)) return listo;
   try {
     if (!(await estadoDe(id))?.activa) return listo;
     await registrarVisita(id, { evento: c.e as "visita", pagina: typeof c.p === "string" ? c.p : undefined, origen: origenDe(typeof c.r === "string" ? c.r : undefined, new URL(req.url).hostname) });
   } catch { /* Medir nunca rompe la web del cliente. */ }
   return listo;
+}
+
+/** El asistente con IA del plan Pro (sistema/100). Lo que no sabe, devuelve vacío y la web manda al WhatsApp. */
+async function asistente(id: string, q: string) {
+  const vacio = Response.json({}, { headers: { "cache-control": "no-store" } });
+  try {
+    const e = await estadoDe(id);
+    if (!e?.activa || q.trim().length < 3) return vacio;
+    const b = await leer(id, `sitio/v${e.base}/index.html`);
+    const html = b ? aplicarCambios(Buffer.from(b).toString("utf8"), e.paginas["index.html"] ?? {}).html : "";
+    const r = await responderConIA(id, e, q, editablesDe(html).map((x) => x.texto).join("\n"));
+    await anotarSinRespuesta(id, q, "respuesta" in r).catch(() => undefined);
+    return "respuesta" in r ? Response.json({ respuesta: r.respuesta }, { headers: { "cache-control": "no-store" } }) : vacio;
+  } catch {
+    return vacio;
+  }
 }

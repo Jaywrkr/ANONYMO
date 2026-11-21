@@ -46,3 +46,23 @@ test("la página en vivo lleva lo que mide, una sola vez, antes del último </bo
   assert.match(h, /mwMedir[\s\S]*<\/script><\/body><\/html>$/);
   assert.ok(!paginaEnVivo("<p>x</p>", e, "index.html", "/a.js").includes("_registro"), "sin registro no mide");
 });
+
+test("preguntas sin respuesta y asistente con IA: plan, tope y ritmo", async () => {
+  const { anotarSinRespuesta, leerVisitas, limpiarPregunta, responderConIA, cambiarMes, TOPE_IA_MES } = await import("../src/index.ts");
+  assert.equal(limpiarPregunta("  mi número es 099 222 0001,   llámenme "), "mi número es …, llámenme");
+  const ahora = new Date("2026-11-21T15:00:00Z");
+  await anotarSinRespuesta("sin-resp", "¿Hacen envíos?", false, ahora);
+  await anotarSinRespuesta("sin-resp", "¿hacen envíos?", false, ahora);
+  await anotarSinRespuesta("sin-resp", "x", false, ahora);
+  assert.deepEqual((await leerVisitas("sin-resp", "2026-11")).sinRespuesta, [{ q: "¿Hacen envíos?", dia: "2026-11-21" }]);
+  const e = { activa: true, plan: "autonomo", negocio: "Luz", paginas: {}, asistente: { activo: true, preguntas: [{ pregunta: "¿Horario?", respuesta: "9 a 6" }] } } as never;
+  assert.deepEqual(await responderConIA("ia-prueba", e, "¿hacen envíos?", "", ahora), { sin: "plan" });
+  const pro = { ...(e as object), plan: "pro" } as never;
+  assert.deepEqual(await responderConIA("ia-prueba", pro, "¿hacen envíos?", "", ahora), { sin: "ia" }, "sin clave de IA no responde, pero no rompe");
+  assert.equal((await leerVisitas("ia-prueba", "2026-11")).ia, 1, "cuenta para el tope");
+  await cambiarMes("ia-prueba", ahora, (m) => ({ ...m, ia: TOPE_IA_MES }));
+  assert.deepEqual(await responderConIA("ia-prueba", pro, "¿hacen envíos?", "", ahora), { sin: "tope" });
+  const otra = new Date("2026-12-02T15:00:00Z");
+  const r = await Promise.all(Array.from({ length: 10 }, () => responderConIA("ia-ritmo", pro, "¿hacen envíos?", "", otra)));
+  assert.equal(r.filter((x) => "sin" in x && x.sin === "rapido").length, 2, "más de 8 por minuto, espera");
+});

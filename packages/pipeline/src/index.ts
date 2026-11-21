@@ -64,3 +64,4 @@ export * from "./gasto.ts";
 export * from "./miweb-html.ts";
 export * from "./miweb.ts";
 export * from "./visitas.ts";
+export * from "./asistente-ia.ts";

@@ -8,7 +8,15 @@ import { leerSuelto, nubeActiva, subirSuelto } from "./nube.ts";
 export type EventoVisita = "visita" | "whatsapp" | "llamada" | "pregunta";
 export type OrigenVisita = "google" | "instagram" | "facebook" | "tiktok" | "directo" | "otro";
 export interface DiaVisitas { visita: number; whatsapp: number; llamada: number; pregunta: number }
-export interface MesVisitas { dias: Record<string, DiaVisitas>; paginas: Record<string, number>; origen: Partial<Record<OrigenVisita, number>>; actualizado: string }
+export interface SinRespuesta { q: string; dia: string; ia?: boolean }
+export interface MesVisitas {
+  dias: Record<string, DiaVisitas>; paginas: Record<string, number>; origen: Partial<Record<OrigenVisita, number>>;
+  /** Lo que le preguntaron al asistente y no tenía escrito (sistema/100): el cliente lo convierte en respuesta. */
+  sinRespuesta?: SinRespuesta[];
+  /** Respuestas con IA del mes (plan Pro), para el tope. */
+  ia?: number;
+  actualizado: string;
+}
 
 const ZONA = "America/Guayaquil";
 /** «2026-11-21» en hora de Ecuador. */
@@ -58,18 +66,24 @@ async function guardar(id: string, mes: string, m: MesVisitas) {
 // En un mismo servidor las anotaciones de una web van en fila: así dos visitas a la vez nunca se pisan.
 const filas = new Map<string, Promise<unknown>>();
 export function registrarVisita(id: string, e: { evento: EventoVisita; pagina?: string; origen?: OrigenVisita }, ahora = new Date()): Promise<MesVisitas> {
+  return cambiarMes(id, ahora, (m) => sumar(m, e, ahora));
+}
+
+/** Cambia el mes de una web en fila (ver arriba). Si `fn` devuelve undefined, no guarda nada. */
+export function cambiarMes(id: string, ahora: Date, fn: (m: MesVisitas) => MesVisitas | undefined): Promise<MesVisitas> {
   const clave = `${id}:${mesDe(ahora)}`;
-  const r = (filas.get(clave) ?? Promise.resolve()).catch(() => undefined).then(() => anotar(id, e, ahora));
+  const r = (filas.get(clave) ?? Promise.resolve()).catch(() => undefined).then(() => anotar(id, ahora, fn));
   filas.set(clave, r);
   void r.finally(() => { if (filas.get(clave) === r) filas.delete(clave); }).catch(() => undefined);
   return r;
 }
 
-async function anotar(id: string, e: { evento: EventoVisita; pagina?: string; origen?: OrigenVisita }, ahora: Date) {
+async function anotar(id: string, ahora: Date, fn: (m: MesVisitas) => MesVisitas | undefined) {
   const mes = mesDe(ahora);
   for (let i = 0; ; i++) {
     const antes = JSON.stringify(await leerVisitas(id, mes));
-    const m = sumar(JSON.parse(antes) as MesVisitas, e, ahora);
+    const m = fn(JSON.parse(antes) as MesVisitas);
+    if (!m) return JSON.parse(antes) as MesVisitas;
     if (i < 4 && JSON.stringify(await leerVisitas(id, mes)) !== antes) { await new Promise((ok) => setTimeout(ok, 30 + Math.random() * 120)); continue; }
     await guardar(id, mes, m);
     return m;
@@ -127,4 +141,19 @@ export function textoInforme(negocio: string, mes: string, r: ResumenVisitas) {
     ...(r.origen.length ? ["", `De dónde llegaron: ${r.origen.slice(0, 3).map(([o, n]) => `${NOMBRE_ORIGEN[o]} ${n}`).join(", ")}.`] : []),
   ];
   return lineas.join("\n");
+}
+
+/** Lo que escribió un visitante, sin números largos (teléfonos, cédulas) y corto. */
+export const limpiarPregunta = (t: string) => t.replace(/\s+/g, " ").replace(/[\d][\d\s.-]{5,}\d/g, "…").trim().slice(0, 160);
+
+/** Anota una pregunta que el asistente no tenía escrita. Hasta 60 por mes; las repetidas no se suman. */
+export function anotarSinRespuesta(id: string, q: string, ia = false, ahora = new Date()) {
+  const texto = limpiarPregunta(q);
+  if (texto.length < 3) return Promise.resolve(undefined);
+  return cambiarMes(id, ahora, (m) => {
+    const l = m.sinRespuesta ?? [];
+    if (l.length >= 60 || l.some((x) => x.q.toLowerCase() === texto.toLowerCase())) return;
+    m.sinRespuesta = [...l, { q: texto, dia: diaDe(ahora), ...(ia ? { ia: true } : {}) }];
+    return m;
+  });
 }

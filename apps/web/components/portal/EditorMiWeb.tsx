@@ -23,7 +23,9 @@ async function achicar(f: File): Promise<Blob> {
   return new Promise((ok, mal) => c.toBlob((b) => (b ? ok(b) : mal(new Error("No se pudo leer la foto."))), "image/webp", 0.85));
 }
 
-export function EditorMiWeb({ id, t, paginas: inicial, puedeDeshacer: deshacible, asistente, conIA }: { id: string; t: string; paginas: Pagina[]; puedeDeshacer: boolean; asistente?: { activo: boolean; preguntas: PreguntaAsistente[]; whatsapp?: string }; conIA: boolean }) {
+export interface SinResp { q: string; dia: string; ia?: boolean }
+
+export function EditorMiWeb({ id, t, paginas: inicial, puedeDeshacer: deshacible, asistente, conIA, sinRespuesta = [], usoIA = 0, topeIA = 0 }: { id: string; t: string; paginas: Pagina[]; puedeDeshacer: boolean; asistente?: { activo: boolean; preguntas: PreguntaAsistente[]; whatsapp?: string }; conIA: boolean; sinRespuesta?: SinResp[]; usoIA?: number; topeIA?: number }) {
   const [paginas, setPaginas] = useState(inicial);
   const [cual, setCual] = useState(inicial[0]?.pagina ?? "index.html");
   const [textos, setTextos] = useState<Record<string, string>>({});
@@ -140,25 +142,41 @@ export function EditorMiWeb({ id, t, paginas: inicial, puedeDeshacer: deshacible
         <iframe key={recarga} title="Tu web" src={`/w/${id}/${pag.pagina}`} className="mt-3 h-[70vh] w-full rounded-xl border-0 bg-white" />
       </details>
 
-      {asistente && <Asistente id={id} t={t} inicial={asistente} conIA={conIA} trabajo={trabajo} enviar={enviar} />}
+      {asistente && <Asistente id={id} t={t} inicial={asistente} conIA={conIA} trabajo={trabajo} enviar={enviar} sinRespuesta={sinRespuesta} usoIA={usoIA} topeIA={topeIA} />}
     </div>
   );
 }
 
-function Asistente({ inicial, conIA, trabajo, enviar }: { id: string; t: string; inicial: { activo: boolean; preguntas: PreguntaAsistente[]; whatsapp?: string }; conIA: boolean; trabajo: string; enviar: (c: Record<string, unknown>, h: string, d: string) => Promise<boolean> }) {
+function Asistente({ inicial, conIA, trabajo, enviar, sinRespuesta, usoIA, topeIA }: { id: string; t: string; inicial: { activo: boolean; preguntas: PreguntaAsistente[]; whatsapp?: string }; conIA: boolean; trabajo: string; enviar: (c: Record<string, unknown>, h: string, d: string) => Promise<boolean>; sinRespuesta: SinResp[]; usoIA: number; topeIA: number }) {
   const [activo, setActivo] = useState(inicial.activo);
   const [preguntas, setPreguntas] = useState<PreguntaAsistente[]>(inicial.preguntas.length ? inicial.preguntas : [{ pregunta: "", respuesta: "" }]);
   const [whatsapp, setWhatsapp] = useState(inicial.whatsapp ?? "");
   const [prueba, setPrueba] = useState("");
   const listas = preguntas.filter((p) => p.pregunta.trim() && p.respuesta.trim());
   const r = prueba.trim() ? responderAsistente(listas, prueba) : undefined;
+  const yaEsta = (q: string) => preguntas.some((p) => p.pregunta.trim().toLowerCase() === q.toLowerCase());
+  const pendientes = sinRespuesta.filter((x) => !yaEsta(x.q)).slice(-12).reverse();
   return (
     <section aria-label="Asistente de tu web" data-asistente className="grid gap-4 rounded-[20px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-6">
       <div>
         <h2 className="text-[17px] font-medium">Asistente de tu web</h2>
-        <p className="mt-1 text-[14px] text-medio">Responde las preguntas de tus clientes con tus propias respuestas, a cualquier hora. Lo que no sepa, los manda a tu WhatsApp.{conIA ? " Con tu plan Pro, pronto también podrá responder con IA lo que no tengas escrito." : ""}</p>
+        <p className="mt-1 text-[14px] text-medio">Responde las preguntas de tus clientes con tus propias respuestas, a cualquier hora. Lo que no sepa, los manda a tu WhatsApp.{conIA ? ` Con tu plan Pro, lo que no tengas escrito lo responde con IA usando lo que dice tu web (este mes van ${usoIA} de ${topeIA}).` : ""}</p>
       </div>
       <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" checked={activo} disabled={!!trabajo} onChange={(e) => setActivo(e.target.checked)} className="h-5 w-5 accent-[#17714a]" /> Mostrar el asistente en mi web</label>
+      {pendientes.length > 0 && (
+        <div data-sin-respuesta className="rounded-2xl bg-[#fff6e8] p-3">
+          <p className="text-[14px] font-medium">Te preguntaron y no lo tenías escrito</p>
+          <p className="mt-0.5 text-[13px] text-medio">Escríbele la respuesta y la próxima vez responde con lo tuyo.</p>
+          <ul className="mt-2 grid gap-2">
+            {pendientes.map((x) => (
+              <li key={x.q} className="flex flex-wrap items-center justify-between gap-2 text-[14px]">
+                <span className="min-w-0">«{x.q}»{x.ia ? <span className="text-[12px] text-suave"> · respondió la IA</span> : null}</span>
+                <button type="button" disabled={!!trabajo || preguntas.length >= 30} onClick={() => setPreguntas((l) => [...l.filter((p) => p.pregunta.trim() || p.respuesta.trim()), { pregunta: x.q, respuesta: "" }])} className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Escribir la respuesta</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <ol className="grid gap-3">
         {preguntas.map((p, i) => (
           <li key={i} data-pregunta={i} className="grid gap-2 rounded-2xl bg-[#faf8f4] p-3">
