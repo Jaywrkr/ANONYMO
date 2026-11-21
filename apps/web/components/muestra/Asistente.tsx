@@ -5,13 +5,14 @@
 // Son reglas (packages/pipeline/src/prospectos/asistente-demo.ts): no usa IA, no cuesta y no guarda lo que se escribe.
 import { useEffect, useRef, useState } from "react";
 import type { ContenidoMuestra } from "@anonymo/pipeline";
+import { kVarsCon } from "./colores";
 import { PREGUNTAS_DEMO, TOPE_DEMO, responderDemo, type RespuestaDemo } from "@anonymo/pipeline/src/prospectos/asistente-demo.ts";
 
 type Linea = { de: "cliente"; texto: string } | ({ de: "asistente" } & Pick<RespuestaDemo, "texto" | "nota" | "aviso" | "enlace">);
 
 /** `alProbar` avisa (una vez) que alguien lo usó. `alQuerer` es el «Quiero esta web» de la muestra. `lugar`: dónde va el botón que lo abre. */
 export function Asistente({ c, alProbar, alQuerer, lugar = "fixed bottom-4 right-4" }: { c: ContenidoMuestra; alProbar?: () => void; alQuerer?: () => void; lugar?: string }) {
-  const k = c.paleta;
+  const k = kVarsCon(c.paleta);
   const [abierto, setAbierto] = useState(false);
   const [lineas, setLineas] = useState<Linea[]>([{ de: "asistente", texto: `Hola, soy el asistente de ${c.nombre}. Contesto a tus clientes a cualquier hora. Pruébame: pregunta como si fueras un cliente.` }]);
   const [texto, setTexto] = useState("");
@@ -66,7 +67,7 @@ export function Asistente({ c, alProbar, alQuerer, lugar = "fixed bottom-4 right
               <p className="truncate text-[15px] font-semibold leading-tight">Asistente de {c.nombre}</p>
               <p className="text-[12px] leading-tight opacity-85">Demostración. Es un extra opcional de tu web.</p>
             </div>
-            <button type="button" onClick={cerrar} aria-label="Cerrar el asistente" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[22px] leading-none" style={{ boxShadow: `inset 0 0 0 1.5px ${k.sobreAcento}55` }}>×</button>
+            <button type="button" onClick={cerrar} aria-label="Cerrar el asistente" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[22px] leading-none" style={{ boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, ${k.sobreAcento} 33%, transparent)` }}>×</button>
           </header>
 
           <div ref={lista} aria-live="polite" className="flex-1 space-y-2.5 overflow-y-auto px-3 py-4">

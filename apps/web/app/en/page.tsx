@@ -2,8 +2,8 @@ import { Inicio } from "@/components/paginas/Inicio";
 import { alternos } from "@/lib/idioma";
 
 export const metadata = {
-  title: "Anonymo — we work while you sleep",
-  description: "Jay and Luna's creative agency, with a team of 22 agents.",
+  title: "Anonymo — creative agency",
+  description: "Design, technology and communication, made by two people who have done it many times.",
   alternates: alternos("/"),
 };
 

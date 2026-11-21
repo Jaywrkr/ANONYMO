@@ -6,6 +6,7 @@ import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { idFicha, type FichaGuardada, type ListaFichas } from "./fichas.ts";
 import { esClaveSaber } from "./saber.ts";
+import type { LecturaFuentes } from "./fuentes.ts";
 
 export const CARPETA_CLIENTES = "_clientes";
 const REL = `${CARPETA_CLIENTES}/lista/fichas.json`;
@@ -32,7 +33,7 @@ async function guardar(l: ListaFichas) {
   renameSync(`${local()}.tmp`, local());
 }
 
-export interface CambioFicha { nombre: string; notas?: string; telefono?: string; correo?: string; web?: string; alias?: string[]; /** Datos de saber.ts: los que vienen se cambian; uno vacío se borra; los demás quedan. */ saber?: Record<string, string> }
+export interface CambioFicha { nombre: string; notas?: string; telefono?: string; correo?: string; web?: string; alias?: string[]; /** Datos de saber.ts: los que vienen se cambian; uno vacío se borra; los demás quedan. */ saber?: Record<string, string>; /** Lo leído de su web e Instagram (sistema/93); null lo borra. */ lectura?: LecturaFuentes | null }
 
 const corto = (x: string | undefined, n: number) => (x ?? "").trim().slice(0, n) || undefined;
 
@@ -61,6 +62,7 @@ export async function guardarFicha(id: string, c: CambioFicha, por: string): Pro
     web: c.web !== undefined ? corto(c.web, 200) : antes?.web,
     alias: alias.length ? alias : undefined,
     saber: Object.keys(saber).length ? saber : undefined,
+    lectura: c.lectura === null ? undefined : c.lectura ?? antes?.lectura,
     creado: antes?.creado ?? ahora,
     actualizado: ahora,
     por,

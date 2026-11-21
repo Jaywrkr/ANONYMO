@@ -97,7 +97,7 @@ try {
   m.on("pageerror", (e) => fallas.push(`error en la muestra: ${e.message}`));
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
-  exigir(/Idea de web para Barbería Don Bigote, hecha por Jay Jaramillo, de ANONYMO/.test(await m.locator("[data-plantilla] > p").first().innerText()) && await m.locator("[data-plantilla] > p a[href='/jay']").count() === 1, "dice que es una idea, quién la hizo y enlaza a su página");
+  exigir(/Así podría verse la web de Barbería Don Bigote\. Es un boceto: los textos, las fotos y los colores finales los definimos contigo\. Hecho por Jay Jaramillo, de ANONYMO/.test(await m.locator("[data-plantilla] > p").first().innerText()) && await m.locator("[data-plantilla] > p a[href='/jay']").count() === 1, "dice que es una idea, quién la hizo y enlaza a su página");
   // La página de Jay (sistema/90): quién escribe, con foto, reconocimientos comprobables y trabajos.
   const j = await negocio.newPage();
   j.on("pageerror", (e) => fallas.push(`error en /jay: ${e.message}`));
@@ -114,7 +114,7 @@ try {
   await j.screenshot({ path: join(capturas, "4-jay-escritorio.png"), fullPage: true });
   await j.close();
   exigir(await m.locator("text=Calle Larga 7-41, Cuenca").count() >= 1 && await m.getByText(/4,9/).count() >= 1, "con su dirección y su fama");
-  exigir(await m.getByText("Lunes a domingo").count() === 1 && await m.getByText("10:00 – 20:00").count() >= 1 && await m.getByText("Los textos son de ejemplo.").count() === 1, "lleva su horario real de Google y solo los textos se dicen de ejemplo");
+  exigir(await m.getByText("Lunes a domingo").count() === 1 && await m.getByText("10:00 – 20:00").count() >= 1 && !(await m.getByText(/El horario es de ejemplo/).count()), "lleva su horario real de Google y no lo da por ejemplo");
   exigir(await m.locator("text=USD 390 + IVA").count() === 1 && await m.locator("text=Lista en 7 días").count() === 1, "la barra dice plazo y precio");
   exigir((await m.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "Google no la indexa");
   exigir(!(await m.locator("text=Puntaje").count()) && !(await m.locator("text=Sin web").count()), "no muestra nada interno");

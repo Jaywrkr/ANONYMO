@@ -2,3 +2,4 @@
 export * from "./fichas.ts";
 export * from "./almacen-fichas.ts";
 export * from "./saber.ts";
+export * from "./fuentes.ts";

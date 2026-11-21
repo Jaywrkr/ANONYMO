@@ -67,7 +67,7 @@ export const TAREAS_SABER: Record<TareaSaber, ReglaTarea> = {
 export const ORDEN_TAREAS_SABER = Object.keys(TAREAS_SABER) as TareaSaber[];
 export const esTareaSaber = (x: unknown): x is TareaSaber => typeof x === "string" && x in TAREAS_SABER;
 
-export interface ValorSaber { valor: string; origen: "mano" | "maps" | "web" | "marca" }
+export interface ValorSaber { valor: string; origen: "mano" | "maps" | "web" | "marca" | "cliente" }
 
 /** Todo lo que se sabe de un cliente: lo que ya trae Imán y su kit de marca, y encima lo escrito a mano (que manda). */
 export function saberDe(f: Pick<Ficha, "nombre" | "guardada" | "prospecto" | "kits" | "contacto">): Partial<Record<ClaveSaber, ValorSaber>> {
@@ -84,7 +84,7 @@ export function saberDe(f: Pick<Ficha, "nombre" | "guardada" | "prospecto" | "ki
     pon("horario", agruparHorario(x.horario)?.map(([d, h]) => `${d}: ${h}`).join(" · "), "maps");
     // El color solo cuenta si es suyo: puesto a mano o leído de su web. El del rubro es un relleno, no un dato.
     const c = colorDe(x, tonoDe(x.rubro));
-    if (c.origen !== "rubro") pon("color", c.color, c.origen === "web" ? "web" : "mano");
+    if (c.origen !== "rubro") pon("color", c.color, c.origen === "web" ? "web" : c.origen === "cliente" ? "cliente" : "mano");
     if ((x.fotos ?? 0) >= 3) pon("fotos", `${x.fotos} fotos en su muestra`, "mano");
     const redes = [x.web, ...(x.revision?.estado === "ok" ? x.revision.sonda?.redes ?? [] : [])].filter((u): u is string => !!u);
     const ig = redes.map((u) => u.match(/instagram\.com\/([A-Za-z0-9._]+)/)?.[1]).find((u) => u && !["p", "reel", "explore"].includes(u));

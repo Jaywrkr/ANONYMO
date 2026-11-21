@@ -40,5 +40,5 @@ export async function enviarPedido(_: EstadoEnvio | null, f: FormData): Promise<
     if (!c.correo && !c.webhook) return { ok: false, mensaje: m("No pudimos recibir tu pedido ahora. Intenta en unos minutos.", "We couldn't receive your request right now. Try again in a few minutes."), campos };
     await avisar({ proyecto: "_solicitudes", cliente: nombre, tipo: "comentario", titulo: `Nueva solicitud: ${tipo}`, texto: `${nombre} <${correo}>\n\n${mensaje}` });
   }
-  return { ok: true, mensaje: m(`Listo, ${nombre.split(" ")[0]}. Atlas ya tiene tu pedido y Jay o Luna te escriben en menos de 24 horas.`, `Done, ${nombre.split(" ")[0]}. Atlas has your request and Jay or Luna will write within 24 hours.`) };
+  return { ok: true, mensaje: m(`Listo, ${nombre.split(" ")[0]}. Recibimos tu pedido y Jay o Luna te escriben en menos de 24 horas.`, `Done, ${nombre.split(" ")[0]}. We have your request and Jay or Luna will write within 24 hours.`) };
 }

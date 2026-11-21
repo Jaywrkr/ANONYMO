@@ -64,8 +64,10 @@ export interface Prospecto {
   muestra?: { vistas: number; primera?: string; ultima?: string; quiere?: string; chat?: string };
   /** La plantilla de su muestra (sistema/79). Sin elegir, sale de su id: la se reparten parejo entre las cinco, para comparar cuál responde mejor. */
   plantilla?: PlantillaMuestra;
-  /** El color de su marca si Jay lo puso a mano (sistema/85): #RRGGBB. Si no hay, va el de su web o el de su rubro. */
+  /** El color de su marca si Jay lo puso a mano (sistema/85): #RRGGBB. Si no hay, va el de su web o, sin saberlo, la muestra va en blanco y negro (sistema/94). */
   color?: string;
+  /** El color que eligió el propio negocio en su muestra (sistema/94). Manda sobre todo; si Jay pone uno a mano, este se borra. */
+  colorCliente?: string;
   /** Cómo se le llama en su muestra, su propuesta y los mensajes si el nombre corto que sale solo no convence (sistema/83). */
   alias?: string;
   /** El precio de su web si no es el de la oferta (sistema/82), en dólares sin IVA. Lo pone Jay antes de mandar la propuesta. */

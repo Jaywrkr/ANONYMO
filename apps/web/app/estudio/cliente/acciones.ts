@@ -2,7 +2,8 @@
 // Lo que Jay y Luna escriben a mano en la ficha de un cliente (sistema/70): notas, contacto y otros nombres.
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { CLAVES_SABER, guardarFicha, idFicha, ocultarClaves } from "@anonymo/pipeline";
+import { CLAVES_SABER, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, saberDe } from "@anonymo/pipeline";
+import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 
 const texto = (f: FormData, k: string) => (f.has(k) ? String(f.get(k) ?? "") : undefined);
@@ -55,6 +56,55 @@ export async function accionGuardarSaber(f: FormData) {
     await guardarFicha(id, { nombre: String(f.get("nombre") ?? ""), saber }, yo);
   } catch (e) {
     destino = `/estudio/cliente/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#saber`;
+  }
+  revalidatePath(`/estudio/cliente/${id}`);
+  redirect(destino, RedirectType.replace);
+}
+
+/** Lee su web y deja propuestas para aprobar (sistema/93). No cambia lo que se sabe. */
+export async function accionBuscarDatos(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  let destino = `/estudio/cliente/${id}#leido`;
+  try {
+    const ficha = (await cartera()).fichas.find((x) => x.id === id);
+    if (!ficha) throw new Error("No encontramos ese cliente.");
+    const saber = saberDe(ficha);
+    const web = ficha.guardada?.web ?? ficha.contacto.web;
+    if (!fuentesDe(saber, web).web) throw new Error("Para buscar, anota su web en «Contacto y notas».");
+    const lectura = await leerFuentes({ saber, web });
+    await guardarFicha(id, { nombre: ficha.guardada?.nombre ?? ficha.nombre, lectura: { ...lectura, por: yo } }, yo);
+    const n = lectura.propuestas.length;
+    const leyo = lectura.web?.estado === "ok" ? "su web" : "";
+    const aviso = n ? `Encontramos ${n} ${n === 1 ? "dato" : "datos"}${leyo ? ` en ${leyo}` : ""}. Revísalos y guarda los que estén bien.` : leyo ? `Leímos ${leyo} y no hay nada nuevo.` : "No pudimos leer nada. Mira abajo por qué.";
+    destino = `/estudio/cliente/${id}?ok=${encodeURIComponent(aviso)}#leido`;
+  } catch (e) {
+    destino = `/estudio/cliente/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#leido`;
+  }
+  revalidatePath(`/estudio/cliente/${id}`);
+  redirect(destino, RedirectType.replace);
+}
+
+/** Guarda los datos encontrados que se marcaron, como escritos a mano, y borra la lectura. O la descarta entera. */
+export async function accionAprobarDatos(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  let destino = `/estudio/cliente/${id}#saber`;
+  try {
+    const nombre = String(f.get("nombre") ?? "");
+    if (f.get("accion") === "descartar") {
+      await guardarFicha(id, { nombre, lectura: null }, yo);
+      destino = `/estudio/cliente/${id}?ok=${encodeURIComponent("Descartado. No se guardó nada.")}#saber`;
+    } else {
+      const saber: Record<string, string> = {};
+      for (const k of CLAVES_SABER) if (f.get(`tomar-${k}`) === "si") { const v = String(f.get(`valor-${k}`) ?? "").trim(); if (v) saber[k] = v; }
+      const n = Object.keys(saber).length;
+      if (!n) throw new Error("Marca al menos un dato para guardarlo, o toca «Descartar».");
+      await guardarFicha(id, { nombre, saber, lectura: null }, yo);
+      destino = `/estudio/cliente/${id}?ok=${encodeURIComponent(`Guardamos ${n} ${n === 1 ? "dato" : "datos"}. Mira qué se puede hacer ahora.`)}#saber`;
+    }
+  } catch (e) {
+    destino = `/estudio/cliente/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#leido`;
   }
   revalidatePath(`/estudio/cliente/${id}`);
   redirect(destino, RedirectType.replace);

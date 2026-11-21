@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { buscarPorMuestra, contenidoMuestra, idMuestraValido, leerProspectos, FOTOS_MAX, numeroInternacional, OFERTA, precio, precioDe } from "@anonymo/pipeline";
 import { MuestraVariante } from "@/components/muestra/MuestraVariante";
+import { ColorMuestra } from "@/components/muestra/ColorMuestra";
 import { portalActivo } from "@/lib/estudio";
 import { Visto } from "./Visto";
 
@@ -42,7 +43,7 @@ export default async function Muestra({ params }: Props) {
   const { c, numero, monto, fotos } = d;
   return (
     <>
-      <MuestraVariante c={c} fotos={fotos} saludo />
+      <MuestraVariante c={c} fotos={fotos} saludo barra={<ColorMuestra id={id} plantilla={c.plantilla} tono={c.tono} inicial={c.color} />} />
       <Visto id={id} nombre={c.nombre} c={c} fotos={fotos.length} fotosMax={FOTOS_MAX} numero={numero} oferta={{ dias: OFERTA.web.dias, precio: precio(monto) }} />
     </>
   );

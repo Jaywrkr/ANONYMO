@@ -29,7 +29,7 @@ export function imagen({ titulo, bajada, etiqueta, agentes = [] }: { titulo: str
             <div style={{ fontSize: titulo.length > 22 ? 84 : 112, fontWeight: 300, lineHeight: 0.95, letterSpacing: -3, textTransform: "uppercase", maxWidth: agentes.length ? 640 : 1000 }}>{titulo}</div>
             {bajada && <div style={{ fontSize: 30, fontWeight: 300, marginTop: 24, maxWidth: agentes.length ? 620 : 900, color: "#121214" }}>{bajada}</div>}
           </div>
-          <div style={{ fontFamily: "Mono", fontSize: 20, letterSpacing: 4, textTransform: "uppercase", color: "#55534e" }}>Anonymo · Cuenca, Ecuador</div>
+          <div style={{ fontFamily: "Mono", fontSize: 20, letterSpacing: 4, textTransform: "uppercase", color: "#55534e" }}>Anonymo · Agencia creativa</div>
         </div>
         {agentes.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", width: 420, alignItems: "center", justifyContent: "center", gap: 18 }}>

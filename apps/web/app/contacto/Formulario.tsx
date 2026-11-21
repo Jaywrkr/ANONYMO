@@ -1,8 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { FASES, agentePorId } from "@anonymo/agentes";
-import { AgenteVista } from "@/components/escena/AgenteVista";
+import { useActionState, useState } from "react";
 import { PEDIDOS } from "@/lib/servicio";
 import { usePathname } from "next/navigation";
 import { idiomaDeRuta, pedido as nombrePedido } from "@/lib/idioma";
@@ -10,7 +8,7 @@ import { enviarPedido } from "./acciones";
 import { medir } from "@/lib/medir";
 import { useEffect } from "react";
 
-// Mientras el cliente escribe, ve qué agentes se despiertan para su pedido.
+// El pedido y, al lado, qué pasa después de enviarlo (web/21).
 export function Formulario() {
   const [tipo, setTipo] = useState<keyof typeof PEDIDOS>("web");
   const [estado, enviar, enviando] = useActionState(enviarPedido, null);
@@ -19,11 +17,6 @@ export function Formulario() {
   useEffect(() => {
     if (estado?.ok) medir("formulario", tipo);
   }, [estado, tipo]);
-  const despiertos = useMemo(() => {
-    const ids = new Set<string>();
-    PEDIDOS[tipo].fases.forEach((n) => FASES.find((f) => f.n === n)?.agentes.forEach((id) => ids.add(id)));
-    return [...ids];
-  }, [tipo]);
 
   const campo = "w-full border-b border-tinta bg-transparent py-3 text-xl font-light tracking-tight outline-none placeholder:text-gris/55 focus:border-b-2";
   const etiqueta = "font-mono text-[12px] uppercase tracking-[0.14em] text-gris";
@@ -66,7 +59,7 @@ export function Formulario() {
         </label>
         <div className="flex flex-wrap items-center gap-6">
           <button type="submit" disabled={enviando} className="rounded-full bg-tinta px-8 py-4 font-mono text-[12px] uppercase tracking-[0.14em] text-hueso transition-transform hover:-translate-y-0.5 disabled:opacity-60">
-            {enviando ? (en ? "Sending to Atlas…" : "Enviando a Atlas…") : en ? "Send to Atlas" : "Enviar a Atlas"}
+            {enviando ? (en ? "Sending…" : "Enviando…") : en ? "Send" : "Enviar"}
           </button>
           {estado && (
             <p role={estado.ok ? "status" : "alert"} className={`max-w-sm text-[15px] ${estado.ok ? "text-tinta" : "text-[#a3105c]"}`}>
@@ -76,21 +69,19 @@ export function Formulario() {
         </div>
       </form>
 
-      <aside className="lg:col-span-6">
-        <p className={etiqueta}>{en ? `For “${nombrePedido(tipo, idioma).toLowerCase()}”, these wake up` : `Para “${PEDIDOS[tipo].nombre.toLowerCase()}” se despiertan`}</p>
-        <p className="display mt-2 text-7xl">{despiertos.length} {en ? "agents" : "agentes"}</p>
-        <p className="mt-1 text-gris">{en ? "Phases" : "Fases"} {PEDIDOS[tipo].fases.map((n) => String(n).padStart(2, "0")).join(" · ")}</p>
-        <ul className="mt-6 grid grid-cols-4 gap-2 sm:grid-cols-5">
-          {despiertos.map((id) => {
-            const a = agentePorId(id)!;
-            return (
-              <li key={id}>
-                <AgenteVista agente={a} className="aspect-square w-full" />
-                <span className="block text-center font-mono text-[12px] uppercase tracking-[0.12em]">{a.nombre}</span>
-              </li>
-            );
-          })}
-        </ul>
+      <aside className="lg:col-span-5 lg:col-start-8">
+        <p className={etiqueta}>{en ? "What happens next" : "Qué pasa después"}</p>
+        <ol className="mt-4 grid gap-0">
+          {(en
+            ? ["We read your request.", "Jay or Luna write to you within 24 hours.", "You get a proposal with a fixed price before we start."]
+            : ["Leemos tu pedido.", "Jay o Luna te escriben en menos de 24 horas.", "Recibes una propuesta con precio cerrado antes de empezar."]
+          ).map((x, i) => (
+            <li key={x} className="flex items-baseline gap-5 border-t border-linea py-5">
+              <span className="display text-4xl text-gris">{String(i + 1).padStart(2, "0")}</span>
+              <span className="text-xl font-light tracking-tight">{x}</span>
+            </li>
+          ))}
+        </ol>
       </aside>
     </div>
   );
