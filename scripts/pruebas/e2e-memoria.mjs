@@ -6,7 +6,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/usr/
 try{
  const p=await browser.newPage({viewport:{width:1440,height:960}}),errores=[];p.on('pageerror',e=>errores.push(e.message));
  await p.goto(base+'/entrar');await p.getByLabel('Clave').fill('prueba-clave-jay');await p.getByRole('button',{name:'Entrar al estudio',exact:true}).click();await p.waitForURL(base+'/estudio');
- const chat=p.getByRole('dialog',{name:'Chat con Atlas',exact:true}),abrir=p.getByRole('button',{name:'Abrir chat de Atlas',exact:true});assert.equal(await chat.isVisible(),false);await abrir.click();await chat.getByLabel('Proyecto de la conversación').selectOption(id);
+ const chat=p.getByRole('dialog',{name:'Chat con Atlas',exact:true}),abrir=p.getByRole('button',{name:'Abrir chat de Atlas',exact:true});assert.equal(await chat.isVisible(),false);await abrir.click();await chat.getByRole('tab',{name:'Proyecto',exact:true}).click();await chat.getByLabel('Proyecto de la conversación').selectOption(id);
  await chat.getByText(/Confirmadas y vigentes: 1/).waitFor();await chat.getByLabel('Tu consulta').fill('Un borrador que se conserva');await p.keyboard.press('Escape');await abrir.waitFor();await abrir.click();assert.equal(await chat.getByLabel('Tu consulta').inputValue(),'Un borrador que se conserva');
  await chat.getByLabel('Tu consulta').fill('Primera línea');await chat.getByLabel('Tu consulta').press('Shift+Enter');await chat.getByLabel('Tu consulta').type('Segunda línea');assert.equal(await chat.getByLabel('Tu consulta').inputValue(),'Primera línea\nSegunda línea');
  let peticiones=0;await p.route('**/atlas/consultar',async route=>{if(route.request().method()==='POST'){peticiones++;await new Promise(r=>setTimeout(r,500));}await route.continue();});
