@@ -167,7 +167,7 @@ try {
   await m.close();
 
   // 9 · El estudio ve lo que hizo el cliente y puede sacarla de línea.
-  await p.reload();
+  await p.reload({ waitUntil: "networkidle" });
   await panel.locator("summary:has-text('Lo último que cambió')").click();
   exigir(/El cliente: Asistente encendido/.test(await panel.innerText()), "el estudio ve lo que cambió el cliente");
   await panel.getByRole("button", { name: "Sacar de línea" }).click();
