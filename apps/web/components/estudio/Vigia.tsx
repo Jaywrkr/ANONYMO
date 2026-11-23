@@ -45,7 +45,7 @@ export function Vigia({ inicial }: { inicial: string[] }) {
             sonar();
             if (typeof Notification !== "undefined" && Notification.permission === "granted") {
               for (const a of nuevos.slice(0, 3)) {
-                const n = new Notification(`Anonymo · ${a.titulo}`, { body: a.detalle, tag: a.clave });
+                const n = new Notification(`Unmake · ${a.titulo}`, { body: a.detalle, tag: a.clave });
                 n.onclick = () => { window.focus(); router.push(a.href); n.close(); };
               }
             }
