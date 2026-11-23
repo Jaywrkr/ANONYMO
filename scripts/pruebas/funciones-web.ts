@@ -30,7 +30,7 @@ try{
  {nombre:'Cerrar menú '+ancho,pagina:'index.html',ancho,pasos:[{accion:'clic',selector:'#menu'},{accion:'clic',selector:'#menu'}],resultado:{selector:'#panel',visible:false,texto:'Conocer el taller'}},
  ])}));
  // Se comprueba abrir y cerrar, aunque el cierre regrese al estado inicial.
- const primer=await comprobarInteracciones(page,'index.html',390,base,casos);assert.equal(primer.find(c=>c.texto.startsWith('Abrir'))?.estado,'cumple');assert.equal(primer.find(c=>c.texto.startsWith('Cerrar'))?.estado,'cumple');
+ const primer=await comprobarInteracciones(page,'index.html',390,base,casos);assert.equal(primer.find(c=>c.texto.startsWith('Abrir'))?.estado,'cumple',JSON.stringify(primer));assert.equal(primer.find(c=>c.texto.startsWith('Cerrar'))?.estado,'cumple',JSON.stringify(primer));
  await page.goto(base+'/index.html');const trivial=leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'Sin cambio',pagina:'index.html',ancho:390,pasos:[{accion:'clic',selector:'#menu'}],resultado:{selector:'h1',texto:'Taller ficticio'}}]}));assert.ok((await comprobarInteracciones(page,'index.html',390,base,trivial)).some(c=>c.estado==='falla'));
  console.log('✓ Enlaces locales y anclas reales; menú cambia de estado; una condición ya satisfecha no se acepta como prueba.');
  await page.goto(base+'/cobertura.html');const cobertura=await comprobarInteracciones(page,'cobertura.html',390,base,leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'No encubrir botones muertos',pagina:'cobertura.html',ancho:390,pasos:[{accion:'clic',selector:'#muerto'},{accion:'clic',selector:'#activo'}],resultado:{selector:'#salida',visible:true}}]})));assert.ok(cobertura.some(c=>c.estado==='falla'&&c.evidencia.includes('Sin acción')));
