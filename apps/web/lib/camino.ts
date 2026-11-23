@@ -59,6 +59,8 @@ export interface Momento {
   tono: "toca" | "otro" | "vivo" | "cortado" | "pausa" | "listo";
   /** Texto del botón principal. */
   accion: string;
+  /** Días esperando una decisión, desde el tercero (sistema/104). */
+  parado?: number;
   /** Fase n de N. */
   fase: { n: number; de: number; nombre: string };
   /** Entregas hechas sobre el total. */
@@ -86,7 +88,24 @@ const VERBO: Record<string, string> = { preparando: "se está preparando", esper
 const mayus = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 const tareaPrimero = (t: string) => `${mayus(entregaDe(t))} (${agenteDe(t)})`;
 
+/** Días que un proyecto lleva esperando una decisión, desde la entrega o el último cambio (sistema/104). */
+export const DIAS_PARADO = 3;
+export function diasEsperando(p: ProyectoCamino, ahoraMs = Date.now()) {
+  const desde = Date.parse(p.revision?.fecha ?? p.error?.fecha ?? p.actualizado ?? "");
+  return Number.isFinite(desde) ? Math.max(0, Math.floor((ahoraMs - desde) / 86400000)) : 0;
+}
+
 export function momento(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs = Date.now(), vivo?: SenalVivo, ultima?: string | null): Momento {
+  const m = momentoBase(p, yo, responsableActual, ahoraMs, vivo, ultima);
+  // Un proyecto que espera a alguien de la casa no se puede quedar callado: desde el tercer día lo dice primero.
+  if (m.tono === "toca" || m.tono === "otro" || m.tono === "cortado") {
+    const d = diasEsperando(p, ahoraMs);
+    if (d >= DIAS_PARADO) return { ...m, parado: d, ahora: `Lleva ${d} días esperando. ${m.ahora}` };
+  }
+  return m;
+}
+
+function momentoBase(p: ProyectoCamino, yo: Socio, responsableActual: Socio, ahoraMs: number, vivo?: SenalVivo, ultima?: string | null): Momento {
   const hechas = Object.values(p.tareas).filter((e) => e === "lista").length;
   const total = Math.max(1, p.plan.tareas.length);
   const pos = Math.max(0, p.plan.fases.indexOf(p.faseActual));

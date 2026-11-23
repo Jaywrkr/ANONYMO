@@ -11,3 +11,10 @@ test('un control sin señal ni actividad reciente no aparece trabajando para sie
 test('una revisión incompleta dice qué falta en lugar de ofrecer aprobar',()=>{
  const m=momento({...base,estado:'esperando',revision:{tarea:'4.vector',fecha:new Date().toISOString(),calidad:'pendiente'}},'jay','jay');assert.equal(m.accion,'Ver qué falta');assert.match(m.ahora,/Falta completar/);
 });
+test('un proyecto que espera una decisión desde hace 3 días o más lo dice primero',()=>{
+ const hace=(d:number)=>new Date(Date.now()-d*86400000-60000).toISOString();
+ const esperando={...base,estado:'esperando',revision:{tarea:'4.vector',fecha:hace(24)}};
+ const m=momento(esperando,'jay','jay');assert.equal(m.parado,24);assert.match(m.ahora,/^Lleva 24 días esperando\./);
+ assert.equal(momento({...esperando,revision:{tarea:'4.vector',fecha:hace(2)}},'jay','jay').parado,undefined,'dos días todavía no es parado');
+ assert.equal(momento({...base,actualizado:hace(0)},'jay','jay').parado,undefined,'lo que está trabajando no cuenta como parado');
+});

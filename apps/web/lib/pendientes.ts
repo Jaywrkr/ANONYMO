@@ -26,10 +26,10 @@ export async function pendientes(yo: "jay" | "luna", todos?: Proyecto[]) {
     if (m.teToca) {
       const t = p.revision?.tarea;
       avisos.push({
-        clave: `${p.pedido.id}:${p.estado}:${t ?? p.faseActual}:${p.revision?.fecha ?? p.error?.fecha ?? ""}:${m.tono}:${p.direcciones?.esperando ? p.direcciones.opciones.map((d) => d.nombre).join("") : ""}`,
+        clave: `${p.pedido.id}:${p.estado}:${t ?? p.faseActual}:${p.revision?.fecha ?? p.error?.fecha ?? ""}:${m.tono}:${m.parado ? (m.parado >= 14 ? "p14" : m.parado >= 7 ? "p7" : "p3") : ""}:${p.direcciones?.esperando ? p.direcciones.opciones.map((d) => d.nombre).join("") : ""}`,
         href: p.direcciones?.esperando ? `/estudio/${p.pedido.id}/direcciones` : t && p.estado === "esperando" ? `/estudio/${p.pedido.id}/${t.replace(".", "-")}` : `/estudio/${p.pedido.id}`,
         titulo: p.pedido.cliente,
-        detalle: !p.direcciones?.esperando && t && p.estado === "esperando" ? `${agentePorId(t.split(".")[1])?.nombre} entregó ${contratoPorId(t as TareaId)?.entrega.toLowerCase()}. Revisa su entrega.` : m.ahora,
+        detalle: !p.direcciones?.esperando && t && p.estado === "esperando" ? `${m.parado ? `Lleva ${m.parado} días esperando. ` : ""}${agentePorId(t.split(".")[1])?.nombre} entregó ${contratoPorId(t as TareaId)?.entrega.toLowerCase()}. Revisa su entrega.` : m.ahora,
         punto,
       });
     }
