@@ -68,7 +68,7 @@ export function Sala({ proyectos }: { proyectos: VistaProyecto[] }) {
   const compartir = async () => {
     medir("compartir", elegido);
     const url = window.location.href;
-    const texto = en ? `${agente.nombre} in the Anonymo room` : `${agente.nombre} en la sala de Anonymo`;
+    const texto = en ? `${agente.nombre} in the Unmake room` : `${agente.nombre} en la sala de Unmake`;
     try {
       if (navigator.share && matchMedia("(pointer: coarse)").matches) await navigator.share({ title: texto, url });
       else {

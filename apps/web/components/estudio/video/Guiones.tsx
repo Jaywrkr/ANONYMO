@@ -72,7 +72,7 @@ export function Guiones({ inicial, clienteInicial = "" }: { inicial: Guion[]; cl
       <h2 id="titulo-guiones" className="text-[13px] text-suave">Guiones · Faro escribe antes de grabar</h2>
       <div className="mt-2 grid gap-3 rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:p-6">
         <label className="grid gap-1.5 text-[13px] font-medium">¿De qué es el video?
-          <textarea rows={3} value={pedido} onChange={(e) => setPedido(e.target.value)} maxLength={2000} placeholder="Por ejemplo: un reel para el lanzamiento de ANONYMO, que muestre que somos una agencia con agentes de IA" className={campo} />
+          <textarea rows={3} value={pedido} onChange={(e) => setPedido(e.target.value)} maxLength={2000} placeholder="Por ejemplo: un reel para el lanzamiento de Unmake, que muestre que somos una agencia con agentes de IA" className={campo} />
         </label>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <label className="grid gap-1.5 text-[13px] font-medium"><span>Cliente <span className="font-normal text-suave">· opcional</span></span>

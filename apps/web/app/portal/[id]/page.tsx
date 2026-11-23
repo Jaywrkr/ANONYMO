@@ -19,7 +19,7 @@ import { portalAprobar, portalComentar, portalElegirDireccion, portalResponder, 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
 export const maxDuration = 300;
-export const metadata = { title: "Tu proyecto — Anonymo", robots: { index: false, follow: false } };
+export const metadata = { title: "Tu proyecto — Unmake", robots: { index: false, follow: false } };
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string; m?: string; ver?: string }> };
 
@@ -49,7 +49,7 @@ export default async function Portal({ params, searchParams }: Props) {
     <div className="estudio-marco p-2" style={{ background: e.marco }} lang={p.pedido.idioma ?? "es"}>
       <main className="min-h-[calc(100dvh-16px)] rounded-[18px] bg-carta px-5 pb-16 pt-7 shadow-[0_0_0_1px_rgba(26,24,22,.05),0_24px_60px_-24px_rgba(60,40,20,.25)] md:px-10 md:pt-9">
         <div className="flex items-center justify-between gap-4">
-          <span className="font-display text-[22px] uppercase leading-none">Anonymo*</span>
+          <span className="font-display text-[22px] uppercase leading-none">unmake.</span>
           <span className="text-[13px] text-suave">{tx.tuProyecto}</span>
         </div>
 

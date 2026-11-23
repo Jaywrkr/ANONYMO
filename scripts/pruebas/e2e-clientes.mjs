@@ -79,7 +79,7 @@ try {
 
   const tarjeta = p.locator("li:has-text('Sonrisa Sin Web')");
   const wa = await tarjeta.locator("a:has-text('WhatsApp')").getAttribute("href");
-  exigir(wa?.startsWith("https://wa.me/593990000003?text=") && decodeURIComponent(wa).includes("no tienen página web") && decodeURIComponent(wa).includes("Jay Jaramillo · ANONYMO"), "el WhatsApp va al celular con el mensaje y la firma de la casa");
+  exigir(wa?.startsWith("https://wa.me/593990000003?text=") && decodeURIComponent(wa).includes("no tienen página web") && decodeURIComponent(wa).includes("Jay Jaramillo · Unmake"), "el WhatsApp va al celular con el mensaje y la firma de la casa");
   await ctx.route("https://wa.me/**", (r) => r.fulfill({ status: 200, body: "whatsapp falso" }));
   const [ventana] = await Promise.all([ctx.waitForEvent("page"), tarjeta.locator("a:has-text('WhatsApp')").click()]);
   await ventana.close();
@@ -117,15 +117,15 @@ try {
   await otra.locator("button:has-text('Volver al de Imán')").click();
   await otra.locator("[role=status]:has-text('Volvió al mensaje de Imán')").waitFor({ timeout: 15000 });
 
-  // Los ajustes van arriba (sistema/73): sin número de ANONYMO se abren solos; cada campo tiene su botón.
+  // Los ajustes van arriba (sistema/73): sin número de Unmake se abren solos; cada campo tiene su botón.
   const ajustes = p.locator("section[aria-label=Ajustes]");
   exigir(await p.locator("[role=note]:has-text('Falta tu WhatsApp')").isVisible() && !(await ajustes.count()), "sin número, una línea lo pide sin abrir los ajustes");
   await p.click("[role=note] button:has-text('Ponerlo')");
   exigir(await ajustes.isVisible() && await p.evaluate(() => { const a = document.querySelector("section[aria-label=Ajustes]"), b = document.querySelector("ul[aria-label=Negocios]"); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }), "«Ponerlo» abre los ajustes arriba de la lista");
-  await p.fill("input[aria-label='Firma de los mensajes']", "Luna · ANONYMO");
+  await p.fill("input[aria-label='Firma de los mensajes']", "Luna · Unmake");
   await ajustes.locator("div", { has: p.locator("input[aria-label='Firma de los mensajes']") }).last().locator("button:has-text('Guardar')").click();
   await p.locator("[role=status]:has-text('Firma guardada')").waitFor({ timeout: 15000 });
-  exigir(decodeURIComponent((await otra.locator("a:has-text('WhatsApp')").getAttribute("href")) ?? "").includes("Luna · ANONYMO"), "la firma nueva entra en los mensajes");
+  exigir(decodeURIComponent((await otra.locator("a:has-text('WhatsApp')").getAttribute("href")) ?? "").includes("Luna · Unmake"), "la firma nueva entra en los mensajes");
 
   await p.selectOption("select[aria-label='Tipo de web']", "sin");
   exigir((await p.locator("ul[aria-label=Negocios] > li").count()) === 1, "el filtro «Sin web» deja solo al que no tiene");

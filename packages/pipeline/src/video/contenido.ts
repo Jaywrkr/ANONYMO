@@ -131,7 +131,7 @@ export function mesDeTexto(texto: string, ahora = new Date()): string | undefine
 
 // — Faro arma el mes —
 
-export const SISTEMA_MES = `Faro arma el mes de contenido de un cliente de ANONYMO. Piensa en series: pocos temas que se repiten y se reconocen.
+export const SISTEMA_MES = `Faro arma el mes de contenido de un cliente de Unmake. Piensa en series: pocos temas que se repiten y se reconocen.
 Respondes siempre con la herramienta «armar_mes».
 
 Reglas:

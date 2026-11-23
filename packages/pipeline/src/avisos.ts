@@ -56,7 +56,7 @@ export async function avisar(a: AvisoProyecto): Promise<string[]> {
         method: "POST",
         headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, "content-type": "application/json" },
         body: JSON.stringify({
-          from: process.env.AVISOS_DE ?? "Anonymo <avisos@resend.dev>",
+          from: process.env.AVISOS_DE ?? "Unmake <avisos@resend.dev>",
           to: process.env.AVISOS_CORREO!.split(",").map((x) => x.trim()),
           subject: `${a.cliente} · ${ASUNTO[a.tipo]}`,
           text: `${a.titulo}\n\n${a.texto}\n\n${enlace}`,

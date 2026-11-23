@@ -1,5 +1,5 @@
 // La ficha con mínimos (sistema/92), con nube.sh levantado (Supabase y Anthropic falsos).
-// ANONYMO entra como cliente; sin lo mínimo Faro no le escribe un guion y dice qué falta; con la ficha completa sí,
+// Unmake entra como cliente; sin lo mínimo Faro no le escribe un guion y dice qué falta; con la ficha completa sí,
 // y el guion se escribe con lo que se sabe del cliente. Uso: node scripts/pruebas/e2e-ficha.mjs [carpeta-capturas]
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,19 +22,19 @@ const pedirGuion = async () => {
   await p.goto(`${B}/estudio/video`);
   const s = p.locator("section[aria-labelledby=titulo-guiones]");
   await s.locator("textarea").fill("Un reel que explique por qué una web propia vende más que solo Instagram");
-  await s.locator("input").fill("ANONYMO");
+  await s.locator("input").fill("Unmake");
   await s.locator("button:has-text('Que Faro escriba el guion')").click();
   return s;
 };
 try {
   await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="jay"]', { force: true }); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
 
-  // 1 · ANONYMO entra como cliente: sin datos, casi nada se puede hacer.
+  // 1 · Unmake entra como cliente: sin datos, casi nada se puede hacer.
   await p.goto(`${B}/estudio/clientes`);
   await p.locator("summary:has-text('Agregar un cliente a mano')").click();
-  await p.getByLabel("Nombre del cliente").fill("ANONYMO");
+  await p.getByLabel("Nombre del cliente").fill("Unmake");
   await p.locator("button:has-text('Crear ficha')").click();
-  await p.waitForURL(/estudio\/cliente\/anonymo/);
+  await p.waitForURL(/estudio\/cliente\/unmake/);
   const tareas = p.locator("[data-tareas-saber]");
   exigir(await espera(tareas) && await tareas.locator("[data-tarea]").count() === 7, "la ficha dice qué se puede hacer: siete tareas");
   exigir(await tareas.locator("[data-listo=si]").count() === 0, "con solo el nombre, ninguna tarea está lista");
@@ -44,11 +44,11 @@ try {
   // 2 · Sin lo mínimo, Faro no escribe: explica qué falta y dónde completarlo. Y no gasta IA.
   const antes = pedidosIA().length;
   const s1 = await pedirGuion();
-  exigir(await espera(p.locator("text=/Para escribirle un guion a ANONYMO falta saber:.*qué quiere vender/"), 20000), "Faro no escribe sin lo mínimo y dice qué falta");
+  exigir(await espera(p.locator("text=/Para escribirle un guion a Unmake falta saber:.*qué quiere vender/"), 20000), "Faro no escribe sin lo mínimo y dice qué falta");
   exigir(!(await s1.locator("[role=status]:has-text('Faro escribió')").count()) && pedidosIA().length === antes, "y no se llama a la IA");
 
   // 3 · Se completa la ficha: lo que falta para el guion.
-  await p.goto(`${B}/estudio/cliente/anonymo`);
+  await p.goto(`${B}/estudio/cliente/unmake`);
   const f = p.locator("[data-form-saber]");
   await f.locator("[name=saber-rubro]").fill("Estudio de diseño web con agentes de IA");
   await f.locator("[name=saber-oferta]").fill("Webs de una página para negocios de Cuenca, listas en 7 días");
@@ -79,7 +79,7 @@ try {
 
   // 6 · En celular.
   const m = await (await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, storageState: await ctx.storageState() })).newPage();
-  await m.goto(`${B}/estudio/cliente/anonymo`);
+  await m.goto(`${B}/estudio/cliente/unmake`);
   await m.waitForSelector("[data-tareas-saber]");
   exigir(await m.evaluate(() => document.documentElement.scrollWidth) <= 392, "la ficha cabe en celular");
   await m.screenshot({ path: join(capturas, "3-celular.png"), fullPage: true });

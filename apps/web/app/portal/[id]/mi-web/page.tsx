@@ -9,7 +9,7 @@ import { traer } from "@/lib/nube";
 import { EditorMiWeb } from "@/components/portal/EditorMiWeb";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Mi web — Anonymo", robots: { index: false, follow: false } };
+export const metadata = { title: "Mi web — Unmake", robots: { index: false, follow: false } };
 
 export default async function MiWeb({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string }> }) {
   const { id } = await params;

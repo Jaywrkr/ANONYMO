@@ -1,6 +1,6 @@
 // Los colores del estudio (sistema/35).
 // Afuera de un proyecto: el marco cálido del estudio. Adentro: los colores de la marca del cliente;
-// si todavía no tiene, los de Anonymo (hueso y tinta). Nada de colores al azar.
+// si todavía no tiene, los de Unmake (hueso y tinta). Nada de colores al azar.
 import type { Marca } from "@anonymo/pipeline";
 
 export interface Espacio {
@@ -17,8 +17,8 @@ export interface Espacio {
 /** El marco de afuera: cálido y neutro, como una mente. */
 export const MARCO_TODO = "linear-gradient(160deg,#e6def5 0%,#f2e7dc 55%,#efe9d9 100%)";
 
-/** Anonymo por defecto: hueso, papel y tinta. */
-const ANONYMO: Espacio = { punto: "#1a1816", marco: "linear-gradient(160deg,#e7e3da 0%,#efece5 55%,#e9e5dc 100%)", suave: "#f4f1eb", deMarca: false };
+/** Unmake por defecto: hueso, papel y tinta. */
+const Unmake: Espacio = { punto: "#1a1816", marco: "linear-gradient(160deg,#e7e3da 0%,#efece5 55%,#e9e5dc 100%)", suave: "#f4f1eb", deMarca: false };
 
 const hex = (h: string) => {
   const m = h.trim().replace("#", "");
@@ -40,7 +40,7 @@ export const hexValido = (h: string) => !!hex(h);
 
 export function espacio(_id: string, marca?: Marca): Espacio {
   const colores = (marca?.colores ?? []).map((c) => c.hex).filter(hexValido);
-  if (!colores.length) return ANONYMO;
+  if (!colores.length) return Unmake;
   // El primero que no sea casi blanco ni casi negro es el principal; los otros acompañan el degradado.
   const principal = colores.find((c) => luz(c) > 0.12 && luz(c) < 0.9) ?? colores[0];
   const segundo = colores.find((c) => c !== principal && luz(c) > 0.12) ?? principal;

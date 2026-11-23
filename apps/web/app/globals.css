@@ -2,23 +2,25 @@
 
 /* Tokens de la agencia. Base calma: hueso y tinta. El color vive en los agentes. */
 @theme {
-  --color-hueso: #efede8;
-  --color-papel: #f7f6f2;
-  --color-tinta: #121214;
-  --color-gris: #55534e;
-  --color-linea: #d6d3cb;
-  --color-noche: #0c0c0e;
-  --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
-  --font-display: "Big Shoulders Display Variable", "Arial Narrow", sans-serif;
-  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
-  /* Estudio (sistema/32): papel cálido, líneas suaves, un solo color de urgencia. */
-  --color-carta: #fbf9f6;
-  --color-borde: #ece7df;
-  --color-suave: #8a8378;
-  --color-medio: #5f5a52;
-  --color-urgente: #ff5a1f;
-  --color-vivo: #2bb673;
+  /* Sistema de diseño de Unmake (tema claro): papel y tinta, líneas de 1px, naranja como color de la casa. */
+  --color-hueso: #F4EFE9;
+  --color-papel: #F4EFE9;
+  --color-tinta: #0E0C0C;
+  --color-gris: #5A524C;
+  --color-linea: #D3CAC0;
+  --color-noche: #0E0C0C;
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-display: "Unmake Line", "IBM Plex Mono", monospace;
+  --font-serif: "Unmake Line", "IBM Plex Sans", sans-serif;
+  --color-carta: #FBF8F4;
+  --color-borde: #E6DED4;
+  --color-suave: #7F766E;
+  --color-medio: #5A524C;
+  --color-urgente: #F0602A;
+  --color-vivo: #1FCF8F;
+  /* Las cinco luces de la marca. */
+  --color-naranja: #F0602A; --color-azul: #3D5BFF; --color-violeta: #8A3DFF; --color-magenta: #FF3D8B; --color-verde: #1FCF8F; --color-amarillo: #FFB21A;
 }
 
 :root { color-scheme: light; }
@@ -69,7 +71,7 @@ html[data-noche="1"] .hero + section { padding-top: 12rem; }
 html[data-tresd="1"] .blob-respaldo { opacity: 0; }
 
 /* Teclado (web/06): foco siempre visible, nunca con el mouse */
-:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--color-urgente); outline-offset: 3px; }
 html[data-noche="1"] .hero :focus-visible, .bg-noche :focus-visible, .bg-tinta:focus-visible { outline-color: #c3221c; }
 .saltar { position: absolute; left: 12px; top: -60px; z-index: 50; transition: top .15s ease; }
 .saltar:focus { top: 12px; }
@@ -166,15 +168,11 @@ html[data-trabajando] body { overflow: hidden; }
   html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
-/* Gráfica de Unmake en el estudio (sistema/101): papel y tinta de la marca, naranja como acento,
-   Unmake Line en los títulos e IBM Plex en el texto. Solo aplica donde está el marco del estudio. */
+/* Unmake (sistema/102): la fuente propia y las reglas de forma del sistema de diseño. */
 @font-face { font-family: "Unmake Line"; src: url("/fuentes/UnmakeLine-Regular.woff2") format("woff2"); font-display: swap; }
-html:has(.estudio-marco) {
-  --color-hueso: #F4EFE9; --color-papel: #F4EFE9; --color-carta: #FBF8F4; --color-tinta: #0E0C0C; --color-noche: #0E0C0C;
-  --color-linea: #D3CAC0; --color-borde: #E6DED4; --color-gris: #5A524C; --color-medio: #5A524C; --color-suave: #7F766E; --color-urgente: #F0602A;
-  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --font-display: "Unmake Line", "IBM Plex Mono", monospace;
-  --font-serif: "Unmake Line", "IBM Plex Sans", sans-serif;
-}
-html:has(.estudio-marco) :is(.font-serif, .font-display, .entrega h2) { font-style: normal; letter-spacing: 0; }
+:is(.font-serif, .font-display, .display, .entrega h2) { font-style: normal; letter-spacing: 0; font-weight: 400; }
+.display { text-transform: none; line-height: 1.15; }
+/* Esquinas rectas en todo: botones, tarjetas, campos, fotos y puntos (el punto de la marca es un píxel cuadrado). */
+html:not(:has([data-muestra])) :is(*, *::before, *::after) { border-radius: 0 !important; }
+/* Las muestras para prospectos son webs de otros negocios: conservan su letra y sus esquinas. */
+[data-muestra] { --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif; }

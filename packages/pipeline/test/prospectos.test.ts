@@ -31,11 +31,11 @@ test("una web propia suma por cada problema y nunca pasa de 100", () => {
 });
 
 test("el mensaje nombra lo que falla y firma la casa", () => {
-  const m = mensajeInicial(base({ web: "instagram.com/x", revision: { estado: "social", red: "Instagram" } }), "Jay · ANONYMO", hoy);
+  const m = mensajeInicial(base({ web: "instagram.com/x", revision: { estado: "social", red: "Instagram" } }), "Jay · Unmake", hoy);
   assert.match(m, /Dental Sonrisa/);
   assert.match(m, /4\.8 estrellas con 120 reseñas/);
   assert.match(m, /lleva a Instagram/);
-  assert.ok(m.endsWith("Jay · ANONYMO"));
+  assert.ok(m.endsWith("Jay · Unmake"));
   assert.match(mensajeInicial(base({ web: "x", revision: ok() }), "J", hoy), /más pacientes/);
   assert.match(mensajeInicial(base({ rubro: "abogado", web: "x", revision: ok() }), "J", hoy), /más clientes/);
   assert.match(mensajeInicial(base({ web: "x", revision: ok({ anio: 2020 }) }), "J", hoy), /desde 2020/);

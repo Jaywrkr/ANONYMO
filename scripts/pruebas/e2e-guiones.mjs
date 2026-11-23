@@ -32,8 +32,8 @@ try {
 
   // 1 · Faro escribe.
   const seccion = p.locator("section[aria-labelledby=titulo-guiones]");
-  await seccion.locator("textarea").fill("Un reel para el lanzamiento de ANONYMO, que muestre que somos una agencia con agentes de IA");
-  await seccion.locator("input").fill("ANONYMO");
+  await seccion.locator("textarea").fill("Un reel para el lanzamiento de Unmake, que muestre que somos una agencia con agentes de IA");
+  await seccion.locator("input").fill("Unmake");
   await seccion.locator("select").selectOption("60");
   await seccion.locator("button:has-text('Que Faro escriba el guion')").click();
   exigir(await p.locator("[role=alertdialog][aria-label='Faro está escribiendo el guion']").isVisible({ timeout: 3000 }).catch(() => false) || await espera(seccion.locator("[role=status]:has-text('Faro escribió')"), 1000), "al pedir el guion aparece la espera");
@@ -58,7 +58,7 @@ try {
   await p.waitForURL(/estudio\/video\/v-lanzamiento-/, { timeout: 60000 });
   const idVideo = p.url().split("/").pop();
   exigir(await espera(p.locator("text=Grabado con el guion de Faro")), "el editor dice con qué guion se grabó");
-  exigir(await espera(p.locator("a:has-text('Ficha de ANONYMO')")), "y lleva a la ficha del cliente");
+  exigir(await espera(p.locator("a:has-text('Ficha de Unmake')")), "y lleva a la ficha del cliente");
   exigir(await espera(p.locator("ol[aria-label='Conversación con Corte'] li", { hasText: "corté los silencios" }), 120000), "Corte aplica el pedido");
   await p.screenshot({ path: join(capturas, "2-editor.png") });
 
@@ -67,7 +67,7 @@ try {
   const aCorte = pedidos.filter((x) => x.system?.startsWith("Corte, editor de video"));
   const textoCorte = JSON.stringify(aCorte.at(-1)?.messages ?? "");
   exigir(aCorte.length >= 1 && /Guion de Faro/.test(textoCorte) && /Duración buscada: 60 s/.test(textoCorte), "Corte recibe el guion de Faro al editar");
-  exigir(pedidos.some((x) => x.system?.startsWith("Faro, contenido de ANONYMO")), "el guion lo escribió Faro");
+  exigir(pedidos.some((x) => x.system?.startsWith("Faro, contenido de Unmake")), "el guion lo escribió Faro");
 
   // 4 · El guion queda grabado y lleva al video.
   await p.goto(`${B}/estudio/video`);

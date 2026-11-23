@@ -23,7 +23,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
   let falla = "";
   try { meses = await listarMeses(); } catch (e) { falla = (e as Error).message; }
   const { fichas } = await cartera();
-  const clientes = fichas.filter((f) => f.guardada).map((f): { id: string; nombre: string; falta: string; enlace?: string } => ({ id: f.id, nombre: f.nombre, falta: faltaParaMes(f) })).concat(fichas.some((f) => f.id === "anonymo" && f.guardada) ? [] : [{ id: "anonymo", nombre: "ANONYMO", falta: "ANONYMO todavía no tiene ficha. Créala en Clientes con el nombre ANONYMO y toca «Buscar datos»: ya trae lo que sabe el estudio.", enlace: "/estudio/clientes" }])
+  const clientes = fichas.filter((f) => f.guardada).map((f): { id: string; nombre: string; falta: string; enlace?: string } => ({ id: f.id, nombre: f.nombre, falta: faltaParaMes(f) })).concat(fichas.some((f) => (f.id === "anonymo" || f.id === "unmake") && f.guardada) ? [] : [{ id: "unmake", nombre: "Unmake", falta: "Unmake todavía no tiene ficha. Créala en Clientes con el nombre Unmake y toca «Buscar datos»: ya trae lo que sabe el estudio.", enlace: "/estudio/clientes" }])
     .sort((a, b) => Number(!!a.falta) - Number(!!b.falta) || a.nombre.localeCompare(b.nombre, "es"));
   return (
     <div className="px-5 py-7 md:px-10">

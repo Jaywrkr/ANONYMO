@@ -253,7 +253,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               ) : null}
               <Link href={`/estudio/${id}?ver=marca`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
                 <span className="flex shrink-0 -space-x-2">{(p.marca?.colores.length ? p.marca.colores.slice(0, 4).map((c) => c.hex) : ["#1a1816", "#e7e3da", "#f4f1eb"]).map((h, i) => <i key={i} className="h-9 w-9 rounded-full shadow-[0_0_0_2px_#fff]" style={{ background: h }} />)}</span>
-                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">Marca del cliente</span><span className="block text-[13px] text-medio">{p.marca?.colores.length ? `${p.marca.colores.length} colores · ${p.marca.fuentes.length} fuentes` : "Sin definir: se usan los colores de Anonymo."}</span></span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">Marca del cliente</span><span className="block text-[13px] text-medio">{p.marca?.colores.length ? `${p.marca.colores.length} colores · ${p.marca.fuentes.length} fuentes` : "Sin definir: se usan los colores de Unmake."}</span></span>
                 <span className="text-suave transition group-hover:translate-x-0.5">→</span>
               </Link>
               <details className={`${tarjeta} group`}>
@@ -486,7 +486,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         {/* MARCA */}
         {ver === "marca" && (
           <div className="max-w-5xl">
-            <p className="mb-5 max-w-2xl text-[15px] text-medio">{p.marca?.colores.length ? "La marca de este cliente. Todo el equipo la usa tal cual, y el proyecto se tiñe con su color principal." : "Aún no hay marca definida: el proyecto usa los colores de Anonymo. Cuando la definas, el equipo la usa tal cual y el proyecto se tiñe con ella."}</p>
+            <p className="mb-5 max-w-2xl text-[15px] text-medio">{p.marca?.colores.length ? "La marca de este cliente. Todo el equipo la usa tal cual, y el proyecto se tiñe con su color principal." : "Aún no hay marca definida: el proyecto usa los colores de Unmake. Cuando la definas, el equipo la usa tal cual y el proyecto se tiñe con ella."}</p>
             <MarcaEditor id={id} marca={p.marca} imagenes={archivos.filter((a) => esImagen(a.nombre)).map((a) => ({ nombre: a.nombre, nota: a.nota }))} encontrados={encontrados} />
           </div>
         )}

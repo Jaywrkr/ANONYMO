@@ -70,7 +70,7 @@ export function Visto({ id, nombre, c, numero, oferta, fotos = 0, fotosMax = 3 }
         <Asistente c={c} lugar="absolute bottom-full right-0 mb-2.5" alQuerer={quiero}
           alProbar={() => void fetch(`/m/${id}/vista`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ accion: "chat" }), keepalive: true }).catch(() => {})} />
         <p className="min-w-0 basis-full text-[13px] leading-snug text-white/80 sm:flex-1 sm:basis-0">
-          <span className="font-medium text-white">¿Te gusta? Esta puede ser tu web.</span> Lista en {oferta.dias} días · {oferta.precio}. Hecha por ANONYMO.
+          <span className="font-medium text-white">¿Te gusta? Esta puede ser tu web.</span> Lista en {oferta.dias} días · {oferta.precio}. Hecha por Unmake.
         </p>
         <input ref={entrada} type="file" accept="image/*" multiple hidden aria-label="Elegir fotos" onChange={(e) => void subir(e.target.files)} />
         <button type="button" onClick={() => entrada.current?.click()} disabled={!!subiendo} className="min-h-11 flex-1 rounded-full px-4 text-[13px] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.35)] disabled:opacity-60 sm:flex-none">

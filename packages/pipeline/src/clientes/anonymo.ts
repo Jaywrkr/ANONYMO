@@ -1,9 +1,10 @@
-// Lo que el estudio ya sabe de ANONYMO (sistema/96). ANONYMO es su propio primer cliente: no hay que preguntarle
+// Lo que el estudio ya sabe de Unmake (sistema/96). Unmake es su propio primer cliente: no hay que preguntarle
 // a nadie qué vende ni a quién le habla. Se propone en su ficha como cualquier dato leído: nada cuenta hasta que se aprueba.
 import type { PropuestaDato } from "./fuentes.ts";
 
 export const ID_ANONYMO = "anonymo";
-export const esAnonymo = (id: string | undefined) => id === ID_ANONYMO;
+// La ficha propia: «unmake» en las nuevas; «anonymo» en las que se crearon antes del cambio de nombre.
+export const esAnonymo = (id: string | undefined) => id === ID_ANONYMO || id === "unmake";
 
 const DETALLE = "lo que ya sabe el estudio";
 const DATOS_ANONYMO: [PropuestaDato["clave"], string][] = [

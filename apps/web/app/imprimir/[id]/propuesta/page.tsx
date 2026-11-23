@@ -37,12 +37,12 @@ export default async function PropuestaImprimir({ params }: { params: Promise<{ 
 
   return (
     <div className="hoja-fondo" style={{ ["--acento" as string]: acento }}>
-      <BotonImprimir volver={`/estudio/${id}/propuesta`} nombre={`Propuesta Anonymo — ${p.pedido.cliente}`} />
+      <BotonImprimir volver={`/estudio/${id}/propuesta`} nombre={`Propuesta Unmake — ${p.pedido.cliente}`} />
       <article className="hoja">
         {/* Portada */}
         <header className="portada relative flex flex-col justify-between overflow-hidden p-12 md:p-16" style={{ background: acento, color: tintaAcento }}>
           <div className="flex items-start justify-between">
-            <p className={`${serif} text-[30px] uppercase leading-none tracking-[0.01em]`}>Anonymo*</p>
+            <p className={`${serif} text-[30px] uppercase leading-none tracking-[0.01em]`}>unmake.</p>
             <p className="text-right text-[12px] opacity-70">Propuesta<br />{hoy}</p>
           </div>
           <div>
@@ -90,7 +90,7 @@ export default async function PropuestaImprimir({ params }: { params: Promise<{ 
           <section className="no-cortar mt-4 grid gap-10 border-t border-[#e6e0d6] pt-10 sm:grid-cols-2">
             <div><p className="text-[13px] text-[#5f5a52]">{x.validez}</p><p className="mt-4 text-[13px]">¿Seguimos? Responde a este documento y empezamos.</p><p className={`${serif} mt-6 text-[22px]`} style={{ color: acento === "#1a1816" ? "#8a8378" : acento }}>Trabajamos mientras duermes.</p></div>
             <div className="grid grid-cols-2 gap-6 text-[12px] text-[#5f5a52]">
-              <p className="border-t border-[#1a1816] pt-2">Anonymo*</p>
+              <p className="border-t border-[#1a1816] pt-2">unmake.</p>
               <p className="border-t border-[#1a1816] pt-2">{p.pedido.cliente}</p>
             </div>
           </section>

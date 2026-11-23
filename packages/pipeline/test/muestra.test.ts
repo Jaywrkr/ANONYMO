@@ -38,7 +38,7 @@ test("la muestra usa lo que el negocio dice de sí mismo y completa con ejemplos
 });
 
 test("el primer mensaje lleva el enlace a la muestra", () => {
-  const m = mensajeInicial(base(), "Jay · ANONYMO", new Date(), "https://estudio.anonymo.ec/m/clinica-x");
+  const m = mensajeInicial(base(), "Jay · Unmake", new Date(), "https://estudio.anonymo.ec/m/clinica-x");
   assert.match(m, /sin compromiso: https:\/\/estudio\.anonymo\.ec\/m\/clinica-x/);
   assert.doesNotMatch(m, /¿Se la puedo enviar/);
   assert.match(mensajeInicial(base(), "Jay"), /¿Se la puedo enviar por aquí\?/, "sin enlace, como antes");
@@ -75,7 +75,7 @@ test("solo se aceptan suscripciones https (http local solo en el estudio de prue
 });
 
 test("con muestra, el primer mensaje lleva debajo de la firma el enlace a quién escribe (sistema/90)", () => {
-  const m = mensajeInicial(base(), "Jay Jaramillo · ANONYMO", new Date(), "https://estudio.anonymo.ec/m/clinica-x");
-  assert.ok(m.endsWith("Jay Jaramillo · ANONYMO\nQuién soy y qué he hecho: https://estudio.anonymo.ec/jay"));
+  const m = mensajeInicial(base(), "Jay Jaramillo · Unmake", new Date(), "https://estudio.anonymo.ec/m/clinica-x");
+  assert.ok(m.endsWith("Jay Jaramillo · Unmake\nQuién soy y qué he hecho: https://estudio.anonymo.ec/jay"));
   assert.ok(mensajeInicial(base(), "Jay").endsWith("Jay"), "sin muestra no hay enlace");
 });

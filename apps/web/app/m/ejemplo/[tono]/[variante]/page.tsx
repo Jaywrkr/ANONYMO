@@ -5,7 +5,7 @@ import { MuestraVariante } from "@/components/muestra/MuestraVariante";
 import { Asistente } from "@/components/muestra/Asistente";
 import { ejemploMuestra, TONOS, VARIANTES } from "@/lib/ejemplos-muestra";
 
-export const metadata = { title: "Plantilla de ejemplo — ANONYMO", robots: { index: false, follow: false } };
+export const metadata = { title: "Plantilla de ejemplo — Unmake", robots: { index: false, follow: false } };
 
 export default async function Ejemplo({ params }: { params: Promise<{ tono: string; variante: string }> }) {
   const { tono, variante } = await params;

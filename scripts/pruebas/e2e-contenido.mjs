@@ -1,5 +1,5 @@
 // El mes de contenido (sistema/96), con nube.sh recién levantado (Supabase y Anthropic falsos).
-// ANONYMO es el primer cliente: sin lo mínimo no se arma; con todo, Faro arma el mes y se revisa pieza por pieza.
+// Unmake es el primer cliente: sin lo mínimo no se arma; con todo, Faro arma el mes y se revisa pieza por pieza.
 // Uso: node scripts/pruebas/e2e-contenido.mjs [carpeta-capturas]
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,7 +11,7 @@ mkdirSync(capturas, { recursive: true });
 const registro = process.env.ANTHROPIC_REGISTRO ?? "/tmp/anonymo-pruebas/pedidos-ia.jsonl";
 const pedidos = (marca) => { try { return readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes(marca)).length; } catch { return 0; } };
 const meses = () => pedidos("Faro arma el mes de contenido");
-const guiones = () => pedidos("Faro, contenido de ANONYMO");
+const guiones = () => pedidos("Faro, contenido de Unmake");
 const fallas = [];
 const exigir = (ok, texto) => { console.log(`${ok ? "✓" : "✗"} ${texto}`); if (!ok) fallas.push(texto); };
 const espera = (loc, ms = 20000) => loc.waitFor({ timeout: ms }).then(() => true, () => false);
@@ -23,16 +23,16 @@ try {
   p.on("pageerror", (e) => fallas.push(`error en la página: ${e.message}`));
   await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="jay"]', { force: true }); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
 
-  // 0 · Sin ficha, ANONYMO igual aparece y dice cómo empezar.
-  await p.goto(`${B}/estudio/contenido?cliente=anonymo`);
-  exigir(await espera(p.locator("[data-falta-mes]:has-text('ANONYMO todavía no tiene ficha')")) && await p.locator("[data-falta-mes] a").getAttribute("href") === "/estudio/clientes", "sin ficha, ANONYMO dice cómo empezar");
+  // 0 · Sin ficha, Unmake igual aparece y dice cómo empezar.
+  await p.goto(`${B}/estudio/contenido?cliente=unmake`);
+  exigir(await espera(p.locator("[data-falta-mes]:has-text('Unmake todavía no tiene ficha')")) && await p.locator("[data-falta-mes] a").getAttribute("href") === "/estudio/clientes", "sin ficha, Unmake dice cómo empezar");
 
-  // 1 · ANONYMO con media ficha: el mes no se arma y se dice qué falta, sin gastar.
+  // 1 · Unmake con media ficha: el mes no se arma y se dice qué falta, sin gastar.
   await p.goto(`${B}/estudio/clientes`);
   await p.locator("summary:has-text('Agregar un cliente a mano')").click();
-  await p.getByLabel("Nombre del cliente").fill("ANONYMO");
+  await p.getByLabel("Nombre del cliente").fill("Unmake");
   await p.locator("button:has-text('Crear ficha')").click();
-  await p.waitForURL(/estudio\/cliente\/anonymo/);
+  await p.waitForURL(/estudio\/cliente\/unmake/);
   const f = p.locator("[data-form-saber]");
   await f.locator("[name=saber-rubro]").fill("Agencia creativa: diseño, tecnología y comunicación");
   await f.locator("[name=saber-oferta]").fill("Webs para negocios de Cuenca, desde USD 900");
@@ -43,25 +43,25 @@ try {
   await espera(p.locator("[role=status]:has-text('Guardado.')"));
   exigir(await p.locator("[data-ir-contenido]").count() === 0, "sin lo mínimo, la ficha no ofrece armar el mes");
   const antes = meses();
-  await p.goto(`${B}/estudio/contenido?cliente=anonymo`);
+  await p.goto(`${B}/estudio/contenido?cliente=unmake`);
   const form = p.locator("[data-armar-mes]");
-  exigir(await espera(form.locator("[data-falta-mes]")) && /A ANONYMO le falta:.*(temas|cada cuánto|quién aprueba)/i.test(await form.locator("[data-falta-mes]").innerText()), "dice qué le falta a ANONYMO");
+  exigir(await espera(form.locator("[data-falta-mes]")) && /A Unmake le falta:.*(temas|cada cuánto|quién aprueba)/i.test(await form.locator("[data-falta-mes]").innerText()), "dice qué le falta a Unmake");
   exigir(await form.getByRole("button", { name: "Armar el mes" }).isDisabled() && meses() === antes, "el botón está apagado y no se gasta");
 
-  // 2 · Sin web, «Buscar datos» propone lo que el estudio ya sabe de ANONYMO; se aprueba y la ficha queda completa.
-  await p.goto(`${B}/estudio/cliente/anonymo`);
+  // 2 · Sin web, «Buscar datos» propone lo que el estudio ya sabe de Unmake; se aprueba y la ficha queda completa.
+  await p.goto(`${B}/estudio/cliente/unmake`);
   const buscar = p.locator("[data-buscar-datos]");
-  exigir(/lo que el estudio ya sabe de ANONYMO/.test(await buscar.innerText()) && await buscar.locator("button:has-text('Buscar datos')").isEnabled(), "ANONYMO puede buscar datos sin web");
+  exigir(/lo que el estudio ya sabe de Unmake/.test(await buscar.innerText()) && await buscar.locator("button:has-text('Buscar datos')").isEnabled(), "Unmake puede buscar datos sin web");
   await buscar.locator("button:has-text('Buscar datos')").click();
   exigir(await espera(p.locator("[role=status]:has-text('lo que ya sabe el estudio')"), 20000), "dice que trajo lo que ya sabe el estudio");
   const props = await buscar.locator("[data-propuesta]").evaluateAll((xs) => xs.map((x) => x.getAttribute("data-propuesta")));
-  exigir(["temas", "frecuencia", "aprueba"].every((k) => props.includes(k)) && /de ANONYMO \(lo que ya sabe el estudio\)/.test(await buscar.locator("[data-propuesta=temas]").innerText()), `propone lo que faltaba, con su origen (${props.join(", ")})`);
+  exigir(["temas", "frecuencia", "aprueba"].every((k) => props.includes(k)) && /de Unmake \(lo que ya sabe el estudio\)/.test(await buscar.locator("[data-propuesta=temas]").innerText()), `propone lo que faltaba, con su origen (${props.join(", ")})`);
   exigir(await buscar.locator("[name=tomar-oferta]").isChecked() === false, "lo que ya estaba escrito distinto no se marca solo");
   await buscar.locator("button:has-text('Guardar los marcados')").click();
   exigir(await espera(p.locator("[data-tarea=contenido][data-listo=si] [data-ir-contenido]")), "con todo, la ficha ofrece armar su mes");
   await p.locator("[data-ir-contenido]").click();
-  await p.waitForURL(/estudio\/contenido\?cliente=anonymo/);
-  exigir(await form.locator("select").first().inputValue() === "anonymo" && await form.locator("[data-falta-mes]").count() === 0, "llega con ANONYMO elegido y sin faltas");
+  await p.waitForURL(/estudio\/contenido\?cliente=unmake/);
+  exigir(await form.locator("select").first().inputValue() === "unmake" && await form.locator("[data-falta-mes]").count() === 0, "llega con Unmake elegido y sin faltas");
 
   // 3 · Usa IA: pregunta antes; «Todavía no» no gasta.
   await form.getByRole("button", { name: "Armar el mes" }).click();
@@ -71,7 +71,7 @@ try {
   await form.getByRole("button", { name: "Armar el mes" }).click();
   await form.getByRole("button", { name: "Sí, armarlo" }).click();
   exigir(await espera(form.getByRole("button", { name: "Faro está armando el mes…" }), 3000), "mientras arma, el botón lo dice y queda bloqueado");
-  await p.waitForURL(/estudio\/contenido\/c-anonymo-\d{4}-\d{2}$/, { timeout: 60000 });
+  await p.waitForURL(/estudio\/contenido\/c-unmake-\d{4}-\d{2}$/, { timeout: 60000 });
   exigir(meses() === antes + 1, "una sola llamada a Faro");
 
   // 4 · El mes: series y una pieza por fecha, en lunes, miércoles y viernes.
@@ -119,7 +119,7 @@ try {
   await rev.locator("[data-copiar-mes]").click();
   exigir(await espera(rev.locator("[role=status]:has-text('Copiado: 1 pieza aprobada')")), "copiar dice cuántas copió");
   const copiado = await p.evaluate(() => navigator.clipboard.readText());
-  exigir(copiado.startsWith("Contenido de ANONYMO") && copiado.includes(await p1.locator("p.font-medium").first().innerText()) && !copiado.includes("Tu negocio merece"), "copia solo lo aprobado");
+  exigir(copiado.startsWith("Contenido de Unmake") && copiado.includes(await p1.locator("p.font-medium").first().innerText()) && !copiado.includes("Tu negocio merece"), "copia solo lo aprobado");
 
   // 8 · Queda guardado y la lista lo cuenta.
   await p.reload();
@@ -137,17 +137,17 @@ try {
   const [a, m] = mesId.slice(-7).split("-");
   const nombres = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const antes2 = meses();
-  await caja.fill(`#anonymo /contenido ${nombres[Number(m) - 1]}`);
+  await caja.fill(`#unmake /contenido ${nombres[Number(m) - 1]}`);
   await panel.getByRole("button", { name: "Pedirle a Faro" }).click();
   const ya = panel.locator("[data-tarjeta]").filter({ hasText: "ya está armado" });
   exigir(await espera(ya) && (await ya.locator("a:has-text('Revisar el mes')").getAttribute("href"))?.endsWith(mesId) && meses() === antes2, `un mes que ya existe (${a}-${m}) lleva a él sin gastar`);
   // Y otro mes se arma con confirmación.
   const otro = nombres[Number(m) % 12];
-  await caja.fill(`#anonymo /contenido ${otro}`);
+  await caja.fill(`#unmake /contenido ${otro}`);
   await panel.getByRole("button", { name: "Pedirle a Faro" }).click();
   exigir(await espera(panel.getByRole("alertdialog", { name: "Confirmar" })) && new RegExp(`armar ${otro}`).test(await panel.getByRole("alertdialog").innerText()), "pide confirmación nombrando el mes");
   await panel.getByRole("button", { name: "Sí, hazlo" }).click();
-  const nueva = panel.locator("[data-tarjeta]").filter({ hasText: `Contenido de ANONYMO · ${otro}` }).filter({ hasText: "Faro armó" });
+  const nueva = panel.locator("[data-tarjeta]").filter({ hasText: `Contenido de Unmake · ${otro}` }).filter({ hasText: "Faro armó" });
   exigir(await espera(nueva, 60000) && meses() === antes2 + 1, "la caja arma el otro mes y trae la tarjeta para revisarlo");
   await p.keyboard.press("Escape");
 

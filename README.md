@@ -1,4 +1,4 @@
-# ANONYMO*
+# Unmake*
 
 Agencia creativa de Jay y Luna (Cuenca, Ecuador) que funciona como una agencia completa: Jay y Luna deciden, 22 agentes de IA producen y Atlas reparte el trabajo. El mapa de la agencia (funciones, estado y orden de construcción) está en **[docs/mapa-agencia.md](docs/mapa-agencia.md)**, y las reglas de interacción en **[docs/experiencia.md](docs/experiencia.md)**.
 

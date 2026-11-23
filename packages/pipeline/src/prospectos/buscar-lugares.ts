@@ -96,8 +96,8 @@ export function errorPlaces(status: number, mensaje = "", codigo = "") {
   const m = `${codigo} ${mensaje}`.toLowerCase();
   if (status === 429 || /resource_exhausted|quota/.test(m))
     return "Se acabó el cupo de búsquedas de Google por hoy. Mañana sigue solo; si lo necesitas antes, sube el límite en Google Cloud → Places API (New) → Cuotas.";
-  if (/billing/.test(m)) return "Google pide revisar la facturación del proyecto ANONYMO (la tarjeta o la cuenta de pago). Mientras tanto no se puede buscar.";
+  if (/billing/.test(m)) return "Google pide revisar la facturación del proyecto Unmake (la tarjeta o la cuenta de pago). Mientras tanto no se puede buscar.";
   if (status === 403 || status === 400 && /api key|api_key/.test(m) || /permission_denied|api key not valid|api_key_invalid/.test(m))
-    return "Google rechazó la clave. Revisa en Vercel que GOOGLE_PLACES_API_KEY sea la de ANONYMO y que tenga permitida Places API (New).";
+    return "Google rechazó la clave. Revisa en Vercel que GOOGLE_PLACES_API_KEY sea la de Unmake y que tenga permitida Places API (New).";
   return `Google Maps no respondió bien (${status}${mensaje ? `: ${mensaje.slice(0, 120)}` : ""}). Vuelve a intentar en un momento.`;
 }

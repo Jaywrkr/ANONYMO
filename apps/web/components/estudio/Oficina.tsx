@@ -9,7 +9,6 @@ import { AGENTES, AREAS } from "@anonymo/agentes";
 import { puestos as calcular, TEXTO_ESTADO, type EstadoAgente, type ProyectoOficina } from "@/lib/oficina";
 import { sin3D } from "@/lib/calidad";
 
-const OficinaEscena = dynamic(() => import("./OficinaEscena"), { ssr: false });
 
 const COLOR_ESTADO: Record<EstadoAgente, string> = {
   trabajando: "#2bb673",
@@ -93,18 +92,8 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
         {(trabajando || enCurso) && vivo && <span className={`${etiqueta} ml-auto animate-pulse`}>En vivo</span>}
       </div>
 
-      {con3D ? (
-        <div className={`relative w-full overflow-hidden rounded-[20px] bg-[#ece6dc] shadow-[inset_0_0_0_1px_rgba(26,24,22,.05)] ${alto}`}>
-          <OficinaEscena puestos={p} elegido={elegido} onElegir={setElegido} className="absolute inset-0" capa={capa as React.RefObject<HTMLElement>} />
-          <div ref={capa} className="pointer-events-none absolute inset-0 overflow-hidden" />
-        </div>
-      ) : (
-        <Lista p={p} onElegir={setElegido} />
-      )}
-      {con3D && <details className="mt-3">
-        <summary className={`${etiqueta} cursor-pointer`}>Ver el equipo en lista</summary>
-        <div className="mt-2"><Lista p={p} onElegir={setElegido} /></div>
-      </details>}
+      {/* La oficina es una lista (sistema/102): la escena en 3D de los agentes era de la gráfica anterior. */}
+      <Lista p={p} onElegir={setElegido} />
 
       {a && puesto && (
         <aside aria-label={`Panel de ${a.nombre}`} className="absolute right-3 top-14 z-30 w-[min(320px,calc(100%-24px))] rounded-[18px] bg-white/95 p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06),0_18px_44px_-18px_rgba(40,30,20,.35)] backdrop-blur">

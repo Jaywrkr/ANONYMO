@@ -56,7 +56,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
   const [firmaEditada, setFirmaEditada] = useState(inicial.firma);
   const [numero, setNumero] = useState(inicial.numero);
   const [numeroEditado, setNumeroEditado] = useState(inicial.numero);
-  // Los ajustes van arriba, cerrados; se abren solos si falta el número de ANONYMO.
+  // Los ajustes van arriba, cerrados; se abren solos si falta el número de Unmake.
   // Los ajustes siempre empiezan cerrados (sistema/76); si falta el número, una línea lo pide sin tapar la tanda.
   const [ajustes, setAjustes] = useState(false);
   // Buscar es lo de menos todos los días: plegado si ya hay lista.

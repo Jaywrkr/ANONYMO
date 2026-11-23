@@ -5,7 +5,7 @@ import { exigirEstudio, serif } from "@/lib/estudio";
 import type { ProyectoOficina } from "@/lib/oficina";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "El estudio — Anonymo", robots: { index: false } };
+export const metadata = { title: "El estudio — Unmake", robots: { index: false } };
 
 // La oficina en grande: los 22 en sus escritorios, en 3D. Tocas a uno y ves en qué está.
 export default async function OficinaPagina() {

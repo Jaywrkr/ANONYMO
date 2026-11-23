@@ -25,7 +25,7 @@ const prospecto = (id, nombre, telefono, estado, contactado) => ({
   agregado: hace(6), actualizado: hace(contactado ?? 6), historial: contactado === undefined ? [] : [{ cuando: hace(contactado), que: "Pasó a «Contactado»", por: "jay" }],
 });
 const lista = {
-  actualizado: new Date().toISOString(), firma: "Jay, de ANONYMO", numero: "099 555 0000",
+  actualizado: new Date().toISOString(), firma: "Jay, de Unmake", numero: "099 555 0000",
   prospectos: {
     "seg-cero": prospecto("seg-cero", "Notaría Calla", "099 111 0009", "contactado", 5),
     "seg-uno": prospecto("seg-uno", "Notaría Vega", "099 111 0010", "contactado", 4),
@@ -136,7 +136,7 @@ try {
   await n.click("button:has-text('Aceptar propuesta')");
   await n.waitForURL(/wa\.me/, { timeout: 10000 }).catch(() => {});
   const aAnonymo = wa.find((u) => u.includes("wa.me/593995550000"));
-  exigir(!!aAnonymo && decodeURIComponent(aAnonymo).includes("acepto la propuesta de web para Notaría Vega"), "«Aceptar» abre el WhatsApp de ANONYMO con el mensaje listo");
+  exigir(!!aAnonymo && decodeURIComponent(aAnonymo).includes("acepto la propuesta de web para Notaría Vega"), "«Aceptar» abre el WhatsApp de Unmake con el mensaje listo");
   exigir(await esperarAvisos(3), "y suena el celular");
   const n2 = await cel.newPage();
   await n2.goto(propuesta);

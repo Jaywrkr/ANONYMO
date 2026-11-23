@@ -56,11 +56,11 @@ try {
   await p.goto(`${B}/estudio/clientes/nuevos`);
   await p.waitForSelector("button:has-text('Que Imán busque')");
 
-  // 1 · El número de ANONYMO y los avisos.
+  // 1 · El número de Unmake y los avisos.
   await p.click("[role=note] button:has-text('Ponerlo')");
   await p.fill("input[aria-label='Tu WhatsApp']", "099 555 0000");
   await p.locator("section[aria-label=Ajustes] div", { has: p.locator("input[aria-label='Tu WhatsApp']") }).last().locator("button:has-text('Guardar')").click();
-  exigir(await espera(p.locator("[role=status]:has-text('Número guardado')")), "guardar el número de ANONYMO dice qué pasó");
+  exigir(await espera(p.locator("[role=status]:has-text('Número guardado')")), "guardar el número de Unmake dice qué pasó");
   await p.reload();
   await p.waitForSelector("button:has-text('Que Imán busque')");
   exigir(!(await p.locator("section[aria-label=Ajustes]").count()) && await p.locator("button:has-text('Ajustes')").count() === 1, "con el número puesto, los ajustes quedan cerrados en un botón");
@@ -97,14 +97,14 @@ try {
   m.on("pageerror", (e) => fallas.push(`error en la muestra: ${e.message}`));
   await m.goto(enlace);
   exigir((await m.locator("h1").innerText()) === "Barbería Don Bigote", "la muestra lleva el nombre del negocio");
-  exigir(/Así podría verse la web de Barbería Don Bigote\. Es un boceto: los textos, las fotos y los colores finales los definimos contigo\. Hecho por Jay Jaramillo, de ANONYMO/.test(await m.locator("[data-plantilla] > p").first().innerText()) && await m.locator("[data-plantilla] > p a[href='/jay']").count() === 1, "dice que es una idea, quién la hizo y enlaza a su página");
+  exigir(/Así podría verse la web de Barbería Don Bigote\. Es un boceto: los textos, las fotos y los colores finales los definimos contigo\. Hecho por Jay Jaramillo, de Unmake/.test(await m.locator("[data-plantilla] > p").first().innerText()) && await m.locator("[data-plantilla] > p a[href='/jay']").count() === 1, "dice que es una idea, quién la hizo y enlaza a su página");
   // La página de Jay (sistema/90): quién escribe, con foto, reconocimientos comprobables y trabajos.
   const j = await negocio.newPage();
   j.on("pageerror", (e) => fallas.push(`error en /jay: ${e.message}`));
   const rj = await j.goto(`${B}/jay`);
   exigir(rj.status() === 200 && (await j.locator("h1").innerText()).includes("Jay Jaramillo"), "la página de Jay abre sin sesión");
   exigir(await j.locator("a[href*='awwwards.com']").count() >= 3 && await j.locator("a[href*='instagram.com/jaywrkr']").count() >= 1, "con sus menciones en Awwwards enlazadas y su Instagram");
-  exigir(await j.locator("a[href^='https://wa.me/593995550000']").count() >= 1, "y un botón de WhatsApp al número de ANONYMO");
+  exigir(await j.locator("a[href^='https://wa.me/593995550000']").count() >= 1, "y un botón de WhatsApp al número de Unmake");
   exigir(!(await j.locator("header nav").count()) && await j.evaluate(() => document.documentElement.scrollWidth) <= 392 && (await j.locator("meta[name=robots]").getAttribute("content"))?.includes("noindex"), "sin el menú de la agencia, cabe en celular y no se indexa");
   await j.evaluate(() => document.querySelectorAll("img").forEach((i) => { i.loading = "eager"; }));
   await j.waitForTimeout(700);
@@ -182,7 +182,7 @@ try {
   await m.locator("button:has-text('Quiero esta web')").click();
   await m.waitForURL(/wa\.me/, { timeout: 10000 }).catch(() => {});
   const aAnonymo = wa.find((u) => u.includes("wa.me/593995550000"));
-  exigir(!!aAnonymo && decodeURIComponent(aAnonymo).includes("vi la idea de web para Barbería Don Bigote"), "«Quiero esta web» abre el WhatsApp de ANONYMO con el mensaje listo");
+  exigir(!!aAnonymo && decodeURIComponent(aAnonymo).includes("vi la idea de web para Barbería Don Bigote"), "«Quiero esta web» abre el WhatsApp de Unmake con el mensaje listo");
   exigir(await esperarAvisos(4), "y vuelve a sonar el celular");
   await negocio.close();
   await p.reload();

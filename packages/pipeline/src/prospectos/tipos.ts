@@ -98,7 +98,7 @@ export const esPlantilla = (x: unknown): x is PlantillaMuestra => typeof x === "
 export interface ListaProspectos {
   actualizado: string;
   firma: string;
-  /** El WhatsApp de ANONYMO (sistema/72): adonde escribe quien toca «Quiero esta web» en su muestra. */
+  /** El WhatsApp de Unmake (sistema/72): adonde escribe quien toca «Quiero esta web» en su muestra. */
   numero?: string;
   /** Cuántos mensajes por semana se quiere mandar (sistema/89). Sin poner, 50. */
   meta?: number;
@@ -121,4 +121,4 @@ export const CIUDADES: Record<string, { lat: number; lng: number }> = {
   Azogues: { lat: -2.7397, lng: -78.8486 },
 };
 
-export const FIRMA_INICIAL = "Jay Jaramillo · ANONYMO";
+export const FIRMA_INICIAL = "Jay Jaramillo · Unmake";

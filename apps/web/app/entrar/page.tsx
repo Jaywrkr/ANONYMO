@@ -19,7 +19,7 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
     <div className="estudio-marco grid min-h-dvh place-items-center p-2" style={{ background: MARCO_TODO }}>
       <main className="w-full max-w-[440px] rounded-[22px] bg-carta p-7 shadow-[0_0_0_1px_rgba(26,24,22,.05),0_30px_80px_-30px_rgba(60,40,20,.35)] sm:p-9">
         <div className="flex items-center justify-between">
-          <span className="font-display text-[24px] uppercase leading-none">Anonymo*</span>
+          <span className="font-display text-[24px] uppercase leading-none">unmake.</span>
           <span className="flex">
             <Cara id="atlas" tam={30} flota titulo={false} />
             <Cara id="ledger" tam={30} titulo={false} className="-ml-2" />

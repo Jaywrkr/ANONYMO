@@ -1,10 +1,6 @@
 import {AtlasFlotante} from "@/components/estudio/AtlasFlotante";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
-import "@fontsource/ibm-plex-sans/latin-400.css";
-import "@fontsource/ibm-plex-sans/latin-500.css";
-import "@fontsource/ibm-plex-sans/latin-600.css";
-import "@fontsource/ibm-plex-mono/latin-400.css";
 import { Suspense } from "react";
 import { Avisos } from "@/components/estudio/Avisos";
 import { Trabajando } from "@/components/estudio/Trabajando";
