@@ -176,3 +176,8 @@ html[data-trabajando] body { overflow: hidden; }
 html:not(:has([data-muestra])) :is(*, *::before, *::after) { border-radius: 0 !important; }
 /* Las muestras para prospectos son webs de otros negocios: conservan su letra y sus esquinas. */
 [data-muestra] { --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif; }
+
+/* El estudio es una herramienta (sistema/103): títulos y números en IBM Plex, no en la fuente de la marca.
+   Conserva los colores, las líneas y las esquinas rectas de Unmake. */
+html:has(.estudio-marco) { --font-display: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; --font-serif: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; }
+.estudio-marco :is(.font-serif, .font-display, .display, .entrega h2) { font-weight: 500; letter-spacing: -0.015em; }

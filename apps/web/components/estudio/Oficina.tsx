@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AGENTES, AREAS } from "@anonymo/agentes";
+import { Cara } from "@/components/estudio/piezas";
 import { puestos as calcular, TEXTO_ESTADO, type EstadoAgente, type ProyectoOficina } from "@/lib/oficina";
 import { sin3D } from "@/lib/calidad";
 
@@ -21,19 +22,39 @@ const COLOR_ESTADO: Record<EstadoAgente, string> = {
 const etiqueta = "text-[12px] text-suave";
 
 /** Lista simple del equipo: para lectores de pantalla, celulares sin 3D y como respaldo. */
+// La oficina como lista (sistema/103): el equipo por área, cada agente con su marca, su rol y en qué está.
 function Lista({ p, onElegir }: { p: ReturnType<typeof calcular>; onElegir: (id: string) => void }) {
   return (
-    <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-      {AGENTES.map((a) => (
-        <li key={a.id}>
-          <button onClick={() => onElegir(a.id)} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[14px] hover:bg-white">
-            <i className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLOR_ESTADO[p[a.id].estado] }} aria-hidden />
-            <span className="flex-1">{a.nombre}</span>
-            <span className="text-[12px] text-suave">{p[a.id].estado === "libre" ? "" : TEXTO_ESTADO[p[a.id].estado]}</span>
-          </button>
-        </li>
+    <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2 xl:grid-cols-3">
+      {(Object.keys(AREAS) as (keyof typeof AREAS)[]).map((area) => (
+        <section key={area} aria-label={AREAS[area].nombre}>
+          <h3 className="mb-1.5 flex items-center gap-2 border-b border-linea pb-2 text-[13px] text-suave">
+            <i className="h-2.5 w-2.5 shrink-0" style={{ background: AREAS[area].medio }} aria-hidden />{AREAS[area].nombre}
+          </h3>
+          <ul>
+            {AGENTES.filter((a) => a.area === area).map((a) => {
+              const e = p[a.id].estado;
+              return (
+                <li key={a.id}>
+                  <button onClick={() => onElegir(a.id)} className="flex min-h-12 w-full items-center gap-3 px-1.5 py-1.5 text-left hover:bg-white">
+                    <Cara id={a.id} tam={30} titulo={false} apagado={e === "libre"} />
+                    <span className="min-w-0 flex-1 leading-tight">
+                      <span className="block text-[14px] font-medium">{a.nombre}</span>
+                      <span className="block truncate text-[12px] text-suave">{a.rol}</span>
+                    </span>
+                    {e !== "libre" && (
+                      <span className="flex shrink-0 items-center gap-1.5 text-[12px]">
+                        <i className="h-2 w-2" style={{ background: COLOR_ESTADO[e] }} aria-hidden />{TEXTO_ESTADO[e]}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       ))}
-    </ul>
+    </div>
   );
 }
 

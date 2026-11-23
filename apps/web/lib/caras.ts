@@ -1,6 +1,6 @@
 // La cara de cada agente en 2D (sistema/32): el óvalo con su color, sus ojos según el carácter
 // y su distintivo (el mismo «prop» del 3D). Sale como SVG para usarlo en cualquier tamaño.
-import { AREAS, agentePorId } from "@anonymo/agentes";
+import { AGENTES, AREAS, agentePorId } from "@anonymo/agentes";
 
 const K = "#1a1816";
 const W = "#ffffff";
@@ -47,19 +47,33 @@ const FORMA: Record<string, [number, number]> = { atlas: [38, 40], ledger: [35, 
 
 const cache = new Map<string, string>();
 
-/** La marca de un agente como data URI (SVG): un cuadrado con el color de su área y un píxel de papel en un lugar propio (sistema/102). `apagado` la deja en gris. */
+// Dos letras por agente (sistema/103): se lee quién es aunque compartan color de área.
+const SIGLA: Record<string, string> = {
+  atlas: "At", ledger: "Le", nova: "No", sonda: "So", verba: "Vb", mira: "Mi", rhea: "Rh", orla: "Or", lumen: "Lu", vector: "Vc", kine: "Ki",
+  eco: "Ec", prisma: "Pr", tempo: "Te", faro: "Fa", chispa: "Ch", lente: "Ln", corte: "Co", escena: "Es", iman: "Im", trofeo: "Tr", pulso: "Pu",
+};
+const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mezclar = (a: string, b: string, t: number) => "#" + hex(a).map((x, i) => Math.round(x + (hex(b)[i] - x) * t).toString(16).padStart(2, "0")).join("");
+// Dentro de un área, cada agente tiene su propio tono: más oscuro o más claro que el color del área.
+const PASOS = [0, -0.3, 0.32, -0.5, 0.5, -0.65, 0.62];
+
+/** La sigla de un agente («At», «Le»…). */
+export const siglaDe = (id: string) => SIGLA[id] ?? (agentePorId(id)?.nombre ?? id).slice(0, 2);
+
+/** La marca de un agente como data URI (SVG): un cuadrado del tono propio del agente dentro del color de su área, con su sigla. `apagado` la deja en gris. */
 export function caraSvg(id: string, apagado = false): string {
   const clave = `${id}:${apagado ? 1 : 0}`;
   const hecho = cache.get(clave);
   if (hecho) return hecho;
   const a = agentePorId(id);
   const area = a ? AREAS[a.area] : AREAS.mando;
-  const fondo = apagado ? "#D3CAC0" : area.medio;
-  // El lugar del píxel sale del nombre: cada agente tiene el suyo dentro de una cuadrícula de 3 × 3.
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const x = 18 + (h % 3) * 28, y = 23 + (Math.floor(h / 3) % 3) * 28;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 130'><rect x='6' y='11' width='108' height='108' fill='${fondo}'/><rect x='${x}' y='${y}' width='28' height='28' fill='${apagado ? "#F4EFE9" : "#0E0C0C"}'/></svg>`;
+  const hermanos = a ? AGENTES.filter((x) => x.area === a.area).map((x) => x.id) : [];
+  const paso = PASOS[Math.max(0, hermanos.indexOf(id)) % PASOS.length];
+  const fondo = apagado ? "#E6DED4" : paso < 0 ? mezclar(area.medio, "#0E0C0C", -paso) : mezclar(area.medio, "#FFFFFF", paso);
+  const [r, g, b] = hex(fondo);
+  const claro = 0.2126 * r + 0.7152 * g + 0.0722 * b > 150;
+  const letra = apagado ? "#7F766E" : claro ? "#0E0C0C" : "#FFFFFF";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 130'><rect x='4' y='9' width='112' height='112' fill='${fondo}'/><text x='60' y='86' text-anchor='middle' font-family='Helvetica Neue, Arial, sans-serif' font-weight='700' font-size='54' letter-spacing='-1' fill='${letra}'>${siglaDe(id)}</text></svg>`;
   const uri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   cache.set(clave, uri);
   return uri;
