@@ -21,11 +21,11 @@ test("si alguien guarda en el medio, el cambio se repite sobre lo nuevo y no se 
       otro.numero = "099 555 0000";
       writeFileSync(archivo, JSON.stringify(otro));
     }
-    l.firma = "Luna · ANONYMO";
+    l.firma = "Luna · Unmake";
   });
   const l = await leerProspectos();
   assert.equal(vueltas, 2, "se repitió una vez");
-  assert.equal(l.firma, "Luna · ANONYMO", "el cambio propio quedó");
+  assert.equal(l.firma, "Luna · Unmake", "el cambio propio quedó");
   assert.equal(l.numero, "099 555 0000", "y el del otro también");
 });
 

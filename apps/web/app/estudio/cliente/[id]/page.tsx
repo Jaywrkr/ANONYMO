@@ -82,7 +82,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <div className="min-w-0">
               <p className="text-[14.5px] font-medium">Buscar datos solo</p>
               <p className="mt-0.5 text-[13px] text-medio">
-                {esAnonymo(f.id) && <>Te proponemos lo que el estudio ya sabe de ANONYMO{fuentes.web ? " y lo que diga su web" : ""}. Nada se guarda hasta que lo apruebes. </>}
+                {esAnonymo(f.id) && <>Te proponemos lo que el estudio ya sabe de Unmake{fuentes.web ? " y lo que diga su web" : ""}. Nada se guarda hasta que lo apruebes. </>}
                 {esAnonymo(f.id) ? null : fuentes.web
                   ? <>Leemos su web ({fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")}) y te proponemos lo que encontremos. Nada se guarda hasta que lo apruebes.</>
                   : "Anota su web en «Contacto y notas» y aquí podrás leerla."}

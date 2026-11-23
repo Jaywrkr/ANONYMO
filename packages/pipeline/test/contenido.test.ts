@@ -36,7 +36,7 @@ test("lo que devuelve Faro se limpia, va una pieza por fecha y si falta mucho no
   assert.throws(() => leerMesIA({ series: [{ nombre: "S" }], piezas: [{ n: 1, idea: "a", texto: "t" }] }, fechas), /no devolvió el mes completo/);
 });
 
-const mes = (): MesContenido => ({ id: "c-anonymo-2026-12", cliente: "anonymo", nombre: "ANONYMO", mes: "2026-12", canales: "Instagram", frecuencia: "3", series: [{ nombre: "S", para: "" }], historia: [], creado: "", actualizado: "",
+const mes = (): MesContenido => ({ id: "c-anonymo-2026-12", cliente: "anonymo", nombre: "Unmake", mes: "2026-12", canales: "Instagram", frecuencia: "3", series: [{ nombre: "S", para: "" }], historia: [], creado: "", actualizado: "",
   piezas: [{ id: "p01", fecha: "2026-12-02", serie: "S", formato: "reel", idea: "Idea uno", texto: "Texto uno", visual: "v", estado: "propuesta" }, { id: "p02", fecha: "2026-12-04", serie: "S", formato: "post", idea: "Idea dos", texto: "Texto dos", visual: "v", estado: "propuesta" }] });
 
 test("aprobar, pedir un cambio y corregir a mano, con su historia", async () => {

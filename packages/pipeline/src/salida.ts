@@ -8,7 +8,7 @@ import type {AvisoProyecto} from './avisos.ts';
 type Canal='correo'|'webhook';
 interface Evento {id:string;fecha:string;aviso:AvisoProyecto;canales:{canal:Canal;config:string}[];}
 const huella=(s:string)=>createHash('sha256').update(s).digest('hex');
-function destino(canal:Canal){return canal==='correo'?JSON.stringify({conexion:huella(process.env.RESEND_API_KEY??''),de:process.env.AVISOS_DE??'Anonymo <avisos@resend.dev>',a:process.env.AVISOS_CORREO?.split(',').map(s=>s.trim()).filter(Boolean)}):process.env.AVISOS_WEBHOOK??'';}
+function destino(canal:Canal){return canal==='correo'?JSON.stringify({conexion:huella(process.env.RESEND_API_KEY??''),de:process.env.AVISOS_DE??'Unmake <avisos@resend.dev>',a:process.env.AVISOS_CORREO?.split(',').map(s=>s.trim()).filter(Boolean)}):process.env.AVISOS_WEBHOOK??'';}
 export function prepararAviso(a:AvisoProyecto){
  if(!/^[a-z0-9][a-z0-9_-]{0,80}$/.test(a.proyecto))throw new Error('Proyecto no válido.');
  const aviso:AvisoProyecto={proyecto:a.proyecto,cliente:a.cliente.slice(0,140),tipo:a.tipo,titulo:a.titulo.slice(0,240),texto:a.texto.slice(0,4000),enlace:a.enlace?.slice(0,2048)};
@@ -46,7 +46,7 @@ export async function enviarAviso(id:string,ruta:string,quien:'jay'|'luna',f:typ
   let correcto=false;
   try{
    const clave=`anonymo/${id}/${evento.id}/${c.canal}`,a=evento.aviso;
-   const r=c.canal==='correo'?await f('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${process.env.RESEND_API_KEY}`,'content-type':'application/json','Idempotency-Key':clave},body:JSON.stringify({from:process.env.AVISOS_DE??'Anonymo <avisos@resend.dev>',to:process.env.AVISOS_CORREO!.split(',').map(s=>s.trim()).filter(Boolean),subject:`${a.cliente} · ${a.titulo}`,text:`${a.titulo}\n\n${a.texto}\n\n${a.enlace??''}`}),signal:AbortSignal.timeout(10000)}):await f(process.env.AVISOS_WEBHOOK!,{method:'POST',headers:{'content-type':'application/json','Idempotency-Key':clave},body:JSON.stringify({...a,id:evento.id}),signal:AbortSignal.timeout(10000)});
+   const r=c.canal==='correo'?await f('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${process.env.RESEND_API_KEY}`,'content-type':'application/json','Idempotency-Key':clave},body:JSON.stringify({from:process.env.AVISOS_DE??'Unmake <avisos@resend.dev>',to:process.env.AVISOS_CORREO!.split(',').map(s=>s.trim()).filter(Boolean),subject:`${a.cliente} · ${a.titulo}`,text:`${a.titulo}\n\n${a.texto}\n\n${a.enlace??''}`}),signal:AbortSignal.timeout(10000)}):await f(process.env.AVISOS_WEBHOOK!,{method:'POST',headers:{'content-type':'application/json','Idempotency-Key':clave},body:JSON.stringify({...a,id:evento.id}),signal:AbortSignal.timeout(10000)});
    correcto=r.ok;if(correcto&&c.canal==='correo'){const d=await r.json();correcto=typeof d.id==='string'&&!!d.id;}
   }catch{}
   const confirmado=await rpcVersionado<boolean>('anonymo_cerrar_aviso',{p_proyecto:id,p_evento:evento.id,p_canal:c.canal,p_propietario:propietario,p_correcto:correcto},f);

@@ -20,7 +20,7 @@ export function Saludo({ c, k }: { c: ContenidoMuestra; k: Paleta }) {
         .muestra-saludo > :nth-child(4) { animation-delay: .55s; }
         @media (prefers-reduced-motion: reduce) { .muestra-saludo { display: none; } }
       `}</style>
-      <p className="text-[13px] opacity-80">Una idea de ANONYMO</p>
+      <p className="text-[13px] opacity-80">Una idea de Unmake</p>
       <p style={titular} className={`max-w-[16ch] text-balance ${grande}`}>
         {c.nombre}: hicimos esto para ustedes.
       </p>

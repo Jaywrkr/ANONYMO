@@ -47,23 +47,19 @@ const FORMA: Record<string, [number, number]> = { atlas: [38, 40], ledger: [35, 
 
 const cache = new Map<string, string>();
 
-/** La cara de un agente como data URI (SVG). `apagado` la deja en gris claro. */
+/** La marca de un agente como data URI (SVG): un cuadrado con el color de su área y un píxel de papel en un lugar propio (sistema/102). `apagado` la deja en gris. */
 export function caraSvg(id: string, apagado = false): string {
   const clave = `${id}:${apagado ? 1 : 0}`;
   const hecho = cache.get(clave);
   if (hecho) return hecho;
   const a = agentePorId(id);
   const area = a ? AREAS[a.area] : AREAS.mando;
-  const t = a?.tono ?? area;
-  const [l, m, s, ac] = apagado ? ["#ffffff", "#ddd8cf", "#bdb6aa", "#ffffff"] : [t.luz, t.medio, t.sombra, t.acento ?? area.acento];
-  const [rx, ry] = FORMA[id] ?? [36, 39];
-  const [atras, frente] = PROP[id] ?? ["", ""];
-  const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 130'>` +
-    `<defs><radialGradient id='g' cx='36%' cy='28%' r='80%'><stop offset='0' stop-color='${l}'/><stop offset='.55' stop-color='${m}'/><stop offset='1' stop-color='${s}'/></radialGradient>` +
-    `<radialGradient id='r' cx='82%' cy='88%' r='45%'><stop offset='0' stop-color='${ac}' stop-opacity='.75'/><stop offset='1' stop-color='${ac}' stop-opacity='0'/></radialGradient></defs>` +
-    `<g opacity='${apagado ? 0.75 : 1}'>${atras}<ellipse cx='60' cy='76' rx='${rx}' ry='${ry}' fill='url(#g)'/><ellipse cx='60' cy='76' rx='${rx}' ry='${ry}' fill='url(#r)'/>` +
-    `<ellipse cx='47' cy='56' rx='11' ry='6' fill='white' opacity='.45' transform='rotate(-20 47 56)'/>${OJOS[id] ?? OJOS_BASE}${frente}</g></svg>`;
+  const fondo = apagado ? "#D3CAC0" : area.medio;
+  // El lugar del píxel sale del nombre: cada agente tiene el suyo dentro de una cuadrícula de 3 × 3.
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const x = 18 + (h % 3) * 28, y = 23 + (Math.floor(h / 3) % 3) * 28;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 130'><rect x='6' y='11' width='108' height='108' fill='${fondo}'/><rect x='${x}' y='${y}' width='28' height='28' fill='${apagado ? "#F4EFE9" : "#0E0C0C"}'/></svg>`;
   const uri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   cache.set(clave, uri);
   return uri;

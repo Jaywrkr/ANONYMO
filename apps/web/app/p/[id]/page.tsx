@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const d = await cargar(id).catch(() => undefined);
   const title = d ? `Propuesta de web para ${d.nombre}` : "Propuesta";
-  return { title, description: "Precio, plazos y lo que incluye. Hecha por ANONYMO.", robots: { index: false, follow: false }, openGraph: d ? { title, description: "Precio, plazos y lo que incluye. Hecha por ANONYMO.", siteName: "ANONYMO" } : undefined };
+  return { title, description: "Precio, plazos y lo que incluye. Hecha por Unmake.", robots: { index: false, follow: false }, openGraph: d ? { title, description: "Precio, plazos y lo que incluye. Hecha por Unmake.", siteName: "Unmake" } : undefined };
 }
 
 export default async function Propuesta({ params }: Props) {
@@ -44,7 +44,7 @@ export default async function Propuesta({ params }: Props) {
   return (
     <div className="min-h-screen bg-[#f5f3ee] pb-40 text-[#1a1816]">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 pt-6 text-[13px] md:px-8">
-        <span className="font-medium tracking-[.08em]">ANONYMO</span>
+        <span className="font-medium tracking-[.08em]">Unmake</span>
         <a href={`/m/${id}`} className="text-[#5d5a55] underline underline-offset-4">Ver tu muestra ↗</a>
       </header>
 

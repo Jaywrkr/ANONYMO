@@ -15,8 +15,10 @@ const config: NextConfig = {
     "/estudio/video/*/paso": ["../../node_modules/ffmpeg-static/ffmpeg", "../../node_modules/ffmpeg-static/package.json", "../../packages/pipeline/src/video/fuentes/*"],
   },
   reactStrictMode: true,
-  // La web nueva de Unmake y su banco de animaciones (sistema/101): páginas estáticas en public/.
-  async rewrites() { return [{ source: "/unmake", destination: "/unmake.html" }, { source: "/lab", destination: "/lab.html" }]; },
+  // La web de Unmake es la portada y su banco de animaciones vive en /lab (sistema/102): páginas estáticas en public/.
+  async rewrites() { return { beforeFiles: [{ source: "/", destination: "/unmake.html" }, { source: "/lab", destination: "/lab.html" }], afterFiles: [], fallback: [] }; },
+  // Las páginas de la web anterior ya no existen: llevan a la portada.
+  async redirects() { return ["/unmake", "/agentes", "/agentes/:r*", "/casos", "/casos/:r*", "/proceso", "/sistema", "/en", "/en/:r*"].map((source) => ({ source, destination: "/", permanent: false })); },
   // Precios en la web (web/12): solo si decides publicarlos (PRECIOS_PUBLICOS=1 y TARIFA_HORA).
   // Versión del estudio (sistema/34): hora del build y commit, para verlos en la esquina.
   env: {

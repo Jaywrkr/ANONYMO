@@ -49,7 +49,7 @@ const PASOS: [string, string][] = [
 const mono = "font-mono text-[12px] tracking-[.02em]";
 
 export default async function Jay() {
-  // El WhatsApp es el de ANONYMO, el mismo de «Quiero esta web». Sin número guardado, queda Instagram.
+  // El WhatsApp es el de Unmake, el mismo de «Quiero esta web». Sin número guardado, queda Instagram.
   let numero: string | undefined;
   try { numero = numeroInternacional((await leerProspectos()).numero); } catch { /* sin nube: la página se ve igual, sin el botón */ }
   const wa = numero ? `https://wa.me/${numero}?text=${encodeURIComponent("Hola Jay, vi tu página y quiero saber más de la web para mi negocio.")}` : undefined;
@@ -158,14 +158,14 @@ export default async function Jay() {
                 </li>
               ))}
             </ol>
-            <p className="mt-4 text-[15px] leading-relaxed" style={{ color: "#4a4a47" }}>La web de una página cuesta {precio(OFERTA.web.precio)}. Trabajo con ANONYMO, el estudio que tengo con Luna, que se encarga de fotos y comunicación.</p>
+            <p className="mt-4 text-[15px] leading-relaxed" style={{ color: "#4a4a47" }}>La web de una página cuesta {precio(OFERTA.web.precio)}. Trabajo con Unmake, el estudio que tengo con Luna, que se encarga de fotos y comunicación.</p>
           </section>
 
           <section aria-label="Contacto" className="mt-12 flex flex-wrap gap-2.5">
             {wa && <a href={wa} target="_blank" rel="noreferrer" data-wa className="inline-flex min-h-14 items-center px-7 text-[16px] font-medium" style={{ background: "#25d366", color: "#0a0a0a" }}>Escríbeme por WhatsApp</a>}
             <a href={INSTAGRAM} target="_blank" rel="noreferrer" className="inline-flex min-h-14 items-center px-6 text-[16px]" style={{ boxShadow: "inset 0 0 0 1.5px #121212" }}>Instagram @jaywrkr ↗</a>
           </section>
-          <p className={`${mono} mt-10`} style={{ color: "#6a6a66" }}>© {new Date().getFullYear()} Jay Jaramillo · ANONYMO</p>
+          <p className={`${mono} mt-10`} style={{ color: "#6a6a66" }}>© {new Date().getFullYear()} Jay Jaramillo · Unmake</p>
         </div>
       </div>
     </main>

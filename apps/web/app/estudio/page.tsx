@@ -23,7 +23,7 @@ import { botonLleno, exigirEstudio, serif } from "@/lib/estudio";
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
 export const maxDuration = 300;
-export const metadata = { title: "Estudio — Anonymo", robots: { index: false } };
+export const metadata = { title: "Estudio — Unmake", robots: { index: false } };
 
 function Grupo({ id, titulo, ayuda, cuenta, children }: { id: string; titulo: string; ayuda: string; cuenta: number; children: React.ReactNode }) {
   return (

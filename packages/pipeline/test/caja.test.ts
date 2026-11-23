@@ -6,7 +6,7 @@ import { leerCaja, marcaEnCurso, ponerSugerencia, clientesDe, agenteDe, accionDe
 const C = [
   { id: "clinica-sonrisa", nombre: "Clínica Sonrisa" },
   { id: "clinica-luz", nombre: "Clínica Luz", alias: ["Dra. Luz"] },
-  { id: "anonymo", nombre: "ANONYMO" },
+  { id: "anonymo", nombre: "Unmake" },
 ];
 
 test("entiende @agente, #cliente y /acción, y lo demás es el pedido", () => {

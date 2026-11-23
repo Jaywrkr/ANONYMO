@@ -30,7 +30,7 @@ export function MuestraVariante({ c, fotos = [], saludo = false, barra }: { c: C
       {saludo && <Saludo c={c} k={k} />}
       <p className="px-5 py-2 text-center text-[12px] leading-snug" style={{ background: "#141414", color: "#f4f4f2" }}>
         {/* Que es un boceto se dice una sola vez (sistema/94). Quién la hizo lleva a la página de Jay (sistema/90). */}
-        Así podría verse la web de {c.nombre}. Es un boceto: los textos, las fotos y los colores finales los definimos contigo. Hecho por <a href="/jay" target="_blank" rel="noreferrer" className="underline underline-offset-2">Jay Jaramillo</a>, de ANONYMO.{c.horarioReal ? "" : " El horario es de ejemplo."}
+        Así podría verse la web de {c.nombre}. Es un boceto: los textos, las fotos y los colores finales los definimos contigo. Hecho por <a href="/jay" target="_blank" rel="noreferrer" className="underline underline-offset-2">Jay Jaramillo</a>, de Unmake.{c.horarioReal ? "" : " El horario es de ejemplo."}
       </p>
       {barra}
       <Variante c={c} k={k} fotos={fotos} />

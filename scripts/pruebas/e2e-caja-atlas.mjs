@@ -11,7 +11,7 @@ const capturas = process.argv[2] ?? "/tmp/anonymo-pruebas/capturas-caja";
 mkdirSync(capturas, { recursive: true });
 const registro = process.env.ANTHROPIC_REGISTRO ?? "/tmp/anonymo-pruebas/pedidos-ia.jsonl";
 // Solo los pedidos a Faro: otras partes del estudio pueden usar la IA falsa mientras corre la prueba.
-const pedidosIA = () => { try { return readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes("Faro, contenido de ANONYMO")).length; } catch { return 0; } };
+const pedidosIA = () => { try { return readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes("Faro, contenido de Unmake")).length; } catch { return 0; } };
 const fallas = [];
 const exigir = (ok, texto) => { console.log(`${ok ? "✓" : "✗"} ${texto}`); if (!ok) fallas.push(texto); };
 const espera = (loc, ms = 20000) => loc.waitFor({ timeout: ms }).then(() => true, () => false);

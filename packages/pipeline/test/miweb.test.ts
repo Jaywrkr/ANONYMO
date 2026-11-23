@@ -14,7 +14,7 @@ const HTML = `<!doctype html><html><head><style>h1{color:red}</style></head><bod
 <p>Atendemos de lunes a viernes.<br>Sábados con cita.</p>
 <p><img src="img/consultorio.jpg" alt="El consultorio"></p>
 <img src="./img/equipo.jpg"><img src="https://x.com/a.png">
-<p data-no-editar>Hecho por ANONYMO</p>
+<p data-no-editar>Hecho por Unmake</p>
 <script>var p = "<p>no tocar</p>";</script>
 <button type="button">Agenda tu cita</button>
 </body></html>`;

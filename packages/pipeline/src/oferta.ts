@@ -1,9 +1,9 @@
-// Lo que vende ANONYMO a los negocios que encuentra Imán (sistema/72). Una sola oferta clara; los extras van en la propuesta.
+// Lo que vende Unmake a los negocios que encuentra Imán (sistema/72). Una sola oferta clara; los extras van en la propuesta.
 // Decidido por Jay el 11 nov 2026. Si cambia, se cambia aquí y en docs/oferta.md.
 
 export const OFERTA = {
   web: {
-    nombre: "Web ANONYMO",
+    nombre: "Web Unmake",
     precio: 390,
     dias: 7,
     rondas: 2,

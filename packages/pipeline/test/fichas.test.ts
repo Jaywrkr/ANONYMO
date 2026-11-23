@@ -11,7 +11,7 @@ const proy = (x: Record<string, unknown> = {}) => ({ id: "sonrisa-sin-web", clie
 
 test("el id de la ficha sale del nombre sin tildes ni signos", () => {
   assert.equal(idFicha("Clínica Sonrisa"), "clinica-sonrisa");
-  assert.equal(idFicha("  ANONYMO* "), "anonymo");
+  assert.equal(idFicha("  Unmake* "), "unmake");
 });
 
 test("un prospecto en frío no abre ficha; uno que respondió sí", () => {
@@ -55,9 +55,9 @@ test("lo escrito a mano manda: nombre, contacto y alias que juntan otros nombres
 });
 
 test("la ficha guardada se crea, se cambia sin perder lo anterior y valida", async () => {
-  await guardarFicha("anonymo", { nombre: "ANONYMO", notas: "Nosotros mismos", alias: ["Anonymo*", "anonymo"] }, "jay");
-  await guardarFicha("anonymo", { nombre: "ANONYMO", web: "https://anonymo.ec" }, "luna");
-  const f = (await leerFichas()).fichas.anonymo;
+  await guardarFicha("unmake", { nombre: "Unmake", notas: "Nosotros mismos", alias: ["unmake.", "unmake"] }, "jay");
+  await guardarFicha("unmake", { nombre: "Unmake", web: "https://anonymo.ec" }, "luna");
+  const f = (await leerFichas()).fichas.unmake;
   assert.equal(f.notas, "Nosotros mismos");
   assert.equal(f.web, "https://anonymo.ec");
   assert.deepEqual(f.alias, undefined, "los alias que son el mismo nombre no se guardan");

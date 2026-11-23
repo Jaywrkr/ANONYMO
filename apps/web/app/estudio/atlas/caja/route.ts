@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       const lectura = await leerFuentes({ saber: saber!, web, propias });
       await guardarFicha(f!.id, { nombre: f!.guardada?.nombre ?? f!.nombre, lectura: { ...lectura, por: p.yo! } }, p.yo!);
       const n = lectura.propuestas.length;
-      const texto2 = !lectura.web && propias ? (n ? `Hay ${n} ${n === 1 ? "dato" : "datos"} que el estudio ya sabe de ANONYMO. Revísalos en su ficha y guarda los que estén bien.` : "Su ficha ya tiene todo lo que sabe el estudio.") : lectura.web?.estado !== "ok" ? `No pudimos leer su web: ${lectura.web?.motivo ?? "no abre"}` : n ? `Encontramos ${n} ${n === 1 ? "dato" : "datos"} en su web. Revísalos en su ficha y guarda los que estén bien.` : "Leímos su web y no hay nada nuevo.";
+      const texto2 = !lectura.web && propias ? (n ? `Hay ${n} ${n === 1 ? "dato" : "datos"} que el estudio ya sabe de Unmake. Revísalos en su ficha y guarda los que estén bien.` : "Su ficha ya tiene todo lo que sabe el estudio.") : lectura.web?.estado !== "ok" ? `No pudimos leer su web: ${lectura.web?.motivo ?? "no abre"}` : n ? `Encontramos ${n} ${n === 1 ? "dato" : "datos"} en su web. Revísalos en su ficha y guarda los que estén bien.` : "Leímos su web y no hay nada nuevo.";
       return Response.json({ tarjeta: { titulo: `Datos de ${f!.nombre}`, texto: texto2, botones: n ? [{ texto: "Revisar en su ficha", href: `/estudio/cliente/${f!.id}#leido` }] : [] } satisfies Tarjeta }, sinCache);
     }
     if (accion === "pedido") {

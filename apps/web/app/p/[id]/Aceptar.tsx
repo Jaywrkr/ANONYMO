@@ -1,7 +1,7 @@
 "use client";
 
 // Lo que hace la propuesta en el navegador del negocio (sistema/80): avisa que la abrió y deja «Aceptar».
-// Al aceptar se anota, suena el celular de Jay y se abre el WhatsApp de ANONYMO con el mensaje listo.
+// Al aceptar se anota, suena el celular de Jay y se abre el WhatsApp de Unmake con el mensaje listo.
 import { useEffect, useState } from "react";
 
 export function Aceptar({ id, nombre, numero, yaAcepto }: { id: string; nombre: string; numero?: string; yaAcepto: boolean }) {

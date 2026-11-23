@@ -28,7 +28,7 @@ test("el seguimiento toca a los 3 días, una sola vez y solo si no respondió", 
 });
 
 test("el mensaje de seguimiento lleva la propuesta y no presiona", () => {
-  const m = mensajeSeguimiento(base(), "Jay, ANONYMO", "https://x/m/a", "https://x/p/a");
+  const m = mensajeSeguimiento(base(), "Jay, Unmake", "https://x/m/a", "https://x/p/a");
   assert.match(m, /https:\/\/x\/m\/a/);
   assert.match(m, /https:\/\/x\/p\/a/);
   assert.match(m, /no es el momento/);

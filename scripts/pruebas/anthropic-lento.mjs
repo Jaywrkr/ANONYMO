@@ -31,7 +31,7 @@ http.createServer((req, res) => {
       return;
     }
     // Faro escribe guiones (sistema/71): uno fijo de prueba, con el cliente y la duración que le llegan.
-    if (cuerpo.system?.startsWith("Faro, contenido de ANONYMO")) {
+    if (cuerpo.system?.startsWith("Faro, contenido de Unmake")) {
       const texto = String(cuerpo.messages?.[0]?.content ?? "");
       const cliente = texto.split("## Cliente\n")[1]?.split("\n")[0] ?? "la marca";
       const input = { titulo: `Guion de prueba para ${cliente}`, gancho: "¿Y si tu agencia trabajara mientras duermes?", partes: [{ texto: "Somos dos personas y veintidós agentes.", toma: "Plano medio de Jay y Luna en el estudio" }, { texto: "Cada uno hace lo suyo, como en una oficina de verdad.", toma: "Pantalla con la oficina de agentes" }], cierre: "Escríbenos y te mostramos tu web en una semana.", tomas: ["Jay y Luna en el estudio", "Pantalla de la oficina", "Logo al final"] };
@@ -71,7 +71,7 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_1", name: "editar_video", input: { respuesta, acciones, noSePuede } }], usage: { input_tokens: 900, output_tokens: 120 } }));
       return;
     }
-    if(cuerpo.system?.startsWith('Comprobación de conexión ANONYMO.')){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({content:[{type:'text',text:'LISTO'}],usage:{input_tokens:10,output_tokens:2}}));return;}
+    if(cuerpo.system?.startsWith('Comprobación de conexión Unmake.')){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({content:[{type:'text',text:'LISTO'}],usage:{input_tokens:10,output_tokens:2}}));return;}
     // Comparación a ciegas contra el banco (sistema/55): la pieza B siempre gana, con arreglos para las dos.
     if (cuerpo.system?.startsWith('Revisor de calidad.') && JSON.stringify(cuerpo.messages).includes('# Comparación a ciegas')) {
       res.writeHead(200,{'content-type':'application/json'});

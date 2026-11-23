@@ -14,7 +14,7 @@ export const metadata = { title: "Entrega", robots: { index: false } };
 
 const serif = "font-['Instrument_Serif',serif] font-normal";
 
-// Una entrega en papel (sistema/35): para mandarla al cliente o guardarla, con la marca de Anonymo y el color del cliente.
+// Una entrega en papel (sistema/35): para mandarla al cliente o guardarla, con la marca de Unmake y el color del cliente.
 export default async function EntregaImprimir({ params, searchParams }: { params: Promise<{ id: string; tarea: string }>; searchParams: Promise<{ v?: string; para?: string }> }) {
   await exigirEstudio();
   const { id, tarea } = await params;
@@ -47,7 +47,7 @@ export default async function EntregaImprimir({ params, searchParams }: { params
       <article className="hoja px-12 py-12 md:px-16 md:py-14">
         <header className="border-b-[1.5px] border-[#1a1816] pb-6">
           <div className="flex items-start justify-between gap-6 text-[12px] text-[#5f5a52]">
-            <p className={`${serif} text-[22px] uppercase leading-none tracking-[0.01em] text-[#1a1816]`}>Anonymo*</p>
+            <p className={`${serif} text-[22px] uppercase leading-none tracking-[0.01em] text-[#1a1816]`}>unmake.</p>
             <p className="text-right">{p.pedido.cliente}<br />{fecha}</p>
           </div>
           <p className="mt-10 text-[12px] tracking-[0.08em] uppercase" style={{ color: acento === "#1a1816" ? "#8a8378" : acento }}>
@@ -61,7 +61,7 @@ export default async function EntregaImprimir({ params, searchParams }: { params
         <div className="md mt-8" dangerouslySetInnerHTML={{ __html: html(contenido) }} />
         {e.datos?.cortada ? <p className="no-imprimir mt-8 rounded-xl bg-[#fff4e8] p-4 text-[13px] text-[#8a3a0c]">Esta entrega quedó cortada. Pide que la complete desde el proyecto antes de mandarla.</p> : null}
         <footer className="mt-12 flex items-end justify-between border-t border-[#e6e0d6] pt-4 text-[11px] text-[#8a8378]">
-          <span>anonymo · estudio creativo · Cuenca</span>
+          <span>unmake. · estudio creativo · Cuenca</span>
           <span>{p.pedido.cliente} · {e.titulo}</span>
         </footer>
       </article>

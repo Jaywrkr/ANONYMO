@@ -1,4 +1,4 @@
-// La muestra de un prospecto (sistema/72): una idea de su web, hecha por ANONYMO con lo que ya se sabe del negocio.
+// La muestra de un prospecto (sistema/72): una idea de su web, hecha por Unmake con lo que ya se sabe del negocio.
 // Es pública (llega por WhatsApp), no se indexa y no muestra nada interno: ni puntaje, ni notas, ni lo que falla en su web.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -30,9 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Es lo que se ve en la vista previa de WhatsApp.
   return {
     title: `Idea de web para ${d.c.nombre}`,
-    description: "Una muestra hecha por ANONYMO. Ábrela para verla en tu celular.",
+    description: "Una muestra hecha por Unmake. Ábrela para verla en tu celular.",
     robots: { index: false, follow: false },
-    openGraph: { title: `Idea de web para ${d.c.nombre}`, description: "Una muestra hecha por ANONYMO. Ábrela para verla en tu celular.", siteName: "ANONYMO" },
+    openGraph: { title: `Idea de web para ${d.c.nombre}`, description: "Una muestra hecha por Unmake. Ábrela para verla en tu celular.", siteName: "Unmake" },
   };
 }
 

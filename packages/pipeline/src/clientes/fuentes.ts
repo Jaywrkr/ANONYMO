@@ -221,7 +221,7 @@ export function fuentesDe(saber: Partial<Record<ClaveSaber, ValorSaber>>, web: s
 
 /** Lee su web y arma las propuestas. Solo propone lo que falta o lo que dice otra cosa. Su Instagram queda a pedido. */
 export async function leerFuentes(
-  entrada: { saber: Partial<Record<ClaveSaber, ValorSaber>>; web?: string; /** Lo que el estudio ya sabe (ANONYMO): va primero. */ propias?: PropuestaDato[] },
+  entrada: { saber: Partial<Record<ClaveSaber, ValorSaber>>; web?: string; /** Lo que el estudio ya sabe (Unmake): va primero. */ propias?: PropuestaDato[] },
   f: typeof fetch = fetch,
   ahora = new Date(),
 ): Promise<LecturaFuentes> {
@@ -246,4 +246,4 @@ export async function leerFuentes(
   return lectura;
 }
 
-export const NOMBRE_FUENTE_LEIDA: Record<FuenteLeida, string> = { web: "su web", estudio: "ANONYMO" };
+export const NOMBRE_FUENTE_LEIDA: Record<FuenteLeida, string> = { web: "su web", estudio: "Unmake" };

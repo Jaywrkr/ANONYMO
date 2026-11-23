@@ -33,7 +33,7 @@ export default async function DireccionesImprimir({ params }: { params: Promise<
       <div className="grid gap-8 print:block">
         <article className="hoja apaisada flex flex-col justify-between p-12">
           <div className="flex items-start justify-between text-[12px] text-[#5f5a52]">
-            <p className={`${serif} text-[26px] uppercase leading-none text-[#1a1816]`}>Anonymo*</p>
+            <p className={`${serif} text-[26px] uppercase leading-none text-[#1a1816]`}>unmake.</p>
             <p className="text-right">{p.pedido.cliente}<br />{hoy}</p>
           </div>
           <div>
@@ -62,7 +62,7 @@ export default async function DireccionesImprimir({ params }: { params: Promise<
           </article>
         ))}
       </div>
-      <p className="no-imprimir mt-6 text-center text-[12px] text-[#8a8378]">Propuestas por {a?.nombre} · Anonymo*</p>
+      <p className="no-imprimir mt-6 text-center text-[12px] text-[#8a8378]">Propuestas por {a?.nombre} · unmake.</p>
     </div>
   );
 }

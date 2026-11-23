@@ -12,7 +12,7 @@ export async function PATCH(req: Request) {
   try { c = await req.json(); } catch { return mal("Pedido no válido."); }
   const firma = c.firma === undefined ? undefined : String(c.firma).trim().slice(0, 120);
   if (firma === "") return mal("La firma no puede quedar vacía.");
-  // El WhatsApp de ANONYMO (sistema/72): quien toca «Quiero esta web» en su muestra escribe aquí.
+  // El WhatsApp de Unmake (sistema/72): quien toca «Quiero esta web» en su muestra escribe aquí.
   const numero = c.numero === undefined ? undefined : String(c.numero).trim();
   if (numero && !numeroInternacional(numero)) return mal("Ese número no parece válido. Escríbelo como 099 123 4567.");
   // La meta de mensajes por semana (sistema/89).

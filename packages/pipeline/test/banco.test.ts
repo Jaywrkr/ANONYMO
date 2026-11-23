@@ -154,7 +154,7 @@ test("la comparación a ciegas no dice cuál es la nuestra y trae los 3 arreglos
   const juez: Juez = async (mensaje) => {
     const t = JSON.stringify(mensaje);
     vistos.push(t);
-    assert.ok(!/Pan Norte|Verba|ANONYMO/.test(t), "no hay pistas de quién la hizo");
+    assert.ok(!/Pan Norte|Verba|Unmake/.test(t), "no hay pistas de quién la hizo");
     const nuestraEsA = t.indexOf("Miga") < t.indexOf("## Pieza B");
     // Pierde contra todas menos una (empata).
     const ganador = vistos.length === 1 ? "empate" : nuestraEsA ? "B" : "A";

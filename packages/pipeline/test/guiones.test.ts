@@ -27,17 +27,17 @@ test("Faro escribe, Luna aprueba, se graba y Corte lo lee: cada paso queda firma
       const c = JSON.parse(b);
       pedidos.push({ system: c.system, texto: String(c.messages[0].content) });
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "t", name: "escribir_guion", input: { titulo: "Lanzamiento ANONYMO", gancho: "¿Y si tu agencia trabajara mientras duermes?", partes: [{ texto: "Somos dos y veintidós agentes.", toma: "Jay y Luna" }], cierre: "Escríbenos.", tomas: ["Estudio"] } }], usage: { input_tokens: 1, output_tokens: 1 } }));
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "t", name: "escribir_guion", input: { titulo: "Lanzamiento Unmake", gancho: "¿Y si tu agencia trabajara mientras duermes?", partes: [{ texto: "Somos dos y veintidós agentes.", toma: "Jay y Luna" }], cierre: "Escríbenos.", tomas: ["Estudio"] } }], usage: { input_tokens: 1, output_tokens: 1 } }));
     });
   }).listen(0);
   await new Promise((r) => ia.once("listening", r));
   process.env.ANTHROPIC_API_KEY = "sk-ant-prueba";
   process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${(ia.address() as { port: number }).port}`;
   try {
-    const g = await escribirGuion("Un reel para el lanzamiento de la agencia", { cliente: "ANONYMO", segundos: 60, por: "luna" });
+    const g = await escribirGuion("Un reel para el lanzamiento de la agencia", { cliente: "Unmake", segundos: 60, por: "luna" });
     assert.ok(idGuionValido(g.id), g.id);
-    assert.match(pedidos[0].system, /^Faro, contenido de ANONYMO/);
-    assert.match(pedidos[0].texto, /## Cliente\nANONYMO/);
+    assert.match(pedidos[0].system, /^Faro, contenido de Unmake/);
+    assert.match(pedidos[0].texto, /## Cliente\nUnmake/);
     assert.match(pedidos[0].texto, /60 segundos \(unas 150 palabras/);
     assert.equal(g.estado, "borrador");
     await aprobarGuion(g.id, "luna");

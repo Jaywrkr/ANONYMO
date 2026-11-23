@@ -1,5 +1,5 @@
 // La portada de la agencia (sistema/93): textos y trabajos en español e inglés.
-// ANONYMO es una agencia creativa de dos personas. La IA es apoyo: se nombra una sola vez, en «Cómo trabajamos».
+// Unmake es una agencia creativa de dos personas. La IA es apoyo: se nombra una sola vez, en «Cómo trabajamos».
 import { OFERTA } from "@anonymo/pipeline";
 import type { Idioma } from "./idioma";
 

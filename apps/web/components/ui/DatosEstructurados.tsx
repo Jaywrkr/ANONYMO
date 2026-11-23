@@ -7,7 +7,7 @@ export function DatosEstructurados({ idioma }: { idioma: Idioma }) {
   const datos = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    name: "Anonymo",
+    name: "Unmake",
     url: en ? `${base}/en` : base,
     description: en ? "Creative agency of two people: design, technology and communication. Websites, brand, apps, content and events." : "Agencia creativa de dos personas: diseño, tecnología y comunicación. Webs, marca, apps, contenido y eventos.",
     areaServed: "Worldwide",

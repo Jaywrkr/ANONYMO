@@ -40,7 +40,7 @@ export default async function Dossier({ params }: { params: Promise<{ id: string
       <article className="hoja">
         <header className="portada relative flex flex-col justify-between p-12 md:p-16" style={{ background: acento, color: tinta }}>
           <div className="flex items-start justify-between">
-            <p className={`${serif} text-[30px] uppercase leading-none`}>Anonymo*</p>
+            <p className={`${serif} text-[30px] uppercase leading-none`}>unmake.</p>
             <p className="text-right text-[12px] opacity-70">Dossier del proyecto<br />{hoy}</p>
           </div>
           <div>

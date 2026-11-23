@@ -73,7 +73,7 @@ export function htmlDelProyecto(id: string, opciones: { internas?: boolean } = {
   a { color: inherit; }
 </style></head><body>
   <section class="portada">
-    <p class="meta">Anonymo · Jay ${en ? "&amp;" : "y"} Luna · ${esc(fecha)}</p>
+    <p class="meta">Unmake · Jay ${en ? "&amp;" : "y"} Luna · ${esc(fecha)}</p>
     <div><h1>${esc(p.pedido.cliente)}</h1><p class="desc">${esc(p.pedido.descripcion)}</p></div>
     <p class="meta">${tareas.length} ${en ? "deliverables · phases" : "entregas · fases"} ${p.plan.fases.join(" · ")}</p>
   </section>

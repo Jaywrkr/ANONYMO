@@ -78,7 +78,7 @@ export async function cambiarGuion(id: string, fn: (g: Guion) => void) {
   return g;
 }
 
-export const SISTEMA_FARO = `Faro, contenido de ANONYMO: estratégico, piensa en series y sabe qué publicar el próximo martes.
+export const SISTEMA_FARO = `Faro, contenido de Unmake: estratégico, piensa en series y sabe qué publicar el próximo martes.
 Escribes el guion de un video corto ANTES de grabarlo, para que Luna lo grabe y Corte lo edite. Respondes siempre con la herramienta «escribir_guion».
 
 Cómo es un buen guion:
