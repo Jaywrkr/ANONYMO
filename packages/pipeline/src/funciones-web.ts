@@ -76,7 +76,7 @@ export async function comprobarInteracciones(page:Page,pagina:string,ancho:390|1
    }
    const fin=Date.now()+2500;while(!await cumple()&&Date.now()<fin)await new Promise(r=>setTimeout(r,100));
    if(antesDelUltimoPaso)throw new Error('El resultado ya se cumplía antes del último paso: el caso no demuestra que el control funcione.');
-   if(!await cumple())throw new Error('No apareció el resultado esperado después de ejecutar los pasos.');
+   if(!await cumple()){const d=await resultado.evaluateAll(ns=>ns.map(n=>{const r=(n as HTMLElement).getBoundingClientRect();return `${n.tagName.toLowerCase()} hidden=${(n as HTMLElement).hidden} display=${getComputedStyle(n).display} ${Math.round(r.width)}x${Math.round(r.height)}`;}).join('; ')).catch(()=>'');throw new Error('No apareció el resultado esperado después de ejecutar los pasos.'+(d?' Estado: '+d+'.':''));}
    if(ultimoControl>=0)cubiertos.add(ultimoControl);
    evidencia=`Tras ${p.pasos.length} pasos, ${p.resultado.selector} cambió y cumple ${JSON.stringify(p.resultado)}. La condición no se cumplía antes del último paso. Envíos y destinos externos bloqueados.`;
   }catch(error){estado='falla';evidencia=(error as Error).message.slice(0,900);}
