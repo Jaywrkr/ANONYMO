@@ -177,4 +177,4 @@ html:has(.estudio-marco) {
   --font-display: "Unmake Line", "IBM Plex Mono", monospace;
   --font-serif: "Unmake Line", "IBM Plex Sans", sans-serif;
 }
-html:has(.estudio-marco) :is(.font-serif, .font-display, .entrega h2) { font-style: normal; letter-spacing: 0; text-transform: lowercase; }
+html:has(.estudio-marco) :is(.font-serif, .font-display, .entrega h2) { font-style: normal; letter-spacing: 0; }
