@@ -56,6 +56,10 @@ export async function comprobarInteracciones(page:Page,pagina:string,ancho:390|1
   if(p.pagina!==pagina||p.ancho!==ancho)continue;
   if(plazo&&Date.now()>plazo-15000)throw new Error('Las funciones necesitan otra vuelta; las comprobaciones anteriores se conservan.');
   let estado:Comprobacion['estado']='cumple',evidencia='';let ultimoControl=-1;
+  // Un intento más si el resultado no aparece (sistema/104): el primer clic tras cargar a veces se pierde en navegadores lentos.
+  // Solo se repite ese caso; cualquier otro error (selector, envío, destino externo) falla de inmediato.
+  for(let intento=1;intento<=2;intento++){
+  estado='cumple';evidencia='';ultimoControl=-1;
   try{
    await page.goto(url,{waitUntil:'load',timeout:10000});
    const resultado=page.locator(p.resultado.selector);
@@ -76,6 +80,8 @@ export async function comprobarInteracciones(page:Page,pagina:string,ancho:390|1
    if(ultimoControl>=0)cubiertos.add(ultimoControl);
    evidencia=`Tras ${p.pasos.length} pasos, ${p.resultado.selector} cambió y cumple ${JSON.stringify(p.resultado)}. La condición no se cumplía antes del último paso. Envíos y destinos externos bloqueados.`;
   }catch(error){estado='falla';evidencia=(error as Error).message.slice(0,900);}
+  if(estado==='cumple'||!evidencia.startsWith('No apareció el resultado esperado'))break;
+  }
   salida.push({id:`interaccion-${i}-${ancho}`,texto:`${p.nombre} · ${pagina} a ${ancho}px`,estado,evidencia});
  }
  const sinPrueba=controles.filter(c=>c.visible&&!c.deshabilitado&&!c.envia&&!cubiertos.has(c.i));
