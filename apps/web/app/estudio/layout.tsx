@@ -1,6 +1,10 @@
 import {AtlasFlotante} from "@/components/estudio/AtlasFlotante";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
 import { Suspense } from "react";
 import { Avisos } from "@/components/estudio/Avisos";
 import { Trabajando } from "@/components/estudio/Trabajando";
@@ -15,7 +19,7 @@ import { Vigia } from "@/components/estudio/Vigia";
 import { momento } from "@/lib/camino";
 
 // El estudio se puede instalar en el celular (sistema/72): hace falta en iPhone para recibir avisos.
-export const metadata = { manifest: "/estudio.webmanifest", appleWebApp: { capable: true, title: "ANONYMO", statusBarStyle: "default" as const }, icons: { apple: "/estudio-180.png" } };
+export const metadata = { manifest: "/estudio.webmanifest", appleWebApp: { capable: true, title: "Unmake", statusBarStyle: "default" as const }, icons: { apple: "/estudio-180.png" } };
 
 // Todo el estudio vive dentro del marco: barra de espacios a la izquierda y el contenido en una tarjeta (sistema/32).
 export default async function LayoutEstudio({ children }: { children: React.ReactNode }) {

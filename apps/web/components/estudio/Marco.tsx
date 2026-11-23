@@ -2,6 +2,7 @@
 
 // El marco del estudio (sistema/32): como Arc, la barra vive sobre un fondo de color y el contenido flota en una tarjeta.
 // Cada proyecto es un espacio: al entrar, el marco toma su color. Ctrl/⌘ K lleva a la caja de Atlas desde cualquier lado.
+import { LogoUnmake } from "@/components/estudio/LogoUnmake";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -159,7 +160,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
   return (
     <nav aria-label="Estudio" className="flex h-full flex-col gap-5 text-tinta">
       <div className="flex items-center gap-2 pl-2.5 pt-0.5">
-        <Link href="/estudio" onClick={alIr} className="font-display text-[24px] uppercase leading-none tracking-[0.01em]">Anonymo*</Link>
+        <Link href="/estudio" onClick={alIr} aria-label="Unmake, inicio del estudio" className="block"><LogoUnmake className="h-[26px] w-auto" /></Link>
         <span className="text-[11px] text-tinta/50">estudio</span>
         <span className="ml-auto"><Campana avisos={avisos} alIr={alIr} /></span>
       </div>
@@ -291,7 +292,7 @@ export function Marco({ children, ...props }: Props) {
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         {/* En pantallas chicas la barra se vuelve una línea arriba con un menú. */}
         <div className="flex items-center gap-3 px-2 pt-1 lg:hidden">
-          <Link href="/estudio" className="font-display text-[22px] uppercase leading-none">Anonymo*</Link>
+          <Link href="/estudio" aria-label="Unmake, inicio del estudio" className="block"><LogoUnmake className="h-[24px] w-auto" /></Link>
           {activo && <span className="flex min-w-0 items-center gap-1.5 text-[13px]"><i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: activo.punto }} /><span className="truncate">{activo.nombre}</span></span>}
           <span className="ml-auto"><Campana avisos={props.avisos} /></span>
           <button type="button" onClick={() => setAbierto(true)} aria-expanded={abierto} aria-controls="menu-estudio" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/60 px-4 text-[13px]">

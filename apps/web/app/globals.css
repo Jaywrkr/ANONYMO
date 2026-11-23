@@ -165,3 +165,16 @@ html[data-trabajando] body { overflow: hidden; }
   .no-cortar { break-inside: avoid; }
   html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Gráfica de Unmake en el estudio (sistema/101): papel y tinta de la marca, naranja como acento,
+   Unmake Line en los títulos e IBM Plex en el texto. Solo aplica donde está el marco del estudio. */
+@font-face { font-family: "Unmake Line"; src: url("/fuentes/UnmakeLine-Regular.woff2") format("woff2"); font-display: swap; }
+html:has(.estudio-marco) {
+  --color-hueso: #F4EFE9; --color-papel: #F4EFE9; --color-carta: #FBF8F4; --color-tinta: #0E0C0C; --color-noche: #0E0C0C;
+  --color-linea: #D3CAC0; --color-borde: #E6DED4; --color-gris: #5A524C; --color-medio: #5A524C; --color-suave: #7F766E; --color-urgente: #F0602A;
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-display: "Unmake Line", "IBM Plex Mono", monospace;
+  --font-serif: "Unmake Line", "IBM Plex Sans", sans-serif;
+}
+html:has(.estudio-marco) :is(.font-serif, .font-display, .entrega h2) { font-style: normal; letter-spacing: 0; }
