@@ -172,7 +172,10 @@ try {
   exigir(/El cliente: Asistente encendido/.test(await panel.innerText()), "el estudio ve lo que cambió el cliente");
   await panel.getByRole("button", { name: "Sacar de línea" }).click();
   await espera(panel.locator("[role=status]:has-text('ya no está en línea')"));
-  exigir((await vivo()).status === 404, "sacada de línea, la dirección ya no responde");
+  // La nube puede tardar un instante en reflejarlo: se le da hasta 5 segundos.
+  let fuera = false;
+  for (let i = 0; i < 10 && !fuera; i++) { fuera = (await vivo()).status === 404; if (!fuera) await p.waitForTimeout(500); }
+  exigir(fuera, "sacada de línea, la dirección ya no responde");
   await cli.close();
   await ctx.close();
 } finally {

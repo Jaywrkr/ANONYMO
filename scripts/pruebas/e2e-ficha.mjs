@@ -34,7 +34,7 @@ try {
   await p.locator("summary:has-text('Agregar un cliente a mano')").click();
   await p.getByLabel("Nombre del cliente").fill("Unmake");
   await p.locator("button:has-text('Crear ficha')").click();
-  await p.waitForURL(/estudio\/cliente\/anonymo/);
+  await p.waitForURL(/estudio\/cliente\/unmake/);
   const tareas = p.locator("[data-tareas-saber]");
   exigir(await espera(tareas) && await tareas.locator("[data-tarea]").count() === 7, "la ficha dice qué se puede hacer: siete tareas");
   exigir(await tareas.locator("[data-listo=si]").count() === 0, "con solo el nombre, ninguna tarea está lista");
@@ -48,7 +48,7 @@ try {
   exigir(!(await s1.locator("[role=status]:has-text('Faro escribió')").count()) && pedidosIA().length === antes, "y no se llama a la IA");
 
   // 3 · Se completa la ficha: lo que falta para el guion.
-  await p.goto(`${B}/estudio/cliente/anonymo`);
+  await p.goto(`${B}/estudio/cliente/unmake`);
   const f = p.locator("[data-form-saber]");
   await f.locator("[name=saber-rubro]").fill("Estudio de diseño web con agentes de IA");
   await f.locator("[name=saber-oferta]").fill("Webs de una página para negocios de Cuenca, listas en 7 días");
@@ -79,7 +79,7 @@ try {
 
   // 6 · En celular.
   const m = await (await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, storageState: await ctx.storageState() })).newPage();
-  await m.goto(`${B}/estudio/cliente/anonymo`);
+  await m.goto(`${B}/estudio/cliente/unmake`);
   await m.waitForSelector("[data-tareas-saber]");
   exigir(await m.evaluate(() => document.documentElement.scrollWidth) <= 392, "la ficha cabe en celular");
   await m.screenshot({ path: join(capturas, "3-celular.png"), fullPage: true });
