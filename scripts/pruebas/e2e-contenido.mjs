@@ -128,25 +128,26 @@ try {
   await p.goto(`${B}/estudio/contenido`);
   exigir(/1 de \d+ aprobadas/.test(await p.locator("[data-mes]").first().innerText()), "la lista dice cuántas van aprobadas");
 
-  // 9 · Desde la caja de Atlas: si el mes ya existe, lleva a él sin gastar.
+  // 9 · Desde la conversación de Atlas: si el mes ya existe, lleva a él sin gastar.
   await p.locator("button[aria-label='Abrir chat de Atlas']").click();
   const panel = p.getByRole("dialog", { name: "Chat con Atlas" });
   const caja = panel.locator("#caja-atlas");
-  await espera(caja);
+  await espera(panel.locator("#caja-atlas:not([disabled])"));
   const mesId = (await p.locator("[data-mes]").first().getAttribute("data-mes")) ?? "";
   const [a, m] = mesId.slice(-7).split("-");
   const nombres = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const antes2 = meses();
   await caja.fill(`#unmake /contenido ${nombres[Number(m) - 1]}`);
-  await panel.getByRole("button", { name: "Pedirle a Faro" }).click();
+  await panel.getByRole("button", { name: "Enviar" }).click();
   const ya = panel.locator("[data-tarjeta]").filter({ hasText: "ya está armado" });
   exigir(await espera(ya) && (await ya.locator("a:has-text('Revisar el mes')").getAttribute("href"))?.endsWith(mesId) && meses() === antes2, `un mes que ya existe (${a}-${m}) lleva a él sin gastar`);
   // Y otro mes se arma con confirmación.
   const otro = nombres[Number(m) % 12];
   await caja.fill(`#unmake /contenido ${otro}`);
-  await panel.getByRole("button", { name: "Pedirle a Faro" }).click();
-  exigir(await espera(panel.getByRole("alertdialog", { name: "Confirmar" })) && new RegExp(`armar ${otro}`).test(await panel.getByRole("alertdialog").innerText()), "pide confirmación nombrando el mes");
-  await panel.getByRole("button", { name: "Sí, hazlo" }).click();
+  await panel.getByRole("button", { name: "Enviar" }).click();
+  const conf = panel.getByRole("alertdialog", { name: "Confirmar" }).last();
+  exigir(await espera(conf) && new RegExp(`armar ${otro}`).test(await conf.innerText()), "pide confirmación nombrando el mes");
+  await conf.getByRole("button", { name: "Sí, hazlo" }).click();
   const nueva = panel.locator("[data-tarjeta]").filter({ hasText: `Contenido de Unmake · ${otro}` }).filter({ hasText: "Faro armó" });
   exigir(await espera(nueva, 60000) && meses() === antes2 + 1, "la caja arma el otro mes y trae la tarjeta para revisarlo");
   await p.keyboard.press("Escape");
