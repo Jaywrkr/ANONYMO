@@ -103,11 +103,13 @@ export async function pedirEstructura<T>(
   h: { nombre: string; descripcion: string; esquema: Record<string, unknown> },
   maxTokens = 4000,
   ctx: CtxGasto = {},
+  /** Modelo para esta llamada (sistema/106: Atlas entiende con uno rápido y barato). */
+  modeloPropio?: string,
 ): Promise<T | undefined> {
   const clave = claveAnthropic();
   if (!clave) return undefined;
   await exigirPresupuesto();
-  const modelo = process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
+  const modelo = modeloPropio ?? process.env.ANTHROPIC_MODEL_RAPIDO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
   const llamar = (forzar: boolean) =>
     fetch(`${process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com"}/v1/messages`, {
       method: "POST",

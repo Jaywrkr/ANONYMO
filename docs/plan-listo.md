@@ -28,6 +28,7 @@ Acordado con Jay el 23 de noviembre de 2026. No se vende con el estudio hasta cu
 - Revisiones automáticas antes de entregar.
 
 ### 3 · Funcional (empieza sentándose con Luna)
+- [x] Atlas: una sola conversación por persona, entiende lenguaje normal, «hoy» arriba, confirma antes de gastar, avance en vivo (sistema/106). Falta probarlo con Luna.
 - Inicio propio para Jay y para Luna.
 - Menú corto (ocultar, no borrar).
 - Una sola vista de proyecto en vez de 8 subpáginas.

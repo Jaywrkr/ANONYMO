@@ -19,6 +19,24 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
       return;
     }
+    // Atlas entiende pedidos en palabras normales (sistema/106): reglas simples sobre el mensaje y la lista de clientes.
+    if (cuerpo.system?.startsWith("Atlas entiende pedidos")) {
+      const t = String(cuerpo.messages?.[0]?.content ?? "");
+      const msg = (t.split("## Mensaje\n")[1] ?? "").trim();
+      const n = msg.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const ctxProy = (t.match(/Proyecto abierto: ([a-z0-9_-]+)/) ?? [])[1] ?? "";
+      const clientes = (t.split("## Clientes (id: nombre)\n")[1] ?? "").split("\n## ")[0].split("\n").map((l) => l.split(": ")).filter((x) => x.length > 1).map(([id, nombre]) => ({ id, nombre: nombre.replace(/ \(.*\)$/, "") }));
+      const norm = (x) => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const hits = clientes.filter((c) => norm(c.nombre).split(/\s+/).filter((w) => w.length > 4).some((w) => n.includes(w)));
+      const plena = hits.filter((c) => n.includes(norm(c.nombre)));
+      const cl = plena.length === 1 ? plena[0] : hits.length === 1 ? hits[0] : undefined;
+      const accion = /que sabes/.test(n) ? "memoria" : /que me toca|pendiente/.test(n) ? "hoy" : /cambia|que diga|que el boton/.test(n) ? "cambio" : /reel|video/.test(n) ? "guion" : /mensaje|whatsapp/.test(n) ? "mensaje" : /muestra/.test(n) ? "muestra" : /mes de contenido|calendario/.test(n) ? "contenido" : /como va|que falta|en que va|avance|fase|como esta/.test(n) ? "proyecto" : "ayuda";
+      let input = { accion, cliente: cl?.id ?? "", proyecto: cl ? "" : ctxProy, texto: msg.replace(/^.*?(?:de|para) [^,]*?(?:,|:)\s*/i, "") || msg };
+      if (!cl && hits.length > 1 && accion !== "hoy") input = { ...input, pregunta: `¿De cuál? Encontré ${hits.length}.`, opciones: hits.slice(0, 4).map((c) => ({ texto: c.nombre, accion, cliente: c.id })) };
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_atlas", name: "entender_pedido", input }], usage: { input_tokens: 700, output_tokens: 40 } }));
+      return;
+    }
     // Faro arma el mes de contenido (sistema/96): una pieza por cada fecha que le llega, alternando series y formatos.
     if (cuerpo.system?.startsWith("Faro arma el mes de contenido")) {
       const texto = String(cuerpo.messages?.[0]?.content ?? "");
