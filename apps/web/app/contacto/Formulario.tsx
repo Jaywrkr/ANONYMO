@@ -14,6 +14,11 @@ export function Formulario() {
   const [estado, enviar, enviando] = useActionState(enviarPedido, null);
   const idioma = idiomaDeRuta(usePathname());
   const en = idioma === "en";
+  // Lo que se eligió en la portada llega en ?tipo= (web/105).
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get("tipo");
+    if (t && t in PEDIDOS) setTipo(t as keyof typeof PEDIDOS);
+  }, []);
   useEffect(() => {
     if (estado?.ok) medir("formulario", tipo);
   }, [estado, tipo]);

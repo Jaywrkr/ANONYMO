@@ -1,6 +1,8 @@
 // Calibración del juez en línea (sistema/55): pasos cortos encadenados, como las vueltas de trabajo.
 // Cada paso califica referencias hasta su plazo, guarda el avance en _agencia y pide el siguiente.
-import { navegadorCapturas, nubeActiva, pasoCalibracion, pasoCapturas, subirRuta } from "@anonymo/pipeline";
+import { rmSync } from "node:fs";
+import { join } from "node:path";
+import { carpeta, navegadorCapturas, nubeActiva, pasoCalibracion, pasoCapturas, subirRuta } from "@anonymo/pipeline";
 import { conNube } from "@/lib/nube";
 import { firmaTrabajo, origenActual } from "@/lib/trabajo";
 
@@ -58,7 +60,9 @@ export async function trabajarCapturas(origen: string, despuesDe?: string) {
       // Cada captura se sube apenas se saca (imagen, índice de capturas y avance): si el paso se corta, no se pierde.
       const subir = async (archivos: string[]) => {
         if (!nubeActiva()) return;
-        for (const a of archivos) await subirRuta(`_banco/capturas/${a}`);
+        // Ya subida, la imagen se borra del disco del servidor (512 MB): si no, se acumulan y falla con ENOSPC (sistema/104).
+        // Quien la necesite la lee del almacén (bytesCaptura).
+        for (const a of archivos) { await subirRuta(`_banco/capturas/${a}`); rmSync(join(carpeta(), "_banco", "capturas", a), { force: true }); }
         if (archivos.length) await subirRuta("_agencia/banco-capturas.json");
         await subirRuta("_agencia/capturas/en-curso.json").catch(() => {});
       };

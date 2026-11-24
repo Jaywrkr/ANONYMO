@@ -9,7 +9,7 @@ import {navegadorCalidad} from '../../packages/pipeline/src/inspeccionar.ts';
 import {enCarpeta,crear,planificar,guardarSitio,controlar,leerProyecto,controlInicial,estadoEntrega} from '../../packages/pipeline/src/index.ts';
 process.env.ANONYMO_PROYECTOS=mkdtempSync(join(tmpdir(),'anonymo-funciones-'));
 await enCarpeta(process.env.ANONYMO_PROYECTOS!,async()=>{
-const html=(c:string)=>`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba ficticia</title><style>body{font:18px system-ui;padding:24px;color:#111;background:white}button,input{font:inherit;padding:12px}a{color:#163d2e}</style></head><body><main><h1>Taller ficticio</h1>${c}</main></body></html>`;
+const html=(c:string)=>`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba ficticia</title><style>body{font:18px system-ui;padding:24px;color:#111;background:white}button,input{font:inherit;padding:12px}a{color:#163d2e}nav{min-height:40px}</style></head><body><main><h1>Taller ficticio</h1>${c}</main></body></html>`;
 const archivos:Record<string,string>={
  'index.html':html('<a href="equipo.html#personas">Equipo</a><a href="mailto:prueba@example.invalid">Correo</a><button type="button" id="menu" onclick="document.querySelector(\'#panel\').hidden=!document.querySelector(\'#panel\').hidden">Menú</button><nav id="panel" hidden><a href="equipo.html">Conocer el taller</a></nav>'),
  'cobertura.html':html('<button type="button" id="muerto">Sin acción</button><button type="button" id="activo" onclick="document.querySelector(\'#salida\').hidden=false">Mostrar</button><p id="salida" hidden>Visible</p>'),
@@ -30,7 +30,8 @@ try{
  {nombre:'Cerrar menú '+ancho,pagina:'index.html',ancho,pasos:[{accion:'clic',selector:'#menu'},{accion:'clic',selector:'#menu'}],resultado:{selector:'#panel',visible:false,texto:'Conocer el taller'}},
  ])}));
  // Se comprueba abrir y cerrar, aunque el cierre regrese al estado inicial.
- const primer=await comprobarInteracciones(page,'index.html',390,base,casos);assert.equal(primer.find(c=>c.texto.startsWith('Abrir'))?.estado,'cumple');assert.equal(primer.find(c=>c.texto.startsWith('Cerrar'))?.estado,'cumple');
+ await page.setViewportSize({width:390,height:844});// En CI el navegador de producción no trae fuentes: el panel tiene alto propio para no depender del texto.
+ const primer=await comprobarInteracciones(page,'index.html',390,base,casos);assert.equal(primer.find(c=>c.texto.startsWith('Abrir'))?.estado,'cumple',JSON.stringify(primer));assert.equal(primer.find(c=>c.texto.startsWith('Cerrar'))?.estado,'cumple',JSON.stringify(primer));
  await page.goto(base+'/index.html');const trivial=leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'Sin cambio',pagina:'index.html',ancho:390,pasos:[{accion:'clic',selector:'#menu'}],resultado:{selector:'h1',texto:'Taller ficticio'}}]}));assert.ok((await comprobarInteracciones(page,'index.html',390,base,trivial)).some(c=>c.estado==='falla'));
  console.log('✓ Enlaces locales y anclas reales; menú cambia de estado; una condición ya satisfecha no se acepta como prueba.');
  await page.goto(base+'/cobertura.html');const cobertura=await comprobarInteracciones(page,'cobertura.html',390,base,leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'No encubrir botones muertos',pagina:'cobertura.html',ancho:390,pasos:[{accion:'clic',selector:'#muerto'},{accion:'clic',selector:'#activo'}],resultado:{selector:'#salida',visible:true}}]})));assert.ok(cobertura.some(c=>c.estado==='falla'&&c.evidencia.includes('Sin acción')));
@@ -38,7 +39,8 @@ try{
  console.log('✓ Se rechazan archivo ausente, ancla inexistente, enlace vacío y protocolo de script.');
  await page.goto(base+'/index.html');assert.ok((await comprobarInteracciones(page,'index.html',1440,base,leerPruebasWeb(undefined))).some(c=>c.estado==='falla'));
  assert.ok(leerPruebasWeb('{mal').error);assert.ok(leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'Ejecutar código',pagina:'index.html',ancho:390,pasos:[{accion:'evaluar',selector:'body'}],resultado:{selector:'body',visible:true}}]})).error);
- await page.goto(base+'/formulario.html');const formulario=await comprobarInteracciones(page,'formulario.html',390,base,leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'No enviar',pagina:'formulario.html',ancho:390,pasos:[{accion:'clic',selector:'#enviar'}],resultado:{selector:'#confirmacion',visible:true}}]})));assert.ok(formulario.some(c=>c.estado==='pendiente'&&c.id.startsWith('formularios-')));assert.ok(formulario.some(c=>c.estado==='falla'));assert.equal(enviados,0);
+ await page.close();const hoja=await ctx.newPage();await hoja.setViewportSize({width:390,height:844});
+ await hoja.goto(base+'/formulario.html',{timeout:15000});const formulario=await comprobarInteracciones(hoja,'formulario.html',390,base,leerPruebasWeb(JSON.stringify({version:1,pruebas:[{nombre:'No enviar',pagina:'formulario.html',ancho:390,pasos:[{accion:'clic',selector:'#enviar'}],resultado:{selector:'#confirmacion',visible:true}}]})));assert.ok(formulario.some(c=>c.estado==='pendiente'&&c.id.startsWith('formularios-')));assert.ok(formulario.some(c=>c.estado==='falla'));assert.equal(enviados,0);
  console.log('✓ Sin casos reproducibles no se verifican botones; los formularios no se envían y quedan pendientes.');
  // Integración real con la puerta de calidad: ni la IA ni Lighthouse pueden tapar un enlace roto.
  const pedido={id:'funciones-prueba',cliente:'Taller ficticio',tipo:'web' as const,descripcion:'Web de prueba.',creado:new Date().toISOString()};crear(pedido,planificar(pedido,{tareas:['4.vector']}));const p=leerProyecto(pedido.id);

@@ -1,12 +1,16 @@
-# En cada push y PR: tipos, contrato, pruebas del pipeline y build de la web.
+# En cada rama, en main y en cada PR: tipos, contrato, pruebas del pipeline y build de la web (sistema/104).
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, "sistema/**", "web/**"]
   pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   revisar:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,12 +24,15 @@ jobs:
       - run: npm run lint
       - run: npm run revisar
       - run: npm run probar
+      - name: Instalar Chromium para pruebas de funciones
+        run: npx playwright install --with-deps chromium
       - name: Comprobar funciones de webs ficticias
+        run: node --experimental-strip-types scripts/pruebas/funciones-web.ts
+      - name: Abrir el navegador de producción
         run: |
           mkdir -p "$TMPDIR"
-          node --experimental-strip-types scripts/pruebas/funciones-web.ts
+          node --experimental-strip-types scripts/pruebas/navegador-produccion.ts
         env:
-          VERCEL: "1"
           TMPDIR: /tmp/anonymo-chromium-funciones
       - name: Preparar PostgreSQL aislado para pruebas
         run: npm install --prefix "$RUNNER_TEMP/anonymo-postgres" --no-audit --no-fund @embedded-postgres/linux-x64@17.10.0-beta.17
@@ -38,8 +45,6 @@ jobs:
         env:
           POSTGRES_BIN: ${{ runner.temp }}/anonymo-postgres/node_modules/@embedded-postgres/linux-x64/native/bin
       - run: npm run build
-      - name: Instalar navegador para ensayo del estudio
-        run: npx playwright install --with-deps chromium
       - name: Ensayar estudio móvil y piloto con servicios ficticios
         run: node --experimental-strip-types scripts/pruebas/publicaciones.mjs
         env:

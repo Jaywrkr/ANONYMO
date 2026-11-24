@@ -31,7 +31,8 @@ export function FilaProyecto({ id, cliente, tipo, m, destino, caras, cuando, mar
         </span>
       </span>
       <span className="min-w-0 text-[14px] leading-snug text-medio">
-        <span className="line-clamp-2">{m.ahora}</span>
+        {m.parado ? <span className="block text-[12px] font-medium text-urgente">Parado hace {m.parado} días</span> : null}
+        <span className="line-clamp-2">{m.parado ? m.ahora.replace(/^Lleva \d+ días esperando\. /, "") : m.ahora}</span>
         <span className="mt-0.5 block text-[12px] text-suave">{PEDIDOS[tipo].nombre} · fase {m.fase.n} de {m.fase.de} · {m.hechas}/{m.total} entregas{cuando ? ` · ${hace(cuando)}` : ""}</span>
       </span>
       <span className="flex items-center gap-3 md:justify-end">
