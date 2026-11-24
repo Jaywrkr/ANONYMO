@@ -1,14 +1,11 @@
 import { Formulario } from "@/app/contacto/Formulario";
-import type { Idioma } from "@/lib/idioma";
-import { T } from "@/lib/textos";
 
-export function Contacto({ idioma }: { idioma: Idioma }) {
-  const t = T[idioma].contacto;
+export function Contacto() {
   return (
     <main className="px-[max(20px,env(safe-area-inset-left))] md:px-10">
       <div className="grid gap-6 pb-14 pt-4 md:grid-cols-12 md:items-end">
-        <h1 className="display text-[clamp(40px,5vw,72px)] md:col-span-8">{t.titulo}</h1>
-        <p className="max-w-sm text-gris md:col-span-4">{t.texto}</p>
+        <h1 className="display text-[clamp(40px,5vw,72px)] md:col-span-8">Hablemos</h1>
+        <p className="max-w-sm text-gris md:col-span-4">Cuéntanos qué necesitas. Jay o Luna te responden en menos de 24 horas.</p>
       </div>
       <Formulario />
     </main>

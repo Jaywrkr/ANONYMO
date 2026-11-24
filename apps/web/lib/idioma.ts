@@ -28,4 +28,3 @@ export const area = (id: AreaId, idioma: Idioma) => (idioma === "en" ? AREAS_EN[
 export const pedido = (t: TipoPedido, idioma: Idioma) => (idioma === "en" ? PEDIDOS_EN[t] : PEDIDOS[t].nombre);
 
 /** Para metadata: la página en los dos idiomas. */
-export const alternos = (ruta: string) => ({ languages: { es: ruta, en: ruta === "/" ? "/en" : `/en${ruta}` } });
