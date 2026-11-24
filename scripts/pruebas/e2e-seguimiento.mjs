@@ -154,6 +154,8 @@ try {
   // El pedido parte de la muestra que el negocio vio (sistema/85).
   const nuevo = await ctx.newPage();
   await nuevo.goto(B + await ahora.locator("a:has-text('Crear el pedido')").getAttribute("href"));
+  // El campo se llena al terminar de cargar: se espera a que tenga el texto antes de revisarlo.
+  await nuevo.waitForFunction(() => document.querySelector("textarea")?.value.includes("Ya aceptó la propuesta"), null, { timeout: 20000 }).catch(() => {});
   const cuenta = await nuevo.locator("textarea").first().inputValue();
   exigir(cuenta.includes("PARTE DE SU MUESTRA") && cuenta.includes("Plantilla «Revista»") && cuenta.includes("el color de su marca") && cuenta.includes("450 dólares + IVA") && cuenta.includes("Ya aceptó la propuesta"), "«Cuéntale a Atlas» ya trae su plantilla, sus colores y lo acordado");
   await nuevo.close();

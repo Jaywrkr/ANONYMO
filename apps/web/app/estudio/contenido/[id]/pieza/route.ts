@@ -17,6 +17,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof c.estado === "string") { if (!(c.estado in ESTADOS_PIEZA)) return mal("Ese estado no existe."); cambio.estado = c.estado as EstadoPieza; }
   if (typeof c.formato === "string") { if (!(c.formato in FORMATOS)) return mal("Ese formato no existe."); cambio.formato = c.formato as FormatoPieza; }
   if (c.nota !== undefined) cambio.nota = c.nota === null ? null : String(c.nota);
+  if (c.elegirB === true) cambio.elegirB = true;
+  if (typeof c.tituloArte === "string") cambio.tituloArte = c.tituloArte;
   try {
     return Response.json({ mes: await cambiarPieza(id, String(c.pieza ?? ""), cambio, p.yo!) }, sinCache);
   } catch (e) {
@@ -36,7 +38,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!m || !pz) return mal("No encontramos esa pieza.", 404);
   if (pz.formato !== "reel") return mal("Solo los reels llevan guion.");
   try {
-    const g = await escribirGuion(`${pz.idea}. Texto de la publicación: ${pz.texto}. Cómo se ve: ${pz.visual}`, { cliente: m.nombre, segundos: 30, por: p.yo! });
+    const g = await escribirGuion(`${pz.idea}. Texto de la publicación: ${pz.texto}. Cómo se ve: ${pz.visual}${pz.lamina ? `. Título de la portada: ${pz.lamina.titulo}` : ""}`, { cliente: m.nombre, segundos: 30, por: p.yo! });
     const guion = [`Gancho: ${g.gancho}`, ...g.partes.map((x, i) => `${i + 1}. ${x.texto}${x.toma ? ` (toma: ${x.toma})` : ""}`), `Cierre: ${g.cierre}`].join("\n");
     return Response.json({ mes: await cambiarPieza(id, pz.id, { guion }, p.yo!) }, sinCache);
   } catch (e) {

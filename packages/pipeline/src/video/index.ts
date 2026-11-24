@@ -8,3 +8,4 @@ export { medirVideo, rutaFfmpeg, filtrosRender, leerMedida, leerSilencios, umbra
 export * from "./marcas-video.ts";
 export * from "./guiones.ts";
 export * from "./contenido.ts";
+export * from "./artes.ts";

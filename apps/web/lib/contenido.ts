@@ -27,6 +27,6 @@ export async function crearMes(f: Ficha, mes: string, pedido: string | undefined
   return armarMes({
     cliente: f.id, nombre: f.nombre, mes, por, pedido: pedido || undefined,
     saber: contextoCliente(s, [...TAREAS_SABER.contenido.minimo, ...TAREAS_SABER.contenido.mejor]),
-    canales: s.canales?.valor ?? "Instagram", frecuencia: s.frecuencia?.valor ?? "",
+    canales: s.canales?.valor ?? "Instagram", frecuencia: s.frecuencia?.valor ?? "", color: s.color?.valor,
   });
 }

@@ -9,14 +9,15 @@ export const esAnonymo = (id: string | undefined) => id === ID_ANONYMO || id ===
 const DETALLE = "lo que ya sabe el estudio";
 const DATOS_ANONYMO: [PropuestaDato["clave"], string][] = [
   ["rubro", "Agencia creativa: diseño, tecnología y comunicación"],
-  ["oferta", "Webs para negocios: una página por USD 390 + IVA, con plan mensual de USD 19 (el primer mes va incluido). También marca, experiencias digitales, redes y sesiones de fotos con Luna."],
+  ["oferta", "Marca, web y contenido para negocios que quieren verse distintos, hechos por dos personas de principio a fin. En redes no se dicen precios."],
   ["publico", "Negocios con buenas reseñas en Google que no tienen web o tienen una que no funciona."],
   ["servicios", "Webs\nMarca y logo\nExperiencias digitales\nRedes y contenido\nFotografía y eventos"],
   ["canales", "Instagram"],
-  ["temas", "Antes y después: de la muestra a la web terminada\nTrabajos que hemos hecho (ANKLA, JAYFIT, Kubono, Coresolutions, Minervo)\nCómo trabajamos Jay y Luna\nErrores comunes de los negocios que solo tienen Instagram"],
+  ["temas", "Desarmamos: una marca por dentro (cuadrícula, letra, color), empezando por Unmake\nLaboratorio: piezas animadas de nuestra marca\nCómo trabajamos: Jay, Luna y los 4 pasos (desarmar, elegir, armar, soltar)\nLo que no hacemos: opiniones claras\nTrabajos que hemos hecho (ANKLA, JAYFIT, Kubono, Coresolutions, Minervo)"],
   ["tono", "Directo y simple. Sin tecnicismos, sin frases motivacionales ni promesas exageradas. Mostrar que sabemos, no decirlo. No se habla de IA."],
   ["frecuencia", "3 veces por semana"],
   ["aprueba", "Jay y Luna"],
+  ["color", "Sin color fijo: cinco luces (naranja #F0602A, azul #3D5BFF, magenta #FF3D8B, verde #1FCF8F, amarillo #FFB21A) sobre tinta #0E0C0C y papel #F4EFE9"],
 ];
 
 export const PROPIAS_ANONYMO: PropuestaDato[] = DATOS_ANONYMO.map(([clave, valor]) => ({ clave, valor, fuente: "estudio", detalle: DETALLE }));
