@@ -37,15 +37,30 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_atlas", name: "entender_pedido", input }], usage: { input_tokens: 700, output_tokens: 40 } }));
       return;
     }
-    // Faro arma el mes de contenido (sistema/96): una pieza por cada fecha que le llega, alternando series y formatos.
+    // Faro arma el mes de contenido (sistema/107): primero el calendario, una fila por fecha, con series de plantilla fija.
     if (cuerpo.system?.startsWith("Faro arma el mes de contenido")) {
       const texto = String(cuerpo.messages?.[0]?.content ?? "");
       const fechas = (texto.split(/## Fechas[^\n]*\n/)[1] ?? "").split("\n").filter((l) => /^\d+\. \d{4}-\d{2}-\d{2}/.test(l));
-      const series = [{ nombre: "Antes y después", para: "Mostrar el trabajo terminado" }, { nombre: "Preguntas de clientes", para: "Responder dudas reales" }, { nombre: "Detrás de cámaras", para: "Que conozcan al equipo" }];
-      const formatos = ["reel", "carrusel", "post", "historia"];
-      const piezas = fechas.map((l, i) => ({ n: i + 1, serie: series[i % 3].nombre, formato: formatos[i % 4], idea: `Idea de prueba ${i + 1}: ${series[i % 3].nombre.toLowerCase()}`, texto: `Texto de prueba ${i + 1}. Escríbenos por WhatsApp para saber más.`, visual: `Toma de prueba ${i + 1}` }));
+      const series = [{ nombre: "Antes y después", para: "Mostrar el trabajo terminado", plantilla: "frase" }, { nombre: "Preguntas de clientes", para: "Responder dudas reales", plantilla: "lista" }, { nombre: "Detrás de cámaras", para: "Que conozcan al equipo", plantilla: "tachado" }];
+      const filas = fechas.map((l, i) => ({ n: i + 1, serie: series[i % 3].nombre, formato: i % 4 === 3 ? "reel" : i % 3 === 1 ? "carrusel" : "post", hora: i % 2 ? "08:30" : "18:00", ideaA: `Idea de prueba ${i + 1}: ${series[i % 3].nombre.toLowerCase()}`, ideaB: `Otra idea ${i + 1}` }));
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_mes", name: "armar_mes", input: { series, piezas } }], usage: { input_tokens: 1200, output_tokens: 3000 } }));
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_cal", name: "armar_calendario", input: { series, fechas: filas } }], usage: { input_tokens: 1200, output_tokens: 900 } }));
+      return;
+    }
+    // Faro escribe las piezas de una tanda: opción A y B, arte según la plantilla, historias y YouTube en reels.
+    if (cuerpo.system?.startsWith("Faro escribe las piezas")) {
+      const texto = String(cuerpo.messages?.[0]?.content ?? "");
+      const filas = [...texto.matchAll(/^(\d+)\. \d{4}-\d{2}-\d{2} \S+ · serie «[^»]+» · (\w+) · plantilla «(\w+)»/gm)].map((m) => ({ n: Number(m[1]), formato: m[2], plantilla: m[3] }));
+      const lamina = (n, pl, o) => pl === "tachado" ? { tachado: "Excusa", titulo: `Decisión ${n}${o}.` } : pl === "lista" ? { antetitulo: "PRUEBA · LISTA", titulo: `3 cosas para revisar ${n}${o}`, bajada: "Una bajada de prueba.", items: [{ t: "Primer punto", d: "Por qué importa." }, { t: "Segundo punto", d: "Por qué importa." }, { t: "Tercer punto" }], cierre: "Guárdalo." } : { titulo: `Título de prueba ${n}${o}`, bajada: "Una bajada corta." };
+      const piezas = filas.map(({ n, formato, plantilla }) => ({
+        n,
+        A: { texto: `Texto de prueba ${n}. 🚀 Escríbenos por WhatsApp para saber más.\n¿Lo guardas?`, visual: "Solo el arte", lamina: lamina(n, plantilla, "A") },
+        B: { texto: `Texto B de prueba ${n}.\n¿Qué opinas?`, visual: "Solo el arte", lamina: lamina(n, plantilla, "B") },
+        historias: [{ texto: "Comparte el post con una línea." }, { texto: "¿Te pasó alguna vez?", sticker: "encuesta", opciones: ["Sí", "No"] }],
+        ...(formato === "reel" ? { youtube: { titulo: `Reel de prueba ${n} #shorts`, descripcion: "Una descripción de prueba." } } : {}),
+      }));
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_piezas", name: "escribir_piezas", input: { piezas } }], usage: { input_tokens: 1500, output_tokens: 2500 } }));
       return;
     }
     // Faro escribe guiones (sistema/71): uno fijo de prueba, con el cliente y la duración que le llegan.

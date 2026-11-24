@@ -85,6 +85,25 @@ try {
   exigir(await p.locator("section[aria-label=Series] > div").count() === 3, "muestra las series del mes");
   exigir(await rev.locator("[data-copiar-mes]").isDisabled(), "sin aprobadas, no hay nada que copiar");
 
+  // 4b · Como los planificadores (sistema/107): hora, historias con sticker, opción B, sin emojis, y el arte se dibuja y se baja.
+  exigir(/^\d{2}:\d{2}$/.test(await piezas.nth(0).locator("[data-hora]").innerText()), "cada pieza trae su hora");
+  exigir(/sticker de encuesta: Sí \/ No/.test(await piezas.nth(0).locator("[data-historias]").innerText()), "trae las historias del día, con su sticker");
+  exigir(!(await rev.innerText()).includes("🚀"), "los emojis que puso la IA no llegan");
+  exigir(await espera(rev.locator("[data-proxima]")), "arriba dice lo próximo que se publica");
+  const p3 = piezas.nth(2);
+  await p3.locator("[data-opcion-b] summary").click();
+  await p3.locator("[data-usar-b]").click();
+  exigir(await espera(p3.locator("[role=status]:has-text('Ahora va la opción B')")) && /Otra idea 3/.test(await p3.locator("p.font-medium").first().innerText()), "usar la opción B la pone como elegida");
+  exigir(/Idea de prueba 3/.test(await p3.locator("[data-opcion-b] summary").innerText()), "y la A queda como alternativa");
+  await p3.locator("[data-dibujar]").click();
+  exigir(await espera(p3.getByRole("button", { name: "Dibujando el arte…" }), 3000), "mientras dibuja, el botón lo dice");
+  exigir(await espera(p3.locator("[data-arte] img").first(), 90000) && await p3.locator("[data-arte] img").count() >= 2, `el arte queda dibujado (${await p3.locator("[data-arte] img").count()} imágenes; ${await p3.locator("[role=alert]").allInnerTexts()})`);
+  const tamano = await p3.locator("[data-arte] img").first().evaluate((i) => new Promise((r) => { const v = () => r([i.naturalWidth, i.naturalHeight]); if (i.complete) v(); else i.onload = v; }));
+  exigir(tamano[0] === 1080 && (tamano[1] === 1350 || tamano[1] === 1920), `las imágenes salen en tamaño de Instagram (${tamano.join("×")})`);
+  const zipHref = await p3.locator("[data-descargar-arte]").getAttribute("href");
+  const zip = await p.evaluate(async (u) => { const r = await fetch(u); const b = new Uint8Array(await r.arrayBuffer()); return { tipo: r.headers.get("content-type"), texto: new TextDecoder("latin1").decode(b) }; }, zipHref);
+  exigir(zip.tipo === "application/zip" && /p03-01\.jpg/.test(zip.texto) && /texto\.txt/.test(zip.texto), "se baja todo en un .zip, con el texto para pegar");
+
   // 5 · Aprobar, pedir un cambio con nota y corregir a mano.
   const p1 = piezas.nth(0), p2 = piezas.nth(1);
   await p1.locator("[data-aprobar]").click();
