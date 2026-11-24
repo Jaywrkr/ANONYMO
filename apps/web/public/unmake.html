@@ -122,33 +122,12 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;paddin
 .glyphs span:hover{background:#F4EFE9;color:#0E0C0C}
 .water{margin-top:72px;display:flex;flex-direction:column;gap:18px}.water div{display:flex;gap:24px;align-items:baseline;overflow:hidden}
 .water .m{flex:0 0 48px}.water p{margin:0;font-family:'Unmake Line';line-height:1.15;white-space:nowrap}
-/* equipo */
-.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));border-top:1px solid rgba(244,239,233,.14);border-left:1px solid rgba(244,239,233,.14);margin-top:48px}
-.ag>div{border-right:1px solid rgba(244,239,233,.14);border-bottom:1px solid rgba(244,239,233,.14);background:rgba(14,12,12,.62);padding:18px;display:flex;flex-direction:column;gap:6px;min-height:156px;transition:background .3s}
-.ag>div:hover{background:rgba(14,12,12,.2)}
-.sg{width:46px;height:46px;display:grid;place-items:center;font:500 15px 'IBM Plex Mono',monospace;color:#0E0C0C;margin-bottom:10px}
-.ag b{font-weight:500;font-size:16px}.ag .r{font-size:14px;color:#A39A92;line-height:20px}
-.ak{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:24px}.ak span{display:flex;align-items:center;gap:8px}.ak i{width:10px;height:10px;display:block}
 /* no hacemos */
 .no{margin:48px 0 0;padding:0;list-style:none}
 .no li{font:400 clamp(24px,3.6vw,54px)/1.3 'Unmake Line';color:#F4EFE9;padding:20px 0;border-top:1px solid rgba(244,239,233,.16);position:relative;transition:color .8s .35s}
 .no li:last-child{border-bottom:1px solid rgba(244,239,233,.16)}
 .no li::after{content:'';position:absolute;left:0;top:50%;height:4px;width:100%;background:#F0602A;transform:scaleX(0);transform-origin:left;transition:transform .9s cubic-bezier(.7,0,.2,1)}
 .no li.x::after{transform:scaleX(1)}.no li.x{color:#8E857E}
-/* precios */
-.of{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(32px,5vw,80px);align-items:stretch}
-.card{border:1px solid rgba(244,239,233,.22);padding:clamp(24px,3vw,44px);background:rgba(14,12,12,.4);display:flex;flex-direction:column;gap:22px}
-.price{font:400 clamp(52px,6.5vw,104px)/1 'Unmake Line'}.price small{font:13px 'IBM Plex Mono',monospace;color:#A39A92;margin-left:12px}
-.card ul{font-size:16px;line-height:30px;color:#D9D1C9}
-.of .st{aspect-ratio:auto;min-height:360px}
-.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:rgba(244,239,233,.14);border:1px solid rgba(244,239,233,.14);margin-top:72px}
-.plan{background:rgba(14,12,12,.5);padding:28px;display:flex;flex-direction:column;gap:14px}
-.plan .price{font-size:clamp(40px,4vw,60px)}.plan ul{font-size:15px;line-height:26px}
-.tag{font:12px 'IBM Plex Mono',monospace;border:1px solid rgba(244,239,233,.35);padding:2px 8px;width:fit-content}
-.xtra{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:32px;margin-top:56px}.xtra p{margin:6px 0 0}
-.btn{display:inline-flex;align-items:center;gap:12px;min-height:48px;padding:0 22px;background:#F4EFE9;color:#0E0C0C;font:13px 'IBM Plex Mono',monospace;width:fit-content;transition:gap .3s}
-.btn:hover{gap:20px}.btn i{width:8px;height:8px;background:#0E0C0C;display:block}
-@media(max-width:860px){.of{grid-template-columns:1fr}.of .st{min-height:0;aspect-ratio:4/3}}
 /* preguntas */
 .faq{margin-top:48px}
 .faq details{border-top:1px solid rgba(244,239,233,.16)}.faq details:last-child{border-bottom:1px solid rgba(244,239,233,.16)}
@@ -176,7 +155,7 @@ footer.big ul{font-size:15px;line-height:30px}footer.big ul a:hover{color:#F4EFE
 <button type="button" id="cnext" style="margin-top:72px;padding:0 16px">siguiente proyecto →</button>
 </div></div></div>
 <header class="pad"><a href="#inicio" aria-label="unmake., inicio"><svg class="logo" id="navLogo" role="img" aria-label="unmake."></svg></a>
-<nav aria-label="Principal"><a href="#metodo">método</a><a href="#trabajo">trabajo</a><a href="#estudio">estudio</a><a href="#laboratorio">laboratorio</a><a href="#precios">precios</a></nav>
+<nav aria-label="Principal"><a href="#metodo">método</a><a href="#trabajo">trabajo</a><a href="#estudio">estudio</a><a href="#laboratorio">laboratorio</a><a href="#preguntas">preguntas</a></nav>
 <a class="cta" href="#contacto"><i></i>hablemos</a></header>
 <main>
 <div id="inicio"></div>
@@ -208,35 +187,22 @@ footer.big ul{font-size:15px;line-height:30px}footer.big ul a:hover{color:#F4EFE
 <div class="two" style="margin-bottom:0"><span class="m">somos dos</span><div class="ppl">
 <div><div class="ph"><span class="m">foto de jay</span></div><p class="lt" style="font-size:22px">jay</p><p class="r">Dirección creativa, diseño y tecnología</p></div>
 <div><div class="ph"><span class="m">foto de luna</span></div><p class="lt" style="font-size:22px">luna</p><p class="r">Comunicación, fotografía y eventos</p></div></div></div>
-<div class="two" style="margin:110px 0 0"><span class="m">y el estudio</span><div><h3 class="ln" data-text="un estudio que no duerme." data-xh="20"></h3><p class="big" style="margin-top:28px">Jay y Luna deciden. Veintidós agentes hacen el trabajo pesado mientras tanto: investigan, prueban variantes, escriben primeras versiones y revisan antes de que veamos nada. Nada sale sin nuestra firma.</p>
-<div class="ak" id="ak"></div><div class="ag" id="ag"></div></div></div>
+
 </div></section>
 <section id="nohacemos" class="pad" data-pal="4" data-amt=".3"><div class="in"><div class="hd"><h2 class="ln" data-text="lo que no hacemos" data-xh="17"></h2><span class="m">también es parte del método</span></div>
-<ul class="no" id="no"><li>plantillas con tu logo encima.</li><li>logos antes de entender el negocio.</li><li>prometer seguidores.</li><li>desaparecer después de publicar.</li><li>esconder lo que cuesta.</li></ul></div></section>
+<ul class="no" id="no"><li>plantillas con tu logo encima.</li><li>logos antes de entender el negocio.</li><li>prometer seguidores.</li><li>desaparecer después de publicar.</li></ul></div></section>
 <section id="laboratorio" data-pal="4" data-amt=".35"><div class="pad"><div class="in">
 <div class="hd"><h2 class="ln" data-text="laboratorio" data-xh="17"></h2><span class="m">11 experimentos con nuestra propia marca</span></div></div></div>
 <div class="strip pad" id="strip" tabindex="0" aria-label="Piezas del laboratorio"><figure><div class="st"><canvas class="lab" data-piece="Armar y desarmar" role="img" aria-label="Animación: Armar y desarmar"></canvas></div><figcaption><span>armar y desarmar</span><span class="d">primero la persona, después lo demás</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Píxeles" role="img" aria-label="Animación: Píxeles"></canvas></div><figcaption><span>píxeles</span><span class="d">piezas sueltas que encuentran su lugar</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Campo de letras" role="img" aria-label="Animación: Campo de letras"></canvas></div><figcaption><span>campo de letras</span><span class="d">la marca responde a quien la mira</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Elástico" role="img" aria-label="Animación: Elástico"></canvas></div><figcaption><span>elástico</span><span class="d">lo técnico se estira; lo humano no</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Tragamonedas" role="img" aria-label="Animación: Tragamonedas"></canvas></div><figcaption><span>tragamonedas</span><span class="d">la máquina busca hasta dar con la forma</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Glitch" role="img" aria-label="Animación: Glitch"></canvas></div><figcaption><span>glitch</span><span class="d">la máquina prueba; la mano no cambia</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Imán" role="img" aria-label="Animación: Imán"></canvas></div><figcaption><span>imán</span><span class="d">acércate: se aparta y vuelve</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Órbita" role="img" aria-label="Animación: Órbita"></canvas></div><figcaption><span>órbita</span><span class="d">todo gira hasta encontrar su sitio</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Tramado" role="img" aria-label="Animación: Tramado"></canvas></div><figcaption><span>tramado</span><span class="d">la luz convertida en puntos de imprenta</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Escáner" role="img" aria-label="Animación: Escáner"></canvas></div><figcaption><span>escáner</span><span class="d">la máquina propone, nosotros elegimos</span></figcaption></figure><figure><div class="st"><canvas class="lab" data-piece="Ola" role="img" aria-label="Animación: Ola"></canvas></div><figcaption><span>ola</span><span class="d">el cambio pasa por las tres disciplinas</span></figcaption></figure></div>
 <div class="pad"><div class="in btns"><button type="button" id="pv" aria-label="Anterior">←</button><button type="button" id="nx" aria-label="Siguiente">→</button></div></div></section>
-<section id="precios" class="pad" data-pal="3" data-amt=".4"><div class="in">
-<div class="hd"><h2 class="ln" data-text="para empezar" data-xh="17"></h2><span class="m">precios claros, en dólares, más iva</span></div>
-<div class="of"><div class="card"><span class="m">la puerta de entrada</span><h3 class="ln" data-text="una web para tu negocio." data-xh="17"></h3><div class="price">390<small>usd + iva</small></div>
-<ul class="sq"><li>Inicio, servicios, quiénes son, horario, mapa y botón de WhatsApp</li><li>Los textos los escribimos nosotros; tú solo revisas</li><li>Rápida en el celular y lista para Google</li><li>Dominio .com el primer año</li><li>Lista en 7 días, con 2 rondas de cambios</li><li>50 % al aceptar y 50 % al publicar</li></ul>
-<a class="btn" href="/contacto?tipo=web"><i></i>quiero mi web</a></div>
-<div class="st"><canvas class="lab" data-piece="Elástico" role="img" aria-label="Animación: el logo se estira"></canvas></div></div>
-<div class="plans"><div class="plan"><span class="m">después, cada mes</span><b class="lt" style="font-size:26px">cuidado</b><div class="price">19<small>usd + iva</small></div><ul class="sq"><li>Hosting, dominio, seguridad y copias</li><li>Un cambio pequeño al mes</li><li>Informe de visitas y clics a WhatsApp</li></ul></div>
-<div class="plan"><span class="m">si quieres cambiarla tú</span><b class="lt" style="font-size:26px">autónomo</b><div class="price">29<small>usd + iva</small></div><ul class="sq"><li>Todo lo de Cuidado</li><li>Cambias textos, fotos, horario y precios cuando quieras</li><li>Un asistente en tu web que responde con tus respuestas</li></ul></div>
-<div class="plan"><span class="m">para no tocar nada</span><b class="lt" style="font-size:26px">pro</b><div class="price">49<small>usd + iva</small></div><ul class="sq"><li>Todo lo de Autónomo</li><li>Dos cambios al mes hechos por nosotros</li><li>Asistente con inteligencia artificial</li></ul><span class="tag">el asistente con ia llega pronto</span></div></div>
-<p class="m" style="margin-top:16px">El primer mes de plan va incluido. Después decides si sigues.</p>
-<div class="xtra"><div><span class="m">sesión de fotos con luna</span><p>USD 150 + IVA</p></div><div><span class="m">página extra para un servicio</span><p>USD 60 + IVA</p></div><div><span class="m">marca, campañas y herramientas a medida</span><p>Te damos precio después de desarmar el proyecto contigo.</p></div></div>
-</div></section>
 <section id="preguntas" class="pad" data-pal="1" data-amt=".3"><div class="in"><div class="two" style="margin-bottom:0"><span class="m">preguntas</span><div><h2 class="ln" data-text="lo que siempre nos preguntan" data-xh="17"></h2>
 <div class="faq">
 <details><summary>¿Cuánto tarda una web?</summary><p>Siete días desde que nos mandas tus datos, con dos rondas de cambios incluidas. Una marca completa toma más: te decimos cuánto al terminar el primer paso.</p></details>
 <details><summary>¿Qué necesito tener listo?</summary><p>Tu logo si ya tienes, unas fotos, tus servicios, el horario y el celular de contacto. Los textos los escribimos nosotros.</p></details>
-<details><summary>¿Cómo se paga?</summary><p>La mitad al aceptar la propuesta y la otra mitad cuando la web se publica. Los precios son en dólares, más IVA.</p></details>
-<details><summary>¿Qué pasa después de publicar?</summary><p>El primer mes de plan va incluido: cuidamos la web y te mandamos un informe con visitas y clics a WhatsApp. Después decides si sigues.</p></details>
+<details><summary>¿Cómo se paga?</summary><p>La mitad al aceptar la propuesta y la otra mitad cuando la web se publica.</p></details>
+<details><summary>¿Qué pasa después de publicar?</summary><p>Nos quedamos. Cuidamos la web y cada mes te mandamos un informe con las visitas y los mensajes que llegaron por WhatsApp.</p></details>
 <details><summary>¿Usan inteligencia artificial?</summary><p>Sí, para investigar, probar variantes y revisar más rápido. Las decisiones, el criterio y la firma son de Jay y Luna.</p></details>
-<details><summary>¿Puedo cambiar mi web yo mismo?</summary><p>Con el plan Autónomo, sí: textos, fotos, horario y precios, desde el celular y cuando quieras.</p></details>
+<details><summary>¿Puedo cambiar mi web yo mismo?</summary><p>Sí, si lo prefieres: textos, fotos, horario y precios, desde el celular y cuando quieras. Si no, lo hacemos nosotros.</p></details>
 </div></div></div></div></section><section id="contacto" class="pad" data-pal="0" data-amt="1"><div class="in" style="width:100%">
 <span class="m">después construimos</span>
 <canvas id="endC" role="img" aria-label="hablemos: el logo unmake. se vuelve a armar"></canvas>
@@ -247,7 +213,7 @@ footer.big ul{font-size:15px;line-height:30px}footer.big ul a:hover{color:#F4EFE
 </main>
 <footer class="pad big"><div><span class="m">estudio</span><ul><li><a href="#creemos">lo que creemos</a></li><li><a href="#metodo">método</a></li><li><a href="#estudio">quiénes somos</a></li><li><a href="#nohacemos">lo que no hacemos</a></li></ul></div>
 <div><span class="m">trabajo</span><ul><li><a href="#trabajo">proyectos</a></li><li><a href="#caso">caso unmake</a></li><li><a href="#letra">unmake line</a></li><li><a href="/lab">laboratorio completo</a></li></ul></div>
-<div><span class="m">empezar</span><ul><li><a href="#precios">precios</a></li><li><a href="#preguntas">preguntas</a></li><li><a href="/contacto">escríbenos</a></li></ul></div>
+<div><span class="m">empezar</span><ul><li><a href="#preguntas">preguntas</a></li><li><a href="/contacto">escríbenos</a></li></ul></div>
 <div><span class="m">dónde</span><ul><li>Cuenca, Ecuador</li><li>[@usuario]</li></ul></div>
 <div class="fb"><span class="m">unmake. © 2026</span><span class="m">títulos escritos con unmake line</span><a class="m" href="#inicio">volver arriba</a></div></footer>
 <script>
@@ -491,16 +457,11 @@ function drawTester(t){const r=tC.getBoundingClientRect();if(r.top>innerHeight||
  drawText(tc,s,x0,yb,xh,PAPER,(i)=>(fresh&&i===n-1)||(!RM&&Math.sin(t*.9+i)>.985)?1+Math.floor(t*24)+i:0);
  if(!RM&&Math.floor(t*2)%2===0){const cw=textWidth(s,xh);tc.fillStyle=P[0];tc.fillRect(x0+cw+xh*.25,yb-xh*1.4,xh*.42,xh*1.4);}}
 {const gl=$('#glyphs');gl.innerHTML=Object.keys(FONT.G).map((c)=>`<span>${c==='<'?'&lt;':c==='&'?'&amp;':c}</span>`).join('');}
-// equipo: 22 agentes con su sigla y el color de su área
-{const AR={mando:['Mando','#F0602A'],estrategia:['Estrategia','#1FCF8F'],marca:['Marca','#FF3D8B'],producto:['Producto digital','#3D5BFF'],comunicacion:['Comunicación','#8A3DFF'],crecimiento:['Crecimiento','#FFB21A']};
- const AG=[['At','Atlas','mando','Orquesta el trabajo'],['Le','Ledger','mando','Operaciones y finanzas'],['No','Nova','estrategia','Estrategia de marca'],['So','Sonda','estrategia','Investigación'],['Vb','Verba','marca','Nombres'],['Mi','Mira','marca','Identidad y logo'],['Rh','Rhea','marca','Textos y tono'],['Or','Orla','producto','Diseño de interfaz'],['Lu','Lumen','producto','WebGL y 3D'],['Vc','Vector','producto','Front-end'],['Ki','Kine','producto','Movimiento'],['Ec','Eco','producto','Sonido'],['Pr','Prisma','producto','Calidad y Google'],['Te','Tempo','producto','Producción'],['Fa','Faro','comunicacion','Contenido'],['Ch','Chispa','comunicacion','Comunidad'],['Ln','Lente','comunicacion','Fotos y sesiones'],['Co','Corte','comunicacion','Video'],['Es','Escena','comunicacion','Eventos'],['Im','Imán','crecimiento','Ventas'],['Tr','Trofeo','crecimiento','Premios'],['Pu','Pulso','crecimiento','Datos']];
- $('#ak').innerHTML=Object.values(AR).map(([n,c])=>`<span class="m"><i style="background:${c}"></i>${n.toLowerCase()}</span>`).join('');
- $('#ag').innerHTML=AG.map(([s,n,a,r])=>`<div><span class="sg" style="background:${AR[a][1]}" aria-hidden="true">${s}</span><b>${n}</b><span class="r">${r}</span></div>`).join('');}
 // lo que no hacemos: se tacha al pasar
 const nio=new IntersectionObserver((es)=>es.forEach((e)=>{if(e.isIntersecting)e.target.classList.add('x');}),{rootMargin:'0px 0px -42% 0px'});$$('#no li').forEach((l)=>nio.observe(l));
 // contacto: lo que eliges llega ya marcado al formulario
 {const b=$('#cBtn'),cs=$$('.chips button');cs.forEach((c)=>c.onclick=()=>{const on=c.getAttribute('aria-pressed')!=='true';cs.forEach((x)=>x.setAttribute('aria-pressed',x===c&&on));b.href='/contacto'+(on?'?tipo='+c.dataset.tipo:'');});}
-if(!RM)$$('.step>*,.cap,.nums>div,.glyphs,.water>div,.ag>div,.card,.plan,.xtra>div,.faq details,.chips,footer.big>div').forEach((el)=>{const i=[...el.parentNode.children].indexOf(el);el.classList.add('rv');el.style.transitionDelay=(i%6)*70+'ms';rio.observe(el);});
+if(!RM)$$('.step>*,.cap,.nums>div,.glyphs,.water>div,.faq details,.chips,footer.big>div').forEach((el)=>{const i=[...el.parentNode.children].indexOf(el);el.classList.add('rv');el.style.transitionDelay=(i%6)*70+'ms';rio.observe(el);});
 const t0=performance.now();
 function loop(now){const t=RM?1.2:Math.max(0,(now-t0)/1000);try{smooth();drawBg(t);drawHero(t);drawEnd();drawAna();drawPrev(t);ui();drawCreemos();drawTester(t);labs.forEach((s)=>{if(!s.vis&&s.done)return;if(s.hold&&s.hold())return;if(!fit(s.cv))return;s.a.frame(s.cv.getContext('2d'),s.cv.width,s.cv.height,t,s.m);s.done=true;});}catch(e){console.error(e);}requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
