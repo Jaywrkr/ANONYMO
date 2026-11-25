@@ -13,6 +13,11 @@ import { AvisosCelular } from "./AvisosCelular";
 const ESTADOS: [VistaProspecto["estado"], string][] = [
   ["nuevo", "Nuevo"], ["contactado", "Contactado"], ["respondio", "Respondió"], ["reunion", "Reunión"], ["cliente", "Cliente"], ["descartado", "Descartado"],
 ];
+/** Cada estado con su color (sistema/109): se lee de un vistazo, sin abrir un selector. */
+const COLOR_ESTADO: Record<string, string> = {
+  nuevo: "bg-hueso text-medio", contactado: "bg-[#e8eefc] text-[#2647a8]", respondio: "bg-[#fff1d6] text-[#8a5a00]",
+  reunion: "bg-[#e8e5ff] text-[#3b2bb5]", cliente: "bg-[#17714a] text-white", descartado: "bg-[#f1eeea] text-suave line-through",
+};
 const TIPO_WEB: Record<string, string> = { sin: "Sin web", social: "Solo redes", rota: "Web rota", ok: "Web propia", pendiente: "Por revisar" };
 
 interface Grupo { id: string; nombre: string; busquedas: string[] }
@@ -216,7 +221,7 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
     a.click();
   }
 
-  const filtrosActivos = [filtro.web !== "todas", filtro.minimo > 0, filtro.celular].filter(Boolean).length;
+  const filtrosActivos = [filtro.web !== "todas", filtro.minimo > 0, filtro.celular, !["tanda", "activos"].includes(filtro.estado)].filter(Boolean).length;
   const rubrosElegidos = grupos.filter((g) => elegidos.includes(g.id)).map((g) => g.nombre).join(", ") || "ningún rubro";
 
   // Orden (sistema/74): primero lo que pide acción hoy (ahora mismo, la tanda), después la lista; buscar y ajustes, plegados.
@@ -230,15 +235,61 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => setBuscar(!buscar)} aria-expanded={buscar} aria-controls="buscar-iman" className={`${botonChico} ${buscar ? "" : "font-medium"}`}>
-          {buscar ? "Cerrar búsqueda" : "Buscar más negocios"}
-        </button>
-        <span className="flex-1" />
-        <button type="button" onClick={() => setAjustes(!ajustes)} aria-expanded={ajustes} aria-controls="ajustes-iman" className={botonChico}>
-          {ajustes ? "Cerrar ajustes" : "Ajustes"}
-        </button>
-      </div>
+      {lista.length > 0 && (
+        <section aria-label="La tanda de hoy" className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-tinta p-4 text-white md:p-5">
+          {quedan > 0 && tanda.size > 0 ? (
+            <Link href="/estudio/clientes/tanda" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#25d366] px-6 text-[15px] font-medium text-black">Empezar la tanda ({enviadosHoy} de {tope})</Link>
+          ) : <span className="text-[15px] font-medium">{quedan ? "No hay a quién escribir hoy" : `Tanda hecha: ${enviadosHoy} de ${tope}`}</span>}
+          <div className="flex min-w-[160px] flex-1 items-center gap-1" role="img" aria-label={`${enviadosHoy} de ${tope} enviados hoy`}>
+            {Array.from({ length: tope }, (_, i) => <i key={i} className={`h-2 flex-1 rounded-full ${i < enviadosHoy ? "bg-[#25d366]" : i < enviadosHoy + tanda.size ? "bg-white/45" : "bg-white/15"}`} />)}
+          </div>
+          <span className="w-full text-[12px] text-white/60">Hasta {tope} al día para que WhatsApp no bloquee el número.</span>
+        </section>
+      )}
+
+      {/* Una sola fila (sistema/109): buscar en la lista, «Filtrar», buscar negocios nuevos y ajustes. */}
+      <section className="grid gap-2" aria-label="Filtros">
+        <div className="flex flex-wrap items-center gap-2">
+          <input value={filtro.texto} onChange={(e) => setFiltro({ ...filtro, texto: e.target.value })} placeholder="Buscar en la lista" aria-label="Buscar en la lista"
+            className="min-h-11 min-w-0 flex-1 basis-[180px] rounded-full bg-white px-4 text-[14px] shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none md:min-h-10" />
+          <button type="button" onClick={() => setFiltros(!filtros)} aria-expanded={filtros} aria-controls="filtros-iman" className={`${botonChico} ${filtros || filtrosActivos ? "bg-tinta text-white shadow-none" : ""}`}>
+            Filtrar{filtrosActivos ? ` (${filtrosActivos})` : ""}
+          </button>
+          <button type="button" onClick={() => setBuscar(!buscar)} aria-expanded={buscar} aria-controls="buscar-iman" className={botonChico}>
+            {buscar ? "Cerrar búsqueda" : "+ Buscar negocios"}
+          </button>
+          <button type="button" onClick={() => setAjustes(!ajustes)} aria-expanded={ajustes} aria-controls="ajustes-iman" aria-label={ajustes ? "Cerrar ajustes" : "Ajustes"} className={botonChico}>
+            {ajustes ? "Cerrar ajustes" : "Ajustes"}
+          </button>
+        </div>
+        {filtros && (
+          <div id="filtros-iman" className="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
+            <select value={filtro.estado} onChange={(e) => setFiltro({ ...filtro, estado: e.target.value })} className={selector} aria-label="Qué negocios">
+              <option value="tanda">La tanda de hoy</option>
+              <option value="activos">Por trabajar</option>
+              <option value="todos">Todos</option>
+              {ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+            </select>
+            <select value={filtro.web} onChange={(e) => setFiltro({ ...filtro, web: e.target.value })} className={selector} aria-label="Tipo de web">
+              <option value="todas">Todas las webs</option>
+              <option value="sin">Sin web</option>
+              <option value="social">Solo redes</option>
+              <option value="rota">Web rota</option>
+              <option value="mejorable">Web mejorable</option>
+            </select>
+            <select value={filtro.minimo} onChange={(e) => setFiltro({ ...filtro, minimo: Number(e.target.value) })} className={selector} aria-label="Puntaje mínimo">
+              <option value={0}>Cualquier puntaje</option>
+              <option value={50}>50/100 o más</option>
+              <option value={70}>70/100 o más</option>
+              <option value={85}>85/100 o más</option>
+            </select>
+            <label className="flex min-h-10 items-center gap-2 px-2 text-[13px] text-medio">
+              <input type="checkbox" checked={filtro.celular} onChange={(e) => setFiltro({ ...filtro, celular: e.target.checked })} /> Solo con celular
+            </label>
+            <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico} title="La lista tal como la filtraste">Bajar CSV</button>
+          </div>
+        )}
+      </section>
 
       {!numero && !ajustes && (
         <p role="note" className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#fff6ee] px-4 py-3 text-[13px] text-[#8a3a0c]">
@@ -302,62 +353,14 @@ export function ClientesNuevos({ inicial, hayClave, grupos, ciudades, tope, clav
       {aviso && <p role="status" className={`rounded-2xl p-4 text-[14px] ${aviso.ok ? "bg-[#e6f6ee] text-[#17714a]" : "bg-[#fde8e4] text-[#8a1c0c]"}`}>{aviso.texto}</p>}
 
       {lista.length > 0 && (
-        <section aria-label="La tanda de hoy" className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] md:flex md:flex-wrap md:items-center">
-          <p className="min-w-0 flex-1 text-[14px]">
-            <span className="font-medium">La tanda de hoy: {enviadosHoy} de {tope} enviados.</span>{" "}
-            <span className="text-medio">{quedan ? `Imán te propone ${tanda.size} ${tanda.size === 1 ? "negocio" : "negocios"} con celular y buena oportunidad.` : "Llegaste al tope de hoy: mañana sigue la tanda."}</span>
-          </p>
-          {quedan > 0 && tanda.size > 0 && (
-            <Link href="/estudio/clientes/tanda" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#25d366] px-6 text-[15px] font-medium text-black">Empezar la tanda →</Link>
-          )}
-          <p className="w-full text-[12px] text-suave">Más de {tope} mensajes nuevos al día desde un número puede hacer que WhatsApp lo bloquee. Cada mensaje lleva el enlace a su muestra.</p>
-        </section>
-      )}
-
-      {lista.length > 0 && (
         <p className="text-[13px] text-medio" aria-label="Resumen">
           <span className="font-medium text-tinta">{cuenta.total}</span> negocios · <span className="font-medium text-tinta">{cuenta.sinWeb}</span> sin web real · <span className="font-medium text-tinta">{cuenta.contactados}</span> contactados · <span className="font-medium text-tinta">{cuenta.clientes}</span> clientes
           {pendientes > 0 && <> · faltan {pendientes} webs por revisar <button type="button" onClick={terminarRevision} disabled={!listo || !!trabajo} className="underline underline-offset-4 disabled:opacity-50">revisarlas ahora</button></>}
         </p>
       )}
 
-      <section className="grid gap-2" aria-label="Filtros">
-        <div className="flex flex-wrap items-center gap-2">
-          <select value={filtro.estado} onChange={(e) => setFiltro({ ...filtro, estado: e.target.value })} className={`${selector} min-w-0 flex-1 md:flex-none`} aria-label="Estado">
-            <option value="tanda">La tanda de hoy</option>
-            <option value="activos">Por trabajar</option>
-            <option value="todos">Todos</option>
-            {ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-          </select>
-          <input value={filtro.texto} onChange={(e) => setFiltro({ ...filtro, texto: e.target.value })} placeholder="Buscar" aria-label="Buscar en la lista"
-            className="order-first min-h-10 w-full min-w-0 basis-full rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none md:order-none md:w-auto md:flex-1 md:basis-auto" />
-          <button type="button" onClick={() => setFiltros(!filtros)} aria-expanded={filtros} className={`${botonChico} shrink-0 md:hidden`}>
-            Filtros{filtrosActivos ? ` (${filtrosActivos})` : ""}
-          </button>
-        </div>
-        <div className={`${filtros ? "flex" : "hidden"} flex-wrap items-center gap-2 md:flex`}>
-          <select value={filtro.web} onChange={(e) => setFiltro({ ...filtro, web: e.target.value })} className={selector} aria-label="Tipo de web">
-            <option value="todas">Todas las webs</option>
-            <option value="sin">Sin web</option>
-            <option value="social">Solo redes</option>
-            <option value="rota">Web rota</option>
-            <option value="mejorable">Web mejorable</option>
-          </select>
-          <select value={filtro.minimo} onChange={(e) => setFiltro({ ...filtro, minimo: Number(e.target.value) })} className={selector} aria-label="Puntaje mínimo">
-            <option value={0}>Cualquier puntaje</option>
-            <option value={50}>50 o más</option>
-            <option value={70}>70 o más</option>
-            <option value={85}>85 o más</option>
-          </select>
-          <label className="flex min-h-10 items-center gap-2 px-2 text-[13px] text-medio">
-            <input type="checkbox" checked={filtro.celular} onChange={(e) => setFiltro({ ...filtro, celular: e.target.checked })} /> Solo con celular
-          </label>
-          <button type="button" onClick={exportar} disabled={!listo || !vista.length} className={botonChico} title="La lista tal como la filtraste">Bajar CSV</button>
-        </div>
-      </section>
-
       <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:gap-2" aria-label="Negocios">
-        {!vista.length && <li className="py-10 text-center text-[14px] text-medio">{lista.length ? "Nada con estos filtros." : "Toca «Buscar más negocios», elige rubros y dile a Imán que busque."}</li>}
+        {!vista.length && <li className="py-10 text-center text-[14px] text-medio">{lista.length ? "Nada con estos filtros." : "Toca «+ Buscar negocios», elige rubros y dile a Imán que busque."}</li>}
         {vista.map((p) => <Tarjeta key={p.id} p={p} listo={listo} alCambiar={reemplazar} tope={p.estado === "nuevo" && quedan === 0 ? tope : undefined} />)}
       </ul>
     </div>
@@ -442,7 +445,7 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
       <div className="md:flex md:items-center md:gap-4">
       <div className="flex gap-4 md:min-w-0 md:flex-1 md:items-center">
         <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[20px] font-medium md:h-12 md:w-12 md:text-[17px] ${pendiente ? "bg-hueso text-suave" : color}`} aria-label={pendiente ? "Puntaje pendiente" : `Puntaje ${p.puntaje} de 100`}>
-          {pendiente ? "…" : <span className="grid place-items-center leading-none">{p.puntaje}<span className="mt-1 text-[9px] font-normal opacity-75">oportunidad</span></span>}
+          {pendiente ? "…" : <span className="grid place-items-center leading-none">{p.puntaje}<span className="mt-1 text-[10px] font-normal opacity-70">/100</span></span>}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[16px] font-medium">{p.nombre}</p>
@@ -461,11 +464,20 @@ function Tarjeta({ p, listo, alCambiar, tope }: { p: VistaProspecto; listo: bool
                   : p.vistas > 0 && <span className="rounded-md bg-[#e6f6ee] px-2 py-0.5 text-[11px] text-[#17714a]">Vio su muestra {p.vistas === 1 ? "1 vez" : `${p.vistas} veces`}</span>}
               </>
             )}
-            <select value={p.estado} disabled={ocupado} aria-label="Estado"
-              onChange={(e) => void cambiar({ estado: e.target.value }, "Guardando el estado", `Ahora está en «${ESTADOS.find(([v]) => v === e.target.value)?.[1]}».`)}
-              className="ml-auto min-h-8 shrink-0 rounded-full bg-hueso px-2 text-[12px] text-medio">
-              {ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-            </select>
+            <details className="relative ml-auto shrink-0" data-estado={p.estado}>
+              <summary aria-label={`Estado: ${ESTADOS.find(([v]) => v === p.estado)?.[1]}. Cambiar`} className={`flex min-h-8 cursor-pointer list-none items-center gap-1 rounded-full px-3 text-[12px] font-medium [&::-webkit-details-marker]:hidden ${COLOR_ESTADO[p.estado] ?? "bg-hueso"} ${ocupado ? "pointer-events-none opacity-60" : ""}`}>
+                {ESTADOS.find(([v]) => v === p.estado)?.[1]}<span aria-hidden className="text-[10px] opacity-70">▾</span>
+              </summary>
+              <div role="menu" aria-label="Cambiar estado" className="absolute right-0 top-[calc(100%+4px)] z-20 grid min-w-[150px] gap-0.5 rounded-xl bg-white p-1.5 shadow-[0_0_0_1px_rgba(26,24,22,.08),0_14px_30px_-14px_rgba(40,30,20,.4)]">
+                {ESTADOS.map(([v, t]) => (
+                  <button key={v} type="button" role="menuitemradio" aria-checked={v === p.estado} disabled={ocupado || v === p.estado}
+                    onClick={(e) => { (e.currentTarget.closest("details") as HTMLDetailsElement).open = false; void cambiar({ estado: v }, "Guardando el estado", `Ahora está en «${t}».`); }}
+                    className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-left text-[13px] hover:bg-hueso disabled:opacity-100">
+                    <i aria-hidden className={`h-2.5 w-2.5 rounded-full ${(COLOR_ESTADO[v] ?? "").split(" ")[0]}`} />{t}{v === p.estado && <span className="ml-auto text-suave">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </details>
           </div>
         </div>
       </div>

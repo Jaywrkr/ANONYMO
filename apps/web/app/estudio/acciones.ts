@@ -271,9 +271,10 @@ export async function accionNuevoProyecto(f: FormData) {
   try {
     const archivos = (await archivosDe(f)).map((a) => ({ name: a.nombre, datos: a.datos }));
     if (texto.length < 20) throw new Error("Cuéntale a Atlas un poco más: al menos un par de frases de lo que hablaron.");
+    // Para quién se elige siempre de la lista o como cliente nuevo (sistema/109): Atlas ya no lo adivina del texto.
+    if (!nombre) throw new Error("Elige para quién es el pedido: búscalo en «¿Para quién?» o escribe uno nuevo.");
     const l = await entenderPedido(texto, { cliente: nombre, archivos: archivos.map((a) => a.name) });
-    const cliente = l.cliente;
-    if (!cliente) throw new Error("Atlas no encontró el nombre del cliente. Escríbelo en «Cliente».");
+    const cliente = nombre;
     // Nombre único: mira lo que hay en local y, en línea, también en la nube.
     const usados = new Set(nubeActiva() ? await proyectosEnNube() : []);
     const base = slug(cliente);
@@ -297,7 +298,10 @@ export async function accionNuevoProyecto(f: FormData) {
     destino = `/estudio/${id}`;
   } catch (e) {
     // Lo que escribió vuelve a la caja: no se pierde por un error.
-    destino = `/estudio/nuevo?error=${encodeURIComponent(ocultarClaves((e as Error).message))}&q=${encodeURIComponent(texto.slice(0, 1800))}`;
+    // Lo que escribió y para quién vuelven al formulario: no se pierde nada por un error.
+    const vuelve = new URLSearchParams({ error: ocultarClaves((e as Error).message), q: texto.slice(0, 1800) });
+    for (const k of ["cliente", "ficha", "prospecto"]) { const v = String(f.get(k) ?? "").slice(0, 200); if (v) vuelve.set(k, v); }
+    destino = `/estudio/nuevo?${vuelve}`;
   }
   revalidatePath("/estudio");
   redirect(destino);

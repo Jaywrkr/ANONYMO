@@ -67,6 +67,10 @@ export const TAREAS_SABER: Record<TareaSaber, ReglaTarea> = {
 export const ORDEN_TAREAS_SABER = Object.keys(TAREAS_SABER) as TareaSaber[];
 export const esTareaSaber = (x: unknown): x is TareaSaber => typeof x === "string" && x in TAREAS_SABER;
 
+/** Un dato que a este cliente no le toca (sistema/109): Unmake no tiene horario ni dirección de atención. Cuenta como sabido. */
+export const NO_APLICA = "No aplica";
+export const esNoAplica = (v: string | undefined) => (v ?? "").trim().toLowerCase() === "no aplica";
+
 export interface ValorSaber { valor: string; origen: "mano" | "maps" | "web" | "marca" | "cliente" }
 
 /** Todo lo que se sabe de un cliente: lo que ya trae Imán y su kit de marca, y encima lo escrito a mano (que manda). */
@@ -116,7 +120,7 @@ export function textoFaltan(faltan: ClaveSaber[]) {
 
 /** Lo que se le pasa a un agente sobre el cliente: solo datos que existen, cada uno con su nombre. */
 export function contextoCliente(saber: Partial<Record<ClaveSaber, ValorSaber>>, claves: ClaveSaber[]) {
-  return claves.filter((k) => saber[k]).map((k) => `- ${DATOS[k].nombre}: ${saber[k]!.valor.replace(/\s*\n\s*/g, "; ")}`).join("\n");
+  return claves.filter((k) => saber[k] && !esNoAplica(saber[k]!.valor)).map((k) => `- ${DATOS[k].nombre}: ${saber[k]!.valor.replace(/\s*\n\s*/g, "; ")}`).join("\n");
 }
 
 /** Un cliente es «de verdad» cuando alguien lo anotó, vino de Imán o tiene pedidos: a esos se les exigen los mínimos. */

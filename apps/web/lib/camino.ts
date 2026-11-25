@@ -51,6 +51,8 @@ export interface Momento {
   indice: number;
   /** Qué hay que hacer ahora, dicho a quien entró. */
   ahora: string;
+  /** Lo mismo en pocas palabras, para el título de la pantalla de decisión (sistema/109): «Revisa el diseño». */
+  corto?: string;
   /** Qué pasa después. */
   despues: string;
   /** Si la siguiente acción es de quien entró. */
@@ -147,6 +149,7 @@ function momentoBase(p: ProyectoCamino, yo: Socio, responsableActual: Socio, aho
     return { ...base, paso: "revision", indice: 3, teToca: mio, tono: mio ? "toca" : "otro", revision: t,
       accion: mio ? "Revisar la entrega" : "Revisar igual",
       ahora: mio ? `${agenteDe(t)} entregó ${entregaDe(t).toLowerCase()}. Revisa su entrega.` : `${agenteDe(t)} entregó ${entregaDe(t).toLowerCase()}. Le toca revisar a ${nombreSocio(responsableActual)}.`,
+      corto: mio ? `Revisa ${entregaDe(t).toLowerCase()}` : `${nombreSocio(responsableActual)} revisa ${entregaDe(t).toLowerCase()}`,
       despues: sig ? `Si apruebas, sigue ${agenteDe(sig)} con ${entregaDe(sig).toLowerCase()}.` : "Si apruebas, el proyecto queda listo." };
   }
   if (p.estado === "esperando") {

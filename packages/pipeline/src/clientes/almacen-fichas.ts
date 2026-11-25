@@ -63,6 +63,7 @@ export async function guardarFicha(id: string, c: CambioFicha, por: string): Pro
     alias: alias.length ? alias : undefined,
     saber: Object.keys(saber).length ? saber : undefined,
     lectura: c.lectura === null ? undefined : c.lectura ?? antes?.lectura,
+    leidoEl: c.lectura ? c.lectura.cuando : antes?.leidoEl,
     creado: antes?.creado ?? ahora,
     actualizado: ahora,
     por,

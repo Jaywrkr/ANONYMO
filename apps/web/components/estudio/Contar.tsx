@@ -20,7 +20,7 @@ const PISTAS: { nombre: string; patron: RegExp }[] = [
   { nombre: "Presupuesto", patron: /(\$|usd|dólares|presupuesto|\b\d{3,5}\b)/i },
 ];
 
-export function Contar({ inicial = "" }: { inicial?: string }) {
+export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?: boolean }) {
   const [texto, setTexto] = useState(inicial);
   const caja = useRef<HTMLTextAreaElement>(null);
   const enlaces = useMemo(() => [...new Set(texto.match(/https?:\/\/[^\s)>\]]+/g) ?? [])], [texto]);
@@ -42,7 +42,7 @@ export function Contar({ inicial = "" }: { inicial?: string }) {
           required
           minLength={20}
           rows={10}
-          autoFocus
+          autoFocus={foco}
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           className="w-full resize-y rounded-[18px] bg-white p-5 font-serif text-[22px] leading-[1.35] text-tinta shadow-[0_0_0_1px_rgba(26,24,22,.06),0_12px_32px_-18px_rgba(40,30,20,.25)] outline-none transition placeholder:text-[#b3ab9f] focus:shadow-[0_0_0_1.5px_var(--color-tinta),0_12px_32px_-18px_rgba(40,30,20,.25)]"

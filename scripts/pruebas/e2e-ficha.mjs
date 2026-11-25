@@ -38,7 +38,8 @@ try {
   const tareas = p.locator("[data-tareas-saber]");
   exigir(await espera(tareas) && await tareas.locator("[data-tarea]").count() === 7, "la ficha dice qué se puede hacer: siete tareas");
   exigir(await tareas.locator("[data-listo=si]").count() === 0, "con solo el nombre, ninguna tarea está lista");
-  exigir(/Falta: a qué se dedica, qué quiere vender, a quién le habla, dónde publica/.test(await tareas.locator("[data-tarea=guion]").innerText()), "el guion dice exactamente qué le falta");
+  const chipsGuion = (await tareas.locator("[data-tarea=guion] [data-faltan]").innerText()).toLowerCase();
+  exigir(["a qué se dedica", "qué quiere vender", "a quién le habla", "dónde publica"].every((x) => chipsGuion.includes(x)), `el guion dice exactamente qué le falta, como chips (${chipsGuion})`);
   await p.screenshot({ path: join(capturas, "1-ficha-vacia.png"), fullPage: true });
 
   // 2 · Sin lo mínimo, Faro no escribe: explica qué falta y dónde completarlo. Y no gasta IA.
@@ -56,9 +57,9 @@ try {
   await f.locator("[name=saber-canales]").fill("Instagram y TikTok");
   await f.locator("[name=saber-tono]").fill("Directo, simple, sin palabras rebuscadas");
   await f.locator("button:has-text('Guardar lo que sabemos')").click();
-  exigir(await espera(p.locator("[role=status]:has-text('Guardado. Mira abajo qué se puede hacer ahora.')")), "guardar dice qué pasó");
-  exigir(await espera(tareas.locator("[data-tarea=guion][data-listo=si]")) && /Se puede/.test(await tareas.locator("[data-tarea=guion]").innerText()), "el guion pasa a «Se puede»");
-  exigir(/Faltan/.test(await tareas.locator("[data-tarea=contenido]").innerText()) && await tareas.locator("[data-tarea=web][data-listo=no]").count() === 1, "el mes de contenido y la web siguen pidiendo lo suyo");
+  exigir(await espera(p.locator("[role=status]:has-text('Guardado. Mira arriba qué se puede hacer ahora.')")), "guardar dice qué pasó");
+  exigir(await espera(tareas.locator("[data-tarea=guion][data-listo=si]")) && /Lista/.test(await tareas.locator("[data-tarea=guion]").innerText()) && await tareas.locator("[data-tarea=guion] button:has-text('Escribir un guion')").count() === 1, "el guion pasa a «Lista» con su botón");
+  exigir(/A \d+ datos?/.test(await tareas.locator("[data-tarea=contenido]").innerText()) && await tareas.locator("[data-tarea=web][data-listo=no]").count() === 1, "el mes de contenido y la web siguen pidiendo lo suyo");
   await p.reload();
   exigir(await f.locator("[name=saber-oferta]").inputValue() === "Webs de una página para negocios de Cuenca, listas en 7 días", "lo escrito queda guardado");
   await p.screenshot({ path: join(capturas, "2-ficha-con-datos.png"), fullPage: true });

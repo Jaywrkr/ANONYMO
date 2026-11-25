@@ -9,10 +9,31 @@ import { serif } from "@/lib/estudio";
 const dolares = (n: number) => `USD ${n.toLocaleString("es-EC")}`;
 
 /** El marcador de la semana: lo que se mandó contra la meta, y lo que volvió. */
-export function Marcador({ lista }: { lista: VistaLista }) {
+export function Marcador({ lista, tira }: { lista: VistaLista; tira?: boolean }) {
   const { semana: s, meta } = lista;
   const avance = Math.min(100, Math.round((s.enviados / meta) * 100));
   const dato = (n: string, t: string) => <div><dd className={`${serif} text-[30px] leading-none`}>{n}</dd><dt className="mt-1 text-[12px] text-medio">{t}</dt></div>;
+  const racha = s.racha > 1 ? `${s.racha} días seguidos` : s.racha === 1 ? "Racha: 1 día" : "Sin racha todavía";
+  // En el tablero (sistema/109): todo en una franja a lo ancho, para que el tablero quede arriba.
+  if (tira) return (
+    <section aria-label="Marcador de la semana" data-marcador className="grid items-center gap-x-8 gap-y-4 rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)] md:grid-cols-[minmax(220px,1.2fr)_repeat(3,minmax(0,.6fr))]">
+      <div>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[13px] text-medio">Esta semana</h2>
+          <span className="text-[12px] text-suave">{racha}</span>
+        </div>
+        <p className="mt-1 flex items-baseline gap-2"><span className={`${serif} text-[40px] leading-none`}>{s.enviados}</span><span className="text-[14px] text-medio">de {meta} mensajes</span></p>
+        <div role="progressbar" aria-label="Avance de la meta de mensajes" aria-valuemin={0} aria-valuemax={meta} aria-valuenow={Math.min(s.enviados, meta)} className="mt-2 h-2 overflow-hidden rounded-full bg-[#eee9e0]">
+          <div className={`h-full rounded-full ${avance >= 100 ? "bg-[#17714a]" : "bg-tinta"}`} style={{ width: `${avance}%` }} />
+        </div>
+      </div>
+      <dl className="contents">
+        {dato(String(s.abrieron), s.abrieron === 1 ? "abrió su muestra" : "abrieron su muestra")}
+        {dato(String(s.respondieron), s.respondieron === 1 ? "respondió" : "respondieron")}
+        {dato(s.clientes ? dolares(s.dolares) : "0", s.clientes ? (s.clientes === 1 ? "cerrado, 1 cliente" : `cerrados, ${s.clientes} clientes`) : "clientes nuevos")}
+      </dl>
+    </section>
+  );
   return (
     <section aria-label="Marcador de la semana" data-marcador className="rounded-[18px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

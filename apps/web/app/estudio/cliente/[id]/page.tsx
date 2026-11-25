@@ -1,10 +1,13 @@
 // La ficha de un cliente (sistema/70): todo lo suyo en un lugar, con su historia y lo que escribes a mano.
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DATOS, nombreDato, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, esAnonymo, estadoTareas, fuentesDe, numeroInternacional, puntuar, resumenFicha, saberDe } from "@anonymo/pipeline";
+import { DATOS, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, ORDEN_TAREAS_SABER, esAnonymo, esNoAplica, estadoTareas, fuentesDe, idMuestra, numeroInternacional, puntuar, resumenFicha, saberDe, type ClaveSaber, type PropuestaDato, type TareaSaber, type Ficha as FichaCliente } from "@anonymo/pipeline";
+import { Cara } from "@/components/estudio/piezas";
+import { AbrirAtlas } from "@/components/estudio/AbrirAtlas";
+import { BuscarSolo } from "@/components/estudio/clientes/BuscarSolo";
 import { exigirEstudio, serif, campo, boton, botonLleno } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
-import { accionAprobarDatos, accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
+import { accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
 
 export const dynamic = "force-dynamic";
 // Leer su web e Instagram puede tardar (sistema/93).
@@ -15,13 +18,32 @@ const fecha = (iso: string) => (iso ? new Date(iso).toLocaleString("es-EC", { da
 const ESTADO: Record<string, string> = { plan: "Con plan de Atlas", "en-curso": "En trabajo", esperando: "Espera una decisión", parado: "En pausa", listo: "Terminado" };
 const TIPO: Record<string, string> = { web: "Una web", marca: "Una marca", lanzamiento: "Un lanzamiento", todo: "Todo, desde cero" };
 
+const ORDEN: TareaSaber[] = ORDEN_TAREAS_SABER;
+/** La cara de quien hace la tarea: «Orla y Vector» → Orla. */
+const caraDe = (quien: string) => quien.split(/\s+/)[0]!.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** El botón de cada tarea lista (sistema/109): todas tienen uno. Las de Atlas dejan el pedido escrito en su caja. */
+function accionTarea(t: TareaSaber, f: FichaCliente, id: string): { texto: string; href?: string; atlas?: string } | undefined {
+  const pedido = (q: string) => `/estudio/nuevo?${new URLSearchParams({ cliente: f.nombre, ficha: f.id, q })}`;
+  switch (t) {
+    case "muestra": return f.prospecto ? { texto: "Ver su muestra", href: `/m/${idMuestra(f.prospecto)}` } : { texto: "Pedir su muestra", atlas: `/muestra @${id} ` };
+    case "mensaje": return { texto: "Preparar el mensaje", atlas: `/mensaje @${id} ` };
+    case "guion": return { texto: "Escribir un guion", atlas: `/guion @${id} ` };
+    case "contenido": return { texto: "Armar su mes", href: `/estudio/contenido?cliente=${id}` };
+    case "web": return { texto: "Pedir su web", href: pedido(`Una web estándar para ${f.nombre}.`) };
+    case "web-a-mano": return { texto: "Pedir su web a mano", href: pedido(`Una web hecha a mano para ${f.nombre}.`) };
+    case "asistente": return { texto: "Pedir el asistente", href: pedido(`El asistente de la web de ${f.nombre}: responde preguntas y agenda por WhatsApp.`) };
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   return { title: `Cliente ${(await params).id} — Estudio`, robots: { index: false } };
 }
 
-export default async function Ficha({ params }: { params: Promise<{ id: string }> }) {
+export default async function Ficha({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ campo?: string }> }) {
   await exigirEstudio();
   const { id } = await params;
+  const campo_ = (await searchParams).campo;
   const { fichas, fallas } = await cartera();
   const f = fichas.find((x) => x.id === id);
   if (!f) notFound();
@@ -38,7 +60,11 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
   // Su web y su Instagram, y lo último que se leyó de ahí (sistema/93).
   const fuentes = fuentesDe(saber, g?.web ?? f.contacto.web);
   const lectura = g?.lectura;
-  const ESTADO_FUENTE = { ok: "leída", fallo: "no se pudo leer", "a-pedido": "a pedido" } as const;
+  // Lo encontrado, por campo: se muestra dentro del mismo campo, en su orden de siempre (sistema/109).
+  const propuestas = new Map<ClaveSaber, PropuestaDato>((lectura?.propuestas ?? []).map((p) => [p.clave, p]));
+  const abrirSaber = propuestas.size > 0 || !!campo_ || sabidos < 6;
+  // Con web y sin haberla leído nunca, la ficha la lee sola una vez (no gasta: se lee como texto).
+  const buscarSolo = !esAnonymo(f.id) && !!fuentes.web && !g?.leidoEl && !lectura;
 
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
@@ -51,125 +77,121 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Link href={nuevoPedido} className={botonLleno}>Nuevo pedido para {f.nombre}</Link>
+        <Link href={nuevoPedido} className={botonLleno}>Nuevo pedido</Link>
         <Link href={subirVideo} className={boton}>Subir un video suyo</Link>
         {tel && <a href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer" className={boton}>WhatsApp</a>}
         {f.contacto.web && <a href={f.contacto.web} target="_blank" rel="noreferrer" className={boton}>Su web</a>}
       </div>
       {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
 
-      {/* Qué se puede hacer y qué falta (sistema/92): sin lo mínimo, la tarea no se hace. */}
+      {/* Qué se puede hacer y qué falta (sistema/92, más visual en sistema/109): cara de quien la hace, cuadritos de
+          avance, una línea concreta y los datos que faltan como chips que llevan a su campo. La más cerca de estar lista, primero. */}
       <section id="saber" className={`${tarjeta} mt-8 scroll-mt-6`} aria-labelledby="t-puede">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 id="t-puede" className="text-[13px] text-suave">Qué se puede hacer con lo que sabemos</h2>
-          <p className="text-[12px] text-suave">{sabidos} de {CLAVES_SABER.length} datos · {tareas.filter((t) => t.listo).length} de {tareas.length} tareas listas</p>
+          <h2 id="t-puede" className="text-[13px] text-suave">Qué se puede hacer</h2>
+          <p className="text-[12px] text-suave">{tareas.filter((t) => t.listo).length} de {tareas.length} listas · {sabidos} de {CLAVES_SABER.length} datos</p>
         </div>
-        <ul className="mt-3 grid gap-2 md:grid-cols-2" data-tareas-saber>
-          {tareas.map((t) => (
-            <li key={t.tarea} data-tarea={t.tarea} data-listo={t.listo ? "si" : "no"} className={`rounded-2xl p-3.5 ${t.listo ? "bg-[#e6f6ee]" : "bg-hueso/70"}`}>
-              <p className="flex items-baseline justify-between gap-3 text-[14.5px] font-medium"><span>{t.regla.nombre}</span><span className={`shrink-0 text-[12px] font-normal ${t.listo ? "text-[#17714a]" : "text-[#a33a0b]"}`}>{t.listo ? "Se puede" : `Faltan ${t.faltan.length}`}</span></p>
-              <p className="mt-0.5 text-[12px] text-suave">La hace {t.regla.quien}</p>
-              {!t.listo && <p className="mt-2 text-[13px] leading-snug">Falta: {t.faltan.map((k) => nombreDato(k)).join(", ")}.</p>}
-              {t.listo && t.mejoraria.length > 0 && <p className="mt-2 text-[13px] leading-snug text-medio">Saldría mejor con: {t.mejoraria.map((k) => nombreDato(k)).join(", ")}.</p>}
-              {t.listo && t.tarea === "contenido" && <a href={`/estudio/contenido?cliente=${id}`} data-ir-contenido className="mt-2 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Armar su mes de contenido</a>}
-            </li>
-          ))}
+        <ul className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3" data-tareas-saber>
+          {[...tareas].sort((a, b) => a.faltan.length - b.faltan.length || ORDEN.indexOf(a.tarea) - ORDEN.indexOf(b.tarea)).map((t) => {
+            const total = t.regla.minimo.length, hechos = total - t.faltan.length;
+            const ir = accionTarea(t.tarea, f, id);
+            return (
+              <li key={t.tarea} data-tarea={t.tarea} data-listo={t.listo ? "si" : "no"} className={`flex gap-3 rounded-2xl p-3.5 ${t.listo ? "bg-[#e6f6ee]" : "bg-hueso/70"}`}>
+                <Cara id={caraDe(t.regla.quien)} tam={36} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14.5px] font-medium leading-tight">{t.regla.nombre}</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="flex gap-[3px]" role="img" aria-label={`${hechos} de ${total} datos`}>
+                      {Array.from({ length: total }, (_, i) => <i key={i} className={`h-2.5 w-2.5 rounded-[3px] ${i < hechos ? (t.listo ? "bg-[#17714a]" : "bg-tinta") : "shadow-[inset_0_0_0_1.5px_#cfc8bc]"}`} />)}
+                    </span>
+                    <span className={`text-[12px] ${t.listo ? "text-[#17714a]" : "text-medio"}`}>{t.listo ? "Lista" : `A ${t.faltan.length} ${t.faltan.length === 1 ? "dato" : "datos"}`}</span>
+                  </div>
+                  {!t.listo && (
+                    <p className="mt-2 flex flex-wrap gap-1.5" data-faltan>
+                      {t.faltan.slice(0, 4).map((k) => <a key={k} href={`?campo=${k}#campo-${k}`} className="inline-flex min-h-8 items-center rounded-full bg-white px-2.5 text-[12px] shadow-[inset_0_0_0_1px_var(--color-borde)] hover:shadow-[inset_0_0_0_1px_var(--color-tinta)]">+ {DATOS[k].nombre}</a>)}
+                      {t.faltan.length > 4 && <a href={`?campo=${t.faltan[4]}#campo-${t.faltan[4]}`} className="inline-flex min-h-8 items-center px-1.5 text-[12px] text-medio underline-offset-4 hover:underline">{t.faltan.length - 4} más</a>}
+                    </p>
+                  )}
+                  {t.listo && ir && (ir.atlas
+                    ? <AbrirAtlas id="atlas" texto={ir.atlas} className="mt-2 inline-flex min-h-10 items-center rounded-full bg-tinta px-4 text-[13px] text-white">{ir.texto}</AbrirAtlas>
+                    : <a href={ir.href} data-ir-contenido={t.tarea === "contenido" ? "" : undefined} className="mt-2 inline-flex min-h-10 items-center rounded-full bg-tinta px-4 text-[13px] text-white">{ir.texto}</a>)}
+                </div>
+              </li>
+            );
+          })}
         </ul>
 
-        {/* La ficha se llena sola desde su web (sistema/93): se lee y se propone; nada cuenta hasta que se aprueba. Instagram, a pedido desde el Chrome de Jay (sistema/94). */}
-        <div id="leido" className="mt-4 scroll-mt-6 rounded-2xl bg-hueso/60 p-4" data-buscar-datos>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[14.5px] font-medium">Buscar datos solo</p>
-              <p className="mt-0.5 text-[13px] text-medio">
-                {esAnonymo(f.id) && <>Te proponemos lo que el estudio ya sabe de Unmake{fuentes.web ? " y lo que diga su web" : ""}. Nada se guarda hasta que lo apruebes. </>}
-                {esAnonymo(f.id) ? null : fuentes.web
-                  ? <>Leemos su web ({fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")}) y te proponemos lo que encontremos. Nada se guarda hasta que lo apruebes.</>
-                  : "Anota su web en «Contacto y notas» y aquí podrás leerla."}
-                {fuentes.instagram && <> Su Instagram (@{fuentes.instagram}) no se lee solo: pídele a Claude en el chat que lo revise desde tu Chrome.</>}
-              </p>
+        {/* Buscar datos (sistema/93): lo encontrado entra en su mismo campo, marcado en verde, y se acepta ahí mismo (sistema/109). */}
+        <div id="leido" className="mt-4 flex scroll-mt-6 flex-wrap items-center gap-3 rounded-2xl bg-hueso/60 p-4" data-buscar-datos>
+          <div className="min-w-0 flex-1 text-[13px]">
+            {propuestas.size > 0
+              ? <p className="text-[14px]"><span className="font-medium text-[#17714a]">✓ {propuestas.size} {propuestas.size === 1 ? "dato encontrado" : "datos encontrados"}</span> <span className="text-medio">· en verde, abajo en su lugar</span></p>
+              : <p className="text-[14px] font-medium">Buscar datos solo</p>}
+            <p className="mt-0.5 text-medio">
+              {esAnonymo(f.id) ? "Lo que el estudio sabe de Unmake se guarda directo." : fuentes.web ? `Leemos ${fuentes.web.replace(/^https?:\/\//, "").replace(/\/$/, "")}. Nada se guarda sin tu ok.` : "Anota su web en «Contacto y notas» para leerla."}
+              {lectura?.web && lectura.web.estado !== "ok" && <span className="text-[#a33a0b]"> Su web no se pudo leer{lectura.web.motivo ? `: ${lectura.web.motivo}` : ""}.</span>}
+              {fuentes.instagram && <> Instagram (@{fuentes.instagram}): pídele a Claude que lo lea desde tu Chrome.</>}
+            </p>
+          </div>
+          {propuestas.size > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              <button form="form-saber" name="accion" value="todos" className={botonLleno} data-trabajando="Guardando…">Aceptar todos</button>
+              <button form="form-saber" name="accion" value="descartar" formNoValidate className={boton} data-trabajando="Descartando…">Descartar</button>
             </div>
+          ) : (
             <form action={accionBuscarDatos}>
               <input type="hidden" name="id" value={f.id} />
-              <button className={boton} disabled={!fuentes.web && !esAnonymo(f.id)} data-trabajando="Buscando datos…">{lectura ? "Buscar de nuevo" : "Buscar datos"}</button>
+              <button className={boton} disabled={!fuentes.web && !esAnonymo(f.id)} data-trabajando="Buscando datos…" data-buscar-solo={buscarSolo ? "si" : undefined}>{g?.leidoEl ? "Buscar de nuevo" : "Buscar datos"}</button>
             </form>
-          </div>
-          {lectura && (
-            <div className="mt-4 border-t border-borde pt-4" data-lectura>
-              <ul className="grid gap-1 text-[13px]">
-                {([["Su web", lectura.web]] as const).filter(([, e]) => e).map(([n, e]) => (
-                  <li key={n} data-fuente={n} data-estado={e!.estado}>
-                    <span className={e!.estado === "ok" ? "text-[#17714a]" : "text-[#a33a0b]"}>{n}: {ESTADO_FUENTE[e!.estado]}</span>
-                    {e!.estado === "ok" && e!.paginas ? <span className="text-suave"> · {e!.paginas} {e!.paginas === 1 ? "página" : "páginas"}</span> : null}
-                    {e!.motivo && <span className="text-medio"> · {e!.motivo}</span>}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-1 text-[12px] text-suave">Leído el {fecha(lectura.cuando)}{lectura.por ? ` por ${lectura.por === "luna" ? "Luna" : "Jay"}` : ""}.</p>
-              {lectura.propuestas.length > 0 ? (
-                <form action={accionAprobarDatos} className="mt-3 grid gap-3" data-form-aprobar>
-                  <input type="hidden" name="id" value={f.id} />
-                  <input type="hidden" name="nombre" value={g?.nombre ?? f.nombre} />
-                  <p className="text-[13px] text-medio">Marca lo que está bien. Puedes corregirlo antes de guardar.</p>
-                  {lectura.propuestas.map((p) => {
-                    const ya = saber[p.clave];
-                    return (
-                      <div key={p.clave} data-propuesta={p.clave} className="grid gap-1.5 rounded-xl bg-white p-3 shadow-[inset_0_0_0_1px_var(--color-borde)] sm:grid-cols-[auto_1fr] sm:gap-x-3">
-                        <input type="checkbox" id={`tomar-${p.clave}`} name={`tomar-${p.clave}`} value="si" defaultChecked={!ya} className="mt-1 h-5 w-5 accent-[#17714a]" />
-                        <div className="grid min-w-0 gap-1">
-                          <label htmlFor={`tomar-${p.clave}`} className="text-[13px] font-medium">{DATOS[p.clave].nombre} <span className="font-normal text-suave">· de {NOMBRE_FUENTE_LEIDA[p.fuente]}{p.detalle ? ` (${p.detalle})` : ""}</span></label>
-                          {ya && <p className="text-[12px] text-[#a33a0b]">Hoy dice otra cosa: {ya.valor.split("\n").join(" · ")}</p>}
-                          {DATOS[p.clave].largo || p.valor.includes("\n")
-                            ? <textarea aria-label={`${DATOS[p.clave].nombre} encontrado`} name={`valor-${p.clave}`} rows={Math.min(6, p.valor.split("\n").length + 1)} maxLength={1200} defaultValue={p.valor} className={campo} />
-                            : <input aria-label={`${DATOS[p.clave].nombre} encontrado`} name={`valor-${p.clave}`} maxLength={200} defaultValue={p.valor} className={campo} />}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="flex flex-wrap gap-2">
-                    <button className={botonLleno} name="accion" value="guardar" data-trabajando="Guardando los datos…">Guardar los marcados</button>
-                    <button className={boton} name="accion" value="descartar" data-trabajando="Descartando…">Descartar</button>
-                  </div>
-                </form>
-              ) : (
-                <form action={accionAprobarDatos} className="mt-2 flex flex-wrap items-center gap-3">
-                  <input type="hidden" name="id" value={f.id} />
-                  <input type="hidden" name="nombre" value={g?.nombre ?? f.nombre} />
-                  <p className="text-[13px] text-medio">No encontramos nada que no supiéramos.</p>
-                  <button className={boton} name="accion" value="descartar" data-trabajando="Cerrando…">Cerrar</button>
-                </form>
-              )}
-            </div>
           )}
+          {buscarSolo && <BuscarSolo />}
+          {lectura && <p className="w-full text-[12px] text-suave">Leído el {fecha(lectura.cuando)}{lectura.por ? ` por ${lectura.por === "luna" ? "Luna" : "Jay"}` : ""}.</p>}
         </div>
 
-        <details className="group mt-4" open={sabidos < 6}>
+        <details className="group mt-4" open={abrirSaber}>
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)] [&::-webkit-details-marker]:hidden">Lo que sabemos de {f.nombre}: ver y completar</summary>
-          <form action={accionGuardarSaber} className="mt-4 grid gap-6" data-form-saber>
+          <form id="form-saber" action={accionGuardarSaber} className="mt-4 grid gap-6" data-form-saber>
             <input type="hidden" name="id" value={f.id} />
-            <input type="hidden" name="nombre" value={f.nombre} />
+            <input type="hidden" name="nombre" value={g?.nombre ?? f.nombre} />
             {GRUPOS_SABER.map((grupo) => (
               <fieldset key={grupo} className="grid gap-3">
                 <legend className="mb-1 text-[13px] font-medium">{grupo}</legend>
                 <div className="grid gap-3 md:grid-cols-2">
                   {CLAVES_SABER.filter((k) => DATOS[k].grupo === grupo && k !== "nombre").map((k) => {
-                    const d = DATOS[k], v = saber[k];
+                    const d = DATOS[k], v = saber[k], pr = propuestas.get(k);
                     // Lo que trae Imán se ve y no se pisa por error: si quieres cambiarlo, escribe encima.
                     const deMano = f.guardada?.saber?.[k] ?? "";
+                    const noAplica = esNoAplica(deMano);
+                    // Si el campo estaba vacío, lo encontrado entra en el campo; si ya decía otra cosa, va debajo para elegir.
+                    const choca = !!pr && !!v && v.valor !== pr.valor;
+                    const valor = pr && !choca ? pr.valor : noAplica ? "" : deMano;
+                    const largo = d.largo || valor.includes("\n");
+                    const comun = { id: `campo-${k}`, name: `saber-${k}`, defaultValue: valor, placeholder: v && !deMano ? v.valor : d.ayuda, className: `${campo} ${pr && !choca ? "shadow-[inset_0_0_0_1.5px_#17714a] bg-[#f3fbf6]" : ""} ${campo_ === k ? "ring-2 ring-tinta" : ""}`, autoFocus: campo_ === k };
                     return (
-                      <label key={k} className={`grid content-start gap-1 text-[13px] ${d.largo ? "md:col-span-2" : ""}`}>
-                        <span>{d.nombre} {v ? <span className="text-suave">· {ORIGEN[v.origen]}</span> : <span className="text-[#a33a0b]">· falta</span>}</span>
-                        {d.largo
-                          ? <textarea name={`saber-${k}`} rows={3} maxLength={1200} defaultValue={deMano} placeholder={v && !deMano ? v.valor : d.ayuda} className={campo} />
-                          : <input name={`saber-${k}`} maxLength={200} defaultValue={deMano} placeholder={v && !deMano ? v.valor : d.ayuda} className={campo} />}
-                        {!v && <span className="text-[12px] text-suave">Se puede sacar de: {d.fuentes.map((x) => NOMBRE_FUENTE[x]).join(", ")}.</span>}
-                      </label>
+                      <div key={k} data-campo={k} data-propuesta={pr ? k : undefined} className={`grid content-start gap-1 text-[13px] ${d.largo ? "md:col-span-2" : ""} scroll-mt-24`}>
+                        <span className="flex flex-wrap items-center gap-x-2">
+                          <label htmlFor={`campo-${k}`}>{d.nombre}</label>
+                          {pr ? (
+                            <label className="inline-flex items-center gap-1 text-[12px] text-[#17714a]">
+                              <input type="hidden" name={`propuesta-${k}`} value="1" />
+                              <input type="checkbox" id={`tomar-${k}`} name={`tomar-${k}`} value="si" defaultChecked={!choca} className="h-4 w-4 accent-[#17714a]" />
+                              {choca ? "Usar lo de" : "✓ de"} {NOMBRE_FUENTE_LEIDA[pr.fuente]}{pr.detalle ? ` (${pr.detalle})` : ""}
+                            </label>
+                          ) : v ? <span className="text-suave">· {noAplica ? "no aplica" : ORIGEN[v.origen]}</span> : <span className="text-[#a33a0b]">· falta</span>}
+                          <label className="ml-auto inline-flex items-center gap-1 text-[12px] text-suave" title="A este cliente no le toca">
+                            <input type="checkbox" name={`noaplica-${k}`} value="si" defaultChecked={noAplica} className="h-3.5 w-3.5" />No aplica
+                          </label>
+                        </span>
+                        {largo ? <textarea rows={pr ? Math.min(6, valor.split("\n").length + 1) : 3} maxLength={1200} {...comun} /> : <input maxLength={200} {...comun} />}
+                        {choca && <><input type="hidden" name={`valor-${k}`} value={pr!.valor} /><span className="rounded-lg bg-[#f3fbf6] px-2.5 py-1.5 text-[12px] text-[#17714a] shadow-[inset_0_0_0_1px_#17714a]">Encontramos otra cosa: {pr!.valor.split("\n").join(" · ")}. Márcalo arriba para usarla.</span></>}
+                        {!v && !pr && <span className="text-[12px] text-suave">Se saca de: {d.fuentes.map((x) => NOMBRE_FUENTE[x]).join(", ")}.</span>}
+                      </div>
                     );
                   })}
                 </div>
               </fieldset>
             ))}
-            <div><button className={botonLleno} data-trabajando="Guardando lo que sabemos…">Guardar lo que sabemos</button></div>
+            <div className="flex flex-wrap gap-2"><button className={botonLleno} name="accion" value="guardar" data-trabajando="Guardando lo que sabemos…">{propuestas.size ? "Guardar (con los marcados)" : "Guardar lo que sabemos"}</button></div>
           </form>
         </details>
       </section>

@@ -35,7 +35,7 @@ await paso("en vivo: señal, palabras y fase del agente", async () => {
   await foto("02-en-vivo", false);
 });
 await paso("el agente se alarga: sigue en otra vuelta y entrega (revisión)", async () => {
-  await p.locator("text=/entregó/").first().waitFor({ timeout: 120000 });
+  await p.locator("section[aria-label=Ahora] >> text=/entregó|[Rr]evisa /").first().waitFor({ timeout: 120000 });
   console.log("   ahora:", (await ahora()).replace(/\n+/g, " | ").slice(0, 200)); await foto("03-revision");
   console.log("   avisos del navegador:", await p.evaluate(() => window.__avisos));
 });
@@ -62,7 +62,7 @@ await paso("detener mientras trabaja", async () => {
 });
 await paso("reanudar sigue desde donde quedó", async () => {
   await p.click("button:has-text('Reanudar')"); await p.waitForLoadState("networkidle");
-  await p.locator("text=/entregó|está trabajando|está por empezar/").first().waitFor({ timeout: 60000 });
+  await p.locator("text=/entregó|[Rr]evisa |está trabajando|está por empezar/").first().waitFor({ timeout: 60000 });
   console.log("   ahora:", (await ahora()).replace(/\n+/g, " | ").slice(0, 140));
 });
 await paso("trabado: se ve «se detuvo» y Continuar lo retoma", async () => {
@@ -74,7 +74,7 @@ await paso("trabado: se ve «se detuvo» y Continuar lo retoma", async () => {
   console.log("   tras continuar:", (await ahora()).replace(/\n+/g, " | ").slice(0, 140));
 });
 await paso("móvil: revisión", async () => {
-  await p.goto(`${B}/estudio/cafe-lento`); await p.locator("text=/entregó/").first().waitFor({ timeout: 120000 });
+  await p.goto(`${B}/estudio/cafe-lento`); await p.locator("section[aria-label=Ahora] >> text=/entregó|[Rr]evisa /").first().waitFor({ timeout: 120000 });
   await p.setViewportSize({ width: 390, height: 844 }); await p.reload(); await p.waitForLoadState("networkidle"); await foto("07-movil", false);
   const ancho = await p.evaluate(() => document.documentElement.scrollWidth); if (ancho > 392) throw new Error("scroll horizontal " + ancho);
 });

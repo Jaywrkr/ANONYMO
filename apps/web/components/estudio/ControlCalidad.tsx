@@ -3,13 +3,24 @@ import { revisionVigente, estadoEntrega, TEXTO_CALIDAD, disciplinaBanco, discipl
 import { accionCompararBanco } from '@/app/estudio/acciones';
 import { Enviar } from '@/app/estudio/nuevo/Enviar';
 
+/** Hasta 3 puntos cortos: primero lo que falla, después el resumen partido en frases. */
+function puntos(q: NonNullable<Entrega['calidad']>): string[] {
+  const corta = (x: string) => (x.length > 90 ? `${x.slice(0, 87).replace(/\s+\S*$/, '')}…` : x);
+  const fallan = q.comprobaciones.filter((c) => c.estado !== 'cumple').map((c) => `${c.estado === 'falla' ? 'Cambiar' : 'Pendiente'}: ${c.texto}`);
+  const frases = (q.resumen ?? '').split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+  return [...fallan, ...frases].slice(0, 3).map(corta);
+}
+
 export function ControlCalidad({p,e,detalle=false}: {p:Proyecto;e:Entrega;detalle?:boolean}) {
   const estado = estadoEntrega(p,e);
   const q = e.calidad;
   const vigente = revisionVigente(p,e);
   return <section aria-label={`Calidad de ${e.titulo}`} className="my-4 min-w-0 rounded-2xl border border-current/15 p-4 text-[13px]">
-    <div className="flex flex-wrap items-center gap-2"><strong>{TEXTO_CALIDAD[estado]}</strong><span>· versión {e.version}</span>{q?.nota !== undefined && <span>· {vigente?"revisión":"revisión anterior"} {q.nota}/10</span>}{q?.notaCalibrada !== undefined && <span title="La nota del juez corregida con su calibración contra el banco de referencias">· calibrada {q.notaCalibrada}/10</span>}{e.banco && e.banco.version===e.version && <span>· contra piezas de 9: {e.banco.gana} gana · {e.banco.empata} empata · {e.banco.pierde} pierde</span>}</div>
-    <p className="mt-2 break-words">{vigente && q ? q.resumen : q ? 'Hace falta revisar de nuevo esta versión con los controles actuales.' : 'Esta entrega aún no tiene comprobaciones registradas.'}</p>
+    <div className="flex flex-wrap items-center gap-2"><strong>{TEXTO_CALIDAD[estado]}</strong><span>· versión {e.version}</span>{q?.nota !== undefined && (detalle || !vigente) && <span>· {vigente?"revisión":"revisión anterior"} {q.nota}/10</span>}{q?.notaCalibrada !== undefined && <span title="La nota del juez corregida con su calibración contra el banco de referencias">· calibrada {q.notaCalibrada}/10</span>}{e.banco && e.banco.version===e.version && <span>· contra piezas de 9: {e.banco.gana} gana · {e.banco.empata} empata · {e.banco.pierde} pierde</span>}</div>
+    {/* En la pantalla de decisión (sistema/109): la nota como barra y lo importante en 3 puntos cortos. */}
+    {!detalle && vigente && q?.nota !== undefined && <div className="mt-2 flex items-center gap-1" role="img" aria-label={`Nota ${q.nota} de 10`}>{Array.from({length:10},(_,i)=><i key={i} className={`h-2 flex-1 rounded-sm ${i<Math.round(q.nota!)?(q.nota!>=8?'bg-[#17714a]':q.nota!>=6?'bg-current':'bg-urgente'):'bg-current/15'}`}/>)}<span className="ml-2 shrink-0 font-medium">{q.nota}/10</span></div>}
+    {!detalle && vigente && q ? <ul className="mt-2 grid list-disc gap-0.5 pl-4">{puntos(q).map((x)=><li key={x} className="break-words">{x}</li>)}</ul>
+      : <p className="mt-2 break-words">{vigente && q ? q.resumen : q ? 'Hace falta revisar de nuevo esta versión con los controles actuales.' : 'Esta entrega aún no tiene comprobaciones registradas.'}</p>}
     {!detalle && <Link className="mt-2 inline-flex min-h-11 items-center underline" href={`/estudio/${p.pedido.id}/calidad#${e.tarea.replace('.','-')}`}>Ver requisitos y comprobaciones →</Link>}
     {detalle && q && <>
       {q.comprobaciones.some(c=>c.estado!=="cumple") && <ul className="mt-3 grid gap-3">{q.comprobaciones.filter(c=>c.estado!=="cumple").map((c,i)=><li key={c.id+i}><strong>{c.estado==='falla'?'Cambiar':'Pendiente'} · {c.texto}</strong><p className="mt-1 break-words opacity-80">{c.evidencia}</p></li>)}</ul>}

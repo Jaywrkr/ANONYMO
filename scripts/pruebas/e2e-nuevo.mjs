@@ -10,7 +10,11 @@ await p.click("text=+ Ya tiene logo y colores").catch(() => {});
 // La frase rápida devuelve el cursor a la caja de texto en el cuadro siguiente: se espera antes de escribir el cliente
 // (si no, a veces «Gabriela Abril» caía en la caja de texto y Atlas no encontraba el cliente).
 await p.waitForTimeout(300);
-await p.fill('input[name="cliente"]', "Gabriela Abril");
+// Para quién se elige de la lista o como cliente nuevo (sistema/109): ya no hay nombre suelto.
+await p.fill('[data-elegir-cliente] input[role=combobox]', "Gabriela Abril");
+await p.locator('[role=option]').first().waitFor();
+await p.keyboard.press("Enter");
+if ((await p.inputValue('input[name="cliente"]')) !== "Gabriela Abril") { console.log("no quedó elegido el cliente"); process.exitCode = 1; }
 await p.setInputFiles('input[type="file"]', process.argv[2]); await p.waitForFunction(() => /listo/.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
 await p.click("button:has-text('Que Atlas arme el plan')");
 await p.waitForURL((u) => /estudio\/gabriela|error=/.test(u.toString()), { timeout: 120000 }); await p.waitForLoadState("networkidle");

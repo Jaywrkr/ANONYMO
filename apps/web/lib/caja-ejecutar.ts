@@ -59,7 +59,9 @@ export async function ejecutarCaja(c: PedidoCaja, yo: "jay" | "luna", origen: st
       if (texto.length < 8) return mal("Cuéntale a Faro de qué es el video, en una frase.");
       if (c.confirmado !== true) return Response.json({ confirmar: `Faro va a escribir un guion${f ? ` para ${f.nombre}` : ""}. Usa IA: unos centavos del saldo. ¿Lo hago?` }, sinCache);
       const g = await escribirGuion(texto, { cliente: f?.nombre, por: p.yo!, saber: saber && f && clienteConFicha(f) ? contextoCliente(saber, [...TAREAS_SABER.guion.minimo, ...TAREAS_SABER.guion.mejor]) : undefined });
-      return Response.json({ tarjeta: { titulo: `Guion: ${g.titulo}`, texto: `Gancho: ${g.gancho}\n\n${g.partes.map((x, i) => `${i + 1}. ${x.texto}`).join("\n")}\n\nCierre: ${g.cierre}`, botones: [{ texto: "Abrir en Video", href: "/estudio/video" }] } satisfies Tarjeta }, sinCache);
+      // Con lo que se graba (sistema/109): Luna ve de un vistazo qué tomas necesita.
+      const tomas = g.tomas.length ? `\n\nGrabar (${g.tomas.length}): ${g.tomas.slice(0, 5).join(" · ")}${g.tomas.length > 5 ? " · …" : ""}` : "";
+      return Response.json({ tarjeta: { titulo: `Guion: ${g.titulo} · ${g.segundos} s`, texto: `Gancho: ${g.gancho}\n\n${g.partes.map((x, i) => `${i + 1}. ${x.texto}`).join("\n")}\n\nCierre: ${g.cierre}${tomas}`, botones: [{ texto: "Abrir en Video", href: "/estudio/video#titulo-guiones" }] } satisfies Tarjeta }, sinCache);
     }
     if (accion === "contenido") {
       // El mes que se nombra («diciembre») o, si no, el que viene. Lo demás del texto va como pedido especial.

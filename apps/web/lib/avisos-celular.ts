@@ -26,7 +26,7 @@ export async function avisarCelulares(a: Aviso, solo?: string): Promise<{ enviad
       const d = webpush.generateRequestDetails({ endpoint: c.endpoint, keys: c.keys }, JSON.stringify(a), {
         TTL: 60 * 60,
         urgency: "high",
-        vapidDetails: { subject: process.env.VAPID_CORREO || "mailto:hola@anonymo.ec", publicKey: process.env.VAPID_PUBLICA!, privateKey: process.env.VAPID_PRIVADA! },
+        vapidDetails: { subject: process.env.VAPID_CORREO || "mailto:hola@unmake.studio", publicKey: process.env.VAPID_PUBLICA!, privateKey: process.env.VAPID_PRIVADA! },
       });
       const r = await fetch(d.endpoint, { method: d.method, headers: d.headers as Record<string, string>, body: d.body as BodyInit | null, signal: AbortSignal.timeout(8000) });
       if (r.ok) { enviados++; return; }

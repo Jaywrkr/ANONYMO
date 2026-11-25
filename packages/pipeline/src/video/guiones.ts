@@ -30,6 +30,8 @@ export interface Guion {
   estado: EstadoGuion;
   /** El video que se grabó con este guion. */
   video?: string;
+  /** De qué guion es otra versión (sistema/109). */
+  de?: string;
   historia: PasoGuion[];
   creado: string;
   actualizado: string;
@@ -78,16 +80,40 @@ export async function cambiarGuion(id: string, fn: (g: Guion) => void) {
   return g;
 }
 
+/** Cuántas palabras caben (sistema/109): unas 2,3 por segundo dichas con calma. 30 s ≈ 70 palabras. */
+export const palabrasPara = (segundos: number) => Math.round(segundos * 2.3);
+export const GANCHO_MAX = 10;
+
 export const SISTEMA_FARO = `Faro, contenido de Unmake: estratégico, piensa en series y sabe qué publicar el próximo martes.
 Escribes el guion de un video corto ANTES de grabarlo, para que Luna lo grabe y Corte lo edite. Respondes siempre con la herramienta «escribir_guion».
 
-Cómo es un buen guion:
-- El gancho son los primeros 3 segundos: una frase o una imagen que detiene el scroll. Nada de «hola, hoy les voy a hablar de».
-- Cada parte es una sola idea, en frases que se dicen en voz alta sin trabarse. Lo que se dice cabe en la duración pedida (unas 2,5 palabras por segundo).
-- Cada parte dice qué toma se graba (plano, lugar, qué se ve). Las tomas se pueden grabar con un celular en un día.
-- El cierre dice qué hacer después (escribir, visitar, guardar), sin sonar a anuncio.
+Reglas (se revisan solas; si no se cumplen, el guion vuelve):
+- Largo: lo que se dice (gancho + partes + cierre) NO pasa las palabras que te doy para la duración. Mejor corto que apurado.
+- Gancho: máximo ${GANCHO_MAX} palabras. Una frase o una imagen que detiene el scroll. Nada de «hola, hoy les voy a hablar de».
+- Nada inventado: ni clientes, ni casos, ni cifras, ni testimonios, ni trabajos que no estén en «Lo que sabemos». Tampoco en las tomas.
+  Si hace falta mostrar un trabajo, la toma dice «un trabajo real de Unmake (elegir uno)» o usa los del cliente que estén en lo que sabemos.
+- Un solo llamado a la acción, en el cierre (escribir, visitar o guardar; uno). Las partes no venden.
+- Cada parte es una sola idea, en frases que se dicen en voz alta sin trabarse, y dice qué toma se graba (plano, lugar, qué se ve).
+  Las tomas se graban con un celular en un día.
 - Español de Ecuador, directo, sin palabras rebuscadas ni frases de motivación vacías.
 - Si el pedido no alcanza para escribirlo, escribe la mejor versión y dilo en «titulo».`;
+
+const contar = (t: string) => t.split(/\s+/).filter(Boolean).length;
+const LLAMADOS = /\b(escr[ií]be(nos|me)?|visita(nos)?|gu[aá]rda(lo)?|s[ií]gue(nos)?|ll[aá]ma(nos)?|agenda|reserva|link en (la )?bio|comenta|comp[aá]rte(lo)?|toca el enlace|m[aá]ndanos)\b/gi;
+
+/** Lo que no cumple el guion (sistema/109). Vacío: está bien. */
+export function revisarGuion(g: { gancho: string; partes: { texto: string; toma: string }[]; cierre: string }, segundos: number): string[] {
+  const p: string[] = [];
+  const dichas = contar([g.gancho, ...g.partes.map((x) => x.texto), g.cierre].join(" "));
+  const tope = palabrasPara(segundos);
+  if (dichas > Math.round(tope * 1.1)) p.push(`Tiene ${dichas} palabras y en ${segundos} s caben unas ${tope}. Recórtalo.`);
+  const gancho = contar(g.gancho);
+  if (gancho > GANCHO_MAX) p.push(`El gancho tiene ${gancho} palabras: déjalo en ${GANCHO_MAX} o menos.`);
+  const enPartes = g.partes.filter((x) => (x.texto.match(LLAMADOS) ?? []).length > 0).length;
+  if (enPartes > 0) p.push("Hay llamados a la acción en las partes: deja uno solo, en el cierre.");
+  if ((g.cierre.match(LLAMADOS) ?? []).length > 2) p.push("El cierre pide varias cosas: deja un solo llamado.");
+  return p;
+}
 
 const HERRAMIENTA = {
   nombre: "escribir_guion",
@@ -119,26 +145,32 @@ export function leerGuionIA(x: unknown) {
 
 /** Faro escribe el guion y queda guardado como borrador. */
 /** `saber`: lo que se sabe del cliente, ya en texto (sistema/92). Con eso el guion suena a ese negocio y no a cualquiera. */
-export async function escribirGuion(pedido: string, opciones: { cliente?: string; segundos?: number; por: string; saber?: string }): Promise<Guion> {
+export async function escribirGuion(pedido: string, opciones: { cliente?: string; segundos?: number; por: string; saber?: string; /** Gancho de la versión anterior, para pedir otra distinta. */ distinto?: string; de?: string }): Promise<Guion> {
   const limpio = pedido.trim().slice(0, 2000);
   if (limpio.length < 10) throw new Error("Cuéntale a Faro de qué es el video: al menos una frase.");
   const segundos = (DURACIONES_GUION as readonly number[]).includes(Number(opciones.segundos)) ? Number(opciones.segundos) : 30;
   const cliente = opciones.cliente?.trim().slice(0, 80) || undefined;
-  const texto = [`## Pedido\n${limpio}`, cliente ? `## Cliente\n${cliente}` : "", opciones.saber?.trim() ? `## Lo que sabemos del cliente (úsalo tal cual; no inventes nada más de su negocio)\n${opciones.saber.trim().slice(0, 3000)}` : "", `## Duración\n${segundos} segundos (unas ${Math.round(segundos * 2.5)} palabras en total)`].filter(Boolean).join("\n\n");
-  let crudo: unknown;
-  try {
-    crudo = await pedirEstructura(SISTEMA_FARO, texto, HERRAMIENTA, 2500, { origen: "faro", tarea: "guion" });
-  } catch (e) {
-    throw new Error(`Faro no pudo escribir el guion: ${(e as Error).message}`);
-  }
-  if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Faro no puede escribir guiones.");
-  const g = leerGuionIA(crudo);
+  const texto = [`## Pedido\n${limpio}`, opciones.distinto ? `## Otra versión\nYa hay una versión con este gancho: «${opciones.distinto}». Escribe otra con un ángulo y un gancho distintos.` : "", cliente ? `## Cliente\n${cliente}` : "", opciones.saber?.trim() ? `## Lo que sabemos del cliente (úsalo tal cual; no inventes nada más de su negocio)\n${opciones.saber.trim().slice(0, 3000)}` : "", `## Duración\n${segundos} segundos: máximo ${palabrasPara(segundos)} palabras dichas, contando gancho y cierre.`].filter(Boolean).join("\n\n");
+  const pedir = async (t: string) => {
+    let crudo: unknown;
+    try {
+      crudo = await pedirEstructura(SISTEMA_FARO, t, HERRAMIENTA, 2500, { origen: "faro", tarea: "guion" });
+    } catch (e) {
+      throw new Error(`Faro no pudo escribir el guion: ${(e as Error).message}`);
+    }
+    if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Faro no puede escribir guiones.");
+    return leerGuionIA(crudo);
+  };
+  let g = await pedir(texto);
+  // Se revisa solo (sistema/109): si se pasa de largo, el gancho es largo o pide varias cosas, vuelve una vez con lo que falló.
+  const problemas = revisarGuion(g, segundos);
+  if (problemas.length) g = await pedir(`${texto}\n\n## Tu versión anterior no cumplió\n${problemas.map((x) => `- ${x}`).join("\n")}\nEscríbelo de nuevo cumpliendo todo.`).catch(() => g);
   const ahora = new Date().toISOString();
   const id = `g-${slug(g.titulo || limpio).slice(0, 40) || "guion"}-${randomBytes(2).toString("hex")}`;
   const guion: Guion = {
-    id, pedido: limpio, cliente, segundos, ...g, estado: "borrador", creado: ahora, actualizado: ahora,
+    id, pedido: limpio, cliente, segundos, ...g, ...(opciones.de ? { de: opciones.de } : {}), estado: "borrador", creado: ahora, actualizado: ahora,
     historia: [
-      { cuando: ahora, quien: opciones.por, que: "Pidió el video" },
+      { cuando: ahora, quien: opciones.por, que: opciones.de ? "Pidió otra versión" : "Pidió el video" },
       { cuando: ahora, quien: "atlas", que: "Se lo pasó a Faro" },
       { cuando: ahora, quien: "faro", que: "Escribió el guion" },
     ],

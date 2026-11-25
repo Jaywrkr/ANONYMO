@@ -84,7 +84,7 @@ try {
   const [ventana] = await Promise.all([ctx.waitForEvent("page"), tarjeta.locator("a:has-text('WhatsApp')").click()]);
   await ventana.close();
   await tarjeta.locator("[role=status]:has-text('Marcado como contactado')").waitFor({ timeout: 15000 });
-  exigir(await tarjeta.locator("select[aria-label=Estado]").inputValue() === "contactado", "al abrir WhatsApp queda como contactado");
+  exigir(await tarjeta.locator("details[data-estado]").getAttribute("data-estado") === "contactado", "al abrir WhatsApp queda como contactado");
 
   await tarjeta.locator("button:has-text('Más')").click();
   await tarjeta.locator("textarea").nth(1).fill("Atiende sábados. Quiere agendar en línea.");
@@ -100,17 +100,17 @@ try {
   await p.waitForSelector("ul[aria-label=Negocios] > li");
   // La tanda de hoy (sistema/71): abre por defecto, cuenta lo enviado y no propone a quien no tiene teléfono.
   const banda = await p.locator("section[aria-label='La tanda de hoy']").innerText();
-  exigir(/1 de 20 enviados/.test(banda), `la tanda cuenta lo enviado hoy («${banda.split("\n")[0]}»)`);
+  exigir(/1 de 20/.test(banda), `la tanda cuenta lo enviado hoy («${banda.split("\n")[0]}»)`);
   const enTanda = await p.locator("ul[aria-label=Negocios] > li p.truncate").allInnerTexts();
   exigir(enTanda.includes("Dental Enlace Roto") && enTanda.includes("Sonrisa Sin Web") && !enTanda.includes("Consultorio Web Vieja"), `la tanda propone con teléfono y deja ver lo enviado hoy (${enTanda.join(", ")})`);
-  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  if (!(await p.locator("#filtros-iman").count())) await p.click("button[aria-controls=filtros-iman]"); await p.selectOption("select[aria-label='Qué negocios']", "todos");
   const bien = p.locator("li:has-text('Clínica Bien Hecha')");
   await bien.locator("button:has-text('Más')").click();
   const vio = await bien.locator("text=Lo que Sonda vio en su web").locator("..").innerText();
   exigir(/Odontología familiar en Cuenca desde 1998/.test(vio) && /Ortodoncia/.test(vio) && /instagram\.com\/bienhecha/.test(vio), "Sonda dice cómo se describe, de qué habla y sus redes");
   await bien.locator("button:has-text('Cerrar')").click();
   const otra = p.locator("li:has-text('Sonrisa Sin Web')");
-  exigir(await otra.locator("select[aria-label=Estado]").inputValue() === "contactado", "al recargar sigue contactado (vive en la nube)");
+  exigir(await otra.locator("details[data-estado]").getAttribute("data-estado") === "contactado", "al recargar sigue contactado (vive en la nube)");
   await otra.locator("button:has-text('Más')").click();
   exigir((await otra.locator("textarea").nth(1).inputValue()) === "Atiende sábados. Quiere agendar en línea.", "las notas siguen ahí");
   exigir(decodeURIComponent((await otra.locator("a:has-text('WhatsApp')").getAttribute("href")) ?? "").includes("mensaje escrito a mano"), "WhatsApp usa el mensaje escrito a mano");
@@ -160,9 +160,9 @@ try {
   exigir(await p.locator("section[aria-labelledby=t-datos] dl").getByText("Prefiere que lo llamen en la tarde.").waitFor({ timeout: 10000 }).then(() => true, () => false), "y se leen sin abrir el formulario");
   await p.screenshot({ path: join(capturas, "5-ficha.png"), fullPage: true });
   await p.goto(`${B}/estudio/clientes/nuevos`);
-  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  if (!(await p.locator("#filtros-iman").count())) await p.click("button[aria-controls=filtros-iman]"); await p.selectOption("select[aria-label='Qué negocios']", "todos");
   const ya = p.locator("li:has-text('Sonrisa Sin Web')");
-  exigir((await ya.locator("select[aria-label=Estado]").inputValue()) === "cliente", "el prospecto quedó como cliente");
+  exigir((await ya.locator("details[data-estado]").getAttribute("data-estado")) === "cliente", "el prospecto quedó como cliente");
   await ya.locator("button:has-text('Más')").click();
   exigir((await ya.locator("a:has-text('Ver el proyecto')").getAttribute("href")) === "/estudio/sonrisa-sin-web" && (await ya.locator("a:has-text('Ficha del cliente')").count()) === 1, "y desde el prospecto se llega al proyecto y a la ficha");
   await p.goto(`${B}/estudio/clientes`);
@@ -175,10 +175,10 @@ try {
   const ancho = await m.evaluate(() => document.documentElement.scrollWidth);
   exigir(ancho <= 392, `en celular no se sale de la pantalla (${ancho}px)`);
   // Orden en celular (sistema/74): la tanda antes que la lista, buscar plegado, tres botones por tarjeta en una fila.
-  exigir(!(await m.locator("section[aria-label='Buscar negocios']").count()) && await m.locator("button:has-text('Buscar más negocios')").count() === 1, "en celular buscar queda plegado");
+  exigir(!(await m.locator("section[aria-label='Buscar negocios']").count()) && await m.locator("button:has-text('+ Buscar negocios')").count() === 1, "en celular buscar queda plegado");
   const filas = await m.locator("ul[aria-label=Negocios] > li").first().evaluate((li) => [...li.querySelectorAll("[data-acciones] > *")].map((x) => Math.round(x.getBoundingClientRect().top)));
   exigir(filas.length === 3 && new Set(filas).size === 1, `cada tarjeta muestra sus tres botones en una sola fila (${filas.join(",")})`);
-  exigir(!(await m.locator("select[aria-label='Tipo de web']").isVisible()) && await m.locator("button:has-text('Filtros')").isVisible(), "los filtros extra van en «Filtros»");
+  exigir(!(await m.locator("select[aria-label='Tipo de web']").isVisible()) && await m.locator("button:has-text('Filtrar')").isVisible(), "los filtros van en «Filtrar»");
   await m.screenshot({ path: join(capturas, "4-celular.png"), fullPage: true });
   for (const ruta of ["/estudio/clientes", "/estudio/cliente/sonrisa-sin-web"]) {
     await m.goto(B + ruta);

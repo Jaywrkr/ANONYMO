@@ -38,7 +38,7 @@ test("Faro escribe, Luna aprueba, se graba y Corte lo lee: cada paso queda firma
     assert.ok(idGuionValido(g.id), g.id);
     assert.match(pedidos[0].system, /^Faro, contenido de Unmake/);
     assert.match(pedidos[0].texto, /## Cliente\nUnmake/);
-    assert.match(pedidos[0].texto, /60 segundos \(unas 150 palabras/);
+    assert.match(pedidos[0].texto, /60 segundos: máximo 138 palabras/);
     assert.equal(g.estado, "borrador");
     await aprobarGuion(g.id, "luna");
     await unirGuionAVideo(g.id, "v-reel-ab12", "luna");
@@ -55,4 +55,15 @@ test("Faro escribe, Luna aprueba, se graba y Corte lo lee: cada paso queda firma
     delete process.env.ANTHROPIC_BASE_URL;
     ia.close();
   }
+});
+
+test("el guion se revisa solo: largo, gancho y un solo llamado (sistema/109)", async () => {
+  const { revisarGuion, palabrasPara } = await import("../src/video/guiones.ts");
+  assert.equal(palabrasPara(30), 69);
+  const bien = { gancho: "Tu web te está costando pacientes", partes: [{ texto: "La mayoría busca en el celular y se va si tarda.", toma: "Celular en mano" }], cierre: "Escríbenos por WhatsApp." };
+  assert.deepEqual(revisarGuion(bien, 30), []);
+  const largo = { ...bien, partes: [{ texto: Array(90).fill("palabra").join(" "), toma: "x" }] };
+  assert.match(revisarGuion(largo, 30)[0]!, /caben unas 69/);
+  assert.match(revisarGuion({ ...bien, gancho: "Esta es una frase de gancho que tiene demasiadas palabras para tres segundos" }, 30).join(), /gancho tiene/);
+  assert.match(revisarGuion({ ...bien, partes: [{ texto: "Síguenos para más.", toma: "x" }] }, 30).join(), /uno solo, en el cierre/);
 });
