@@ -5,7 +5,7 @@ import { Enviar } from "./Enviar";
 import { Contar } from "@/components/estudio/Contar";
 import { ZonaArchivos } from "@/components/estudio/ZonaArchivos";
 import { Cara } from "@/components/estudio/piezas";
-import { nubeActiva } from "@anonymo/pipeline";
+import { nubeActiva, saberDe } from "@anonymo/pipeline";
 import { ElegirCliente, type OpcionCliente } from "@/components/estudio/ElegirCliente";
 import { clientesCaja, proyectoDe } from "@/lib/caja-ejecutar";
 
@@ -20,7 +20,7 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
   const enLinea = nubeActiva();
   // Para quién (sistema/109): todas las fichas y los clientes nuevos de Imán, para elegir de la lista.
   const clientes: OpcionCliente[] = (await clientesCaja().catch(() => []))
-    .map((f) => ({ id: f.id, nombre: f.nombre, alias: f.guardada?.alias, prospecto: f.prospecto?.id, detalle: f.prospecto && !f.proyectos.length ? "Cliente nuevo de Imán" : proyectoDe(f) ? "Con proyecto" : "Con ficha" }))
+    .map((f) => ({ id: f.id, nombre: f.nombre, alias: f.guardada?.alias, prospecto: f.prospecto?.id, sabe: Object.keys(saberDe(f)), detalle: f.prospecto && !f.proyectos.length ? "Cliente nuevo de Imán" : proyectoDe(f) ? "Con proyecto" : "Con ficha" }))
     .sort((a, b) => Number(!!a.prospecto) - Number(!!b.prospecto) || a.nombre.localeCompare(b.nombre, "es"));
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
@@ -32,15 +32,14 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
             <h1 className={`${serif} text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Cuéntale a Atlas.</h1>
           </div>
         </div>
-        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-medio">
-          Lo que hablaste con el cliente, como se lo contarías a un socio. Atlas decide qué hace falta y quién trabaja. Nadie empieza hasta que tú lo digas.
-        </p>
-        <ol aria-label="Cómo sigue" className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-          {[["1", "Eliges y cuentas", "Para quién y qué necesita."], ["2", "Atlas arma el plan", "Quién trabaja, qué entrega y cuánto cuesta."], ["3", "Tú dices «que empiecen»", "Nadie trabaja antes."]].map(([n, t, d], i) => (
-            <li key={n} className={`rounded-2xl p-4 ${i === 0 ? "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]" : "bg-[#f4f1eb]"}`}>
-              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] ${i === 0 ? "bg-tinta text-white" : "bg-white text-medio"}`}>{n}</span>
-              <p className="mt-2 text-[14px] font-medium">{t}</p>
-              <p className="text-[13px] text-medio">{d}</p>
+        <p className="mt-3 max-w-xl text-[15px] text-medio">Lo que hablaste con el cliente, como se lo contarías a un socio.</p>
+        {/* Cómo sigue, en una línea (sistema/111). */}
+        <ol aria-label="Cómo sigue" className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-medio">
+          {["Eliges y cuentas", "Atlas arma el plan", "Tú dices «que empiecen»"].map((t, i) => (
+            <li key={t} className="flex items-center gap-2">
+              {i > 0 && <span aria-hidden className="text-suave">→</span>}
+              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${i === 0 ? "bg-tinta text-white" : "bg-[#ece6dc] text-medio"}`}>{i + 1}</span>
+              <span className={i === 0 ? "text-tinta" : ""}>{t}</span>
             </li>
           ))}
         </ol>
@@ -53,7 +52,6 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
             <span className="text-[13px] font-medium">Imágenes y archivos <span className="font-normal text-suave">· opcional</span></span>
             <ZonaArchivos nube={enLinea} texto="Logo, fotos o capturas de lo que le gusta" />
           </div>
-          <p className="-mt-3 text-[12px] text-suave">Mira, Orla y los visuales ven las imágenes. Los enlaces del texto los abren Sonda, Nova, Orla y Vector.</p>
 
           <div className="flex flex-wrap items-center gap-2 border-t border-borde pt-6">
             <Enviar className={`${botonLleno} min-h-12 px-7 text-[14px]`} texto="Que Atlas arme el plan →" trabajando="Atlas está leyendo el pedido…" largo />

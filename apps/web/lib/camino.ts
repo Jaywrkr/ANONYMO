@@ -26,6 +26,8 @@ export interface ProyectoCamino {
   tareas: Record<string, string>;
   esperaJurado?: boolean;
   controlPendiente?: {tarea:string;version:number};
+  /** Correcciones automáticas por entrega (sistema/111): «1.atlas:entrega» → 1. */
+  controlRondas?: Record<string, number>;
   pendientesCliente?: { fecha: string; texto: string }[];
   modo?: "paso" | "fase" | "auto";
   revision?: { tarea: string; fecha: string; calidad?: "pendiente" | "cambios" };
@@ -80,6 +82,10 @@ export interface Momento {
 
 /** Lo que se sabe en vivo de la vuelta que está trabajando (sistema/42). */
 export interface SenalVivo { tarea?: string; fase?: string; palabras?: number }
+/** El título corto mientras trabaja (sistema/111): «Atlas escribe plan del proyecto», sin hablar de la IA. */
+const VERBO_CORTO: Record<string, string> = { preparando: "prepara", esperando: "trabaja en", pensando: "piensa", buscando: "investiga para", revisando: "revisa", escribiendo: "escribe" };
+/** Si la entrega va en una corrección automática: «Corrección 1 de 2». */
+const correccion = (p: ProyectoCamino, t: string) => { const n = p.controlRondas?.[`${t}:entrega`] ?? 0; return n > 0 && p.tareas[t] !== "lista" ? `Corrección ${n} de 2 · ` : ""; };
 const VERBO: Record<string, string> = { preparando: "se está preparando", esperando: "espera la respuesta de la IA", pensando: "está pensando", buscando: "está buscando en la web", revisando: "está revisando", escribiendo: "está escribiendo" };
 
 /**
@@ -130,7 +136,7 @@ function momentoBase(p: ProyectoCamino, yo: Socio, responsableActual: Socio, aho
   }
   if (p.estado === "en-curso" && p.controlPendiente && !p.error && (vivo || ahoraMs-(Date.parse(p.actualizado??"")||0)<VUELTA_MUERTA_MS)) {
     const t=p.controlPendiente.tarea;
-    return {...base,paso:"trabajo",indice:2,teToca:false,tono:"vivo",accion:"Ver la revisión",trabajando:[t.split(".")[1]],ahora:`Revisando ${entregaDe(t).toLowerCase()}, versión ${p.controlPendiente.version}.`,despues:"Comprobamos los requisitos antes de pedirte una decisión. Si falta una prueba, quedará pendiente."};
+    return {...base,paso:"trabajo",indice:2,teToca:false,tono:"vivo",accion:"Ver la revisión",trabajando:[t.split(".")[1]],ahora:`Revisando ${entregaDe(t).toLowerCase()}, versión ${p.controlPendiente.version}.`,corto:`Revisión automática · ${entregaDe(t).toLowerCase()} v${p.controlPendiente.version}`,despues:"Tarda ~1 min. Si no llega a 8/10, se corrige sola hasta 2 veces y luego decides tú."};
   }
   if (p.estado === "esperando" && p.direcciones?.esperando) {
     const mio = responsableActual === yo;
@@ -170,6 +176,7 @@ function momentoBase(p: ProyectoCamino, yo: Socio, responsableActual: Socio, aho
       const t = vivo.tarea ?? enCurso[0] ?? siguienteTarea(p);
       return { ...base, trabajando: t ? [t.split(".")[1]] : trabajando, paso: "trabajo", indice: 2, teToca: false, tono: "vivo", accion: "Ver en vivo",
         ahora: t ? `${agenteDe(t)} ${VERBO[vivo.fase ?? ""] ?? "está trabajando"}: ${entregaDe(t).toLowerCase()}.` : "El equipo está trabajando.",
+        corto: t ? `${correccion(p, t)}${agenteDe(t)} ${VERBO_CORTO[vivo.fase ?? ""] ?? "trabaja en"} ${entregaDe(t).toLowerCase()}` : undefined,
         despues };
     }
     if (p.error) {

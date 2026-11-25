@@ -98,6 +98,12 @@ test('corrige automáticamente como máximo dos veces y conserva las versiones',
   assert.equal(q.estado,'esperando');assert.equal(q.controlPendiente,undefined);assert.equal(q.controlRondas?.['1.atlas:entrega'],2);
   assert.equal(e.version,3);assert.equal(e.calidad?.estado,'cambios');assert.equal(puedeAprobar(q,e),false);
   assert.ok(leerEntrega(p.pedido.id,'1.atlas',1));
+  // Sin «igual» no se aprueba; con «igual» (sistema/111) Jay decide, queda anotado y sigue el equipo.
+  await assert.rejects(()=>aprobar(p.pedido.id,'jay',undefined,motor,()=>{},false,{max:0}),/todavía no está verificada/);
+  await aprobar(p.pedido.id,'jay',undefined,motor,()=>{},false,{max:0},true);
+  const aprobada=leerEntrega(p.pedido.id,'1.atlas')!;
+  assert.equal(aprobada.calidad?.estado,'aprobado');assert.equal(aprobada.calidad?.aprobadoIgual,true);
+  assert.equal(leerProyecto(p.pedido.id).revision,undefined);
  }finally{globalThis.fetch=antes;delete process.env.ANTHROPIC_API_KEY;}
 });
 
@@ -126,4 +132,20 @@ test('en automático la última revisión llega a la decisión humana sin necesi
   const q=await avanzar(p.pedido.id,motor,()=>{},{max:1});
   assert.equal(q.estado,'esperando');assert.equal(q.revision?.tarea,'1.atlas');assert.equal(q.controlPendiente,undefined);
  }finally{globalThis.fetch=antes;delete process.env.ANTHROPIC_API_KEY;}
+});
+
+test('el plan se revisa como plan, y si es de Unmake como interno (sistema/111)',async()=>{
+ const {guiaPlan}=await import('../src/calidad.ts');
+ const {esInterno}=await import('../src/clientes/anonymo.ts');
+ const ped=(x:Record<string,unknown>)=>({id:'x',cliente:'Taller',tipo:'web' as const,descripcion:'.',creado:'',...x});
+ assert.equal(esInterno(ped({cliente:'Unmake'})),true);assert.equal(esInterno(ped({ficha:'anonymo',cliente:'Lo que sea'})),true);assert.equal(esInterno(ped({})),false);
+ assert.match(guiaPlan('1.atlas',ped({})),/no exijas que estén «verificadas»/);
+ assert.doesNotMatch(guiaPlan('1.atlas',ped({})),/proyecto interno/);
+ assert.match(guiaPlan('1.atlas',ped({cliente:'Unmake'})),/proyecto interno de Unmake/);
+ assert.equal(guiaPlan('3.mira',ped({})),'');
+});
+test('un pedido interno no trae preguntas de presupuesto ni de cliente ideal (sistema/111)',()=>{
+ const pedido={id:'interno-x',cliente:'Unmake',ficha:'anonymo',tipo:'lanzamiento' as const,descripcion:'Lanzamiento en Instagram.',creado:''};
+ assert.deepEqual(planificar(pedido).preguntas,[]);
+ assert.ok(planificar({...pedido,cliente:'Taller',ficha:undefined}).preguntas.length>0);
 });

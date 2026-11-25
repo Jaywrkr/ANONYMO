@@ -1,3 +1,4 @@
+import { esInterno } from "./clientes/anonymo.ts";
 import {adjuntosReferencias} from './estandar.ts';
 // Corre un proyecto hasta la siguiente pausa y maneja las decisiones de Jay y Luna.
 import {guardarPiezas} from "./piezas.ts";
@@ -69,7 +70,7 @@ export async function replanear(id: string, ajuste: string, quien: "jay" | "luna
   if (!texto) throw new Error("Escribe qué cambiar del plan.");
   const quienN = quien === "luna" ? "Luna" : "Jay";
   const descripcion = `${p.pedido.descripcion}\n\nAjuste de ${quienN}: ${texto}`;
-  const l = await entenderPedido(descripcion, { cliente: p.pedido.cliente });
+  const l = await entenderPedido(descripcion, { cliente: p.pedido.cliente, saber: p.pedido.saberCliente, interno: esInterno(p.pedido) });
   const pedido = {
     ...p.pedido,
     descripcion,
@@ -124,12 +125,14 @@ export function pedirControl(id: string, tarea: TareaId) {
   guardarProyecto(p);
 }
 
-function aprobarEntrega(p: Proyecto, t: TareaId, quien: string) {
+function aprobarEntrega(p: Proyecto, t: TareaId, quien: string, igual = false) {
   const e = leerEntrega(p.pedido.id,t);
   if (!e) throw new Error("Falta una entrega para aprobar.");
-  if (!puedeAprobar(p,e)) throw new Error("Esta versión todavía no está verificada. Revisa sus comprobaciones antes de aprobar.");
+  // «Aprobar igual» (sistema/111): Jay o Luna deciden aunque la revisión automática no llegue a 8. Queda anotado.
+  const sinVerificar = !puedeAprobar(p,e);
+  if (sinVerificar && !(igual && (quien === "jay" || quien === "luna") && e.calidad)) throw new Error("Esta versión todavía no está verificada. Revisa sus comprobaciones antes de aprobar.");
   if (e.calidad && e.modo !== "simulado") {
-    e.calidad = {...e.calidad,estado:"aprobado",aprobadoPor:quien};
+    e.calidad = {...e.calidad,estado:"aprobado",aprobadoPor:quien,...(sinVerificar ? { aprobadoIgual: true } : {})};
     guardarEntrega(p.pedido.id,e);
   }
 }
@@ -394,7 +397,7 @@ function esperando(id: string) {
   return p;
 }
 
-export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, forzar = false, op: OpcionesAvanzar = {}) {
+export async function aprobar(id: string, quien: Puerta["quien"], nota?: string, motor?: Motor, aviso?: Aviso, forzar = false, op: OpcionesAvanzar = {}, igual = false) {
   const p = esperando(id);
   if (p.direcciones?.esperando) throw new Error("Primero elige una de las direcciones de diseño (o pide otras).");
   const toca = responsable(p, p.revision ? faseDe(p.revision.tarea) : p.faseActual);
@@ -402,17 +405,18 @@ export async function aprobar(id: string, quien: Puerta["quien"], nota?: string,
     throw new Error(`Esta fase la aprueba ${NOMBRE_SOCIO[toca]}. Si igual quieres aprobarla, usa forzar (terminal: --forzar).`);
   // Modo paso: se aprueba una entrega y sigue el siguiente agente.
   if (p.revision && !p.esperaJurado) {
-    aprobarEntrega(p,p.revision.tarea,quien);
+    const nota0 = leerEntrega(id,p.revision.tarea)?.calidad?.nota;
+    aprobarEntrega(p,p.revision.tarea,quien,igual);
     const c = contratoPorId(p.revision.tarea);
-    bitacora(id, `${quienNombre(quien)} aprobó ${c?.entrega ?? p.revision.tarea} de ${agentePorId(c?.agente ?? "")?.nombre ?? ""}${nota ? `: ${nota}` : ""}.`);
+    bitacora(id, `${quienNombre(quien)} aprobó${igual ? ` igual (revisión ${nota0 ?? "sin nota"}/10)` : ""} ${c?.entrega ?? p.revision.tarea} de ${agentePorId(c?.agente ?? "")?.nombre ?? ""}${nota ? `: ${nota}` : ""}.`);
     delete p.revision;
     p.estado = "en-curso";
     guardarProyecto(p);
     return avanzar(id, motor, aviso, op);
   }
   const lote=p.plan.tareas.filter(t=>faseDe(t)===p.faseActual && p.tareas[t]==="lista");
-  if(lote.some(t=>{const e=leerEntrega(id,t);return !e||!puedeAprobar(p,e);})) throw new Error("Faltan entregas verificadas en esta fase. Revisa sus comprobaciones antes de aprobar.");
-  for (const t of lote) aprobarEntrega(p,t,quien);
+  if(!igual&&lote.some(t=>{const e=leerEntrega(id,t);return !e||!puedeAprobar(p,e);})) throw new Error("Faltan entregas verificadas en esta fase. Revisa sus comprobaciones antes de aprobar.");
+  for (const t of lote) aprobarEntrega(p,t,quien,igual);
   delete p.revision;
   if (p.esperaJurado) {
     p.juradoAceptado = true;

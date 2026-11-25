@@ -1,6 +1,7 @@
 // Atlas: convierte un pedido en un plan.
 // Con clave de Anthropic lee lo que contaron Jay o Luna y decide qué agentes trabajan (sistema/23);
 // sin clave usa reglas por palabras clave. Regla de oro: solo trabaja quien hace falta, cada tarea cuesta.
+import { esInterno } from "./clientes/anonymo.ts";
 import { agentePorId, FASES, PEDIDOS, type TipoPedido } from "@anonymo/agentes";
 import { CONTRATOS, contratosDeFase, ordenar } from "./contratos.ts";
 import type { Pausas, Pedido, Plan, TareaId } from "./tipos.ts";
@@ -77,6 +78,8 @@ export function planificar(pedido: Pedido, eleccion?: Eleccion): Plan {
 
 /** Lo que falta saber del cliente, según lo que ya está en el contexto. */
 function preguntasPor(pedido: Pedido): string[] {
+  // Interno (sistema/111): el cliente es el estudio; no hay a quién preguntarle presupuesto ni cliente ideal.
+  if (esInterno(pedido)) return [];
   const c = pedido.contexto ?? {};
   const preguntas: string[] = [];
   if (!c.publico) preguntas.push("¿Quién es el cliente ideal? Edad, zona y qué busca.");
@@ -209,7 +212,7 @@ const catalogo = () =>
  * Atlas lee lo que contaron Jay o Luna y decide qué agentes trabajan.
  * Con clave usa el modelo rápido (centavos por pedido); sin clave o si falla, reglas por palabras clave.
  */
-export async function entenderPedido(texto: string, op: { cliente?: string; archivos?: string[] } = {}): Promise<Lectura> {
+export async function entenderPedido(texto: string, op: { cliente?: string; archivos?: string[]; /** Lo que su ficha ya sabe (sistema/111). */ saber?: string; /** El cliente es el propio estudio. */ interno?: boolean } = {}): Promise<Lectura> {
   // Sin IA: reglas, y queda anotado por qué (se ve en el plan y en los registros del servidor).
   const sinIA = (crudo: string) => {
     const motivo = ocultarClaves(crudo);
@@ -231,13 +234,17 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
         "Lees lo que Jay o Luna cuentan después de hablar con un cliente y decides qué agentes trabajan.",
         "Regla de oro: cada tarea cuesta dinero. Solo entran las tareas cuya entrega el cliente necesita de verdad para lo que pidió. Nada «por si acaso».",
         "Ejemplos: si solo pide un logo, no trabajan web, video, evento ni sonido. Si pide una web y ya tiene marca, no se rehace la identidad. Si no pidió sonido, Eco no trabaja. Si no hay web, Prisma no audita.",
-        "1.atlas (plan) y 1.ledger (presupuesto) entran casi siempre. 6.trofeo (jurado) entra si hay diseño o web que evaluar. La fase 7 es interna de la agencia: no la uses para un cliente.",
+        "1.atlas (plan) entra siempre. 1.ledger (presupuesto) entra casi siempre, salvo si el cliente es el propio estudio o el pedido dice «sin precios» o «sin presupuesto». 6.trofeo (jurado) entra si hay diseño o web que evaluar. La fase 7 es interna de la agencia: no la uses para un cliente.",
+        "Piezas para redes (publicaciones, historias, portadas de destacadas, foto de perfil): las planifica y escribe 5.faro (el arte se dibuja después en Contenido con la marca del cliente). 3.mira hace el sistema visual de una marca (logo y archivos vectoriales): solo entra si hay que crear o rehacer la identidad, no para piezas de una marca que ya existe.",
+        "Lo que ya sabemos del cliente no se pregunta. Las preguntas son solo lo que de verdad falta para empezar, máximo 3, concretas y que se respondan en una línea.",
+        ...(op.interno ? ["Este pedido es interno: el cliente es el propio estudio (Unmake). Tiene marca, no hay presupuesto ni precios, y las preguntas son para Jay o Luna."] : []),
         "Responde llenando la herramienta «plan». Razones de 12 palabras como máximo; no repitas el pedido.",
       ].join("\n"),
       [
         "# Tareas posibles (id · agente — entrega: objetivo)",
         catalogo(),
         "",
+        op.saber?.trim() ? `# Lo que ya sabemos del cliente (no lo preguntes)\n${op.saber.trim().slice(0, 2500)}\n` : "",
         `# Lo que contaron${op.cliente ? ` sobre ${op.cliente}` : ""}`,
         texto,
         op.archivos?.length ? `\n# Archivos que adjuntaron\n${op.archivos.map((a) => `- ${a}`).join("\n")}` : "",
@@ -260,7 +267,7 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
     contexto: {
       rubro: txt(c.rubro), ciudad: txt(c.ciudad), publico: txt(c.publico), plazo: txt(c.plazo), presupuesto: txt(c.presupuesto), url: txt(c.url),
       referencias: Array.isArray(c.referencias) ? c.referencias.map(txt).filter((x): x is string => !!x).slice(0, 12) : undefined,
-      tieneMarca: c.tieneMarca === true || c.tieneMarca === "true" ? true : c.tieneMarca === false || c.tieneMarca === "false" ? false : undefined,
+      tieneMarca: op.interno || c.tieneMarca === true || c.tieneMarca === "true" ? true : c.tieneMarca === false || c.tieneMarca === "false" ? false : undefined,
     },
     idioma: r.idioma === "en" ? "en" : undefined,
     plantilla: r.plantilla && plantillaPorId(r.plantilla) ? r.plantilla : undefined,
@@ -268,7 +275,7 @@ export async function entenderPedido(texto: string, op: { cliente?: string; arch
       tareas,
       razones: r.razones,
       fuera: r.fuera,
-      preguntas: (r.preguntas ?? []).map(txt).filter((x): x is string => !!x).slice(0, 4),
+      preguntas: (r.preguntas ?? []).map(txt).filter((x): x is string => !!x).slice(0, 3),
       resumen: typeof r.resumen === "string" ? r.resumen.trim().slice(0, 500) : undefined,
       porIA: true,
     },

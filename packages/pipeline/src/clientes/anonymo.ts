@@ -5,6 +5,8 @@ import type { PropuestaDato } from "./fuentes.ts";
 export const ID_ANONYMO = "anonymo";
 // La ficha propia: «unmake» en las nuevas; «anonymo» en las que se crearon antes del cambio de nombre.
 export const esAnonymo = (id: string | undefined) => id === ID_ANONYMO || id === "unmake";
+/** Un pedido es interno cuando el cliente es el propio estudio (sistema/111): por su ficha o por su nombre. */
+export const esInterno = (p: { ficha?: string; cliente: string }) => esAnonymo(p.ficha) || /^(unmake|anonymo)(\b|$)/i.test(p.cliente.trim());
 
 const DETALLE = "lo que ya sabe el estudio";
 const DATOS_ANONYMO: [PropuestaDato["clave"], string][] = [
