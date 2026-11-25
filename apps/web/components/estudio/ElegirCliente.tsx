@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clientesDe } from "@anonymo/pipeline/src/clientes/caja.ts";
 
-export interface OpcionCliente { id: string; nombre: string; alias?: string[]; prospecto?: string; detalle: string }
+export interface OpcionCliente { id: string; nombre: string; alias?: string[]; prospecto?: string; detalle: string; /** Lo que su ficha ya sabe (claves de saber). */ sabe?: string[] }
 
 type Elegido = { tipo: "ficha"; c: OpcionCliente } | { tipo: "nuevo"; nombre: string };
 
@@ -45,6 +45,14 @@ export function ElegirCliente({ clientes, inicial }: { clientes: OpcionCliente[]
     area.addEventListener("input", mirar);
     return () => area.removeEventListener("input", mirar);
   }, [clientes]);
+
+  // Avisa a la caja del pedido qué sabe ya la ficha del elegido (sistema/111): sus pistas se marcan solas.
+  useEffect(() => {
+    const sabe = elegido?.tipo === "ficha" ? elegido.c.sabe ?? [] : [];
+    // Queda también a mano por si la caja todavía no escuchaba (los dos montan a la vez).
+    (window as unknown as { __pedidoSabe?: string[] }).__pedidoSabe = sabe;
+    window.dispatchEvent(new CustomEvent("pedido:cliente", { detail: { sabe } }));
+  }, [elegido]);
 
   const lista = useMemo(() => {
     const q = buscar.trim();

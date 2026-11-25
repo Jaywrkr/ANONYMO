@@ -6,7 +6,7 @@ import Link from "next/link";
 import { SeguimientoMovil } from "@/components/estudio/SeguimientoMovil";
 import { notFound } from "next/navigation";
 import { FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { estadoEntrega, TEXTO_CALIDAD, contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
+import { esInterno, estadoEntrega, TEXTO_CALIDAD, contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { EquipoVivo } from "@/components/estudio/EquipoVivo";
@@ -115,7 +115,8 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-2 text-[13px] text-suave">
             <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: e.punto }} />
-            {PEDIDOS[p.pedido.tipo].nombre}{plantilla ? ` · ${plantilla.nombre}` : ""} · {p.papelera ? "En la papelera" : ESTADO_PROYECTO[p.estado]}
+            {/* Interno (sistema/111): para Unmake no se muestra la plantilla de rubro, que no es lo que es Unmake. */}
+            {esInterno(p.pedido) ? `Interno · ${PEDIDOS[p.pedido.tipo].nombre}` : `${PEDIDOS[p.pedido.tipo].nombre}${plantilla ? ` · ${plantilla.nombre}` : ""}`} · {p.papelera ? "En la papelera" : ESTADO_PROYECTO[p.estado]}
           </p>
           <h1 className={`${serif} mt-1 text-[clamp(40px,5vw,68px)] leading-[0.95]`}>{p.pedido.cliente}</h1>
         </div>
@@ -141,10 +142,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               {/* Menos texto (sistema/109): la fase es una barra, el título es corto y los días esperando, un número. */}
               <div className={`flex items-center gap-3 text-[12px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/60" : "text-suave"}`} data-fases>
                 <i className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.tono === "vivo" ? "late bg-vivo" : m.tono === "toca" || m.tono === "otro" || m.tono === "cortado" ? "late bg-urgente" : "bg-suave"}`} />
-                <span className="flex w-28 shrink-0 gap-1" role="img" aria-label={`Fase ${m.fase.n} de ${m.fase.de}: ${m.fase.nombre}`}>
-                  {Array.from({ length: m.fase.de }, (_, i) => <i key={i} className={`h-1.5 flex-1 rounded-full ${i < m.fase.n - 1 ? (m.tono === "toca" || m.tono === "cortado" ? "bg-white" : "bg-tinta") : i === m.fase.n - 1 ? "bg-urgente" : m.tono === "toca" || m.tono === "cortado" ? "bg-white/20" : "bg-[#e3ddd3]"}`} />)}
-                </span>
-                <span className="truncate">{m.fase.nombre}</span>
+                <span className="truncate">Fase {m.fase.n} de {m.fase.de} · {m.fase.nombre}</span>
               </div>
               <p className={`${serif} mt-2 flex flex-wrap items-baseline gap-x-3 text-[clamp(26px,2.8vw,36px)] leading-[1.08]`}>
                 <span>{m.corto ?? (m.parado ? m.ahora.replace(/^Lleva \d+ días esperando\. /, "") : m.ahora)}</span>
@@ -223,7 +221,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
               <Link href={t.id ? `/estudio/${id}?ver=${t.id}` : `/estudio/${id}`} aria-current={ver === t.id ? "page" : undefined} scroll={false}
                 className={`relative inline-flex min-h-12 items-center gap-1.5 whitespace-nowrap px-3 text-[14px] transition ${ver === t.id ? "font-medium text-tinta after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-tinta" : "text-medio hover:text-tinta"}`}>
                 {t.nombre}
-                {t.cuenta ? <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] ${t.id === "cliente" ? "bg-urgente text-white" : "bg-[#f1ede6] text-medio"}`}>{t.cuenta}</span> : null}
+                {t.cuenta ? <span title={t.id === "cliente" ? "Comentarios y preguntas del cliente sin responder" : undefined} className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] ${t.id === "cliente" ? "bg-urgente text-white" : "bg-[#f1ede6] text-medio"}`}>{t.id === "cliente" ? `${t.cuenta} por responder` : t.cuenta}</span> : null}
               </Link>
             </li>
           ))}

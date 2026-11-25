@@ -7,6 +7,8 @@ export interface Pedido {
   cliente: string;
   /** La ficha del cliente a la que pertenece (sistema/70). Sin esto, se une por el nombre del cliente. */
   ficha?: string;
+  /** Lo que su ficha ya sabe del cliente al crear el pedido (sistema/111): Atlas no lo pregunta y lo usa al planear. */
+  saberCliente?: string;
   correo?: string;
   tipo: TipoPedido;
   descripcion: string;
@@ -197,6 +199,8 @@ export interface ControlEntrega {
   /** La nota del juez corregida con su última calibración contra el banco (sistema/55). */
   notaCalibrada?: number;
   aprobadoPor?: string;
+  /** Jay o Luna la aprobaron aunque la revisión automática no llegó (sistema/111). */
+  aprobadoIgual?: boolean;
   uso?: {entrada:number;salida:number;usd:number};
   historial?: Omit<ControlEntrega, "historial">[];
 }

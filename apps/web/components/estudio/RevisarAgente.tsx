@@ -58,6 +58,18 @@ export function RevisarAgente({ p, t, mio, oscuro = false, verEntrega = true }: 
           <Enviar className={`inline-flex min-h-12 items-center rounded-full px-7 text-[14px] font-medium transition ${oscuro ? "bg-white text-tinta hover:bg-[#f1ede6]" : "bg-tinta text-white hover:bg-black"}`}
             texto={mio ? (sig ? "Aprobar y seguir" : "Aprobar y cerrar") : "Aprobar igual"} trabajando="Aprobando…" proyecto={id} />
         </form>}
+        {/* Siempre decides tú (sistema/111): si la revisión automática no llegó a 8, se puede aprobar igual, con aviso. */}
+        {e && !puedeAprobar(p,e) && e.calidad && !p.controlPendiente && (
+          <Confirmar
+            accion={accionAprobar}
+            campos={{ id, motor: "", igual: "1", ...(mio ? {} : { forzar: "1" }) }}
+            disparador="Aprobar igual"
+            claseDisparador={`inline-flex min-h-12 items-center rounded-full px-6 text-[14px] font-medium transition ${oscuro ? "bg-white text-tinta hover:bg-[#f1ede6]" : "bg-tinta text-white hover:bg-black"}`}
+            titulo="¿Aprobar aunque la revisión no llegó?"
+            texto={`La revisión automática le puso ${e.calidad.nota ?? "—"}/10. Si la apruebas, el equipo sigue con esta versión y queda anotado que la aprobaste igual.`}
+            confirmar="Aprobar igual"
+          />
+        )}
         <Confirmar
           accion={accionCambiar}
           campos={{ id, motor: "", agente: a.id, nota: "Rehazla desde cero con otro enfoque: la versión anterior no sirve.", ...(mio ? {} : { forzar: "1" }) }}

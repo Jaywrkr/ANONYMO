@@ -2,7 +2,7 @@
 
 // La caja donde Jay o Luna le cuentan el pedido a Atlas (sistema/31): atajos de un toque, enlaces detectados
 // y una guía de lo que suele faltar. Todo termina en el mismo texto que lee Atlas.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const ATAJOS: { grupo: string; frases: string[] }[] = [
   { grupo: "Qué pide", frases: ["Necesita una web.", "Necesita logo e identidad.", "Necesita un nombre.", "Es un evento o lanzamiento.", "Quiere contenido para redes."] },
@@ -10,18 +10,36 @@ const ATAJOS: { grupo: string; frases: string[] }[] = [
   { grupo: "Cómo lo quiere", frases: ["Elegante y minimalista.", "Moderna, nivel premio.", "En español e inglés.", "Con reservas o agenda en línea.", "Con animaciones sutiles."] },
 ];
 
-// Lo que Atlas casi siempre pregunta: si ya está en el texto, se marca.
-const PISTAS: { nombre: string; patron: RegExp }[] = [
-  { nombre: "Qué hace el cliente", patron: /\b(es|son|tiene|vende|clínica|consultorio|restaurante|tienda|estudio|marca|empresa|odontólog|abogad|hotel|café)\b/i },
-  { nombre: "Qué quiere", patron: /\b(web|página|logo|marca|nombre|evento|lanzamiento|redes|video|fotos)\b/i },
-  { nombre: "Público", patron: /\b(público|clientes|pacientes|mujeres|hombres|jóvenes|familias|turistas|extranjeros|años)\b/i },
-  { nombre: "Estilo", patron: /\b(elegante|minimal|moderno|moderna|clásic|divertid|serio|premium|lujo|colorid|sobri)\w*/i },
-  { nombre: "Plazo", patron: /\b(semana|mes|días|diciembre|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|urgente|para el)\b/i },
-  { nombre: "Presupuesto", patron: /(\$|usd|dólares|presupuesto|\b\d{3,5}\b)/i },
+// Lo que Atlas casi siempre pregunta: si ya está en el texto, o en la ficha del cliente elegido, se marca (sistema/111).
+const PISTAS: { nombre: string; patron: RegExp; ficha: string[] }[] = [
+  { nombre: "Qué hace el cliente", patron: /\b(es|son|tiene|vende|clínica|consultorio|restaurante|tienda|estudio|marca|empresa|agencia|odontólog|abogad|hotel|café)\b/i, ficha: ["rubro", "oferta"] },
+  { nombre: "Qué quiere", patron: /\b(web|página|logo|marca|nombre|evento|lanzamiento|redes|video|fotos|publicaci\w*|posts?|historias|destacad\w*|perfil|contenido|reels?|campaña)\b/i, ficha: [] },
+  { nombre: "Público", patron: /\b(público|clientes|pacientes|mujeres|hombres|jóvenes|familias|turistas|extranjeros|años|dueños|negocios)\b/i, ficha: ["publico"] },
+  { nombre: "Estilo", patron: /\b(elegante|minimal|moderno|moderna|clásic|divertid|serio|premium|lujo|colorid|sobri|estilo|design system|marca \w+|tono)\w*/i, ficha: ["tono", "color", "logo"] },
+  { nombre: "Plazo", patron: /\b(semana|semanas|mes|días|hoy|mañana|lunes|martes|miércoles|jueves|viernes|diciembre|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|urgente|para el|antes de)\b/i, ficha: [] },
+  { nombre: "Presupuesto", patron: /(\$|usd|dólares|presupuesto|precios?|\b\d{3,5}\b|interno|para nosotros)/i, ficha: [] },
 ];
+
+/** Cada atajo se marca solo si el texto ya lo dice con otras palabras (sistema/111). */
+const YA_DICE: Record<string, RegExp> = {
+  "Necesita una web.": /\b(web|página|sitio)\b/i,
+  "Necesita logo e identidad.": /\b(logo|identidad|marca nueva)\b/i,
+  "Necesita un nombre.": /\b(nombre nuevo|naming|cómo llamar)\b/i,
+  "Es un evento o lanzamiento.": /\b(evento|lanzamiento|inauguración)\b/i,
+  "Quiere contenido para redes.": /\b(redes|instagram|tiktok|publicaci\w*|posts?|historias|contenido|reels?)\b/i,
+  "Ya tiene logo y colores.": /\b(ya tiene (logo|marca)|logo y (la )?paleta|design system|marca existente)\b/i,
+};
 
 export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?: boolean }) {
   const [texto, setTexto] = useState(inicial);
+  // Lo que la ficha del cliente elegido ya sabe (lo avisa «¿Para quién?»).
+  const [sabe, setSabe] = useState<string[]>([]);
+  useEffect(() => {
+    const oir = (e: Event) => setSabe((e as CustomEvent<{ sabe?: string[] }>).detail?.sabe ?? []);
+    window.addEventListener("pedido:cliente", oir);
+    setSabe((window as unknown as { __pedidoSabe?: string[] }).__pedidoSabe ?? []);
+    return () => window.removeEventListener("pedido:cliente", oir);
+  }, []);
   const caja = useRef<HTMLTextAreaElement>(null);
   const enlaces = useMemo(() => [...new Set(texto.match(/https?:\/\/[^\s)>\]]+/g) ?? [])], [texto]);
   const palabras = texto.trim() ? texto.trim().split(/\s+/).length : 0;
@@ -52,10 +70,11 @@ export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?:
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]" aria-label="Lo que Atlas suele necesitar">
         {PISTAS.map((p) => {
-          const hay = p.patron.test(texto);
+          const deFicha = !p.patron.test(texto) && p.ficha.some((k) => sabe.includes(k));
+          const hay = p.patron.test(texto) || deFicha;
           return (
             <span key={p.nombre} className={`inline-flex items-center gap-1.5 ${hay ? "text-tinta" : "text-suave"}`}>
-              <i aria-hidden className={`h-2 w-2 rounded-full ${hay ? "bg-vivo" : "shadow-[inset_0_0_0_1.5px_#cfc8bc]"}`} />{p.nombre}<span className="sr-only">{hay ? " (ya está)" : " (falta)"}</span>
+              <i aria-hidden className={`h-2 w-2 rounded-full ${hay ? "bg-vivo" : "shadow-[inset_0_0_0_1.5px_#cfc8bc]"}`} />{p.nombre}{deFicha && <span className="text-[11px] text-suave">· ficha</span>}<span className="sr-only">{hay ? " (ya está)" : " (falta)"}</span>
             </span>
           );
         })}
@@ -69,7 +88,7 @@ export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?:
             <p className="mb-1.5 text-[12px] text-suave">{g.grupo} · toca para agregar</p>
             <div className="flex flex-wrap gap-2">
               {g.frases.map((f) => {
-                const puesta = texto.includes(f);
+                const puesta = texto.includes(f) || !!YA_DICE[f]?.test(texto);
                 return (
                   <button
                     key={f}
@@ -93,7 +112,7 @@ export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?:
             <p className="mb-1.5 text-[12px] text-suave">{g.grupo} · toca para agregar</p>
             <div className="flex flex-wrap gap-2">
               {g.frases.map((f) => {
-                const puesta = texto.includes(f);
+                const puesta = texto.includes(f) || !!YA_DICE[f]?.test(texto);
                 return (
                   <button
                     key={f}

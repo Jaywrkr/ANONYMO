@@ -9,7 +9,8 @@ import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
 import { agregarReferencia, retirarReferencia, prepararEncargo, aplicarEncargo, cambiarMejora, type AccionEncargo, pedirControl, anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
-import { aplicarCambio as cambioProspecto, cambiarProspectos, idFicha } from "@anonymo/pipeline";
+import { aplicarCambio as cambioProspecto, cambiarProspectos, idFicha, CLAVES_SABER, contextoCliente, esInterno, saberDe, type Ficha } from "@anonymo/pipeline";
+import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
 import { conNube, llevar, traer } from "@/lib/nube";
@@ -85,7 +86,8 @@ async function correr(id: string, fn: () => Promise<unknown> | unknown, ok: stri
 
 export async function accionAprobar(f: FormData) {
   const { id, quien, motor, nota } = await leer(f);
-  await correr(id, () => aprobar(id, quien, nota, motor, undefined, f.get("forzar") === "1", { max: 0 }), "Aprobado. Sigue el equipo: te avisamos cuando haya algo para revisar.", true, ".", true);
+  const igual = f.get("igual") === "1";
+  await correr(id, () => aprobar(id, quien, nota, motor, undefined, f.get("forzar") === "1", { max: 0 }, igual), igual ? "Aprobado igual: queda anotado. Sigue el equipo." : "Aprobado. Sigue el equipo: te avisamos cuando haya algo para revisar.", true, ".", true);
 }
 
 export async function accionCambiar(f: FormData) {
@@ -273,7 +275,12 @@ export async function accionNuevoProyecto(f: FormData) {
     if (texto.length < 20) throw new Error("Cuéntale a Atlas un poco más: al menos un par de frases de lo que hablaron.");
     // Para quién se elige siempre de la lista o como cliente nuevo (sistema/109): Atlas ya no lo adivina del texto.
     if (!nombre) throw new Error("Elige para quién es el pedido: búscalo en «¿Para quién?» o escribe uno nuevo.");
-    const l = await entenderPedido(texto, { cliente: nombre, archivos: archivos.map((a) => a.name) });
+    // Lo que su ficha ya sabe (sistema/111): Atlas no lo pregunta y planea con eso. Unmake es interno.
+    const fichaId = /^[a-z0-9-]{1,60}$/.test(String(f.get("ficha") ?? "")) ? String(f.get("ficha")) : idFicha(nombre);
+    const deFicha = (await cartera().catch(() => ({ fichas: [] as Ficha[] }))).fichas.find((x) => x.id === fichaId);
+    const saberCliente = deFicha ? contextoCliente(saberDe(deFicha), CLAVES_SABER) || undefined : undefined;
+    const interno = esInterno({ ficha: fichaId, cliente: nombre });
+    const l = await entenderPedido(texto, { cliente: nombre, archivos: archivos.map((a) => a.name), saber: saberCliente, interno });
     const cliente = nombre;
     // Nombre único: mira lo que hay en local y, en línea, también en la nube.
     const usados = new Set(nubeActiva() ? await proyectosEnNube() : []);
@@ -281,8 +288,8 @@ export async function accionNuevoProyecto(f: FormData) {
     let id = base;
     for (let i = 2; usados.has(id) || existe(id); i++) id = `${base}-${i}`;
     // La ficha del cliente (sistema/70): la que mandó el formulario o la que corresponde a su nombre.
-    const ficha = /^[a-z0-9-]{1,60}$/.test(String(f.get("ficha") ?? "")) ? String(f.get("ficha")) : idFicha(cliente);
-    const pedido: Pedido = { id, cliente, ficha, tipo: l.tipo, descripcion: texto, contexto: l.contexto, idioma: l.idioma, plantilla: l.plantilla, creado: new Date().toISOString() };
+    const ficha = deFicha?.id ?? fichaId;
+    const pedido: Pedido = { id, cliente, ficha, ...(saberCliente ? { saberCliente } : {}), tipo: l.tipo, descripcion: texto, contexto: l.contexto, idioma: l.idioma, plantilla: l.plantilla, creado: new Date().toISOString() };
     await conNube([id], async () => {
       const plan = planificar(pedido, l.eleccion);
       crear(pedido, plan, "plan");
