@@ -1,13 +1,14 @@
 "use client";
 
 // Avisos flotantes (sistema/31): el resultado de cada acción aparece arriba a la derecha y se va solo.
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Fiesta } from "./Fiesta";
 
 export function Avisos() {
   const params = useSearchParams();
   const ruta = usePathname();
+  const router = useRouter();
   const [aviso, setAviso] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [fiesta, setFiesta] = useState(0);
   useEffect(() => {
@@ -23,11 +24,15 @@ export function Avisos() {
     u.searchParams.delete("error");
     u.searchParams.delete("fiesta");
     history.replaceState(history.state, "", u.pathname + (u.search ? u.search : "") + u.hash);
+    // Después de un botón la pantalla nunca se queda vieja (sistema/110): se vuelve a leer dos veces, por si la
+    // primera lectura llegó antes de que la nube tuviera el cambio. Sin parpadeo: solo cambia lo que cambió.
+    const r1 = setTimeout(() => router.refresh(), 900), r2 = setTimeout(() => router.refresh(), 3500);
     if (!error) {
       const t = setTimeout(() => setAviso(null), 6000);
-      return () => clearTimeout(t);
+      return () => { clearTimeout(t); clearTimeout(r1); clearTimeout(r2); };
     }
-  }, [params, ruta]);
+    return () => { clearTimeout(r1); clearTimeout(r2); };
+  }, [params, ruta, router]);
   useEffect(() => {
     if (!fiesta) return;
     const t = setTimeout(() => setFiesta(0), 3600);

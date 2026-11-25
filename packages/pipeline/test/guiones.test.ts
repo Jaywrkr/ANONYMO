@@ -67,3 +67,9 @@ test("el guion se revisa solo: largo, gancho y un solo llamado (sistema/109)", a
   assert.match(revisarGuion({ ...bien, gancho: "Esta es una frase de gancho que tiene demasiadas palabras para tres segundos" }, 30).join(), /gancho tiene/);
   assert.match(revisarGuion({ ...bien, partes: [{ texto: "Síguenos para más.", toma: "x" }] }, 30).join(), /uno solo, en el cierre/);
 });
+
+test("al juez no le llegan bloques de texto vacíos: la API los rechaza con 400 (sistema/110)", async () => {
+  const { sinVacios } = await import("../src/calidad.ts");
+  const m = [{ type: "text", text: "" }, { type: "text", text: "  " }, { type: "image", source: {} }, { type: "text", text: "# Revisión de calidad" }];
+  assert.deepEqual(sinVacios(m).map((b) => (b as { type: string }).type), ["image", "text"]);
+});

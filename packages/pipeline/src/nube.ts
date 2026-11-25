@@ -74,6 +74,12 @@ export async function solicitudesEnNube(f: typeof fetch = fetch): Promise<number
 }
 
 /** Baja el proyecto desde la nube (pisa la copia local). Con `espejo`, la copia local queda idéntica: borra lo que ya no está. */
+/**
+ * Siempre lo último (sistema/110): la nube puede servir una copia guardada de un archivo recién cambiado
+ * (la pantalla quedaba vieja después de un botón). Un parámetro distinto en cada lectura la salta.
+ */
+const fresco = (u: string) => `${u}${u.includes("?") ? "&" : "?"}v=${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
 export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo = false): Promise<number> {
   idSeguro(id);
   const { url, key, bucket } = cfg();
@@ -87,7 +93,7 @@ export async function bajarProyecto(id: string, f: typeof fetch = fetch, espejo 
   const temporal = espejo ? join(carpeta(), `.bajando-${id}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`) : final;
   for (const ruta of rutas) {
     // Siempre la versión vigente (sistema/59): sin esto, un archivo que se sobrescribe seguido podía bajar viejo.
-    const r = await f(`${url}/storage/v1/object/${bucket}/${ruta}`, { headers: cabeceras(key, { "cache-control": "no-cache" }), cache: "no-store" } as RequestInit);
+    const r = await f(fresco(`${url}/storage/v1/object/${bucket}/${ruta}`), { headers: cabeceras(key, { "cache-control": "no-cache" }), cache: "no-store" } as RequestInit);
     if (!r.ok) throw new Error(`No se pudo bajar ${ruta}: ${r.status}`);
     const local = join(temporal, relative(id, ruta));
     mkdirSync(dirname(local), { recursive: true });
@@ -149,7 +155,7 @@ export async function leerRemoto(id: string, rel: string, f: typeof fetch = fetc
   if(versionadoActivo(id)){if(rel==="vivo.json"){const v=await vivoVersionado(id,f);return v?JSON.stringify(v):undefined;}const d=await leerArchivoVersionado(id,rel,f);if(d){const t=d.bytes?.toString("utf8");return rel==="estado.json"&&t?estadoConCola(id,t,f):t;}}
   idSeguro(id);
   const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/${bucket}/${id}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  const r = await f(fresco(`${url}/storage/v1/object/${bucket}/${id}/${rel}`), { headers: cabeceras(key), cache: "no-store" } as RequestInit);
   if (r.status === 404 || r.status === 400) return undefined;
   if (!r.ok) throw new Error(`No se pudo leer ${id}/${rel}: ${r.status}`);
   return r.text();
@@ -195,7 +201,7 @@ export async function firmarSubida(clave: string, f: typeof fetch = fetch): Prom
 export async function recogerSubida(clave: string, f: typeof fetch = fetch): Promise<{ nombre: string; datos: Buffer }> {
   claveSegura(clave);
   const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/${bucket}/_subidas/${clave}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  const r = await f(fresco(`${url}/storage/v1/object/${bucket}/_subidas/${clave}`), { headers: cabeceras(key), cache: "no-store" } as RequestInit);
   if (!r.ok) throw new Error(`No llegó el archivo ${clave.split("/")[1]} (${r.status}). Vuelve a subirlo.`);
   const datos = Buffer.from(await r.arrayBuffer());
   if(process.env.ANONYMO_ALMACEN_VERSIONADO!=="1")await f(`${url}/storage/v1/object/${bucket}`, { method: "DELETE", headers: cabeceras(key, { "content-type": "application/json" }), body: JSON.stringify({ prefixes: [`_subidas/${clave}`] }) }).catch(() => {});
@@ -273,7 +279,7 @@ export async function leerRemotoBytes(id: string, rel: string, f: typeof fetch =
   if(versionadoActivo(id)){const d=await leerArchivoVersionado(id,rel,f);if(d)return d.bytes;}
   idSeguro(id);
   const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/${bucket}/${id}/${rel.split("/").map(encodeURIComponent).join("/")}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  const r = await f(fresco(`${url}/storage/v1/object/${bucket}/${id}/${rel.split("/").map(encodeURIComponent).join("/")}`), { headers: cabeceras(key), cache: "no-store" } as RequestInit);
   if (r.status === 404 || r.status === 400) return undefined;
   if (!r.ok) throw new Error(`No se pudo leer ${id}/${rel}: ${r.status}`);
   return new Uint8Array(await r.arrayBuffer());
@@ -382,7 +388,7 @@ export async function subirSuelto(rel: string, datos: Uint8Array, tipo = "applic
 export async function leerSuelto(rel: string, f: typeof fetch = fetch): Promise<Uint8Array | undefined> {
   rutaSuelta(rel);
   const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  const r = await f(fresco(`${url}/storage/v1/object/${bucket}/${rel}`), { headers: cabeceras(key), cache: "no-store" } as RequestInit);
   if (r.status === 404 || r.status === 400) return undefined;
   if (!r.ok) throw new Error(`No se pudo leer ${rel.split("/").pop()}: ${r.status}`);
   return new Uint8Array(await r.arrayBuffer());
@@ -392,7 +398,7 @@ export async function leerSuelto(rel: string, f: typeof fetch = fetch): Promise<
 export async function bajarSuelto(rel: string, destino: string, f: typeof fetch = fetch) {
   rutaSuelta(rel);
   const { url, key, bucket } = cfg();
-  const r = await f(`${url}/storage/v1/object/${bucket}/${rel}`, { headers: cabeceras(key), cache: "no-store" } as RequestInit);
+  const r = await f(fresco(`${url}/storage/v1/object/${bucket}/${rel}`), { headers: cabeceras(key), cache: "no-store" } as RequestInit);
   if (!r.ok || !r.body) throw new Error(`No llegó ${rel.split("/").pop()} (${r.status}).`);
   mkdirSync(dirname(destino), { recursive: true });
   await pipeline(Readable.fromWeb(r.body as FlujoWeb), createWriteStream(destino));
