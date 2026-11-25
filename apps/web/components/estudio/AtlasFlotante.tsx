@@ -1,13 +1,14 @@
 'use client';
-// Atlas, una sola conversación para todo el estudio (sistema/106).
-// Le escribes normal; él entiende qué es y para quién, pregunta una sola cosa si hace falta, confirma antes de gastar
-// y responde con tarjetas que se pueden usar. Arriba, lo que te toca hoy. Cada uno (Jay, Luna) tiene su conversación.
-// Si vas rápido: / acciones, # cliente, @ quién lo hace. En celular se abre desde la barra de abajo.
+// Atlas, una sola conversación para todo el estudio (sistema/106; ventana nueva en sistema/108).
+// En computadora vive pegado a la derecha y la página se corre: puedes tocar un enlace y el chat sigue abierto.
+// En celular es una hoja que se cierra al ir a otra página, porque taparía lo que abriste.
+// Le escribes normal; entiende qué es y para quién (también si nombras a un cliente sin marca), confirma antes de
+// gastar y responde corto, con botones que se pueden usar. Si vas rápido: @ cliente, / acción.
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {flushSync} from 'react-dom';
 import {usePathname} from 'next/navigation';
 import Link from 'next/link';
-import {ACCIONES_CAJA,AGENTES_CAJA,ORDEN_ACCIONES,ORDEN_AGENTES,accionDe,agenteDe,clientesDe,leerCaja,marcaEnCurso,ponerSugerencia,type ClienteCaja} from '@anonymo/pipeline/src/clientes/caja.ts';
+import {ACCIONES_CAJA,AGENTES_CAJA,ORDEN_ACCIONES,accionDe,clientesDe,leerCaja,marcaEnCurso,ponerSugerencia,type ClienteCaja} from '@anonymo/pipeline/src/clientes/caja.ts';
 import type {MensajeHilo,Eleccion} from '@/lib/atlas-hilo';
 import type {Tarjeta} from '@/lib/caja';
 import {Cara} from './piezas';
@@ -20,27 +21,41 @@ interface Vivo {estado:string;vivo?:{tarea?:string;fase?:string;palabras?:number
 const FASES:Record<string,string>={preparando:'preparando',esperando:'esperando a la IA',pensando:'pensando',buscando:'buscando',escribiendo:'escribiendo',revisando:'revisando'};
 const AGENTE_NOMBRE=(tarea?:string)=>{const a=tarea?.split('.')[1];return a?a[0].toUpperCase()+a.slice(1):'El equipo';};
 const nuevoId=()=>(globalThis.crypto?.randomUUID?.()??String(Date.now())+Math.random().toString(16).slice(2));
+/** Quién responde: el primer nombre de la línea «Faro · Guion de video · Unmake». */
+const QUIEN:Record<string,string>={Faro:'faro','Imán':'iman',Atlas:'atlas'};
+const quienDe=(entendi?:string)=>QUIEN[entendi?.split(' · ')[0]??'']??'atlas';
+const ESCRITORIO=1024;
+const enCelular=()=>typeof window!=='undefined'&&window.innerWidth<ESCRITORIO;
+
+// Piezas de estilo, para que todo se vea igual.
+const btn='inline-flex min-h-11 items-center justify-center gap-1.5 px-3 text-[13px] transition-colors md:min-h-9 disabled:opacity-45';
+const btnPrincipal=`${btn} bg-[#1a1816] text-white hover:bg-black`;
+const btnBorde=`${btn} border border-[#d3cac0] bg-white text-[#1a1816] hover:border-[#1a1816]`;
+
+function Icono({d,tam=18}:{d:string;tam?:number}){return <svg aria-hidden="true" width={tam} height={tam} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square"><path d={d}/></svg>;}
 
 /** El avance en vivo de un proyecto que quedó trabajando, en una sola línea. */
-function Avance({id}:{id:string}){
+function Avance({id,irA}:{id:string;irA:()=>void}){
  const [v,setV]=useState<Vivo|null>(null),[fin,setFin]=useState(false);
  useEffect(()=>{let vivo=true,n=0;const t0=Date.now();
   const mirar=async()=>{try{const r=await fetch(`/estudio/${id}/vivo`,{cache:'no-store'});if(r.ok){const d=await r.json() as Vivo;if(!vivo)return;setV(d);const trabaja=d.vivo&&!d.vivo.fin;if(!trabaja&&n>1&&d.estado!=='en-curso'){setFin(true);return;}}}catch{}
    n++;if(vivo&&Date.now()-t0<15*60_000)setTimeout(mirar,n<3?2500:5000);};
   void mirar();return()=>{vivo=false;};},[id]);
- if(fin)return <p data-avance className="mt-2 text-[12px] text-medio">Listo por ahora: el proyecto quedó {v?.estado==='esperando'?'esperando tu revisión':v?.estado==='terminado'?'terminado':'en pausa'}. <Link href={`/estudio/${id}`} className="underline">Ver el proyecto</Link></p>;
+ if(fin)return <p data-avance className="mt-2 text-[12.5px] text-medio">Listo por ahora: el proyecto quedó {v?.estado==='esperando'?'esperando tu revisión':v?.estado==='terminado'?'terminado':'en pausa'}. <Link href={`/estudio/${id}`} onClick={irA} className="underline underline-offset-2">Ver el proyecto</Link></p>;
  const w=v?.vivo&&!v.vivo.fin?v.vivo:undefined;
- return <p data-avance role="status" className="mt-2 flex items-center gap-2 text-[12px] text-medio"><span aria-hidden="true" className="h-2 w-2 animate-pulse bg-[#F0602A]"/>{w?`${AGENTE_NOMBRE(w.tarea)} está ${FASES[w.fase??'']??'trabajando'}${w.palabras?` · ${w.palabras} palabras`:''}`:'El equipo está en eso…'}</p>;
+ return <p data-avance role="status" className="mt-2 flex items-center gap-2 text-[12.5px] text-medio"><span aria-hidden="true" className="h-2 w-2 animate-pulse bg-[#F0602A]"/>{w?`${AGENTE_NOMBRE(w.tarea)} está ${FASES[w.fase??'']??'trabajando'}${w.palabras?` · ${w.palabras} palabras`:''}`:'El equipo está en eso…'}</p>;
 }
 
-function VerTarjeta({t,copiar,copiado,cerrar}:{t:Tarjeta;copiar:(x:string)=>void;copiado:string;cerrar:()=>void}){
- return <div data-tarjeta className="mt-1 border border-black/12 bg-white p-3">
-  <p className="text-[13.5px] font-medium">{t.titulo}</p>
-  {t.texto&&<p className="mt-1.5 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-[#3d3a36]">{t.texto}</p>}
-  {!!t.botones?.length&&<div className="mt-2.5 flex flex-wrap gap-2">{t.botones.map((b,i)=>b.copiar!==undefined?
-   <button key={i} type="button" onClick={()=>copiar(b.copiar!)} className="min-h-11 border border-black/20 px-3 text-[12.5px] md:min-h-9">{copiado===b.copiar?'Copiado':b.texto}</button>:
-   b.externo?<a key={i} href={b.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center border border-black/20 px-3 text-[12.5px] md:min-h-9">{b.texto} ↗</a>:
-   <Link key={i} href={b.href??'#'} onClick={cerrar} className="inline-flex min-h-11 items-center border border-black/20 px-3 text-[12.5px] md:min-h-9">{b.texto}</Link>)}</div>}
+function VerTarjeta({t,copiar,copiado,irA}:{t:Tarjeta;copiar:(x:string)=>void;copiado:string;irA:()=>void}){
+ return <div data-tarjeta className="border border-[#e3dcd2] bg-white">
+  <div className="px-3.5 pb-3 pt-3">
+   <p className="text-[13.5px] font-medium leading-snug">{t.titulo}</p>
+   {t.texto&&<p className="mt-1.5 whitespace-pre-wrap break-words text-[13.5px] leading-[1.55] text-[#3d3a36]">{t.texto}</p>}
+  </div>
+  {!!t.botones?.length&&<div className="flex flex-wrap gap-2 border-t border-[#efe9e1] px-3.5 py-2.5">{t.botones.map((b,i)=>{const cls=i===0?btnPrincipal:btnBorde;return b.copiar!==undefined?
+   <button key={i} type="button" onClick={()=>copiar(b.copiar!)} className={cls}>{copiado===b.copiar?'Copiado':b.texto}</button>:
+   b.externo?<a key={i} href={b.href} target="_blank" rel="noopener noreferrer" className={cls}>{b.texto}<span aria-hidden="true">↗</span></a>:
+   <Link key={i} href={b.href??'#'} onClick={irA} className={cls}>{b.texto}</Link>;})}</div>}
  </div>;
 }
 
@@ -58,7 +73,7 @@ export function AtlasFlotante({proyectos}:{proyectos:{id:string;nombre:string}[]
  const partes=ruta.split('/');
  const ctxProyecto=partes[1]==='estudio'&&proyectos.some(p=>p.id===partes[2])?partes[2]:undefined;
  const ctxCliente=partes[2]==='cliente'&&partes[3]?partes[3]:undefined;
- // Fuera de un proyecto o cliente, sigue el último cliente del que se habló (como antes en la caja).
+ // Fuera de un proyecto o cliente, sigue el último cliente del que se habló.
  const ultimo=[...hilo].reverse().find(m=>m.de==='atlas'&&m.cliente)?.cliente;
  const ctxSuave=!ctxProyecto&&!ctxCliente&&ultimo?ultimo:undefined;
  const clave=ctxProyecto?`p:${ctxProyecto}`:ctxCliente?`c:${ctxCliente}`:ctxSuave?`u:${ctxSuave}`:'';
@@ -66,17 +81,24 @@ export function AtlasFlotante({proyectos}:{proyectos:{id:string;nombre:string}[]
  const nombreCtx=ctxProyecto?proyectos.find(p=>p.id===ctxProyecto)?.nombre:(ctxCliente??ctxSuave)?datos?.clientes.find(c=>c.id===(ctxCliente??ctxSuave))?.nombre??(ctxCliente??ctxSuave):undefined;
 
  const cargar=()=>{setErrorCarga(false);fetch('/estudio/atlas/hablar',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then((d:Datos)=>{setDatos(d);setHilo(d.hilo);}).catch(()=>setErrorCarga(true));};
- const cerrar=()=>{voz.current?.stop();setAbierto(false);requestAnimationFrame(()=>(volver.current??boton.current)?.focus());};
+ const cerrar=()=>{voz.current?.stop();setAbierto(false);try{sessionStorage.removeItem('atlas-abierto');}catch{}requestAnimationFrame(()=>(volver.current??boton.current)?.focus());};
  const abrir=()=>{volver.current=document.activeElement as HTMLElement|null;setAbierto(true);cargar();};
+ /** Al tocar un enlace del chat: en computadora el chat sigue abierto al lado; en celular se cierra para ver la página. */
+ const irA=()=>{if(enCelular())cerrar();};
  useEffect(()=>{const recibir=()=>abrir();window.addEventListener('anonymo:atlas',recibir);return()=>window.removeEventListener('anonymo:atlas',recibir);});
+ // En computadora, si lo dejaste abierto, sigue abierto al recargar.
+ useEffect(()=>{try{if(!enCelular()&&sessionStorage.getItem('atlas-abierto')==='1'){setAbierto(true);cargar();}}catch{}},[]); // eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(()=>{try{if(abierto)sessionStorage.setItem('atlas-abierto','1');}catch{}
+  // La página se corre a la izquierda mientras Atlas está abierto en computadora (globals.css).
+  document.documentElement.toggleAttribute('data-atlas-abierto',abierto);
+  return()=>document.documentElement.removeAttribute('data-atlas-abierto');},[abierto]);
  useEffect(()=>{if(abierto)requestAnimationFrame(()=>caja.current?.focus());},[abierto,datos]);
  useEffect(()=>{hiloRef.current?.scrollTo({top:hiloRef.current.scrollHeight});},[hilo.length,trabajando,abierto]);
- useEffect(()=>{if(!abierto)return;const medir=()=>{const vv=window.visualViewport;if(!vv||window.innerWidth>=1024){setVista(undefined);return;}const teclado=vv.height<window.innerHeight*.8;setVista({maxHeight:Math.max(180,vv.height-(teclado?24:112))+'px',...(teclado?{bottom:Math.max(8,window.innerHeight-vv.height-vv.offsetTop+8)}:{})});};medir();window.visualViewport?.addEventListener('resize',medir);window.addEventListener('resize',medir);return()=>{window.visualViewport?.removeEventListener('resize',medir);window.removeEventListener('resize',medir);};},[abierto]);
+ useEffect(()=>{if(!abierto)return;const medir=()=>{const vv=window.visualViewport;if(!vv||window.innerWidth>=ESCRITORIO){setVista(undefined);return;}const teclado=vv.height<window.innerHeight*.8;setVista({maxHeight:Math.max(180,vv.height-(teclado?24:112))+'px',...(teclado?{bottom:Math.max(8,window.innerHeight-vv.height-vv.offsetTop+8)}:{})});};medir();window.visualViewport?.addEventListener('resize',medir);window.addEventListener('resize',medir);return()=>{window.visualViewport?.removeEventListener('resize',medir);window.removeEventListener('resize',medir);};},[abierto]);
 
  // Las marcas: lo que se sugiere mientras se escribe y lo que se entendió, antes de mandar.
  const clientes=datos?.clientes??[];
  const conMarcas=/(^|\s)[#/@][^\s]/.test(texto);
- // El último cliente del que se habló solo se usa si la acción necesita un cliente; el de la página, siempre.
  const suave=!!ctxSuave&&contexto.cliente===ctxSuave;
  const lectura=useMemo(()=>{const l=leerCaja(texto,clientes,suave?undefined:contexto.cliente);return suave&&!l.cliente&&l.accion&&ACCIONES_CAJA[l.accion].conCliente?{...l,cliente:contexto.cliente}:l;},[texto,clientes,contexto.cliente,suave]);
  const cliente=clientes.find(c=>c.id===lectura.cliente);
@@ -85,9 +107,9 @@ export function AtlasFlotante({proyectos}:{proyectos:{id:string;nombre:string}[]
  const enCurso=callar?undefined:marcaEnCurso(texto,cursor);
  const sugerencias:Sugerencia[]=useMemo(()=>{
   if(!enCurso)return [];const w=enCurso.palabra;
-  if(enCurso.marca==='@')return ORDEN_AGENTES.filter(a=>!w||agenteDe(w)===a||a.startsWith(w.toLowerCase())).map(a=>({valor:`@${AGENTES_CAJA[a].nombre}`,titulo:AGENTES_CAJA[a].nombre,detalle:AGENTES_CAJA[a].rol}));
   if(enCurso.marca==='/')return ORDEN_ACCIONES.filter(a=>!w||accionDe(w)===a||a.startsWith(w.toLowerCase())).map(a=>({valor:`/${a}`,titulo:ACCIONES_CAJA[a].nombre,detalle:`${AGENTES_CAJA[ACCIONES_CAJA[a].agente].nombre} · ${ACCIONES_CAJA[a].ayuda}`}));
-  return (w?clientesDe(w,clientes):clientes).slice(0,8).map(c=>({valor:`#${c.id}`,titulo:c.nombre,detalle:c.prospecto?'Cliente nuevo de Imán':c.proyecto?'Con proyecto':'Con ficha'}));
+  // @ y # son para quién: los clientes, con su proyecto si tienen (sistema/108).
+  return (w?clientesDe(w,clientes):clientes).slice(0,8).map(c=>({valor:`${enCurso.marca}${c.id}`,titulo:c.nombre,detalle:c.prospecto?'Cliente nuevo de Imán':c.proyecto?'Con proyecto en curso':'Con ficha'}));
  },[enCurso?.marca,enCurso?.palabra,clientes]); // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>setElegida(0),[enCurso?.marca,enCurso?.palabra]);
  const poner=(valor:string)=>{const r=ponerSugerencia(texto,cursor,valor);flushSync(()=>{setTexto(r.texto);setCursor(r.cursor);});caja.current?.focus();caja.current?.setSelectionRange(r.cursor,r.cursor);};
@@ -118,6 +140,8 @@ export function AtlasFlotante({proyectos}:{proyectos:{id:string;nombre:string}[]
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}
  };
  const copiar=async(t:string)=>{try{await navigator.clipboard.writeText(t);setCopiado(t);setTimeout(()=>setCopiado(''),2000);}catch{setCopiado('');}};
+ // La caja crece con lo escrito, hasta seis líneas.
+ useEffect(()=>{const c=caja.current;if(!c)return;c.style.height='auto';c.style.height=Math.min(c.scrollHeight,144)+'px';},[texto,abierto]);
 
  // Dictar: el reconocimiento de voz del navegador, si lo tiene (Chrome, Safari). Si no, el botón no aparece.
  const [puedeVoz,setPuedeVoz]=useState(false);
@@ -134,62 +158,89 @@ export function AtlasFlotante({proyectos}:{proyectos:{id:string;nombre:string}[]
 
  const resolver=(id:string,como:string)=>setResueltos(r=>({...r,[id]:como}));
  const hoy=datos?.hoy??[];
- const chip='inline-flex min-h-8 items-center gap-1 border border-black/15 bg-white px-2 text-[12px]';
+ const nombreYo=datos?.yo==='luna'?'Luna':'Jay';
+ // Ideas para empezar, con nombres reales del estudio.
+ const ideas=useMemo(()=>{const p=proyectos[0]?.nombre,c=clientes.find(x=>!x.prospecto)?.nombre;
+  return ['¿Qué me toca hoy?',...(p?[`¿Cómo va ${p.split(/[(,]/)[0]!.trim()}?`]:[]),...(c?[`¿Qué sabes de ${c}?`]:[]),'Un guion de reel de 30 segundos'];},[proyectos,clientes]);
+ const usarIdea=(t:string)=>{setTexto(t);setCursor(t.length);requestAnimationFrame(()=>{caja.current?.focus();caja.current?.setSelectionRange(t.length,t.length);});};
 
  return <>
   <button ref={boton} disabled={!listo} aria-busy={!listo} hidden type="button" aria-hidden="true" tabIndex={-1} aria-label="Atlas" onClick={abrir} className="hidden"/>
-  <div ref={panel} id="atlas-ventana" hidden={!abierto} role="dialog" aria-modal="false" aria-label="Chat con Atlas" style={{...vista,...(vista?{maxHeight:`min(calc(100dvh - 112px), ${vista.maxHeight})`}:{}),display:abierto?'flex':'none'}} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();cerrar();}}} className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-3 right-3 z-[45] flex h-[680px] max-h-[calc(100dvh-112px)] flex-col overflow-hidden border border-black/15 bg-[#f8f5ef] text-[#1a1816] shadow-[0_20px_80px_-20px_rgba(20,15,10,.45)] lg:bottom-6 lg:left-auto lg:right-6 lg:w-[420px] lg:max-h-[calc(100dvh-48px)]">
-   <header className="flex shrink-0 items-center gap-2.5 border-b border-black/10 px-4 py-2.5">
-    <Cara id="atlas" tam={34} titulo={false}/>
-    <div className="min-w-0 flex-1"><h2 className="text-[15px] font-medium">Atlas</h2><p className="truncate text-[11.5px] text-medio">{datos?`Hablas como ${datos.yo==='jay'?'Jay':'Luna'}`:'Tu equipo, a una conversación.'}</p></div>
-    {hilo.length>0&&<button type="button" onClick={()=>setVaciar(v=>!v)} aria-expanded={vaciar} className="min-h-11 px-2 text-[12px] text-medio underline-offset-4 hover:underline">Empezar de cero</button>}
-    <button type="button" aria-label="Cerrar chat de Atlas" onClick={cerrar} className="grid h-11 w-11 place-items-center text-xl hover:bg-black/5">×</button>
-   </header>
-   {vaciar&&<div role="alertdialog" aria-label="Empezar de cero" className="shrink-0 border-b border-black/10 bg-white px-4 py-3 text-[13px]"><p>Se borra solo esta conversación. Los proyectos, las fichas y lo que hizo el equipo no se tocan.</p><div className="mt-2 flex gap-2"><button type="button" className="min-h-11 bg-[#1a1816] px-3 text-white" onClick={async()=>{setVaciar(false);const r=await fetch('/estudio/atlas/hablar',{method:'DELETE'});if(r.ok)setHilo([]);}}>Borrar la conversación</button><button type="button" className="min-h-11 border border-black/20 px-3" onClick={()=>setVaciar(false)}>Cancelar</button></div></div>}
+  <div ref={panel} id="atlas-ventana" hidden={!abierto} role="dialog" aria-modal="false" aria-label="Chat con Atlas" style={{...vista,...(vista?{maxHeight:`min(calc(100dvh - 112px), ${vista.maxHeight})`}:{}),display:abierto?'flex':'none'}} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();cerrar();}}}
+   className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-2 right-2 z-[45] flex h-[680px] max-h-[calc(100dvh-112px)] flex-col overflow-hidden border border-[#d3cac0] bg-[#fbf9f6] text-[#1a1816] shadow-[0_24px_70px_-24px_rgba(20,15,10,.4)] lg:inset-y-0 lg:left-auto lg:right-0 lg:h-dvh lg:max-h-none lg:w-[420px] lg:border-y-0 lg:border-r-0 lg:shadow-none">
 
-   {/* Lo primero que dice Atlas: lo que te toca hoy, siempre a la vista bajo el encabezado (sistema/106). */}
-   {datos&&hoy.length>0&&<details data-hoy open={!hilo.length} className="shrink-0 border-b border-black/10 bg-white px-4 text-[13px]">
-    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden"><span><span className="font-medium">Hoy te toca · {hoy.length}</span><span className="text-medio"> — {hoy[0]!.titulo}{hoy.length>1?' y más':''}</span></span><span aria-hidden="true" className="text-medio">▾</span></summary>
-    <ul className="max-h-48 overflow-y-auto pb-2">{hoy.map((a,i)=><li key={i} className="border-t border-black/8"><Link href={a.href} onClick={cerrar} className="flex min-h-11 flex-col justify-center py-1.5"><span className="font-medium">{a.titulo}</span><span className="line-clamp-1 text-[12px] text-medio">{a.detalle}</span></Link></li>)}</ul>
+   {/* Encabezado: quién es, cómo hablas y dos acciones. */}
+   <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[#e3dcd2] bg-white px-4">
+    <span className="relative shrink-0"><Cara id="atlas" tam={30} titulo={false}/><span aria-hidden="true" className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 border-2 border-white bg-[#1FCF8F]"/></span>
+    <div className="min-w-0 flex-1 leading-tight"><h2 id="titulo-chat-atlas" className="text-[14.5px] font-medium">Atlas</h2><p className="truncate text-[12px] text-medio">{datos?`Tu equipo · hablas como ${nombreYo}`:'Tu equipo, a una conversación'}</p></div>
+    {hilo.length>0&&<button type="button" onClick={()=>setVaciar(v=>!v)} aria-expanded={vaciar} aria-label="Empezar de cero" title="Empezar de cero" className="grid h-11 w-11 md:h-10 md:w-10 place-items-center text-medio hover:bg-black/5 hover:text-[#1a1816]"><Icono d="M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4"/></button>}
+    <button type="button" aria-label="Cerrar chat de Atlas" title="Cerrar (Esc)" onClick={cerrar} className="grid h-11 w-11 md:h-10 md:w-10 place-items-center text-medio hover:bg-black/5 hover:text-[#1a1816]"><Icono d="M6 6l12 12M18 6 6 18"/></button>
+   </header>
+   {vaciar&&<div role="alertdialog" aria-label="Empezar de cero" className="shrink-0 border-b border-[#e3dcd2] bg-white px-4 py-3 text-[13px]"><p className="leading-relaxed">Se borra solo esta conversación. Proyectos, fichas y entregas no se tocan.</p><div className="mt-2.5 flex gap-2"><button type="button" className={btnPrincipal} onClick={async()=>{setVaciar(false);const r=await fetch('/estudio/atlas/hablar',{method:'DELETE'});if(r.ok)setHilo([]);}}>Borrar la conversación</button><button type="button" className={btnBorde} onClick={()=>setVaciar(false)}>Cancelar</button></div></div>}
+
+   {/* Lo que te toca hoy, siempre a la vista bajo el encabezado. */}
+   {datos&&hoy.length>0&&<details data-hoy open={!hilo.length} className="group shrink-0 border-b border-[#e3dcd2] bg-[#f4efe9] px-4 text-[13px]">
+    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden"><span aria-hidden="true" className="h-2 w-2 shrink-0 bg-[#F0602A]"/><span className="min-w-0 flex-1 truncate"><span className="font-medium">Hoy te toca · {hoy.length}</span><span className="text-medio"> — {hoy[0]!.titulo}{hoy.length>1?' y más':''}</span></span><span aria-hidden="true" className="text-medio transition-transform group-open:rotate-180">▾</span></summary>
+    <ul className="max-h-48 overflow-y-auto pb-2">{hoy.map((a,i)=><li key={i}><Link href={a.href} onClick={irA} className="-mx-2 flex min-h-11 flex-col justify-center px-2 py-1.5 hover:bg-white"><span className="font-medium">{a.titulo}</span><span className="line-clamp-1 text-[12px] text-medio">{a.detalle}</span></Link></li>)}</ul>
    </details>}
-   <div ref={hiloRef} role="log" aria-label="Conversación con Atlas" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-    {errorCarga&&<div role="alert" className="mb-3 text-[13px]"><p>No pude abrir la conversación. Lo guardado se conserva.</p><button type="button" className="min-h-11 underline" onClick={cargar}>Volver a intentar</button></div>}
+
+   <div ref={hiloRef} role="log" aria-label="Conversación con Atlas" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+    {errorCarga&&<div role="alert" className="mb-3 border border-[#f3d2b3] bg-[#fff6ec] p-3 text-[13px]"><p>No pude abrir la conversación. Lo guardado se conserva.</p><button type="button" className={`${btnBorde} mt-2`} onClick={cargar}>Volver a intentar</button></div>}
     {!datos&&!errorCarga&&<p role="status" className="text-[13px] text-medio">Abriendo la conversación…</p>}
-    {datos&&!hilo.length&&<div className="text-[13.5px] leading-relaxed text-medio">
-     <p className="text-[15px] text-[#1a1816]">Escríbeme normal, como a una persona.</p>
-     <p className="mt-2">«¿Cómo va la web de Clínica Sonrisa?» · «que el botón diga Agenda tu cita» · «un reel para el día de la madre» · «¿qué sabes de Café Lento?» · «¿qué me toca hoy?»</p>
-     <p className="mt-2">Antes de gastar te pregunto. Si vas rápido: / para la acción, # para el cliente y @ para quién lo hace: Faro, Imán o Atlas.</p>
+    {datos&&!hilo.length&&<div className="pt-2">
+     <p className="text-[19px] font-medium tracking-tight">Hola, {nombreYo}.</p>
+     <p className="mt-1 text-[13.5px] leading-relaxed text-medio">Pregúntame o pídeme algo, como a una persona. Antes de gastar en IA te pregunto.</p>
+     <div className="mt-4 flex flex-col items-start gap-2">{ideas.map(t=><button key={t} type="button" onClick={()=>usarIdea(t)} className="border border-[#e3dcd2] bg-white px-3 py-2 text-left text-[13px] hover:border-[#1a1816]">{t}</button>)}</div>
     </div>}
-    {hilo.map(m=>m.de==='yo'?
-     <p key={m.id} className="mb-3 ml-auto w-fit max-w-[88%] whitespace-pre-wrap break-words bg-[#e9e2d5] px-3 py-2 text-[13.5px]">{m.texto}</p>:
-     <article key={m.id} className="mb-4 min-w-0">
-      {m.entendi&&<p data-entendi className="mb-1 text-[11.5px] text-medio">{m.entendi}</p>}
-      {m.texto&&<p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">{m.texto}</p>}
-      {m.opciones&&<div className="mt-2 flex flex-wrap gap-2">{m.opciones.map((o,i)=><button key={i} type="button" disabled={!!resueltos[m.id]||trabajando} onClick={()=>{resolver(m.id,o.texto);void mandar({eleccion:o.eleccion,etiqueta:o.texto},o.texto);}} className="min-h-11 border border-black/25 bg-white px-3 text-[13px] disabled:opacity-50 md:min-h-9">{o.texto}</button>)}</div>}
-      {m.tarjeta&&<VerTarjeta t={m.tarjeta} copiar={copiar} copiado={copiado} cerrar={cerrar}/>}
-      {m.confirmar&&(resueltos[m.id]?<p className="mt-1 text-[12px] text-medio">{resueltos[m.id]}</p>:
-       <div role="alertdialog" aria-label="Confirmar" className="mt-1 border border-[#FFB21A] bg-white p-3"><p className="text-[13.5px] leading-relaxed">{m.confirmar.texto}</p>
-        <div className="mt-2.5 flex gap-2"><button type="button" disabled={trabajando} onClick={()=>{resolver(m.id,'Hecho.');void mandar({eleccion:m.confirmar!.eleccion,confirmado:true},'Sí, hazlo');}} className="min-h-11 bg-[#1a1816] px-4 text-[13px] text-white md:min-h-9">Sí, hazlo</button><button type="button" onClick={()=>resolver(m.id,'Cancelado: no se gastó nada.')} className="min-h-11 border border-black/20 px-4 text-[13px] md:min-h-9">Cancelar</button></div></div>)}
-      {m.error&&<div data-tarjeta className="mt-1"><p role="alert" className="text-[13px] text-[#a3260f]">{m.error}</p>{m.ficha&&<Link href={m.ficha} onClick={cerrar} className="inline-flex min-h-11 items-center text-[12.5px] underline">Completar en su ficha</Link>}</div>}
-      {m.seguir&&<Avance id={m.seguir}/>}
-     </article>)}
-    {trabajando&&<><p className="mb-3 ml-auto w-fit max-w-[88%] whitespace-pre-wrap break-words bg-[#e9e2d5] px-3 py-2 text-[13.5px]">{enviado}</p><p role="status" className="mb-3 flex items-center gap-2 text-[12.5px] text-medio"><span aria-hidden="true" className="h-2 w-2 animate-pulse bg-[#1a1816]"/>Atlas está en eso…</p></>}
+
+    {hilo.map((m,i)=>{
+     if(m.de==='yo')return <div key={m.id} className="mb-4 flex justify-end"><p className="max-w-[85%] whitespace-pre-wrap break-words bg-[#1a1816] px-3.5 py-2 text-[13.5px] leading-[1.5] text-white">{m.texto}</p></div>;
+     const seguido=hilo[i-1]?.de==='atlas';
+     return <article key={m.id} className="mb-5 flex min-w-0 gap-2.5">
+      <span className="w-6 shrink-0 pt-0.5">{!seguido&&<Cara id={quienDe(m.entendi)} tam={24} titulo={false}/>}</span>
+      <div className="min-w-0 flex-1 space-y-2">
+       {m.entendi&&<p data-entendi className="font-mono text-[11px] leading-none text-medio">{m.entendi}</p>}
+       {m.texto&&<p className="whitespace-pre-wrap text-[14px] leading-[1.55]">{m.texto}</p>}
+       {m.tarjeta&&<VerTarjeta t={m.tarjeta} copiar={copiar} copiado={copiado} irA={irA}/>}
+       {m.error&&<div data-tarjeta className="border border-[#f3d2b3] bg-[#fff6ec] px-3.5 py-3">
+        <p role="alert" className="text-[13.5px] leading-[1.5]">{m.error}</p>
+        {!!m.faltan?.length&&<ul className="mt-2 space-y-1">{m.faltan.map(f=><li key={f} className="flex items-baseline gap-2 text-[13px]"><span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 translate-y-[-2px] bg-[#F0602A]"/>{f}</li>)}</ul>}
+        {(m.ficha||m.opciones?.length)&&<div className="mt-3 flex flex-wrap gap-2">
+         {m.opciones?.map((o,k)=><button key={k} type="button" disabled={!!resueltos[m.id]||trabajando} onClick={()=>{resolver(m.id,o.texto);void mandar({eleccion:o.eleccion,etiqueta:o.texto},o.texto);}} className={btnPrincipal}>{o.texto}</button>)}
+         {m.ficha&&<Link href={m.ficha} onClick={irA} className={m.opciones?.length?btnBorde:btnPrincipal}>Completar en su ficha</Link>}
+        </div>}
+       </div>}
+       {m.opciones&&!m.error&&<div className="flex flex-wrap gap-2">{m.opciones.map((o,k)=><button key={k} type="button" disabled={!!resueltos[m.id]||trabajando} onClick={()=>{resolver(m.id,o.texto);void mandar({eleccion:o.eleccion,etiqueta:o.texto},o.texto);}} className={btnBorde}>{o.texto}</button>)}</div>}
+       {m.confirmar&&(resueltos[m.id]?<p className="text-[12.5px] text-medio">{resueltos[m.id]}</p>:
+        <div role="alertdialog" aria-label="Confirmar" className="border border-[#1a1816] bg-white px-3.5 py-3"><p className="text-[13.5px] leading-[1.55]">{m.confirmar.texto}</p>
+         <div className="mt-3 flex gap-2"><button type="button" disabled={trabajando} onClick={()=>{resolver(m.id,'Hecho.');void mandar({eleccion:m.confirmar!.eleccion,confirmado:true},'Sí, hazlo');}} className={btnPrincipal}>Sí, hazlo</button><button type="button" onClick={()=>resolver(m.id,'Cancelado: no se gastó nada.')} className={btnBorde}>Cancelar</button></div></div>)}
+       {m.seguir&&<Avance id={m.seguir} irA={irA}/>}
+      </div>
+     </article>;})}
+    {trabajando&&<><div className="mb-4 flex justify-end"><p className="max-w-[85%] whitespace-pre-wrap break-words bg-[#1a1816] px-3.5 py-2 text-[13.5px] text-white">{enviado}</p></div>
+     <div className="mb-4 flex gap-2.5"><span className="w-6 shrink-0"><Cara id="atlas" tam={24} titulo={false}/></span><p role="status" className="flex items-center gap-2 text-[12.5px] text-medio"><span aria-hidden="true" className="flex gap-1">{[0,1,2].map(k=><span key={k} className="h-1.5 w-1.5 animate-pulse bg-[#1a1816]" style={{animationDelay:`${k*180}ms`}}/>)}</span>Atlas está en eso…</p></div></>}
    </div>
 
-   <form onSubmit={e=>{e.preventDefault();enviar();}} className="relative shrink-0 border-t border-black/10 bg-[#f8f5ef] px-3 pb-3 pt-2">
-    {sugerencias.length>0&&<div role="listbox" aria-label="Sugerencias" className="absolute bottom-full left-3 right-3 mb-1 max-h-60 overflow-y-auto border border-black/15 bg-white shadow-lg">{sugerencias.map((s,i)=><div key={s.valor} role="option" aria-selected={i===elegida} onMouseDown={e=>{e.preventDefault();poner(s.valor);}} className={`cursor-pointer px-3 py-2 text-[13px] ${i===elegida?'bg-black/5':''}`}><span className="font-medium">{s.titulo}</span><br/><span className="text-[12px] text-medio">{s.detalle}</span></div>)}</div>}
-    <div className="mb-1.5 flex min-h-8 flex-wrap items-center gap-1.5">
-     {nombreCtx&&quitado!==clave&&<span className={chip} data-contexto>{nombreCtx}<button type="button" aria-label={`Quitar ${nombreCtx} del contexto`} onClick={()=>setQuitado(clave)} className="-mr-1 grid h-7 w-7 place-items-center">×</button></span>}
-     {conMarcas&&lectura.accion&&!lectura.dudas.length&&<span data-entendi className="text-[11.5px] text-medio">Hace {AGENTES_CAJA[ACCIONES_CAJA[lectura.accion].agente].nombre} · {ACCIONES_CAJA[lectura.accion].nombre}{cliente?<> · Para {cliente.nombre}</>:null}</span>}
-     {!conMarcas&&!nombreCtx&&<span className="text-[11.5px] text-medio">/ acciones · # cliente</span>}
-    </div>
-    {conMarcas&&(lectura.dudas.length>0||faltan.length>0||sinQuien)&&<p data-aviso-caja role="alert" className="mb-1.5 text-[12px] text-[#a3260f]">{lectura.dudas[0]??(faltan.length?<>A {cliente!.nombre} le falta: {faltan.join(', ')}. <Link href={`/estudio/cliente/${cliente!.id}#saber`} onClick={cerrar} className="underline">Completar en su ficha</Link></>:`Para «${def!.nombre}» dime para quién: escribe # y elige el cliente.`)}</p>}
-    <div className="flex items-end gap-1.5 border border-black/20 bg-white p-1.5 focus-within:border-black/60">
-     <label className="min-w-0 flex-1"><span className="sr-only">Escríbele a Atlas</span>
-      <textarea id="caja-atlas" ref={caja} rows={1} value={texto} disabled={!datos} placeholder={oye?'Te escucho…':'Escríbele a Atlas…'} onChange={e=>{setTexto(e.target.value);setCursor(e.target.selectionStart);setCallar(false);}} onSelect={e=>setCursor(e.currentTarget.selectionStart)} onKeyDown={tecla} style={{outline:'none'}} className="block max-h-36 min-h-10 w-full resize-none bg-transparent px-2 py-2 text-[16px] leading-snug md:text-[14px]"/>
+   {/* Escribir: lo que se entendió arriba, la caja y los botones dentro. */}
+   <form onSubmit={e=>{e.preventDefault();enviar();}} className="relative shrink-0 border-t border-[#e3dcd2] bg-white px-3 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2.5 lg:pb-3">
+    {sugerencias.length>0&&<div role="listbox" aria-label="Sugerencias" className="absolute bottom-full left-3 right-3 mb-1.5 max-h-64 overflow-y-auto border border-[#d3cac0] bg-white shadow-[0_12px_32px_-12px_rgba(20,15,10,.35)]">
+     <p className="border-b border-[#efe9e1] px-3 py-1.5 font-mono text-[11px] text-medio">{enCurso?.marca==='/'?'Qué hacer':'Para quién'}</p>
+     {sugerencias.map((s,i)=><div key={s.valor} role="option" aria-selected={i===elegida} onMouseDown={e=>{e.preventDefault();poner(s.valor);}} onMouseEnter={()=>setElegida(i)} className={`cursor-pointer px-3 py-2 text-[13px] ${i===elegida?'bg-[#f4efe9]':''}`}><span className="font-medium">{s.titulo}</span><br/><span className="text-[12px] text-medio">{s.detalle}</span></div>)}
+    </div>}
+    {(nombreCtx&&quitado!==clave||conMarcas&&lectura.accion&&!lectura.dudas.length)&&<div className="mb-2 flex min-h-7 flex-wrap items-center gap-1.5">
+     {nombreCtx&&quitado!==clave&&<span data-contexto className="inline-flex h-7 max-w-full items-center gap-1 border border-[#e3dcd2] bg-[#f4efe9] pl-2 text-[12px]"><span className="text-medio">Sobre</span><span className="truncate font-medium">{nombreCtx}</span><button type="button" aria-label={`Quitar ${nombreCtx} del contexto`} onClick={()=>setQuitado(clave)} className="grid h-7 w-7 shrink-0 place-items-center text-medio hover:text-[#1a1816]">×</button></span>}
+     {conMarcas&&lectura.accion&&!lectura.dudas.length&&<span data-entendi className="text-[12px] text-medio">{AGENTES_CAJA[ACCIONES_CAJA[lectura.accion].agente].nombre} · {ACCIONES_CAJA[lectura.accion].nombre}{cliente?<> · {cliente.nombre}</>:null}</span>}
+    </div>}
+    {conMarcas&&(lectura.dudas.length>0||faltan.length>0||sinQuien)&&<p data-aviso-caja role="alert" className="mb-2 border-l-2 border-[#F0602A] bg-[#fff6ec] px-2.5 py-1.5 text-[12.5px] leading-snug">{lectura.dudas[0]??(faltan.length?<>A {cliente!.nombre} le falta: {faltan.join(', ')}. <Link href={`/estudio/cliente/${cliente!.id}#saber`} onClick={irA} className="underline underline-offset-2">Completar en su ficha</Link></>:`Para «${def!.nombre}» dime para quién: escribe @ y elige el cliente.`)}</p>}
+    <div className="border border-[#d3cac0] bg-white transition-colors focus-within:border-[#1a1816]">
+     <label className="block"><span className="sr-only">Escríbele a Atlas</span>
+      <textarea id="caja-atlas" ref={caja} rows={1} value={texto} disabled={!datos} placeholder={oye?'Te escucho…':'Escríbele a Atlas…'} onChange={e=>{setTexto(e.target.value);setCursor(e.target.selectionStart);setCallar(false);}} onSelect={e=>setCursor(e.currentTarget.selectionStart)} onKeyDown={tecla} style={{outline:'none'}} className="block max-h-36 min-h-11 w-full resize-none bg-transparent px-3 pb-1 pt-2.5 text-[16px] leading-snug placeholder:text-[#a39a92] md:text-[14px]"/>
      </label>
-     {puedeVoz&&<button type="button" onClick={dictar} aria-pressed={oye} aria-label={oye?'Dejar de dictar':'Dictar'} className={`grid h-11 w-11 shrink-0 place-items-center ${oye?'bg-[#F0602A] text-white':'text-medio hover:bg-black/5'}`}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="9" y="3" width="6" height="11"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>}
-     <button type="submit" disabled={trabajando||!texto.trim()||bloqueado} aria-busy={trabajando} className="min-h-11 shrink-0 bg-[#1a1816] px-4 text-[13px] text-white disabled:opacity-40">{trabajando?'…':'Enviar'}</button>
+     <div className="flex items-center gap-1 px-1.5 pb-1.5">
+      <p className="min-w-0 flex-1 truncate px-1.5 font-mono text-[11px] text-[#a39a92]">@ cliente · / acción · Enter envía</p>
+      {puedeVoz&&<button type="button" onClick={dictar} aria-pressed={oye} aria-label={oye?'Dejar de dictar':'Dictar'} title={oye?'Dejar de dictar':'Dictar'} className={`grid h-11 w-11 shrink-0 place-items-center md:h-10 md:w-10 ${oye?'bg-[#F0602A] text-white':'text-medio hover:bg-black/5 hover:text-[#1a1816]'}`}><Icono d="M9 3h6v11H9zM5 11a7 7 0 0 0 14 0M12 18v3"/></button>}
+      <button type="submit" disabled={trabajando||!texto.trim()||bloqueado} aria-busy={trabajando} aria-label="Enviar" title="Enviar" className="grid h-11 w-11 shrink-0 md:h-10 md:w-10 place-items-center bg-[#1a1816] text-white transition-opacity disabled:opacity-30"><Icono d="M12 19V5M6 11l6-6 6 6"/></button>
+     </div>
     </div>
    </form>
   </div>

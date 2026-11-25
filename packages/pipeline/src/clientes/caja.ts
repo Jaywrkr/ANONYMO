@@ -1,6 +1,6 @@
 // La caja única de Atlas (sistema/95): un solo lugar para pedir cosas, escribiendo como en un chat.
-//   @agente   quién lo hace (Faro, Imán, Atlas)
-//   #cliente  para quién (sale de las fichas)
+//   @cliente  para quién (sale de las fichas); también #cliente, como antes (sistema/108)
+//   @Faro     quién lo hace, solo si se escribe el nombre del agente y no hay un cliente que se llame así
 //   /acción   qué se hace (guion, muestra, mensaje, datos, pedido, proyecto, contenido)
 // Lo que no lleva marca es el pedido en palabras. Si falta algo se adivina con cuidado y siempre se muestra lo que se
 // entendió antes de hacerlo. Esta parte no toca la red ni gasta: solo entiende el texto. Corre también en el navegador.
@@ -103,8 +103,14 @@ export function leerCaja(texto: string, clientes: ClienteCaja[], contexto?: stri
   let agente: AgenteCaja | undefined, accion: AccionCaja | undefined, cliente: string | undefined, como: LecturaCaja["como"];
   const resto = texto.replace(/(^|\s)([@#/])([^\s@#/]+)/g, (todo, antes: string, marca: string, palabra: string) => {
     if (marca === "@") {
+      // @ es para quién (sistema/108). Solo el nombre exacto de un agente, sin un cliente que se llame así, es quién lo hace.
+      const exacto = ORDEN_AGENTES.find((a) => a === norma(palabra) || norma(AGENTES_CAJA[a].nombre) === norma(palabra));
+      const lista = clientesDe(palabra, clientes);
+      if (exacto && !lista.some((c) => slug(c.nombre).split("-")[0] === slug(palabra))) { agente = exacto; return antes; }
+      if (lista.length === 1) { cliente = lista[0]!.id; return antes; }
+      if (lista.length > 1) { dudas.push(`«@${palabra}» puede ser ${lista.slice(0, 4).map((c) => c.nombre).join(", ")}. Elige uno de la lista.`); return antes; }
       const a = agenteDe(palabra);
-      if (a) agente = a; else dudas.push(`No conozco a «@${palabra}». Puedes pedirle a ${ORDEN_AGENTES.map((x) => "@" + AGENTES_CAJA[x].nombre).join(", ")}.`);
+      if (a) agente = a; else dudas.push(`No encontré el cliente «@${palabra}». Escribe @ y elige de la lista.`);
       return antes;
     }
     if (marca === "/") {

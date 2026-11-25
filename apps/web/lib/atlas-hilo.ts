@@ -31,6 +31,8 @@ export interface MensajeHilo {
   error?: string;
   /** Dónde se completa lo que falta. */
   ficha?: string;
+  /** Los datos que faltan, uno por línea (sistema/108). */
+  faltan?: string[];
   /** Proyecto que quedó trabajando: la ventana muestra su avance en vivo. */
   seguir?: string;
   /** El cliente del que se habló: queda como contexto para lo siguiente. */

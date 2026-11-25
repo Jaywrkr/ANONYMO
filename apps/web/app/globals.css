@@ -85,6 +85,8 @@ html[data-quieto] .buscando { animation: none; }
    En la capa «components»: así las utilidades de Tailwind (bg-*, text-*) siempre pueden ganarle. */
 @layer components {
 .estudio-marco { min-height: 100dvh; transition: background .5s ease; }
+/* Atlas abierto en computadora: vive pegado a la derecha y la página se corre para no quedar tapada (sistema/108). */
+@media (min-width: 1024px) { html[data-atlas-abierto] .estudio-marco { padding-right: calc(420px + .5rem) !important; } }
 .tarjeta { break-inside: avoid; margin-bottom: 16px; border-radius: 16px; background: #fff; overflow: hidden; box-shadow: 0 0 0 1px rgba(26,24,22,.05), 0 6px 18px -10px rgba(40,30,20,.18); transition: transform .25s ease, box-shadow .25s ease; }
 a.tarjeta:hover, .tarjeta-viva:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(26,24,22,.06), 0 18px 40px -16px rgba(40,30,20,.28); }
 .mamposteria { columns: 1; column-gap: 16px; }

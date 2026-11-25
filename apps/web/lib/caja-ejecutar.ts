@@ -40,8 +40,8 @@ export async function ejecutarCaja(c: PedidoCaja, yo: "jay" | "luna", origen: st
   if (!def) return mal("No entendí qué hacer. Escribe / para ver lo que se puede pedir.");
   const texto = String(c.texto ?? "").trim().slice(0, 1200);
   const f = typeof c.cliente === "string" && c.cliente ? (await clientesCaja()).find((x) => x.id === c.cliente) : undefined;
-  if (c.cliente && !f) return mal("No encontré ese cliente. Elígelo de la lista con #.", 404);
-  if (def.conCliente && !f) return mal(`Para «${def.nombre}» dime para quién: escribe # y elige el cliente.`);
+  if (c.cliente && !f) return mal("No encontré ese cliente. Escribe @ y elígelo de la lista.", 404);
+  if (def.conCliente && !f) return mal(`Para «${def.nombre}» dime para quién: escribe @ y elige el cliente.`);
   if (def.pronto) {
     const falta = f ? puedeHacer(saberDe(f), def.tarea!).faltan : [];
     return mal(`«${def.nombre}» todavía no se puede pedir desde aquí.${falta.length ? ` Cuando esté, a ${f!.nombre} le va a faltar: ${textoFaltan(falta)}.` : ""}`, 409);
@@ -50,7 +50,8 @@ export async function ejecutarCaja(c: PedidoCaja, yo: "jay" | "luna", origen: st
   const saber = f ? saberDe(f) : undefined;
   if (f && saber && def.tarea && clienteConFicha(f)) {
     const e = puedeHacer(saber, def.tarea);
-    if (!e.listo) return Response.json({ error: `A ${f.nombre} le falta: ${textoFaltan(e.faltan)}.`, ficha: `/estudio/cliente/${f.id}#saber` }, { status: 409, ...sinCache });
+    // Claro y corto (sistema/108): qué falta, en lista, y cómo conseguirlo (que Imán lo busque o completarlo a mano).
+    if (!e.listo) return Response.json({ error: `Para «${def.nombre}» me ${e.faltan.length === 1 ? "falta un dato" : `faltan ${e.faltan.length} datos`} de ${f.nombre}.`, faltan: e.faltan.map((k) => nombreDato(k).replace(/^./, (x) => x.toUpperCase())), buscar: !!(f.guardada?.web ?? f.contacto.web) || (esAnonymo(f.id) && clienteConFicha(f)), ficha: `/estudio/cliente/${f.id}#saber` }, { status: 409, ...sinCache });
   }
 
   try {

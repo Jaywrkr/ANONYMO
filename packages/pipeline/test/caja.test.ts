@@ -35,7 +35,7 @@ test("nombres a medias, nombres repetidos y nombres que no existen", () => {
   assert.equal(dos.cliente, undefined);
   assert.match(dos.dudas[0]!, /puede ser Clínica Sonrisa, Clínica Luz/);
   assert.match(leerCaja("#panaderia /muestra", C).dudas[0]!, /No encontré el cliente/);
-  assert.match(leerCaja("@vector /guion", C).dudas[0]!, /No conozco a «@vector»/);
+  assert.match(leerCaja("@vector /guion", C).dudas[0]!, /No encontré el cliente «@vector»/);
   assert.match(leerCaja("/volar", C).dudas[0]!, /No conozco «\/volar»/);
   assert.equal(agenteDe("ima"), "iman");
   assert.equal(accionDe("gui"), "guion");
@@ -61,4 +61,10 @@ test("las sugerencias se ponen en lugar de lo que se está escribiendo", () => {
   const r = ponerSugerencia("@faro #cli un reel", 10, "#clinica-sonrisa");
   assert.equal(r.texto, "@faro #clinica-sonrisa un reel");
   assert.equal(r.cursor, 23);
+});
+
+test("@ es para quién: elige el cliente; el nombre exacto de un agente sigue siendo el agente (sistema/108)", () => {
+  assert.equal(leerCaja("@clinica-sonrisa /muestra", C).cliente, "clinica-sonrisa");
+  assert.equal(leerCaja("@faro un reel", C).agente, "faro");
+  assert.equal(leerCaja("@faro un reel", C).cliente, undefined);
 });
