@@ -85,7 +85,8 @@ export function AtlasFlotante({proyectos}:{proyectos:{id:string;nombre:string}[]
  const abrir=()=>{volver.current=document.activeElement as HTMLElement|null;setAbierto(true);cargar();};
  /** Al tocar un enlace del chat: en computadora el chat sigue abierto al lado; en celular se cierra para ver la página. */
  const irA=()=>{if(enCelular())cerrar();};
- useEffect(()=>{const recibir=()=>abrir();window.addEventListener('anonymo:atlas',recibir);return()=>window.removeEventListener('anonymo:atlas',recibir);});
+ // Con texto (sistema/109): un botón de otra página deja el pedido escrito en la caja, listo para enviar.
+ useEffect(()=>{const recibir=(e:Event)=>{abrir();const t=(e as CustomEvent<{texto?:string}>).detail?.texto;if(t)setTimeout(()=>usarIdea(t),60);};window.addEventListener('anonymo:atlas',recibir);return()=>window.removeEventListener('anonymo:atlas',recibir);});
  // En computadora, si lo dejaste abierto, sigue abierto al recargar.
  useEffect(()=>{try{if(!enCelular()&&sessionStorage.getItem('atlas-abierto')==='1'){setAbierto(true);cargar();}}catch{}},[]); // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{try{if(abierto)sessionStorage.setItem('atlas-abierto','1');}catch{}

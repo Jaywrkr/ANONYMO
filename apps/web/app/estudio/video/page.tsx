@@ -9,6 +9,7 @@ import { Cara } from "@/components/estudio/piezas";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Video — Estudio", robots: { index: false } };
 
+const cortado = (v: { estado: string; actualizado: string }) => v.estado === "subiendo" && Date.now() - Date.parse(v.actualizado) > 3600_000;
 const ESTADO: Record<TrabajoVideo["estado"], string> = { subiendo: "Sin terminar de subir", subido: "Por escuchar", analizado: "Listo para editar", error: "Con un problema" };
 const fecha = (iso: string) => new Date(iso).toLocaleString("es-EC", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guayaquil" });
 
@@ -47,15 +48,16 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
       {falla && <p role="alert" className="mt-2 text-[14px] text-[#a33a0b]">No se pudo leer la lista: {falla}</p>}
       {!videos.length && !falla && <p className="mt-2 text-[14px] text-medio">Todavía no hay videos.</p>}
       <ul className="mt-2 grid gap-2">
-        {videos.map((v) => (
+        {/* Una subida que se cortó hace más de una hora ya no va a terminar (sistema/109): se dice y va al final. */}
+        {[...videos].sort((a, b) => Number(cortado(a)) - Number(cortado(b))).map((v) => (
           <li key={v.id}>
             <Link href={`/estudio/video/${v.id}`} className="flex min-h-14 items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-medium">{v.nombre}</span>
                 <span className="block text-[12px] text-suave">{[v.cliente, v.duracion ? `${Math.round(v.duracion)} s` : "", fecha(v.actualizado)].filter(Boolean).join(" · ")}</span>
               </span>
-              <span className={`shrink-0 rounded-full px-3 py-1 text-[12px] ${v.estado === "error" ? "bg-[#fff1ea] text-[#a33a0b]" : v.resultados.length ? "bg-[#e6f6ee] text-[#17714a]" : "bg-hueso text-medio"}`}>
-                {v.resultados.length ? `${v.resultados.length} ${v.resultados.length === 1 ? "formato listo" : "formatos listos"}` : ESTADO[v.estado]}
+              <span className={`shrink-0 rounded-full px-3 py-1 text-[12px] ${v.estado === "error" || cortado(v) ? "bg-[#fff1ea] text-[#a33a0b]" : v.resultados.length ? "bg-[#e6f6ee] text-[#17714a]" : "bg-hueso text-medio"}`}>
+                {v.resultados.length ? `${v.resultados.length} ${v.resultados.length === 1 ? "formato listo" : "formatos listos"}` : cortado(v) ? "Se cortó: súbelo de nuevo" : ESTADO[v.estado]}
               </span>
             </Link>
           </li>

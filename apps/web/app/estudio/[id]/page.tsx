@@ -138,12 +138,19 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
         <section aria-label="Ahora" className={`mt-6 overflow-hidden rounded-[22px] ${ver ? "hidden lg:block" : ""} ${m.tono === "toca" || m.tono === "cortado" ? "bg-tinta text-white" : m.tono === "listo" ? "bg-[#e7f5ec]" : "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]"}`}>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-5 p-6 md:p-8">
             <div className={`min-w-[min(100%,20rem)] flex-1 ${m.revision ? "basis-full" : ""}`}>
-              <p className={`flex items-center gap-2 text-[12px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/60" : "text-suave"}`}>
-                <i className={`h-1.5 w-1.5 rounded-full ${m.tono === "vivo" ? "late bg-vivo" : m.tono === "toca" || m.tono === "otro" || m.tono === "cortado" ? "late bg-urgente" : "bg-suave"}`} />
-                Ahora · fase {m.fase.n} de {m.fase.de}: {m.fase.nombre}
+              {/* Menos texto (sistema/109): la fase es una barra, el título es corto y los días esperando, un número. */}
+              <div className={`flex items-center gap-3 text-[12px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/60" : "text-suave"}`} data-fases>
+                <i className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.tono === "vivo" ? "late bg-vivo" : m.tono === "toca" || m.tono === "otro" || m.tono === "cortado" ? "late bg-urgente" : "bg-suave"}`} />
+                <span className="flex w-28 shrink-0 gap-1" role="img" aria-label={`Fase ${m.fase.n} de ${m.fase.de}: ${m.fase.nombre}`}>
+                  {Array.from({ length: m.fase.de }, (_, i) => <i key={i} className={`h-1.5 flex-1 rounded-full ${i < m.fase.n - 1 ? (m.tono === "toca" || m.tono === "cortado" ? "bg-white" : "bg-tinta") : i === m.fase.n - 1 ? "bg-urgente" : m.tono === "toca" || m.tono === "cortado" ? "bg-white/20" : "bg-[#e3ddd3]"}`} />)}
+                </span>
+                <span className="truncate">{m.fase.nombre}</span>
+              </div>
+              <p className={`${serif} mt-2 flex flex-wrap items-baseline gap-x-3 text-[clamp(26px,2.8vw,36px)] leading-[1.08]`}>
+                <span>{m.corto ?? (m.parado ? m.ahora.replace(/^Lleva \d+ días esperando\. /, "") : m.ahora)}</span>
+                {m.parado ? <span className="font-sans text-[14px] font-medium text-urgente" title="Días esperando una decisión">· {m.parado} días</span> : null}
               </p>
-              <p className={`${serif} mt-2 text-[clamp(26px,2.8vw,36px)] leading-[1.08]`}>{m.ahora}</p>
-              <p className={`mt-2 text-[14px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/70" : "text-medio"}`}><span className="font-medium">Después:</span> {m.despues}</p>
+              {!m.revision && <p className={`mt-2 text-[14px] ${m.tono === "toca" || m.tono === "cortado" ? "text-white/70" : "text-medio"}`}><span className="font-medium">Después:</span> {m.despues}</p>}
               {p.estado === "en-curso" && m.tono === "vivo" && <AhoraEnVivo id={id} />}
               {/* Modo paso: la entrega que acaba de llegar, con sus tres decisiones. */}
               {m.revision && <div className="mt-6"><RevisarAgente p={p} t={m.revision as TareaId} mio={m.teToca} oscuro={m.tono === "toca"} /></div>}

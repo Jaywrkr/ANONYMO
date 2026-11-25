@@ -1,5 +1,5 @@
 // Faro escribe el guion de un video antes de grabarlo (sistema/71).
-import { clienteConFicha, contextoCliente, escribirGuion, idFicha, ocultarClaves, puedeHacer, saberDe, TAREAS_SABER, textoFaltan } from "@anonymo/pipeline";
+import { clienteConFicha, contextoCliente, escribirGuion, idFicha, idGuionValido, leerGuion, ocultarClaves, puedeHacer, saberDe, TAREAS_SABER, textoFaltan } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { mal, permiso } from "@/lib/video";
 
@@ -9,8 +9,12 @@ export const maxDuration = 120;
 export async function POST(req: Request) {
   const p = await permiso();
   if (p.error) return p.error;
-  let c: { pedido?: unknown; cliente?: unknown; segundos?: unknown };
+  let c: { pedido?: unknown; cliente?: unknown; segundos?: unknown; de?: unknown };
   try { c = await req.json(); } catch { return mal("Pedido no válido."); }
+  // «Pedir otra versión» (sistema/109): el mismo pedido, cliente y duración, con otro ángulo.
+  const anterior = typeof c.de === "string" && idGuionValido(c.de) ? await leerGuion(c.de) : undefined;
+  if (c.de && !anterior) return mal("No encontramos ese guion.", 404);
+  if (anterior) c = { pedido: anterior.pedido, cliente: anterior.cliente, segundos: anterior.segundos };
   // Con un cliente que tiene ficha (sistema/92), Faro escribe con lo que se sabe de él. Si falta lo mínimo, no escribe:
   // un guion genérico no sirve y cuesta lo mismo. Sin cliente, o con un nombre suelto, escribe como antes.
   const cliente = typeof c.cliente === "string" ? c.cliente.trim() : "";
@@ -24,7 +28,7 @@ export async function POST(req: Request) {
     }
   }
   try {
-    const guion = await escribirGuion(String(c.pedido ?? ""), { cliente: cliente || undefined, segundos: Number(c.segundos), por: p.yo!, saber });
+    const guion = await escribirGuion(String(c.pedido ?? ""), { cliente: cliente || undefined, segundos: Number(c.segundos), por: p.yo!, saber, ...(anterior ? { distinto: anterior.gancho, de: anterior.id } : {}) });
     return Response.json({ guion }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return mal(ocultarClaves((e as Error).message), 502);

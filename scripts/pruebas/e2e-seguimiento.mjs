@@ -90,7 +90,7 @@ try {
 
   // 1b · Jay cambia el precio de este negocio antes de que vea la propuesta (sistema/82).
   await p.goto(`${B}/estudio/clientes/nuevos`);
-  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  if (!(await p.locator("#filtros-iman").count())) await p.click("button[aria-controls=filtros-iman]"); await p.selectOption("select[aria-label='Qué negocios']", "todos");
   const vega = p.locator("ul[aria-label=Negocios] li", { hasText: "Notaría Vega" });
   await vega.getByRole("button", { name: "Más", exact: true }).click();
   // El estudio le pone fotos a su muestra (sistema/87): no suena el celular ni cuenta como que el negocio las subió.
@@ -146,7 +146,7 @@ try {
   // 3 · El escritorio lo pone primero.
   await p.goto(`${B}/estudio/clientes/nuevos`);
   exigir(/Notaría Vega aceptó la propuesta/.test(await p.locator("section[aria-label='Ahora mismo']").innerText()), "«Ahora mismo» dice quién aceptó la propuesta");
-  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  if (!(await p.locator("#filtros-iman").count())) await p.click("button[aria-controls=filtros-iman]"); await p.selectOption("select[aria-label='Qué negocios']", "todos");
   const ahora = p.locator("section[aria-label='Ahora mismo']");
   const cobro = await ahora.locator("a:has-text('Cobrar el 50 %')").getAttribute("href");
   exigir(!!cobro && cobro.includes("593991110010") && decodeURIComponent(cobro).includes("USD 225 + IVA (50 %)"), "ofrece cobrar el 50 % de su precio con el mensaje listo");
@@ -164,7 +164,7 @@ try {
 
   // 3b · Un nombre larguísimo de Google no rompe la muestra ni el mensaje (sistema/83).
   await p.goto(`${B}/estudio/clientes/nuevos`);
-  await p.selectOption("select[aria-label=Estado] >> nth=0", "todos");
+  if (!(await p.locator("#filtros-iman").count())) await p.click("button[aria-controls=filtros-iman]"); await p.selectOption("select[aria-label='Qué negocios']", "todos");
   const largo = p.locator("ul[aria-label=Negocios] li", { hasText: "AVILA CARRERA" });
   const enlaceLargo = await largo.locator("a:has-text('Muestra')").getAttribute("href");
   await largo.getByRole("button", { name: "Más", exact: true }).click();

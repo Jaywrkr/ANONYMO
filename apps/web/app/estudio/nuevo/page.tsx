@@ -6,6 +6,8 @@ import { Contar } from "@/components/estudio/Contar";
 import { ZonaArchivos } from "@/components/estudio/ZonaArchivos";
 import { Cara } from "@/components/estudio/piezas";
 import { nubeActiva } from "@anonymo/pipeline";
+import { ElegirCliente, type OpcionCliente } from "@/components/estudio/ElegirCliente";
+import { clientesCaja, proyectoDe } from "@/lib/caja-ejecutar";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -16,6 +18,10 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
   const yo = await exigirEstudio();
   const { error, q, cliente, ficha, prospecto } = await searchParams;
   const enLinea = nubeActiva();
+  // Para quién (sistema/109): todas las fichas y los clientes nuevos de Imán, para elegir de la lista.
+  const clientes: OpcionCliente[] = (await clientesCaja().catch(() => []))
+    .map((f) => ({ id: f.id, nombre: f.nombre, alias: f.guardada?.alias, prospecto: f.prospecto?.id, detalle: f.prospecto && !f.proyectos.length ? "Cliente nuevo de Imán" : proyectoDe(f) ? "Con proyecto" : "Con ficha" }))
+    .sort((a, b) => Number(!!a.prospecto) - Number(!!b.prospecto) || a.nombre.localeCompare(b.nombre, "es"));
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
       <div className="mx-auto max-w-[760px]">
@@ -30,7 +36,7 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
           Lo que hablaste con el cliente, como se lo contarías a un socio. Atlas decide qué hace falta y quién trabaja. Nadie empieza hasta que tú lo digas.
         </p>
         <ol aria-label="Cómo sigue" className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-          {[["1", "Lo cuentas", "Aquí, en tus palabras."], ["2", "Atlas arma el plan", "Quién trabaja, qué entrega y cuánto cuesta."], ["3", "Tú dices «que empiecen»", "Nadie trabaja antes."]].map(([n, t, d], i) => (
+          {[["1", "Eliges y cuentas", "Para quién y qué necesita."], ["2", "Atlas arma el plan", "Quién trabaja, qué entrega y cuánto cuesta."], ["3", "Tú dices «que empiecen»", "Nadie trabaja antes."]].map(([n, t, d], i) => (
             <li key={n} className={`rounded-2xl p-4 ${i === 0 ? "bg-white shadow-[0_0_0_1px_rgba(26,24,22,.06)]" : "bg-[#f4f1eb]"}`}>
               <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] ${i === 0 ? "bg-tinta text-white" : "bg-white text-medio"}`}>{n}</span>
               <p className="mt-2 text-[14px] font-medium">{t}</p>
@@ -41,20 +47,11 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
         {error && <p role="alert" className="mt-6 rounded-2xl bg-[#fde8e4] p-4 text-[15px] text-[#8a1c0c]">{error}</p>}
 
         <form action={accionNuevoProyecto} className="mt-8 grid gap-7">
-          <Contar inicial={q?.trim() ?? ""} />
-          {/* De qué ficha y de qué prospecto viene el pedido (sistema/70): así el proyecto queda unido a su cliente. */}
-          {ficha && /^[a-z0-9-]{1,60}$/.test(ficha) && <input type="hidden" name="ficha" value={ficha} />}
-          {prospecto && <input type="hidden" name="prospecto" value={prospecto.slice(0, 200)} />}
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <label className="grid content-start gap-2">
-              <span className="text-[13px] font-medium">Cliente <span className="font-normal text-suave">· opcional</span></span>
-              <input name="cliente" maxLength={80} defaultValue={cliente?.slice(0, 80) ?? ""} placeholder="Si no lo pones, Atlas lo saca del texto" className={campo} />
-            </label>
-            <div className="grid content-start gap-2">
-              <span className="text-[13px] font-medium">Imágenes y archivos <span className="font-normal text-suave">· opcional</span></span>
-              <ZonaArchivos nube={enLinea} texto="Logo, fotos o capturas de lo que le gusta" />
-            </div>
+          <ElegirCliente clientes={clientes} inicial={{ ficha, cliente, prospecto }} />
+          <Contar inicial={q?.trim() ?? ""} foco={!!(ficha || cliente)} />
+          <div className="grid content-start gap-2">
+            <span className="text-[13px] font-medium">Imágenes y archivos <span className="font-normal text-suave">· opcional</span></span>
+            <ZonaArchivos nube={enLinea} texto="Logo, fotos o capturas de lo que le gusta" />
           </div>
           <p className="-mt-3 text-[12px] text-suave">Mira, Orla y los visuales ven las imágenes. Los enlaces del texto los abren Sonda, Nova, Orla y Vector.</p>
 

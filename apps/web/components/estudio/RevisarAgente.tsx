@@ -23,15 +23,22 @@ export function RevisarAgente({ p, t, mio, oscuro = false, verEntrega = true }: 
   const comunes = <><input type="hidden" name="id" value={id} /><input type="hidden" name="motor" value="" />{!mio && <input type="hidden" name="forzar" value="1" />}</>;
   const tenue = oscuro ? "text-white/65" : "text-medio";
   const linea = oscuro ? "border-white/10" : "border-borde";
+  // «Necesita: fotos reales, el horario y el logo en SVG» → etiquetas cortas.
+  const necesita = e?.necesita && e.necesita !== "—" ? e.necesita.split(/[,;·\n]| y (?=[a-záéíóúñ])/).map((x) => x.trim().replace(/^(que |necesita:? )/i, "").replace(/\.$/, "")).filter((x) => x.length > 1).slice(0, 6) : [];
   const campo = `w-full rounded-xl px-3 py-2.5 text-[14px] outline-none ${oscuro ? "bg-white/10 text-white placeholder:text-white/40 focus:bg-white/15" : "bg-[#f6f3ee] focus:bg-white focus:shadow-[0_0_0_1.5px_#1a1816]"}`;
   return (
     <div className="grid gap-4">
+      {/* En una línea (sistema/109): quién entregó, qué dice en corto y lo que necesita como etiquetas. */}
       <div className="flex items-start gap-3">
-        <Cara id={a.id} tam={44} titulo={false} flota />
-        <div className="min-w-0">
-          <p className={`text-[13px] ${tenue}`}>{a.nombre} · {a.rol} · versión {e?.version ?? 1}</p>
-          {e?.dice && <p className="mt-1 font-serif text-[22px] leading-[1.15]">“{e.dice}”</p>}
-          {e?.necesita && e.necesita !== "—" && <p className={`mt-1 text-[13px] ${tenue}`}><span className="font-medium">Necesita:</span> {e.necesita}</p>}
+        <Cara id={a.id} tam={40} titulo={false} flota />
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-baseline gap-x-2 text-[15px]"><span className="font-medium">{a.nombre}</span><span className={`text-[12px] ${tenue}`}>{a.rol} · v{e?.version ?? 1}</span></p>
+          {e?.dice && <p className="mt-0.5 line-clamp-2 font-serif text-[18px] leading-[1.2]" title={e.dice}>“{e.dice}”</p>}
+          {necesita.length > 0 && (
+            <p className="mt-2 flex flex-wrap gap-1.5" aria-label="Necesita">
+              {necesita.map((n) => <span key={n} className={`rounded-full px-2.5 py-1 text-[12px] ${oscuro ? "bg-white/10 text-white/85" : "bg-[#f1ede6] text-medio"}`}>{n}</span>)}
+            </p>
+          )}
         </div>
       </div>
       {e && <ControlCalidad p={p} e={e}/>}
@@ -71,8 +78,8 @@ export function RevisarAgente({ p, t, mio, oscuro = false, verEntrega = true }: 
           <div><Enviar className={`inline-flex min-h-11 items-center rounded-full px-6 text-[14px] font-medium ${oscuro ? "bg-white text-tinta" : "bg-tinta text-white"}`} texto="Pedir el cambio" trabajando="Enviando…" proyecto={id} /></div>
         </form>
       </details>
-      <p className={`text-[13px] ${tenue}`}>
-        {cs ? <>Después sigue <span className="font-medium">{agentePorId(cs.agente)?.nombre}</span> con {cs.entrega.toLowerCase()} · suele tardar unos {minutos} min.</> : "Es la última entrega del plan."}
+      <p className={`flex items-center gap-2 text-[13px] ${tenue}`} data-sigue>
+        {cs ? <><span>Sigue</span><Cara id={cs.agente} tam={22} /><span className="font-medium">{agentePorId(cs.agente)?.nombre}</span><span>· {cs.entrega.toLowerCase()} · ~{minutos} min</span></> : "Es la última entrega del plan."}
       </p>
     </div>
   );

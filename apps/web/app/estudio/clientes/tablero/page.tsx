@@ -22,7 +22,7 @@ const hace = (iso?: string) => {
 
 /** Lo que más importa saber de un negocio según su etapa, en una línea. */
 function senal(p: VistaProspecto, e: Etapa) {
-  if (e === "nuevo") return `${p.puntaje} de oportunidad${p.buenaFama ? " · muy buena fama" : ""}`;
+  if (e === "nuevo") return `${p.puntaje}/100${p.buenaFama ? " · muy buena fama" : ""}`;
   if (e === "escrito") return p.tocaSeguimiento ? "Le toca el recordatorio" : `Le escribiste ${hace(p.contactado)}${p.seguimiento ? " · recordatorio enviado" : ""}`;
   if (e === "abrio") return `Vio su muestra ${p.vistas === 1 ? "1 vez" : `${p.vistas} veces`} · ${hace(p.ultimaVista)}${p.proboAsistente ? " · probó el asistente" : ""}`;
   if (e === "respondio") return p.estado === "reunion" ? "Tienen reunión" : p.vistasPropuesta ? `Abrió la propuesta ${p.vistasPropuesta === 1 ? "1 vez" : `${p.vistasPropuesta} veces`}` : "Respondió: mándale la propuesta";
@@ -86,8 +86,8 @@ export default async function Pagina() {
       </div>
       <PestanasClientes actual="tablero" nuevos={lista.prospectos.length} />
       {falla && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">No se pudo leer la lista: {falla}</p>}
-      <div className="mt-6 max-w-xl"><Marcador lista={lista} /></div>
-      <p className="mt-6 max-w-2xl text-[14px] text-medio">Cada negocio avanza solo cuando abre su muestra, toca «Quiero esta web» o acepta la propuesta. «Respondió», «Reunión» y «Cliente» los marcas tú en su tarjeta de la lista.</p>
+      <div className="mt-6"><Marcador lista={lista} tira /></div>
+      <p className="mt-4 text-[13px] text-suave">Avanzan solos al abrir su muestra o aceptar. «Respondió», «Reunión» y «Cliente» los marcas tú.</p>
 
       <div data-tablero className="-mx-5 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-4 md:-mx-10 md:px-10 xl:snap-none">
         {ETAPAS.map(([e, nombre]) => {

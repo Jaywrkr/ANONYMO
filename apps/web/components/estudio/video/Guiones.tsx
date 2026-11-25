@@ -51,6 +51,23 @@ export function Guiones({ inicial, clienteInicial = "" }: { inicial: Guion[]; cl
     }
   }
 
+  /** Otra versión del mismo guion (sistema/109): mismo pedido y duración, otro ángulo. Gasta lo mismo que uno nuevo. */
+  async function otra(g: Guion) {
+    if (espera) return;
+    setAviso(null);
+    setEspera({ titulo: "Faro está escribiendo otra versión", texto: `De «${g.titulo}», con otro ángulo`, desde: Date.now() });
+    try {
+      const { guion } = await pedir<{ guion: Guion }>("/estudio/video/guiones", "POST", { de: g.id });
+      setGuiones((x) => [guion, ...x]);
+      setAbierto(guion.id);
+      setAviso({ ok: true, texto: `Otra versión lista: «${guion.titulo}». Quédate con la que más te guste.` });
+    } catch (e) {
+      setAviso({ ok: false, texto: (e as Error).message });
+    } finally {
+      setEspera(null);
+    }
+  }
+
   async function aprobar(id: string) {
     if (espera) return;
     setAviso(null);
@@ -106,6 +123,15 @@ export function Guiones({ inicial, clienteInicial = "" }: { inicial: Guion[]; cl
             </button>
             {abierto === g.id && (
               <div className="mt-4 grid gap-4 border-t border-borde pt-4 text-[14px]">
+                {(() => {
+                  const dichas = [g.gancho, ...g.partes.map((p) => p.texto), g.cierre].join(" ").split(/\s+/).filter(Boolean).length, tope = Math.round(g.segundos * 2.3);
+                  return (
+                    <div className="flex items-center gap-3" role="img" aria-label={`${dichas} de ${tope} palabras para ${g.segundos} segundos`}>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-hueso"><i className={`block h-full rounded-full ${dichas > tope * 1.1 ? "bg-[#a33a0b]" : "bg-[#17714a]"}`} style={{ width: `${Math.min(100, (dichas / tope) * 100)}%` }} /></span>
+                      <span className="shrink-0 text-[12px] text-medio">{dichas}/{tope} palabras · {g.segundos} s</span>
+                    </div>
+                  );
+                })()}
                 <div>
                   <p className="text-[12px] text-suave">Gancho · los primeros 3 segundos</p>
                   <p className="mt-1 font-medium">{g.gancho}</p>
@@ -128,6 +154,7 @@ export function Guiones({ inicial, clienteInicial = "" }: { inicial: Guion[]; cl
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {g.estado === "borrador" && <button type="button" onClick={() => aprobar(g.id)} disabled={!listo || !!espera} className={botonChico}>Aprobar el guion</button>}
+                  {g.estado === "borrador" && <button type="button" onClick={() => otra(g)} disabled={!listo || !!espera} className={botonChico} title="Usa IA: unos centavos">Pedir otra versión</button>}
                   {g.estado === "aprobado" && <Link href={`/estudio/video?${new URLSearchParams({ guion: g.id, ...(g.cliente ? { cliente: g.cliente } : {}) })}#subir`} className={botonChico}>Ya lo grabé: subir el video</Link>}
                   {g.video && <Link href={`/estudio/video/${g.video}`} className={botonChico}>Ver el video →</Link>}
                 </div>

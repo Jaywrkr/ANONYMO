@@ -19,6 +19,8 @@ export interface FichaGuardada {
   saber?: Record<string, string>;
   /** Lo último que se leyó de su web e Instagram (sistema/93): propuestas que esperan aprobación. No cuentan como sabidas. */
   lectura?: LecturaFuentes;
+  /** Cuándo se leyó su web por última vez (sistema/109): la ficha la lee sola una vez; después, a pedido. */
+  leidoEl?: string;
   creado: string;
   actualizado: string;
   por?: string;
@@ -96,6 +98,8 @@ export function construirCartera(e: EntradaCartera): Ficha[] {
     const f = abrir(g.id, g.nombre);
     f.nombre = g.nombre;
     f.guardada = g;
+    // El nombre visible también lleva a la ficha (sistema/109): «ANONYMO» renombrada «Unmake» sigue siendo una sola.
+    if (!clave.has(idFicha(g.nombre))) clave.set(idFicha(g.nombre), g.id);
     for (const a of g.alias ?? []) clave.set(idFicha(a), g.id);
   }
 

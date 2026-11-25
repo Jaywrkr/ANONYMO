@@ -48,16 +48,16 @@ try {
   exigir(await espera(form.locator("[data-falta-mes]")) && /A Unmake le falta:.*(temas|cada cuánto|quién aprueba)/i.test(await form.locator("[data-falta-mes]").innerText()), "dice qué le falta a Unmake");
   exigir(await form.getByRole("button", { name: "Armar el mes" }).isDisabled() && meses() === antes, "el botón está apagado y no se gasta");
 
-  // 2 · Sin web, «Buscar datos» propone lo que el estudio ya sabe de Unmake; se aprueba y la ficha queda completa.
+  // 2 · Sin web, «Buscar datos» guarda directo lo que el estudio sabe de Unmake (sistema/109) y la ficha queda completa.
   await p.goto(`${B}/estudio/cliente/unmake`);
   const buscar = p.locator("[data-buscar-datos]");
-  exigir(/lo que el estudio ya sabe de Unmake/.test(await buscar.innerText()) && await buscar.locator("button:has-text('Buscar datos')").isEnabled(), "Unmake puede buscar datos sin web");
+  exigir(/se guarda directo/.test(await buscar.innerText()) && await buscar.locator("button:has-text('Buscar datos')").isEnabled(), "Unmake puede buscar datos sin web");
   await buscar.locator("button:has-text('Buscar datos')").click();
-  exigir(await espera(p.locator("[role=status]:has-text('lo que ya sabe el estudio')"), 20000), "dice que trajo lo que ya sabe el estudio");
-  const props = await buscar.locator("[data-propuesta]").evaluateAll((xs) => xs.map((x) => x.getAttribute("data-propuesta")));
-  exigir(["temas", "frecuencia", "aprueba"].every((k) => props.includes(k)) && /de Unmake \(lo que ya sabe el estudio\)/.test(await buscar.locator("[data-propuesta=temas]").innerText()), `propone lo que faltaba, con su origen (${props.join(", ")})`);
-  exigir(await buscar.locator("[name=tomar-oferta]").isChecked() === false, "lo que ya estaba escrito distinto no se marca solo");
-  await buscar.locator("button:has-text('Guardar los marcados')").click();
+  exigir(await espera(p.locator("[role=status]:has-text('que el estudio ya sabe de sí')"), 20000), "dice que guardó lo que ya sabe el estudio");
+  exigir(await p.locator("[data-propuesta]").count() === 0, "sin nada que revisar a mano");
+  const f2 = p.locator("[data-form-saber]");
+  if (!(await f2.isVisible())) await p.locator("summary:has-text('Lo que sabemos de')").click();
+  exigir(await f2.locator("[name=saber-oferta]").inputValue() === "Webs para negocios de Cuenca, desde USD 900", "lo que ya estaba escrito no se pisa");
   exigir(await espera(p.locator("[data-tarea=contenido][data-listo=si] [data-ir-contenido]")), "con todo, la ficha ofrece armar su mes");
   await p.locator("[data-ir-contenido]").click();
   await p.waitForURL(/estudio\/contenido\?cliente=unmake/);

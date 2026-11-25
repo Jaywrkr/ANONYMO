@@ -74,3 +74,11 @@ test("el prospecto guarda su historia: encontrado, cambios de estado y pedido", 
   aplicarCambio(l.prospectos.a, { estado: "cliente", proyecto: "a" }, "luna");
   assert.deepEqual(l.prospectos.a.historial?.map((h) => h.que), ["Imán lo encontró buscando «spa» en Cuenca", "Pasó a «Contactado»", "Pasó a «Cliente»", "Se convirtió en pedido"]);
 });
+
+test("una ficha renombrada recibe lo que llega con su nombre nuevo (sistema/109)", () => {
+  const g = { id: "anonymo", nombre: "Unmake", creado: "2026-11-01T10:00:00Z", actualizado: "2026-11-01T10:00:00Z" };
+  const cartera = construirCartera({ prospectos: [], videos: [], kits: [], guardadas: [g], proyectos: [proy({ id: "unmake", cliente: "Unmake", ficha: "unmake" }), proy({ id: "unmake-2", cliente: "Unmake" })] });
+  assert.equal(cartera.length, 1);
+  assert.equal(cartera[0]!.id, "anonymo");
+  assert.equal(cartera[0]!.proyectos.length, 2);
+});
