@@ -93,7 +93,9 @@ export async function POST(req: Request) {
   clienteHablado = ficha?.id;
   const proyectoId = eleccion.proyecto && d.todos.some((x) => x.pedido.id === eleccion!.proyecto) ? eleccion.proyecto : ficha ? proyectoDe(ficha)?.id : undefined;
   const nombre = ficha?.nombre ?? d.todos.find((x) => x.pedido.id === proyectoId)?.pedido.cliente;
-  const entendi = `${agenteDeAccion(eleccion.accion as never)} · ${nombreAccion(eleccion.accion as never)}${nombre ? ` · ${nombre}` : ""}${como === "ia" ? " · lo entendí con IA" : ""}`;
+  // Quién lo hace, qué y para quién: una línea chica sobre la respuesta (sistema/108: sin «lo entendí con IA»).
+  const entendi = `${agenteDeAccion(eleccion.accion as never)} · ${nombreAccion(eleccion.accion as never)}${nombre ? ` · ${nombre}` : ""}`;
+  void como;
 
   try {
     // Lo que te toca hoy, con un botón para cada cosa.
@@ -111,7 +113,7 @@ export async function POST(req: Request) {
       return responder({ entendi, tarjeta: { titulo: `Lo que sé de ${ficha.nombre}`, texto: `${lineas.join("\n") || "Todavía no sé nada: completa su ficha."}${proyectosDe ? `\n\n${proyectosDe} ${proyectosDe === 1 ? "proyecto" : "proyectos"} con el estudio.` : ""}`, botones: [{ texto: "Corregir en su ficha", href: `/estudio/cliente/${ficha.id}#saber` }] } });
     }
     if (eleccion.accion === "ayuda") {
-      return responder({ entendi: undefined, tarjeta: { titulo: "Lo que puedo hacer", texto: "Escríbeme normal, como a una persona. Por ejemplo:\n· ¿cómo va la web de Clínica Sonrisa?\n· que el botón de reservar diga «Agenda tu cita»\n· un reel para el día de la madre\n· el mensaje de WhatsApp para un cliente nuevo\n· ¿qué sabes de Café Lento?\n· ¿qué me toca hoy?\nSi vas rápido: / para las acciones y # para el cliente." } });
+      return responder({ entendi: undefined, tarjeta: { titulo: "Lo que puedo hacer", texto: "Escríbeme normal, como a una persona. Por ejemplo:\n· ¿cómo va la web de Clínica Sonrisa?\n· que el botón de reservar diga «Agenda tu cita»\n· un reel para el día de la madre\n· el mensaje de WhatsApp para un cliente nuevo\n· ¿qué sabes de Café Lento?\n· ¿qué me toca hoy?\nSi vas rápido: @ para el cliente y / para la acción." } });
     }
     // Preguntar o pedir un cambio: va al proyecto de la página, o al último del cliente.
     if (eleccion.accion === "proyecto" || eleccion.accion === "cambio") {
@@ -132,9 +134,10 @@ export async function POST(req: Request) {
     }
     // Lo demás lo hace la caja, igual que siempre.
     const r = await ejecutarCaja({ accion: eleccion.accion, cliente: eleccion.cliente, texto: eleccion.texto, confirmado }, yo, new URL(req.url).origin);
-    const j = (await r.json().catch(() => ({}))) as { tarjeta?: Tarjeta; confirmar?: string; error?: string; ficha?: string };
+    const j = (await r.json().catch(() => ({}))) as { tarjeta?: Tarjeta; confirmar?: string; error?: string; ficha?: string; faltan?: string[]; buscar?: boolean };
     if (j.confirmar) return responder({ entendi, confirmar: { texto: j.confirmar, eleccion } });
-    if (!r.ok || j.error) return responder({ entendi, error: j.error ?? "No se pudo hacer.", ficha: j.ficha });
+    // Si faltan datos y se pueden buscar, el botón para que Imán los busque; después se vuelve a pedir lo mismo.
+    if (!r.ok || j.error) return responder({ entendi, error: j.error ?? "No se pudo hacer.", ficha: j.ficha, ...(j.faltan?.length ? { faltan: j.faltan.slice(0, 8) } : {}), ...(j.buscar && eleccion.cliente ? { opciones: [{ texto: "Que Imán los busque", eleccion: { accion: "datos", cliente: eleccion.cliente, texto: "" } }] } : {}) });
     const tarjeta = j.tarjeta && { ...j.tarjeta, botones: j.tarjeta.botones?.map((b) => (b.proyecto ? { texto: b.texto, href: `/estudio/${b.proyecto}/atlas` } : b)) };
     return responder({ entendi, tarjeta });
   } catch (err) {

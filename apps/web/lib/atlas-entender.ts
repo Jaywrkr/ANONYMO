@@ -1,5 +1,5 @@
 // Atlas entiende lo que le escriben (sistema/106).
-// Con marcas (# cliente, / acción, @ agente) se lee directo, sin gastar. En palabras normales pregunta a un modelo
+// Con marcas (@ o # cliente, / acción) se lee directo, sin gastar. En palabras normales pregunta a un modelo
 // rápido qué acción es y para quién. Sin clave, o si la IA falla, adivina por palabras como antes: nunca se queda mudo.
 import { ACCIONES_CAJA, AGENTES_CAJA, clientesDe, leerCaja, pedirEstructura, type AccionCaja, type ClienteCaja } from "@anonymo/pipeline";
 import type { Eleccion } from "./atlas-hilo";
@@ -27,22 +27,41 @@ export interface Intento {
 
 const normal = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/^[¿¡\s]+/, "");
 
-/** El cliente nombrado en palabras normales («la web de clínica sonrisa»): solo si es uno. */
-function clienteEnTexto(texto: string, clientes: ClienteCaja[]): string | undefined {
+// Palabras que no distinguen a un cliente de otro («la web de…», «Cuenca»).
+const COMUNES = new Set(["de", "del", "la", "las", "los", "el", "y", "en", "para", "con", "web", "cuenca", "ecuador", "studio", "estudio", "clinica", "consultorio", "odontologos", "cafe", "restaurante", "tienda"]);
+const palabrasDe = (t: string) => normal(t).split(/[^a-z0-9ñ]+/).filter((w) => w.length >= 4 && !COMUNES.has(w));
+
+/** El cliente nombrado en palabras normales («la web de Gabriela», «clínica sonrisa»): solo si es uno (sistema/108). */
+export function clienteEnTexto(texto: string, clientes: ClienteCaja[]): string | undefined {
   const t = normal(texto);
   const exactos = clientes.filter((c) => [c.nombre, c.id.replace(/-/g, " "), ...(c.alias ?? [])].some((n) => n && n.length > 3 && t.includes(normal(n))));
   if (exactos.length === 1) return exactos[0]!.id;
+  // Por las palabras propias de su nombre: «Gabriela» basta para «Sebastián Silva y Gabriela Abril».
+  const dichas = new Set(palabrasDe(texto));
+  const puntos = clientes.map((c) => ({ id: c.id, n: new Set([...palabrasDe(c.nombre), ...(c.alias ?? []).flatMap(palabrasDe)].filter((w) => dichas.has(w))).size })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n);
+  if (puntos.length && (puntos.length === 1 || puntos[0]!.n > puntos[1]!.n)) return puntos[0]!.id;
   const porPalabra = new Map<string, number>();
-  for (const w of t.split(/[^a-z0-9ñ]+/).filter((w) => w.length >= 5)) for (const c of clientesDe(w, clientes)) porPalabra.set(c.id, (porPalabra.get(c.id) ?? 0) + 1);
+  for (const w of t.split(/[^a-z0-9ñ]+/).filter((w) => w.length >= 5 && !COMUNES.has(w))) for (const c of clientesDe(w, clientes)) porPalabra.set(c.id, (porPalabra.get(c.id) ?? 0) + 1);
   const mejores = [...porPalabra.entries()].sort((a, b) => b[1] - a[1]);
   return mejores.length && (mejores.length === 1 || mejores[0]![1] > mejores[1]![1]) ? mejores[0]![0] : undefined;
 }
 
+/** ¿Lo nombrado es el mismo cliente del proyecto o la ficha abierta? Sin nada nombrado, sí. */
+function mismoQueContexto(nombrado: string | undefined, ctx: { cliente?: string; proyecto?: string }, clientes: ClienteCaja[], proyectos: ProyectoCorto[]) {
+  if (!nombrado || nombrado === ctx.cliente) return true;
+  if (!ctx.proyecto) return !ctx.cliente;
+  const delProyecto = proyectos.find((p) => p.id === ctx.proyecto)?.cliente;
+  const c = clientes.find((x) => x.id === nombrado);
+  return !!delProyecto && !!c && normal(delProyecto) === normal(c.nombre);
+}
+
 /** Sin IA: las palabras de siempre, más «hoy» y «qué sabes de». */
-export function entenderPorPalabras(texto: string, clientes: ClienteCaja[], ctx: { cliente?: string; proyecto?: string; suave?: boolean }): Intento {
+export function entenderPorPalabras(texto: string, clientes: ClienteCaja[], ctx: { cliente?: string; proyecto?: string; suave?: boolean }, proyectos: ProyectoCorto[] = []): Intento {
   const t = normal(texto);
   const nombrado = clienteEnTexto(texto, clientes);
   const cliente = nombrado ?? ctx.cliente;
+  // Si nombra a otro cliente, el proyecto de la página ya no vale (sistema/108).
+  if (!mismoQueContexto(nombrado, ctx, clientes, proyectos)) ctx = { ...ctx, proyecto: undefined };
   if (/^(hoy|que (me|nos) toca|pendientes|que hay (para )?hoy|que tengo)\b/.test(t)) return { como: "palabras", eleccion: { accion: "hoy", texto } };
   if (/\b(que sabes de|que sabe(s)? del cliente|memoria de|lo que sabes)\b/.test(t)) return { como: "palabras", eleccion: { accion: "memoria", cliente, texto } };
   if (/^(ayuda|que puedes hacer|que sabes hacer|como funcionas)\b/.test(t)) return { como: "palabras", eleccion: { accion: "ayuda", texto } };
@@ -59,7 +78,7 @@ Acciones:
 ${TODAS.map((a) => `- ${a}: ${a in EXTRAS ? EXTRAS[a as keyof typeof EXTRAS].nombre : `${ACCIONES_CAJA[a as AccionCaja].nombre}. ${ACCIONES_CAJA[a as AccionCaja].ayuda}`}`).join("\n")}
 Reglas:
 - «proyecto» es preguntar cómo va, qué falta, qué se hizo. «cambio» es pedir que se modifique algo de un proyecto.
-- Si hay un proyecto o cliente en contexto y no se nombra otro, es ese.
+- Si el mensaje nombra a un cliente o proyecto (aunque sea por un solo nombre, «la web de Gabriela»), es ese, aunque haya otro en contexto. Si no se nombra ninguno y hay uno en contexto, es el del contexto.\n- Solo pregunta «¿de cuál?» si de verdad pueden ser dos o más.
 - Usa solo ids de las listas. Si no se nombra cliente y la acción lo necesita, deja cliente vacío.
 - Si de verdad no se puede saber (por ejemplo, dos clientes posibles), escribe una pregunta corta y hasta 4 opciones. Si se puede, no preguntes.
 - «texto» es el pedido limpio, sin el nombre del cliente ni la acción, con las palabras de quien escribe.`;
@@ -75,21 +94,24 @@ export async function entender(texto: string, clientes: ClienteCaja[], proyectos
     if (!l.accion) return { como: "marcas", dudas: ["No entendí qué hacer. Escribe / para ver lo que puedo hacer."] };
     return { como: "marcas", eleccion: { accion: l.accion, cliente: l.cliente, proyecto: l.cliente ? undefined : ctx.proyecto, texto: l.texto } };
   }
-  const palabras = entenderPorPalabras(texto, clientes, ctx);
+  const palabras = entenderPorPalabras(texto, clientes, ctx, proyectos);
   // Lo de todos los días no necesita IA.
   if (palabras.eleccion && ["hoy", "ayuda"].includes(palabras.eleccion.accion) && texto.length < 40) return palabras;
+  const nombrado = clienteEnTexto(texto, clientes);
+  if (!mismoQueContexto(nombrado, ctx, clientes, proyectos)) ctx = { ...ctx, proyecto: undefined, cliente: undefined };
   const opcion = { type: "object", properties: { texto: { type: "string" }, accion: { type: "string", enum: TODAS }, cliente: { type: "string" }, proyecto: { type: "string" } }, required: ["texto", "accion"] };
   try {
     const r = await pedirEstructura<{ accion?: string; cliente?: string; proyecto?: string; texto?: string; pregunta?: string; opciones?: { texto?: string; accion?: string; cliente?: string; proyecto?: string }[] }>(
       SISTEMA,
-      `## Quién escribe\n${quien === "jay" ? "Jay" : "Luna"}\n## Contexto\n${ctx.proyecto ? `Proyecto abierto: ${ctx.proyecto}` : ctx.cliente ? (ctx.suave ? `Último cliente del que se habló: ${ctx.cliente} (úsalo solo si el pedido es claramente sobre un cliente)` : `Cliente abierto: ${ctx.cliente}`) : "Ninguno"}\n## Clientes (id: nombre)\n${clientes.slice(0, 120).map((c) => `${c.id}: ${c.nombre}${c.alias?.length ? ` (${c.alias.join(", ")})` : ""}`).join("\n") || "(ninguno)"}\n## Proyectos (id: cliente · estado)\n${proyectos.slice(0, 60).map((p) => `${p.id}: ${p.cliente} · ${p.estado}`).join("\n") || "(ninguno)"}\n## Mensaje\n${texto}`,
+      `## Quién escribe\n${quien === "jay" ? "Jay" : "Luna"}\n## Contexto\n${ctx.proyecto ? `Proyecto abierto: ${ctx.proyecto}` : ctx.cliente ? (ctx.suave ? `Último cliente del que se habló: ${ctx.cliente} (úsalo solo si el pedido es claramente sobre un cliente)` : `Cliente abierto: ${ctx.cliente}`) : "Ninguno"}${nombrado ? `\nCliente nombrado en el mensaje: ${nombrado}` : ""}\n## Clientes (id: nombre)\n${clientes.slice(0, 120).map((c) => `${c.id}: ${c.nombre}${c.alias?.length ? ` (${c.alias.join(", ")})` : ""}`).join("\n") || "(ninguno)"}\n## Proyectos (id: cliente · estado)\n${proyectos.slice(0, 60).map((p) => `${p.id}: ${p.cliente} · ${p.estado}`).join("\n") || "(ninguno)"}\n## Mensaje\n${texto}`,
       { nombre: "entender_pedido", descripcion: "La acción que se pide y para quién.", esquema: { type: "object", properties: { accion: { type: "string", enum: TODAS }, cliente: { type: "string" }, proyecto: { type: "string" }, texto: { type: "string" }, pregunta: { type: "string" }, opciones: { type: "array", items: opcion, maxItems: 4 } }, required: ["accion", "texto"] } },
       600,
       { origen: "atlas", tarea: "entender" },
       process.env.ANTHROPIC_MODEL_ATLAS ?? "claude-haiku-5-5",
     );
     if (!r || !esAccion(r.accion)) return palabras;
-    const cliente = clientes.some((c) => c.id === r.cliente) ? r.cliente : undefined;
+    // Lo nombrado en el mensaje manda sobre el contexto de la página (sistema/108).
+    const cliente = clientes.some((c) => c.id === r.cliente) && !(nombrado && r.cliente === ctx.cliente && nombrado !== ctx.cliente) ? r.cliente : nombrado;
     const proyecto = proyectos.some((p) => p.id === r.proyecto) ? r.proyecto : undefined;
     const limpio = (r.texto ?? "").trim() || texto;
     const opciones = (r.opciones ?? []).filter((o) => esAccion(o.accion) && o.texto?.trim()).map((o) => ({
@@ -98,7 +120,7 @@ export async function entender(texto: string, clientes: ClienteCaja[], proyectos
     }));
     if (r.pregunta?.trim() && opciones.length >= 2) return { como: "ia", pregunta: r.pregunta.trim().slice(0, 200), opciones };
     if (r.accion === "ayuda" && ctx.proyecto && !/^(ayuda|que puedes|que sabes hacer|como funcionas)/.test(normal(texto))) return { como: "ia", eleccion: { accion: "proyecto", proyecto: ctx.proyecto, texto } };
-    return { como: "ia", eleccion: { accion: r.accion, cliente: cliente ?? (proyecto || (ctx.suave && !(r.accion in ACCIONES_CAJA && ACCIONES_CAJA[r.accion as AccionCaja].conCliente)) ? undefined : ctx.cliente), proyecto: proyecto ?? (cliente ? undefined : ctx.proyecto), texto: limpio } };
+    return { como: "ia", eleccion: { accion: r.accion, cliente: cliente ?? (proyecto || (ctx.suave && !(r.accion in ACCIONES_CAJA && ACCIONES_CAJA[r.accion as AccionCaja].conCliente)) ? undefined : ctx.cliente), proyecto: proyecto ?? (cliente && cliente !== ctx.cliente && !ctx.proyecto ? undefined : ctx.proyecto), texto: limpio } };
   } catch {
     return palabras;
   }

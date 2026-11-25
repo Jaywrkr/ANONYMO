@@ -54,7 +54,7 @@ try {
   await espera(panel.locator("#caja-atlas:not([disabled])"));
   exigir(await panel.getByRole("tab").count() === 0, "ya no hay pestañas «Pedir» y «Proyecto»: una sola conversación");
   exigir(await espera(panel.locator("[data-hoy]")) && /Hoy te toca · \d/.test(await panel.locator("[data-hoy]").innerText()), "arriba dice lo que te toca hoy");
-  exigir(/Escríbeme normal/.test(await panel.innerText()) && /quién lo hace: Faro, Imán o Atlas/.test(await panel.innerText()), "explica que se le escribe normal y los atajos");
+  exigir(/Pregúntame o pídeme algo, como a una persona/.test(await panel.innerText()) && /@ cliente · \/ acción/.test(await panel.innerText()), "explica que se le escribe normal y los atajos");
   const ultima = () => panel.locator("article").last();
   const respuesta = async (n, ms = 60000) => { await espera(panel.locator("article").nth(n), ms); await espera(panel.locator("[role=status]:has-text('Atlas está en eso')"), 300).then(() => null); return panel.locator("article").nth(n); };
   const decir = async (t) => { const n = await panel.locator("article").count(); await caja.fill(t); await caja.press("Enter"); return respuesta(n); };
@@ -63,7 +63,7 @@ try {
   let r = await decir("¿qué me toca hoy?");
   exigir(/Hoy te toca/.test(await r.innerText()) && await r.locator("[data-tarjeta] a").count() > 0, "«¿qué me toca hoy?» responde la lista con un botón para cada cosa");
   r = await decir("cómo va la web de clínica sonrisa");
-  exigir(/Preguntar por su proyecto · Clínica Sonrisa · lo entendí con IA/.test(await r.locator("[data-entendi]").innerText()) && /Proyecto de Clínica Sonrisa/.test(await r.innerText()), "una pregunta normal va al proyecto correcto y dice que lo entendió con IA");
+  exigir(/Preguntar por su proyecto · Clínica Sonrisa/.test(await r.locator("[data-entendi]").innerText()) && !/lo entendí con IA/.test(await r.innerText()) && /Proyecto de Clínica Sonrisa/.test(await r.innerText()), "una pregunta normal va al proyecto correcto y dice quién responde");
   exigir(await r.locator("a:has-text('Ver la conversación')").getAttribute("href") === "/estudio/clinica-sonrisa/atlas", "la conversación del proyecto queda en su página de memoria");
   r = await decir("el mensaje para el consultorio dental");
   exigir(await espera(r.getByRole("button", { name: "Consultorio Dental Prisma" })) && await r.getByRole("button").count() >= 2, "si hay dos clientes posibles, pregunta con botones");
@@ -73,14 +73,15 @@ try {
   r = await decir("¿qué sabes de café lento?");
   exigir(/Lo que sé de Café Lento/.test(await r.innerText()) && await r.locator("a:has-text('Corregir en su ficha')").getAttribute("href") === "/estudio/cliente/cafe-lento#saber", "muestra lo que sabe de un cliente y dónde corregirlo");
 
-  // 3 · Con atajos: @ sugiere quién lo hace; Enter lo pone; muestra lo que entendió antes de mandar.
+  // 3 · Con atajos: @ sugiere para quién (clientes, sistema/108); / sugiere qué hacer; Enter lo pone; muestra lo que entendió.
   await caja.fill(""); await caja.click(); await caja.pressSequentially("@");
   const sug = panel.getByRole("listbox", { name: "Sugerencias" });
-  exigir(await espera(sug) && (await sug.getByRole("option").allInnerTexts()).map((t) => t.split("\n")[0]).join() === "Faro,Imán,Atlas", "@ sugiere a Faro, Imán y Atlas");
-  await caja.press("Enter");
-  exigir((await caja.inputValue()) === "@Faro ", "Enter pone al elegido");
+  exigir(await espera(sug) && (await sug.getByRole("option").allInnerTexts()).some((t) => t.startsWith("Clínica Sonrisa")), "@ sugiere clientes");
+  await caja.press("Escape"); await caja.fill(""); await caja.pressSequentially("/gui");
+  await espera(sug); await caja.press("Enter");
+  exigir((await caja.inputValue()) === "/guion ", "Enter pone la acción elegida");
   await caja.pressSequentially("un reel de por qué una web propia vende más que solo Instagram");
-  exigir(/Hace\s*Faro · Guion de video/.test(await panel.locator("form [data-entendi]").innerText()), "antes de mandar, muestra lo que entendió: Faro hace un guion");
+  exigir(/Faro · Guion de video/.test(await panel.locator("form [data-entendi]").innerText()), "antes de mandar, muestra lo que entendió: Faro hace un guion");
 
   // 4 · Lo que usa IA pregunta primero; cancelar no gasta.
   const antes = pedidosIA();
@@ -120,7 +121,7 @@ try {
   exigir(await espera(tMuestra) && /\/m\/consultorio-dental-prisma-[0-9a-f]{6}$/.test(await tMuestra.locator("a:has-text('Abrir la muestra')").getAttribute("href") ?? ""), "la muestra llega con su enlace");
   exigir(/Consultorio Dental Prisma/.test(await panel.locator("[data-contexto]").innerText()), "el cliente queda arriba de la caja como contexto");
   await caja.fill("/mensaje");
-  exigir(/Para\s*Consultorio Dental Prisma/.test(await panel.locator("form [data-entendi]").innerText()), "sin nombrarlo, sigue con el mismo cliente");
+  exigir(/· Consultorio Dental Prisma/.test(await panel.locator("form [data-entendi]").innerText()), "sin nombrarlo, sigue con el mismo cliente");
   n = await panel.locator("article").count(); await caja.press("Enter"); r = await respuesta(n);
   const tMensaje = r.locator("[data-tarjeta]").filter({ hasText: "Mensaje para Consultorio Dental Prisma" });
   exigir(await espera(tMensaje) && /\/m\/consultorio-dental-prisma-/.test(await tMensaje.innerText()), "el mensaje lleva el enlace de su muestra");
@@ -134,7 +135,7 @@ try {
   r = await decir("/datos");
   exigir(await espera(r.locator("[role=alert]:has-text('No sé la web de Consultorio Dental Prisma')")) && await r.locator("a:has-text('Completar en su ficha')").count() === 1, "sin su web, lo dice y lleva a su ficha");
   await caja.fill("@vector hola");
-  exigir(await espera(panel.locator("[data-aviso-caja]:has-text('No conozco a «@vector»')")), "un agente que no recibe pedidos se dice claro");
+  exigir(await espera(panel.locator("[data-aviso-caja]:has-text('No encontré el cliente «@vector»')")), "un cliente que no existe se dice claro");
   await caja.fill("@faro /muestra");
   exigir(await espera(panel.locator("[data-aviso-caja]:has-text('Faro no hace «Ver su muestra»: lo hace Imán')")), "si el agente no hace eso, dice quién lo hace");
   await panel.getByRole("button", { name: /Quitar Consultorio Dental Prisma/ }).click();
