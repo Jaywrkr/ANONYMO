@@ -4,7 +4,7 @@ import { cartera } from "@/lib/cartera";
 import { crearMes, mal, permisoMes } from "@/lib/contenido";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const p = await permisoMes();
