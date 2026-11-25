@@ -17,7 +17,7 @@ function nubeFalsa() {
   const f = (async (u: string | URL, init: RequestInit = {}) => {
     const url = String(u);
     const metodo = init.method ?? "GET";
-    const m = url.match(/\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/)!;
+    const m = url.split("?")[0].match(/\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/)!;
     if (m[1]) {
       const { prefix,offset=0,limit=1000 } = JSON.parse(String(init.body));
       const hijos = new Map<string, boolean>();

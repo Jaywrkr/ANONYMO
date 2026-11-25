@@ -26,7 +26,8 @@ export function crearStorageFalso(rpc){return http.createServer(async (req, res)
     if (r) { const a = r[1] ? Number(r[1]) : 0, z = r[2] ? Math.min(b.length - 1, Number(r[2])) : b.length - 1; res.writeHead(206, { "content-range": `bytes ${a}-${z}/${b.length}`, "content-length": z - a + 1 }); res.end(b.subarray(a, z + 1)); return; }
     res.setHeader("content-length", b.length); res.end(b); return;
   }
-  const m = req.url.match(/^\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/);
+  // Como la nube real: los parámetros de la dirección (ej. ?v= para leer lo último) no cambian qué archivo es.
+  const m = req.url.split("?")[0].match(/^\/storage\/v1\/object\/(list\/)?proyectos\/?(.*)$/);
   if (!m) { res.writeHead(404).end(); return; }
   const ruta = decodeURIComponent(m[2]);
   if (m[1]) {

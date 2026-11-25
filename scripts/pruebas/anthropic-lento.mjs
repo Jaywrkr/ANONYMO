@@ -5,6 +5,9 @@ let n = 0;
 http.createServer((req, res) => {
   let b = ""; req.on("data", (d) => (b += d)); req.on("end", async () => {
     const cuerpo = JSON.parse(b); n++;
+    // Estricta como la API real (sistema/110): un bloque de texto vacío es un 400. Así no vuelve a pasar en producción.
+    const vacio = (cuerpo.messages ?? []).some((m) => Array.isArray(m.content) && m.content.some((c) => c?.type === "text" && !String(c.text ?? "").trim()));
+    if (vacio || (typeof cuerpo.system === "string" && !cuerpo.system.trim())) { res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: "messages: text content blocks must be non-empty" } })); return; }
     // Con ANTHROPIC_REGISTRO, guarda cada pedido para comprobar qué le llegó a la IA (sistema/54).
     if (process.env.ANTHROPIC_REGISTRO) (await import("node:fs")).appendFileSync(process.env.ANTHROPIC_REGISTRO, b + "\n");
     // Reproduce la restricción de Sonnet que antes pasaba inadvertida en las pruebas del estudio.
