@@ -269,6 +269,8 @@ const HERRAMIENTA_PIEZAS = {
   },
 };
 const corto = (x: unknown, n: number) => String(x ?? "").trim().slice(0, n);
+/** La IA a veces manda un objeto como texto JSON (sistema/112): se lee igual en vez de descartar la pieza. */
+const objeto = (x: unknown): unknown => { if (typeof x !== "string") return x; const t = x.trim(); if (!/^[[{]/.test(t)) return x; try { return JSON.parse(t); } catch { return x; } };
 
 
 /** Sin emojis: los planificadores nunca los usaron y en el arte se ven mal. */
@@ -277,6 +279,9 @@ const limpio = (x: unknown, n: number) => sinEmojis(corto(x, n * 2)).slice(0, n)
 
 /** Lo escrito en el arte, con los límites de cada campo. Sin título no hay arte. */
 export function leerLamina(x: unknown): Lamina | undefined {
+  x = objeto(x);
+  // Si mandó solo un texto, ese texto es el título del arte.
+  if (typeof x === "string" && x.trim()) return { titulo: limpio(x, 120) };
   const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
   const titulo = limpio(r.titulo, 120);
   if (!titulo) return undefined;
@@ -287,6 +292,7 @@ export function leerLamina(x: unknown): Lamina | undefined {
   return l;
 }
 function leerHistorias(x: unknown): Historia[] {
+  x = objeto(x);
   return (Array.isArray(x) ? x : []).slice(0, 3).map((h) => {
     const r = (h ?? {}) as Record<string, unknown>;
     const sticker = (["encuesta", "pregunta", "quiz", "deslizador"] as const).find((v) => v === r.sticker);
@@ -397,22 +403,34 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   const motivos: string[] = [];
   const escribir = (t: Fila[]) => pedirEstructura(SISTEMA_PIEZAS, `${contexto}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 6000, { origen: "faro", tarea: "contenido" });
   const porN = new Map<number, Record<string, unknown>>();
+  const lista = (r: unknown) => { const v = objeto((r as { piezas?: unknown })?.piezas); return (Array.isArray(v) ? v : []).map(objeto); };
+  /** Una pieza sirve si trae texto y arte en su opción A (leídos con tolerancia). */
+  const sirve = (p: Record<string, unknown> | undefined) => { const A = objeto(p?.A) as Record<string, unknown> | undefined; return !!(A && typeof A === "object" && limpio(A.texto, 2200) && leerLamina(A.lamina)); };
   await Promise.all(tandas.map(async (t) => {
     let r: unknown;
     try { r = await escribir(t); } catch (e1) {
       console.error(`[contenido] tanda ${t.map((f) => f.n).join(",")} falló, se reintenta: ${(e1 as Error).message}`);
       try { r = await escribir(t); } catch (e2) { const m = (e2 as Error).message; motivos.push(m); console.error(`[contenido] tanda ${t.map((f) => f.n).join(",")} falló otra vez: ${m}`); return; }
     }
-    for (const p of ((r as { piezas?: unknown[] })?.piezas ?? [])) { const n = Number((p as { n?: unknown })?.n); if (t.some((f) => f.n === n)) porN.set(n, p as Record<string, unknown>); }
+    for (const p of lista(r)) { const n = Number((p as { n?: unknown })?.n); if (t.some((f) => f.n === n)) porN.set(n, p as Record<string, unknown>); }
   }));
+  // Segunda vuelta solo para las que faltan o llegaron incompletas (sistema/112), de a una, en paralelo.
+  const faltan = filas.filter((f) => !sirve(porN.get(f.n)));
+  if (faltan.length) {
+    console.error(`[contenido] ${faltan.length} piezas faltan o llegaron incompletas (${faltan.map((f) => f.n).join(",")}): se piden otra vez`);
+    await Promise.all(faltan.map(async (f) => {
+      try { const r = await escribir([f]); for (const p of lista(r)) { const n = Number((p as { n?: unknown })?.n); if (n === f.n && sirve(p as Record<string, unknown>)) porN.set(n, p as Record<string, unknown>); } }
+      catch (e) { const m = (e as Error).message; motivos.push(m); console.error(`[contenido] pieza ${f.n} falló otra vez: ${m}`); }
+    }));
+  }
   const piezas: Pieza[] = [];
   for (const f of filas) {
     const p = porN.get(f.n);
-    const A = (p?.A ?? {}) as Record<string, unknown>, B = (p?.B ?? {}) as Record<string, unknown>;
+    const A = (objeto(p?.A) ?? {}) as Record<string, unknown>, B = (objeto(p?.B) ?? {}) as Record<string, unknown>;
     const texto = limpio(A.texto, 2200), lamina = leerLamina(A.lamina);
-    if (!texto || !lamina) continue;
+    if (!texto || !lamina) { console.error(`[contenido] pieza ${f.n} descartada: ${!p ? "no llegó" : !texto ? "sin texto" : "sin arte"} (llegó: ${p ? Object.keys(p).join(",") : "nada"}; A: ${typeof p?.A})`); continue; }
     const textoB = limpio(B.texto, 2200), laminaB = leerLamina(B.lamina);
-    const yt = (p?.youtube ?? {}) as Record<string, unknown>;
+    const yt = (objeto(p?.youtube) ?? {}) as Record<string, unknown>;
     piezas.push({
       id: `p${String(piezas.length + 1).padStart(2, "0")}`, fecha: f.fecha, hora: f.hora, serie: f.serie, formato: f.formato, plantilla: f.plantilla,
       idea: f.ideaA, texto, visual: limpio(A.visual, 600) || "Solo el arte", lamina,

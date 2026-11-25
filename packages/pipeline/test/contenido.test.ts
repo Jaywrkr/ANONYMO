@@ -134,3 +134,9 @@ test("la revisión automática marca lo que los planificadores nunca dejaban pas
   assert.match(revisarPieza({ ...bien, texto: "Una web desde USD 390.\n¿Te interesa?" }, "", "Sin precios.").join(), /precio/);
   assert.match(revisarPieza({ ...bien, formato: "reel", plantilla: "portada", lamina: { titulo: "x" } }).join(), /YouTube/);
 });
+
+test("el arte se lee aunque la IA lo mande como texto JSON o solo un título (sistema/112)", () => {
+  assert.equal(leerLamina(JSON.stringify({ titulo: "Tu web vende mientras duermes" }))?.titulo, "Tu web vende mientras duermes");
+  assert.equal(leerLamina("Solo el título")?.titulo, "Solo el título");
+  assert.equal(leerLamina(""), undefined);
+});
