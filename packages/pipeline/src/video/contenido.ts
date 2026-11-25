@@ -390,14 +390,19 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   }
   if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Faro no puede armar el mes.");
   const { series, filas } = leerCalendarioIA(crudo, fechas);
-  // 2 · Las piezas, en tandas de 4 en paralelo (una sola llamada tardaría más de lo que deja Vercel). Si una tanda falla, se intenta una vez más.
+  // 2 · Las piezas, en tandas de 2 en paralelo (sistema/112: con 4, cada tanda con A, B, historias y arte rozaba el límite
+  // de 90 s o se cortaba por largo, y fallaba en silencio). Si una tanda falla, se intenta una vez más y se anota por qué.
   const tandas: Fila[][] = [];
-  for (let i = 0; i < filas.length; i += 4) tandas.push(filas.slice(i, i + 4));
-  const escribir = (t: Fila[]) => pedirEstructura(SISTEMA_PIEZAS, `${contexto}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 7000, { origen: "faro", tarea: "contenido" });
+  for (let i = 0; i < filas.length; i += 2) tandas.push(filas.slice(i, i + 2));
+  const motivos: string[] = [];
+  const escribir = (t: Fila[]) => pedirEstructura(SISTEMA_PIEZAS, `${contexto}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 6000, { origen: "faro", tarea: "contenido" });
   const porN = new Map<number, Record<string, unknown>>();
   await Promise.all(tandas.map(async (t) => {
     let r: unknown;
-    try { r = await escribir(t); } catch { try { r = await escribir(t); } catch { return; } }
+    try { r = await escribir(t); } catch (e1) {
+      console.error(`[contenido] tanda ${t.map((f) => f.n).join(",")} falló, se reintenta: ${(e1 as Error).message}`);
+      try { r = await escribir(t); } catch (e2) { const m = (e2 as Error).message; motivos.push(m); console.error(`[contenido] tanda ${t.map((f) => f.n).join(",")} falló otra vez: ${m}`); return; }
+    }
     for (const p of ((r as { piezas?: unknown[] })?.piezas ?? [])) { const n = Number((p as { n?: unknown })?.n); if (t.some((f) => f.n === n)) porN.set(n, p as Record<string, unknown>); }
   }));
   const piezas: Pieza[] = [];
@@ -420,7 +425,12 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     const avisos = revisarPieza(ultima, o.saber, estilo.reglas);
     if (avisos.length) ultima.avisos = avisos;
   }
-  if (piezas.length < Math.ceil(fechas.length * 0.8)) throw new Error("Faro no terminó de escribir el mes (faltaron piezas). Vuelve a pedirlo: no se guardó nada.");
+  if (piezas.length < Math.ceil(fechas.length * 0.8)) {
+    // Con el motivo real (sistema/112), en palabras simples.
+    const m = motivos[0] ?? "";
+    const porque = /timeout|aborted|tiempo/i.test(m) ? "la IA tardó demasiado" : /max_tokens|cortad|leer/i.test(m) ? "la respuesta llegó cortada" : /429|rate/i.test(m) ? "la IA está saturada, prueba en un minuto" : /5\d\d/.test(m) ? "la IA tuvo un error de su lado" : m ? "la IA no respondió bien" : "";
+    throw new Error(`Faro escribió ${piezas.length} de ${fechas.length} piezas${porque ? ` (${porque})` : ""}. Vuelve a pedirlo: no se guardó nada.`);
+  }
   const ahora = new Date().toISOString();
   const mes: MesContenido = {
     id, cliente: o.cliente, nombre: o.nombre, mes: o.mes, canales: o.canales, frecuencia: o.frecuencia, pedido: o.pedido?.trim() || undefined, series, piezas, estilo: estilo.id,
