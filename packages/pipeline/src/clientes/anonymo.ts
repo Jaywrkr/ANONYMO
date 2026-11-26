@@ -15,7 +15,7 @@ const DATOS_ANONYMO: [PropuestaDato["clave"], string][] = [
   ["publico", "Negocios con buenas reseñas en Google que no tienen web o tienen una que no funciona."],
   ["servicios", "Webs\nMarca y logo\nExperiencias digitales\nRedes y contenido\nFotografía y eventos"],
   ["canales", "Instagram"],
-  ["temas", "Desarmamos: una marca por dentro (cuadrícula, letra, color), empezando por Unmake\nLaboratorio: piezas animadas de nuestra marca\nCómo trabajamos: Jay, Luna y los 4 pasos (desarmar, elegir, armar, soltar)\nLo que no hacemos: opiniones claras\nTrabajos que hemos hecho (ANKLA, JAYFIT, Kubono, Coresolutions, Minervo)"],
+  ["temas", "Desarmamos: una marca por dentro (cuadrícula, letra, color), empezando por Unmake\nLaboratorio: piezas animadas de nuestra marca\nCómo trabajamos: Jay, Luna y los 4 pasos (desarmar, elegir, armar, soltar)\nLo que no hacemos: opiniones claras\nTrabajos de Unmake: la web de Coresolutions y la web de @jaywrkr"],
   ["tono", "Directo y simple. Sin tecnicismos, sin frases motivacionales ni promesas exageradas. Mostrar que sabemos, no decirlo. No se habla de IA."],
   ["frecuencia", "3 veces por semana"],
   ["aprueba", "Jay y Luna"],
@@ -23,3 +23,12 @@ const DATOS_ANONYMO: [PropuestaDato["clave"], string][] = [
 ];
 
 export const PROPIAS_ANONYMO: PropuestaDato[] = DATOS_ANONYMO.map(([clave, valor]) => ({ clave, valor, fuente: "estudio", detalle: DETALLE }));
+
+/**
+ * Los primeros trabajos de Unmake (sistema/117, 26 nov): las dos webs que ya existen y les gustan a Jay y Luna.
+ * Son la vara de calidad («qué es bueno») y el portafolio real con que arranca su contenido.
+ */
+export const TRABAJOS_UNMAKE: { url: string; nota: string }[] = [
+  { url: "https://coresolutions-web.vercel.app/", nota: "web de Coresolutions: empresa seria, clara, navy e IBM Plex" },
+  { url: "https://jayjaramillo.vercel.app/", nota: "web de @jaywrkr: una historia con scroll, Geist Mono, mucho aire, nada de plantilla" },
+];

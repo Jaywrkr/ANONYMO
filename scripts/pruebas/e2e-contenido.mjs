@@ -55,6 +55,7 @@ try {
   await buscar.locator("button:has-text('Buscar datos')").click();
   exigir(await espera(p.locator("[role=status]:has-text('que el estudio ya sabe de sí')"), 20000), "dice que guardó lo que ya sabe el estudio");
   exigir(await p.locator("[data-propuesta]").count() === 0, "sin nada que revisar a mano");
+  exigir(/coresolutions-web\.vercel\.app/.test(await p.locator("[data-bueno]").innerText().catch(() => "")) && /jayjaramillo\.vercel\.app/.test(await p.locator("[data-bueno]").innerText().catch(() => "")), "los dos primeros trabajos de Unmake entran a «qué es bueno» de su Dirección");
   const f2 = p.locator("[data-form-saber]");
   if (!(await f2.isVisible())) await p.locator("summary:has-text('Lo que sabemos de')").click();
   exigir(await f2.locator("[name=saber-oferta]").inputValue() === "Webs para negocios de Cuenca, desde USD 900", "lo que ya estaba escrito no se pisa");
