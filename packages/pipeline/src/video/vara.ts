@@ -28,7 +28,7 @@ Nota de 0 a 10, con exigencia real: 7 es «se puede publicar sin vergüenza al l
 Motivos: hasta 3, concretos, en frases cortas y simples, sin jerga (qué falla y dónde).
 Si la nota es menor que ${NOTA_VARA}, reescribe lo que va en el arte (lamina) y, si hace falta, el texto, para que llegue. Mantén la idea y la plantilla. Títulos cortos (menos de 60 letras). No inventes datos del cliente.
 Lo que no se arregla con palabras (color, letra, composición) dilo en los motivos.
-Si la pieza es de una cuenta de portafolio (muestra trabajo), un texto largo o una frase de consejo es un error: reescríbelo al nombre del proyecto y qué se hizo.`;
+Si la pieza es de una cuenta de portafolio (muestra trabajo), un texto largo o una frase de consejo es un error: reescríbelo al nombre del proyecto y qué se hizo. En portafolio, el arte es solo el trabajo del cliente con sus colores: rótulos, marcos o colores del estudio encima son un error de la plantilla (dilo en los motivos).`;
 
 const HERRAMIENTA_VARA = {
   nombre: "revisar_con_vara",

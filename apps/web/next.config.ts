@@ -12,6 +12,8 @@ const config: NextConfig = {
   outputFileTracingIncludes: {
     "/trabajo/*": ["../../node_modules/@sparticuz/chromium/bin/**/*"],
     // Departamento de video (sistema/62): FFmpeg y la fuente de los números de las miniaturas.
+    // El recorrido de una web en video (sistema/122) se arma con FFmpeg al capturarla.
+    "/estudio/cliente/*/capturar": ["../../node_modules/ffmpeg-static/ffmpeg", "../../node_modules/ffmpeg-static/package.json"],
     "/estudio/video/*/paso": ["../../node_modules/ffmpeg-static/ffmpeg", "../../node_modules/ffmpeg-static/package.json", "../../packages/pipeline/src/video/fuentes/*"],
   },
   reactStrictMode: true,

@@ -1,5 +1,5 @@
 // Ayudas del mes de contenido (sistema/96): armarlo desde la ficha de un cliente, con lo mínimo que pide saber.ts.
-import { anotarAprendido, armarMes, clienteConFicha, direccionVacia, guardarFicha, leerMaterial, materialDe, contextoCliente, idMesValido, puedeHacer, saberDe, TAREAS_SABER, textoFaltan, type Ficha } from "@anonymo/pipeline";
+import { anotarAprendido, armarMes, clienteConFicha, direccionVacia, guardarFicha, leerMaterial, materialDe, proyectosDe, contextoCliente, idMesValido, puedeHacer, saberDe, TAREAS_SABER, textoFaltan, type Ficha } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
 
 export const mal = (error: string, status = 400, extra: Record<string, unknown> = {}) => Response.json({ error, ...extra }, { status, headers: { "cache-control": "no-store" } });
@@ -29,7 +29,7 @@ export async function crearMes(f: Ficha, mes: string, pedido: string | undefined
     ...m, datos: m.vista === "escritorio" && i < 8 ? await leerMaterial(m.archivo).then((d) => (d ? Buffer.from(d).toString("base64") : undefined)).catch(() => undefined) : undefined,
   })));
   return armarMes({
-    material, reemplazar,
+    material, reemplazar, proyectos: proyectosDe(f.guardada?.direccion),
     cliente: f.id, nombre: f.nombre, mes, por, pedido: pedido || undefined,
     saber: contextoCliente(s, [...TAREAS_SABER.contenido.minimo, ...TAREAS_SABER.contenido.mejor]),
     canales: s.canales?.valor ?? "Instagram", frecuencia: s.frecuencia?.valor ?? "", color: s.color?.valor,

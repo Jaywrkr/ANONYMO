@@ -21,9 +21,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const estilo = m.estiloArte ?? ((m.estilo && ESTILOS[m.estilo]) || estiloPara(m.cliente, m.nombre));
   const nSerie = m.piezas.filter((x) => x.serie === pz.serie && x.fecha <= pz.fecha).length;
   const imagenes: Record<string, string> = {};
-  for (const a of [pz.lamina.imagen, pz.lamina.imagen?.replace(/-1440\.jpg$/, "-390.jpg")].filter(Boolean) as string[]) {
+  for (const a of [...new Set([pz.lamina.imagen, ...(pz.lamina.vistas ?? []), pz.lamina.logo].filter(Boolean) as string[])]) {
     const d = await leerMaterial(a).catch(() => undefined);
-    if (d) imagenes[a] = `data:image/jpeg;base64,${Buffer.from(d).toString("base64")}`;
+    if (d) imagenes[a] = `data:${a.endsWith(".png") ? "image/png" : "image/jpeg"};base64,${Buffer.from(d).toString("base64")}`;
   }
   const antes = { titulo: pz.lamina.titulo, texto: pz.texto, artes: (pz.artes ?? []).join(",") };
   let lamina: Lamina = pz.lamina, texto = pz.texto, rehecha = 0;

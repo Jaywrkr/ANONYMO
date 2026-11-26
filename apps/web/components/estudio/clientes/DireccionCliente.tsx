@@ -72,7 +72,7 @@ function Referencias({ lista }: { lista: DireccionCliente["referencias"] }) {
         <li key={r.url} className="min-w-0 rounded-2xl bg-hueso/60 p-2.5">
           {r.capturas?.length ? (
             <a href={r.url} target="_blank" rel="noreferrer" className="flex items-start gap-2" data-capturada>
-              {r.capturas.map((c) => (
+              {r.capturas.filter((c) => c.vista === "escritorio" || c.vista === "celular").map((c) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={c.archivo} src={`/material/${c.archivo}`} alt={`${r.url} en ${c.vista}`} loading="lazy" className={`rounded-[8px] object-cover object-top shadow-[0_0_0_1px_rgba(26,24,22,.08)] ${c.vista === "escritorio" ? "aspect-[16/10] w-[76%]" : "aspect-[9/16] w-[20%]"}`} />
               ))}
@@ -80,6 +80,7 @@ function Referencias({ lista }: { lista: DireccionCliente["referencias"] }) {
           ) : <div className="grid aspect-[16/7] place-items-center rounded-[8px] bg-white/70 text-[12px] text-suave" data-sin-captura>Sin captura todavía</div>}
           <p className="mt-2 flex min-w-0 items-baseline gap-2 px-1 text-[13.5px]"><Origen o={r.origen} /><a href={r.url} target="_blank" rel="noreferrer" className="truncate underline underline-offset-4">{r.url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</a></p>
           {r.nota && <p className="px-1 text-[12.5px] text-medio">{r.nota}</p>}
+          {r.capturas?.some((c) => c.vista === "pagina") && <p data-para-publicar className="px-1 text-[12px] text-suave">Para publicar: {r.capturas.filter((c) => c.vista === "pagina").length} tramos{r.capturas.some((c) => c.vista === "logo") ? " · logo" : ""}{r.capturas.some((c) => c.vista === "video") ? " · video" : ""}</p>}
         </li>
       ))}
     </ul>
@@ -148,7 +149,7 @@ export function DireccionDelCliente({ id, nombre, d, web }: { id: string; nombre
                 : d!.referencias.length ? <p className="mt-1.5 text-[13px] text-suave">Su trabajo real también es la vara. Agreguen trabajos de afuera que para {nombre} estén bien hechos.</p>
                 : <p className="mt-1.5 text-[13px] text-suave">Sin referencias. Agreguen dos o tres trabajos de primer nivel que para {nombre} estén bien hechos.</p>}
             </div>
-            {d!.referencias.length > 0 && <CapturarReferencias id={id} pendientes={d!.referencias.filter((r) => !r.capturas?.length).length} total={d!.referencias.length} />}
+            {d!.referencias.length > 0 && <CapturarReferencias id={id} pendientes={d!.referencias.filter((r) => !r.capturas?.length || !r.capturas.some((c) => c.vista === "pagina")).length} total={d!.referencias.length} />}
             {d!.aprendido.length > 0 && (
               <div data-aprendido>
                 <p className="text-[12px] text-suave">Lo que dijeron al revisar</p>
