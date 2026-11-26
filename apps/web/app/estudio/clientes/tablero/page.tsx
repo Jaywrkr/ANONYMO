@@ -2,7 +2,7 @@
 // Las tarjetas se mueven solas: cuando el negocio abre su muestra, toca «Quiero esta web» o acepta la propuesta, cambia de columna.
 import Link from "next/link";
 import { ETAPAS, leerProspectos, type Etapa } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { listaVacia, vistaLista, type VistaLista, type VistaProspecto } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 import { Cara } from "@/components/estudio/piezas";
@@ -81,7 +81,7 @@ export default async function Pagina() {
         <Cara id="iman" tam={56} flota />
         <div>
           <p className="text-[13px] text-suave">Ventas · Imán</p>
-          <h1 className={`${serif} text-[40px] leading-none`}>Tablero.</h1>
+          <h1 className={`${titulo}`}>Tablero.</h1>
         </div>
       </div>
       <PestanasClientes actual="tablero" nuevos={lista.prospectos.length} />

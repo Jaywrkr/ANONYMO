@@ -22,7 +22,7 @@ export function Marcador({ lista, tira }: { lista: VistaLista; tira?: boolean })
           <h2 className="text-[13px] text-medio">Esta semana</h2>
           <span className="text-[12px] text-suave">{racha}</span>
         </div>
-        <p className="mt-1 flex items-baseline gap-2"><span className={`${serif} text-[40px] leading-none`}>{s.enviados}</span><span className="text-[14px] text-medio">de {meta} mensajes</span></p>
+        <p className="mt-1 flex items-baseline gap-2"><span className={`${serif} text-[30px] leading-none`}>{s.enviados}</span><span className="text-[14px] text-medio">de {meta} mensajes</span></p>
         <div role="progressbar" aria-label="Avance de la meta de mensajes" aria-valuemin={0} aria-valuemax={meta} aria-valuenow={Math.min(s.enviados, meta)} className="mt-2 h-2 overflow-hidden rounded-full bg-[#eee9e0]">
           <div className={`h-full rounded-full ${avance >= 100 ? "bg-[#17714a]" : "bg-tinta"}`} style={{ width: `${avance}%` }} />
         </div>
@@ -40,7 +40,7 @@ export function Marcador({ lista, tira }: { lista: VistaLista; tira?: boolean })
         <h2 className="text-[13px] text-medio">Esta semana</h2>
         <p className="text-[12px] text-suave">{s.racha > 1 ? `${s.racha} días seguidos escribiendo` : s.racha === 1 ? "Racha: 1 día. Mañana son 2." : "Sin racha todavía: empieza hoy."}</p>
       </div>
-      <p className="mt-2 flex items-baseline gap-2"><span className={`${serif} text-[44px] leading-none`}>{s.enviados}</span><span className="text-[14px] text-medio">de {meta} mensajes</span></p>
+      <p className="mt-2 flex items-baseline gap-2"><span className={`${serif} text-[30px] leading-none`}>{s.enviados}</span><span className="text-[14px] text-medio">de {meta} mensajes</span></p>
       <div role="progressbar" aria-label="Avance de la meta de mensajes" aria-valuemin={0} aria-valuemax={meta} aria-valuenow={Math.min(s.enviados, meta)} className="mt-3 h-2 overflow-hidden rounded-full bg-[#eee9e0]">
         <div className={`h-full rounded-full ${avance >= 100 ? "bg-[#17714a]" : "bg-tinta"}`} style={{ width: `${avance}%` }} />
       </div>

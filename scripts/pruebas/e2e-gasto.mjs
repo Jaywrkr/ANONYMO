@@ -31,7 +31,7 @@ try {
   await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="jay"]', { force: true }); await p.fill('input[name="clave"]', "prueba-clave-jay"); await p.click("text=Entrar al estudio"); await p.waitForURL(/estudio$/);
 
   // 1 · La pantalla, vacía.
-  await p.locator("summary:has-text('Mejorar el estudio')").click();
+  await p.locator("summary:has-text('Taller')").click();
   await p.locator("a:has-text('Gasto en IA')").click();
   await p.waitForURL(/estudio\/gasto/);
   exigir(await espera(p.locator("[data-titular-gasto]")) && /Todavía no hay gasto medido/.test(await p.locator("[data-titular-gasto]").innerText()), "«Gasto en IA» está en el menú y, sin uso, lo dice");

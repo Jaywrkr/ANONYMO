@@ -2,7 +2,7 @@ import Link from "next/link";
 import { agentePorId } from "@anonymo/agentes";
 import { resumenAnalitica } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { Cara } from "@/components/estudio/piezas";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function Analitica({ searchParams }: { searchParams: Promis
   const cifra = (n: string | number, t: string) => (
     <div className="rounded-2xl bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.05)]">
       <p className="text-[12px] text-suave">{t}</p>
-      <p className={`${serif} mt-1 text-[48px] leading-none`}>{n}</p>
+      <p className={`${serif} mt-1 text-[30px] leading-none`}>{n}</p>
     </div>
   );
   const lista = (t: string, l: [string, number][], fila?: (k: string) => React.ReactNode) => {
@@ -44,7 +44,7 @@ export default async function Analitica({ searchParams }: { searchParams: Promis
           <Cara id="pulso" tam={52} flota />
           <div>
             <p className="text-[13px] text-suave">Métricas de la web · las cuida Pulso</p>
-            <h1 className={`${serif} text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Lo que pasa en la web.</h1>
+            <h1 className={`${titulo}`}>Lo que pasa en la web.</h1>
           </div>
         </div>
         <nav aria-label="Período" className="flex gap-1.5">

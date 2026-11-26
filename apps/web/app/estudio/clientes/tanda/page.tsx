@@ -1,7 +1,7 @@
 // La tanda de celular (sistema/72): Imán propone a quién escribir hoy, de uno en uno, sin pasar del tope.
 import Link from "next/link";
 import { leerProspectos, TANDA_DIARIA } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { listaVacia, vistaLista, type VistaLista } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 import { clavePublicaAvisos } from "@/lib/avisos-celular";
@@ -22,7 +22,7 @@ export default async function Pagina() {
         <Cara id="iman" tam={44} />
         <div className="min-w-0 flex-1">
           <p className="text-[13px] text-suave">Ventas · Imán</p>
-          <h1 className={`${serif} text-[34px] leading-none`}>La tanda de hoy.</h1>
+          <h1 className={`${titulo}`}>La tanda de hoy.</h1>
         </div>
         <Link href="/estudio/clientes/nuevos" className="inline-flex min-h-11 items-center text-[13px] text-medio underline underline-offset-4 md:min-h-0">Ver la lista</Link>
       </div>

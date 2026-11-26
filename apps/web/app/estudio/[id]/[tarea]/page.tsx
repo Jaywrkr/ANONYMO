@@ -7,7 +7,7 @@ import { contarCambios, contratoPorId, diferencias, existe, leerEntrega, leerPro
 import { RevisarAgente } from "@/components/estudio/RevisarAgente";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
-import { boton, botonLleno, etiqueta, exigirEstudio, serif } from "@/lib/estudio";
+import { boton, botonLleno, etiqueta, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
 import { Cara, hace } from "@/components/estudio/piezas";
 import { Confirmar } from "@/components/estudio/Confirmar";
@@ -55,7 +55,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
             <Cara id={a.id} tam={130} flota />
           </div>
           <p className="mt-4 text-[12px]" style={{ color: area.texto ?? area.sombra }}>{area.nombre} · fase {String(fase.n).padStart(2, "0")} {fase.nombre}</p>
-          <p className={`${serif} text-[44px] leading-none`}>{a.nombre}</p>
+          <p className={`${serif} text-[30px] leading-none`}>{a.nombre}</p>
           <p className="mt-1 text-[14px] text-medio">{a.rol}</p>
           {e?.dice && <p className={`${serif} mt-5 text-[22px] leading-[1.15]`}>“{e.dice}”</p>}
           {e?.necesita && e.necesita !== "—" && <p className="mt-4 text-[14px]"><span className={etiqueta}>Necesita</span><br />{e.necesita}</p>}
@@ -63,7 +63,7 @@ export default async function EntregaEstudio({ params, searchParams }: Props) {
         </aside>
 
         <article className="min-w-0 max-w-[74ch]">
-          <h1 className={`${serif} text-[clamp(38px,4.6vw,64px)] leading-[0.98]`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
+          <h1 className={`${titulo}`}>{e?.titulo ?? "Sin entrega todavía"}</h1>
           {e && <ControlCalidad p={p} e={e}/>}
           {e?.datos?.piezas ? <PiezasMarca p={p} e={e}/>:null}
           {e && (

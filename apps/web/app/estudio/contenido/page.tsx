@@ -1,7 +1,7 @@
 // Contenido (sistema/96): los meses que armó Faro y el formulario para pedir uno nuevo.
 import Link from "next/link";
 import { listarMeses, mesPorDefecto, nombreMes, resumenMes, type MesContenido } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
 import { faltaParaMes } from "@/lib/contenido";
 import { ArmarMes } from "@/components/estudio/contenido/ArmarMes";
@@ -31,10 +31,10 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
         <Cara id="faro" tam={56} flota />
         <div>
           <p className="text-[13px] text-suave">Calendario del mes · Faro</p>
-          <h1 className={`${serif} text-[40px] leading-none`}>Contenido.</h1>
+          <h1 className={`${titulo}`}>Contenido.</h1>
         </div>
       </div>
-      <p className="mt-3 max-w-2xl text-[15px] text-medio">Faro arma el mes de un cliente en series, con la idea, el texto y cómo se ve cada publicación. Las fechas salen de cuántas veces publica. Tú apruebas, pides cambios o corriges, y lo aprobado se copia para mandárselo.</p>
+      <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Faro arma el mes de un cliente; tú apruebas o pides cambios.</p>
       <h2 className="mt-8 text-[13px] text-suave">Armar un mes</h2>
       <div className="mt-2 max-w-3xl"><ArmarMes clientes={clientes} meses={mesesParaElegir()} inicial={cliente} pedidoInicial={pedido} /></div>
       <h2 className="mt-10 text-[13px] text-suave">Meses</h2>

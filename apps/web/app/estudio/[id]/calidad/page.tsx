@@ -1,3 +1,4 @@
+import { titulo } from "@/lib/estudio";
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {leerEstandar,listarArchivos,condicionesDe, existe, leerProyecto, leerEntrega, requisitosDe, contratoPorId} from '@anonymo/pipeline';
@@ -20,8 +21,8 @@ export default async function Calidad({params}:{params:Promise<{id:string}>}) {
   return <div className="px-5 py-7 md:px-10">
     <SeguimientoMovil siempre />
     <Link href={`/estudio/${id}`} className="inline-flex min-h-11 items-center text-[14px]">← {p.pedido.cliente}</Link>
-    <h1 className={`${serif} mt-3 text-[38px] leading-none`}>Requisitos y calidad</h1>
-    <p className="mt-3 max-w-2xl text-[14px] text-medio">Generar una pieza, verificarla y aprobarla son pasos distintos. Una revisión incompleta no cuenta como aprobada.</p>
+    <h1 className={`${titulo} mt-3`}>Requisitos y calidad</h1>
+    <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Generar una pieza, verificarla y aprobarla son pasos distintos. Una revisión incompleta no cuenta como aprobada.</p>
     {p.controlPendiente && <p role="status" className="mt-4 rounded-xl bg-white p-4">Revisión pendiente de {contratoPorId(p.controlPendiente.tarea)?.entrega}, versión {p.controlPendiente.version}. Esta página se actualiza sola.</p>}
     <details className="mt-6 rounded-2xl bg-white p-4" open={p.estado==='plan'}><summary className="min-h-11 cursor-pointer font-medium">Lo que debe cumplir este proyecto · {requisitosDe(p).length}</summary>
       <ul className="mt-3 grid gap-3 text-[14px]">{requisitosDe(p).map((r,i)=><li key={r.id+i}><span className="text-suave">{r.fuente}{r.tarea?` · ${contratoPorId(r.tarea)?.entrega}`:''}</span><p>{r.texto}</p></li>)}</ul>

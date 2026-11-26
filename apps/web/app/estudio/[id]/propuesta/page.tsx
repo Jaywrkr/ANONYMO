@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { existe, leerProyecto } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
-import { boton, botonSuave, campo, exigirEstudio, serif } from "@/lib/estudio";
+import { boton, botonSuave, campo, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { propuestaDe } from "@/lib/propuesta";
 import { hace } from "@/components/estudio/piezas";
 import { Confirmar } from "@/components/estudio/Confirmar";
@@ -39,7 +39,7 @@ export default async function PropuestaEstudio({ params }: { params: Promise<{ i
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[13px] text-suave">{guardada ? `Editada ${hace(x.actualizado)}` : "Borrador armado con lo que ya sabe el equipo · todavía sin guardar"}</p>
-          <h1 className={`${serif} mt-1 text-[clamp(36px,4.4vw,56px)] leading-[1]`}>La propuesta</h1>
+          <h1 className={`${titulo} mt-1`}>La propuesta</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <a href={`/imprimir/${id}/propuesta`} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center rounded-full bg-tinta px-7 text-[14px] font-medium text-white transition hover:bg-black">Ver y descargar PDF ↗</a>
@@ -49,7 +49,7 @@ export default async function PropuestaEstudio({ params }: { params: Promise<{ i
           )}
         </div>
       </div>
-      {!guardada && <p className="mt-3 max-w-2xl text-[14px] text-medio">Revisa y ajusta lo que quieras. Al guardar queda fija: si después cambian las horas o el plan, no se mueve hasta que vuelvas al borrador.</p>}
+      {!guardada && <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Revisa y ajusta lo que quieras. Al guardar queda fija: si después cambian las horas o el plan, no se mueve hasta que vuelvas al borrador.</p>}
 
       <form action={accionPropuesta} className="mt-8 grid max-w-4xl gap-6">
         <input type="hidden" name="id" value={id} />

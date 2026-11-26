@@ -7,6 +7,7 @@ import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { idFicha, type FichaGuardada, type ListaFichas } from "./fichas.ts";
 import { esClaveSaber } from "./saber.ts";
 import type { LecturaFuentes } from "./fuentes.ts";
+import { direccionDe, type DireccionCliente } from "./direccion.ts";
 
 export const CARPETA_CLIENTES = "_clientes";
 const REL = `${CARPETA_CLIENTES}/lista/fichas.json`;
@@ -33,7 +34,7 @@ async function guardar(l: ListaFichas) {
   renameSync(`${local()}.tmp`, local());
 }
 
-export interface CambioFicha { nombre: string; notas?: string; telefono?: string; correo?: string; web?: string; alias?: string[]; /** Datos de saber.ts: los que vienen se cambian; uno vacío se borra; los demás quedan. */ saber?: Record<string, string>; /** Lo leído de su web e Instagram (sistema/93); null lo borra. */ lectura?: LecturaFuentes | null }
+export interface CambioFicha { nombre: string; notas?: string; telefono?: string; correo?: string; web?: string; alias?: string[]; /** Datos de saber.ts: los que vienen se cambian; uno vacío se borra; los demás quedan. */ saber?: Record<string, string>; /** Lo leído de su web e Instagram (sistema/93); null lo borra. */ lectura?: LecturaFuentes | null; /** La Dirección entera (sistema/117); null la borra. */ direccion?: DireccionCliente | null }
 
 const corto = (x: string | undefined, n: number) => (x ?? "").trim().slice(0, n) || undefined;
 
@@ -64,6 +65,7 @@ export async function guardarFicha(id: string, c: CambioFicha, por: string): Pro
     saber: Object.keys(saber).length ? saber : undefined,
     lectura: c.lectura === null ? undefined : c.lectura ?? antes?.lectura,
     leidoEl: c.lectura ? c.lectura.cuando : antes?.leidoEl,
+    direccion: c.direccion === null ? undefined : c.direccion ? direccionDe(c.direccion) : antes?.direccion,
     creado: antes?.creado ?? ahora,
     actualizado: ahora,
     por,
@@ -71,4 +73,19 @@ export async function guardarFicha(id: string, c: CambioFicha, por: string): Pro
   l.fichas[id] = f;
   await guardar(l);
   return f;
+}
+
+// — La guía de marca en PDF (sistema/117): queda guardada junto a la ficha, nunca en el repo —
+const relGuia = (id: string) => `${CARPETA_CLIENTES}/guias/${id}.pdf`;
+export async function guardarGuia(id: string, datos: Uint8Array) {
+  if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(id)) throw new Error("No encontramos ese cliente.");
+  if (nubeActiva()) return subirSuelto(relGuia(id), datos, "application/pdf");
+  mkdirSync(join(carpeta(), CARPETA_CLIENTES, "guias"), { recursive: true });
+  writeFileSync(join(carpeta(), relGuia(id)), datos);
+}
+export async function leerGuia(id: string): Promise<Uint8Array | undefined> {
+  if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(id)) return undefined;
+  if (nubeActiva()) return leerSuelto(relGuia(id));
+  const r = join(carpeta(), relGuia(id));
+  return existsSync(r) ? readFileSync(r) : undefined;
 }

@@ -2,7 +2,7 @@
 // Nada sale hacia afuera: el mensaje se prepara y Jay o Luna lo mandan. Lo que usa IA pide confirmación primero.
 // Si a un cliente le falta lo mínimo para la tarea, no se hace y se dice qué falta (saber.ts).
 import {
-  ACCIONES_CAJA, PROPIAS_ANONYMO, TAREAS_SABER, clienteConFicha, esAnonymo, contextoCliente, escribirGuion, estadoTareas, guardarFicha, leerFuentes,
+  ACCIONES_CAJA, PROPIAS_ANONYMO, TAREAS_SABER, clienteConFicha, esAnonymo, contextoConDireccion, escribirGuion, estadoTareas, guardarFicha, leerFuentes,
   idFicha, leerProspectos, idMes, leerMesContenido, mesDeTexto, mesPorDefecto, nombreDato, nombreDe, nombreMes, ocultarClaves, puedeHacer, saberDe, textoFaltan, type AccionCaja, type Ficha,
 } from "@anonymo/pipeline";
 import { randomUUID } from "node:crypto";
@@ -58,7 +58,7 @@ export async function ejecutarCaja(c: PedidoCaja, yo: "jay" | "luna", origen: st
     if (accion === "guion") {
       if (texto.length < 8) return mal("Cuéntale a Faro de qué es el video, en una frase.");
       if (c.confirmado !== true) return Response.json({ confirmar: `Faro va a escribir un guion${f ? ` para ${f.nombre}` : ""}. Usa IA: unos centavos del saldo. ¿Lo hago?` }, sinCache);
-      const g = await escribirGuion(texto, { cliente: f?.nombre, por: p.yo!, saber: saber && f && clienteConFicha(f) ? contextoCliente(saber, [...TAREAS_SABER.guion.minimo, ...TAREAS_SABER.guion.mejor]) : undefined });
+      const g = await escribirGuion(texto, { cliente: f?.nombre, por: p.yo!, saber: saber && f && clienteConFicha(f) ? contextoConDireccion(f, [...TAREAS_SABER.guion.minimo, ...TAREAS_SABER.guion.mejor]) : undefined });
       // Con lo que se graba (sistema/109): Luna ve de un vistazo qué tomas necesita.
       const tomas = g.tomas.length ? `\n\nGrabar (${g.tomas.length}): ${g.tomas.slice(0, 5).join(" · ")}${g.tomas.length > 5 ? " · …" : ""}` : "";
       return Response.json({ tarjeta: { titulo: `Guion: ${g.titulo} · ${g.segundos} s`, texto: `Gancho: ${g.gancho}\n\n${g.partes.map((x, i) => `${i + 1}. ${x.texto}`).join("\n")}\n\nCierre: ${g.cierre}${tomas}`, botones: [{ texto: "Abrir en Video", href: "/estudio/video#titulo-guiones" }] } satisfies Tarjeta }, sinCache);

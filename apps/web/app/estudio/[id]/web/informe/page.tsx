@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { existe, leerMiWeb, leerProyecto, leerVisitas, mesAnterior, mesDe, nombreDelMes, resumenVisitas, textoInforme } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
 import { InformeWeb } from "@/components/estudio/InformeWeb";
 import { CopiarTexto } from "@/components/estudio/CopiarTexto";
@@ -30,7 +30,7 @@ export default async function Informe({ params, searchParams }: { params: Promis
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
       <Link href={`/estudio/${id}/web#en-vivo`} className="inline-flex min-h-11 items-center text-[13px] text-medio hover:text-tinta">← La web de {p.pedido.cliente}</Link>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-        <h1 className={`${serif} text-[clamp(34px,4.2vw,54px)] leading-none`}>Informe de {nombreDelMes(mes)}</h1>
+        <h1 className={`${titulo}`}>Informe de {nombreDelMes(mes)}</h1>
         <nav aria-label="Meses" className="flex gap-2">
           <Link href={`?mes=${mesAnterior(mes)}`} className="inline-flex min-h-11 items-center rounded-full bg-[#f1ede6] px-4 text-[13px]">← {nombreDelMes(mesAnterior(mes))}</Link>
           {mes < actual && <Link href={`?mes=${siguiente}`} className="inline-flex min-h-11 items-center rounded-full bg-[#f1ede6] px-4 text-[13px]">{nombreDelMes(siguiente)} →</Link>}

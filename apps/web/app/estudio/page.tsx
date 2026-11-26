@@ -18,7 +18,7 @@ import { traerTodo } from "@/lib/nube";
 import { puestos } from "@/lib/oficina";
 import { momento, nombreSocio, type Momento } from "@/lib/camino";
 import { espacio } from "@/lib/espacio";
-import { botonLleno, exigirEstudio, serif } from "@/lib/estudio";
+import { botonLleno, exigirEstudio, serif, titulo } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
@@ -75,12 +75,16 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
   const mes = new Date().toISOString().slice(0, 7);
   const gastoMes = proyectos.reduce((s, p) => s + Object.values(p.costos ?? {}).flat().filter((u) => !u.estimado && u.fecha.startsWith(mes)).reduce((a, u) => a + u.usd, 0), 0);
 
-  const resumen = pendientes
-    ? `Tienes ${pendientes === 1 ? "una cosa" : `${pendientes} cosas`} por decidir.`
+  const resumenDe = (n: number) => n
+    ? `Tienes ${n === 1 ? "una cosa" : `${n} cosas`} por decidir.`
     : trabajando.length ? `El equipo está trabajando en ${trabajando.length === 1 ? "un proyecto" : `${trabajando.length} proyectos`}.`
     : proyectos.length ? "Estás al día." : "Empecemos.";
 
   const avisosMoviles=await avisosPendientes(yo,proyectos);
+  // Los meses de contenido por revisar que le tocan a quien entró (sistema/117).
+  const mesesMios = avisosMoviles.avisos.filter((a) => a.clave.startsWith("mes:"));
+  const totalToca = pendientes + mesesMios.length;
+  const resumen = resumenDe(totalToca);
   const moviles = filas.map(({p,m})=>({
     id:p.pedido.id,nombre:p.pedido.cliente,fase:`Fase ${m.fase.n} de ${m.fase.de} · ${m.fase.nombre}`,
     estado:p.estado,toca:m.teToca,texto:m.ahora,
@@ -102,7 +106,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0">
           <p className="text-[13px] text-suave">{fechaLarga()}</p>
-          <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1.02]`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
+          <h1 className={`${titulo} mt-1`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
         </div>
         <div className="flex gap-2">
           <AbrirPaleta className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Ir a… <kbd className="font-mono text-[10px] text-suave">Ctrl K</kbd></AbrirPaleta>
@@ -114,7 +118,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
       {proyectos.length === 0 && solicitudes.length === 0 ? (
         <section className="mt-10 rounded-[22px] bg-white p-8 shadow-[0_0_0_1px_rgba(26,24,22,.05)] md:p-12">
           <Cara id="atlas" tam={80} flota />
-          <p className={`${serif} mt-5 text-[36px] leading-[1.05]`}>Así funciona el estudio.</p>
+          <p className={`${serif} mt-5 text-[28px] leading-[1.05]`}>Así funciona el estudio.</p>
           <ol className="mt-6 grid gap-4 md:grid-cols-3">
             {[["1", "Cuéntale el pedido a Atlas", "Lo que hablaste con el cliente, en tus palabras. Pega enlaces y suelta fotos."], ["2", "Revisa su plan", "Atlas decide quién trabaja y cuánto cuesta. Tú dices «que empiecen»."], ["3", "Revisa cada fase", "El equipo trabaja y se detiene para que apruebes o pidas cambios."]].map(([n, t, d]) => (
               <li key={n} className="rounded-2xl bg-[#f6f3ee] p-5"><span className="font-mono text-[12px] text-suave">{n}</span><p className="mt-1 text-[16px] font-medium">{t}</p><p className="mt-1 text-[14px] text-medio">{d}</p></li>
@@ -125,14 +129,21 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
       ) : (
         <div className="mt-9 grid gap-10 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="grid content-start gap-10">
-            <Grupo id="te-toca" titulo="Te toca" cuenta={pendientes} ayuda="Lo que espera una decisión tuya. Lo más nuevo arriba.">
-              {pendientes === 0 && (
+            <Grupo id="te-toca" titulo="Te toca" cuenta={totalToca} ayuda="Lo que espera una decisión tuya. Lo más nuevo arriba.">
+              {totalToca === 0 && (
                 <div className="flex items-center gap-4 rounded-[18px] border border-dashed border-borde p-5">
                   <Cara id="ledger" tam={40} />
                   <p className="text-[15px] text-medio">Nada espera tu decisión. Cuando el equipo termine una fase, aparece aquí.</p>
                 </div>
               )}
               {teToca.map(({ p, m, destino, caras }) => <FilaProyecto key={p.pedido.id} cuando={p.actualizado} marca={p.marca} id={p.pedido.id} cliente={p.pedido.cliente} tipo={p.pedido.tipo} m={m} destino={destino} caras={caras} />)}
+              {mesesMios.map((a) => (
+                <Link key={a.clave} href={a.href} data-mes-toca className="group grid items-center gap-x-6 gap-y-2 rounded-[18px] bg-white p-4 pl-5 shadow-[0_0_0_1px_rgba(26,24,22,.05),0_6px_18px_-12px_rgba(40,30,20,.2)] transition hover:-translate-y-0.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]">
+                  <span className="flex min-w-0 items-center gap-3"><i aria-hidden className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: a.punto }} /><span className="min-w-0"><span className="block truncate font-serif text-[22px] leading-[1.05]">{a.titulo}</span><span className="text-[12px] text-suave">Contenido · Faro</span></span></span>
+                  <span className="text-[14px] text-medio">{a.detalle}</span>
+                  <span className="inline-flex min-h-10 items-center rounded-full bg-tinta px-4 text-[13px] font-medium text-white md:justify-self-end">Revisar el mes →</span>
+                </Link>
+              ))}
               {delPortal.map(({ p, n }) => (
                 <Link key={p.pedido.id + n.fecha} href={`/estudio/${p.pedido.id}?ver=cliente`} className="group grid items-center gap-x-6 gap-y-3 rounded-[18px] bg-[#fff6ec] p-4 pl-5 shadow-[0_0_0_1px_rgba(255,90,31,.15)] transition hover:-translate-y-0.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]">
                   <span className="flex min-w-0 items-center gap-3">

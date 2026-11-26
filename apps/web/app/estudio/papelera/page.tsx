@@ -2,7 +2,7 @@ import { borrarProyecto, borrarRemoto, limpiarSubidas, listarPapelera, nubeActiv
 import { PEDIDOS } from "@anonymo/agentes";
 import { traerTodo } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
-import { botonLleno, exigirEstudio, serif } from "@/lib/estudio";
+import { botonLleno, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { Confirmar } from "@/components/estudio/Confirmar";
 import { hace } from "@/components/estudio/piezas";
 import { accionBorrar, accionSacarDePapelera } from "../acciones";
@@ -28,7 +28,7 @@ export default async function Papelera() {
   return (
     <div className="px-5 pb-20 pt-7 md:px-10 md:pt-9">
       <p className="text-[13px] text-suave">Papelera · {lista.length}</p>
-      <h1 className={`${serif} mt-1 text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Lo que sacaste del estudio.</h1>
+      <h1 className={`${titulo} mt-1`}>Lo que sacaste del estudio.</h1>
       <p className="mt-3 max-w-xl text-[15px] text-medio">Aquí no aparecen ni trabajan. Se restauran tal como estaban, con sus entregas y archivos. A los 30 días se borran solos.</p>
       {lista.length === 0 ? (
         <p className={`${serif} mt-12 text-[30px] text-suave`}>La papelera está vacía.</p>

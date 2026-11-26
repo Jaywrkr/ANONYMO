@@ -6,7 +6,7 @@ import { agentePorId } from "@anonymo/agentes";
 import { contratoPorId, leerEntrega, existe, leerProyecto, responsable } from "@anonymo/pipeline";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
-import { boton, campo, exigirEstudio, serif } from "@/lib/estudio";
+import { boton, campo, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { FichaDireccion, FuentesDirecciones, Maqueta } from "@/components/estudio/Maqueta";
 import { Cara, hace } from "@/components/estudio/piezas";
 import { Enviar } from "../../nuevo/Enviar";
@@ -46,14 +46,14 @@ export default async function Direcciones({ params, searchParams }: { params: Pr
           <Cara id={agente.id} tam={56} flota />
           <div>
             <p className="text-[13px] text-suave">{agente.nombre} · {esperando ? (mio ? "te toca elegir" : "esperan que elijan") : d?.elegida !== undefined ? `elegida ${d.fecha ? hace(d.fecha) : ""}` : "antes de diseñar la web"}</p>
-            <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1]`}>Tres direcciones de diseño</h1>
+            <h1 className={`${titulo} mt-1`}>Tres direcciones de diseño</h1>
           </div>
         </div>
         {d && d.opciones.length > 0 && (
           <a href={`/imprimir/${id}/direcciones`} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center rounded-full bg-tinta px-7 text-[14px] font-medium text-white transition hover:bg-black">Descargar PDF para el cliente ↗</a>
         )}
       </div>
-      <p className="mt-3 max-w-2xl text-[15px] text-medio">
+      <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">
         {esperando
           ? "Son maquetas para decidir el rumbo, no el diseño final. Elige una (con una nota si quieres) y el equipo diseña y construye la web con esa dirección."
           : d?.elegida !== undefined

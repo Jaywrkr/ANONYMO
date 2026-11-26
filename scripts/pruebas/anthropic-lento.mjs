@@ -22,6 +22,15 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ error: { type: "invalid_request_error", message: 'tool_choice: type "tool" and "any" are not supported for this model.' } }));
       return;
     }
+    // Mira lee una guía de marca en PDF (sistema/117): tiene que llegar el documento.
+    if (cuerpo.tools?.[0]?.name === "leer_guia_de_marca") {
+      const doc = (cuerpo.messages?.[0]?.content ?? []).find?.((b) => b.type === "document" && b.source?.media_type === "application/pdf" && b.source?.data);
+      if (!doc) { res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { type: "invalid_request_error", message: "falta el PDF" } })); return; }
+      const input = { colores: [{ hex: "#01095C", nombre: "navy" }, { hex: "#2F43D1", nombre: "azul" }, { hex: "#FFFFFF", nombre: "fondo" }], letras: [{ familia: "IBM Plex Sans", uso: "títulos" }], palabras: ["confiable", "claro", "técnico"], si: ["Usar el logo sobre fondo blanco"], no: ["No deformar el logo", "No usar degradados"] };
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_guia", name: "leer_guia_de_marca", input }], usage: { input_tokens: 3000, output_tokens: 120 } }));
+      return;
+    }
     // Atlas entiende pedidos en palabras normales (sistema/106): reglas simples sobre el mensaje y la lista de clientes.
     if (cuerpo.system?.startsWith("Atlas entiende pedidos")) {
       const t = String(cuerpo.messages?.[0]?.content ?? "");

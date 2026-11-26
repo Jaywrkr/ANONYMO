@@ -5,7 +5,8 @@ import { DATOS, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, 
 import { Cara } from "@/components/estudio/piezas";
 import { AbrirAtlas } from "@/components/estudio/AbrirAtlas";
 import { BuscarSolo } from "@/components/estudio/clientes/BuscarSolo";
-import { exigirEstudio, serif, campo, boton, botonLleno } from "@/lib/estudio";
+import { DireccionDelCliente } from "@/components/estudio/clientes/DireccionCliente";
+import { exigirEstudio, serif, campo, boton, botonLleno, titulo } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
 import { accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
 
@@ -72,7 +73,7 @@ export default async function Ficha({ params, searchParams }: { params: Promise<
       <div className="mt-3 flex items-center gap-4">
         <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[16px] font-medium" style={{ background: f.kits[0]?.color ?? "#e9e4dc", color: f.kits[0]?.color ? "#fff" : "#5d5a55" }}>{f.nombre.split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || f.nombre.slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0">
-          <h1 className={`${serif} text-[clamp(34px,4vw,48px)] leading-none`}>{f.nombre}</h1>
+          <h1 className={`${titulo}`}>{f.nombre}</h1>
           <p className="mt-1 text-[14px] text-medio">{resumenFicha(f)}</p>
         </div>
       </div>
@@ -83,6 +84,9 @@ export default async function Ficha({ params, searchParams }: { params: Promise<
         {f.contacto.web && <a href={f.contacto.web} target="_blank" rel="noreferrer" className={boton}>Su web</a>}
       </div>
       {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
+
+      {/* La Dirección del cliente (sistema/117): lo primero de la ficha, porque es lo que siguen todos los agentes. */}
+      <DireccionDelCliente id={f.id} nombre={f.nombre} d={g?.direccion} web={g?.web ?? f.contacto.web} />
 
       {/* Qué se puede hacer y qué falta (sistema/92, más visual en sistema/109): cara de quien la hace, cuadritos de
           avance, una línea concreta y los datos que faltan como chips que llevan a su campo. La más cerca de estar lista, primero. */}

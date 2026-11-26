@@ -1,7 +1,7 @@
 // Criterio de la casa y lo que saben los agentes (sistema/54).
 // Jay y Luna escriben su estándar; todos los agentes y el revisor lo leen antes de cada entrega.
 import { CRITERIO_PROPUESTO, OFICIO, PLANTILLAS, leerCriterio, type Disciplina } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
 import { accionCriterio } from "@/app/estudio/acciones";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
@@ -23,8 +23,8 @@ export default async function Pagina() {
   const c = leerCriterio();
   return (
     <div className="px-5 py-7 md:px-10">
-      <h1 className={`${serif} text-[40px] leading-none`}>Criterio de la casa.</h1>
-      <p className="mt-3 max-w-2xl text-[14px] text-medio">Lo que para ustedes está bien hecho. Cada agente lo lee antes de trabajar y el revisor lo usa para calificar: si una entrega no llega a 8/10, se rehace sola antes de que la veas.</p>
+      <h1 className={`${titulo}`}>Criterio de la casa.</h1>
+      <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Lo que para ustedes está bien hecho. Cada agente lo lee antes de trabajar y el revisor lo usa para calificar: si una entrega no llega a 8/10, se rehace sola antes de que la veas.</p>
       {/* El resultado de guardar (ok o error) lo muestra el aviso flotante del estudio. */}
 
       <form action={accionCriterio} className="mt-6 grid max-w-3xl gap-3 rounded-[22px] bg-white p-5 shadow-[0_0_0_1px_rgba(26,24,22,.06)]">
@@ -55,7 +55,7 @@ export default async function Pagina() {
       )}
 
       <h2 className={`${serif} mt-12 text-[28px]`}>Lo que saben los agentes.</h2>
-      <p className="mt-2 max-w-2xl text-[14px] text-medio">El estándar de oficio de cada disciplina. Lo leen antes de trabajar y el revisor califica con la misma lista.</p>
+      <p className="mt-2 hidden max-w-2xl text-[14px] text-medio md:block">El estándar de oficio de cada disciplina. Lo leen antes de trabajar y el revisor califica con la misma lista.</p>
       <div className="mt-5 grid max-w-3xl gap-3">
         {(Object.keys(OFICIO) as Disciplina[]).map((d) => {
           const o = OFICIO[d];

@@ -6,7 +6,7 @@ import {
   capturasEnCurso, capturasVivas, estadoCapturas, ultimasCapturas, calificacionesPorRonda, leerBanco, leerCambiosBanco, leerCapturas, leerJuez, nivelDe, notaPorRubrica, pideCalibrar, rondasCalibracion, ultimoInforme,
   type DisciplinaBanco, type Medida, type Referencia,
 } from "@anonymo/pipeline";
-import { boton, botonSuave, campo, exigirEstudio, serif } from "@/lib/estudio";
+import { boton, botonSuave, campo, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { traer } from "@/lib/nube";
 import { Enviar } from "@/app/estudio/nuevo/Enviar";
 import { Refrescar } from "@/components/estudio/Refrescar";
@@ -42,8 +42,8 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<R
   return (
     <div className="px-5 py-7 md:px-10">
       {(enCurso || capturasEnCurso()) && <Refrescar />}
-      <h1 className={`${serif} text-[40px] leading-none`}>Banco de calibración.</h1>
-      <p className="mt-3 max-w-2xl text-[14px] text-medio">Trabajos premiados, muy buenos, genéricos y de principiante, con su nota. Sirven para saber si el juez califica como un jurado de verdad y para comparar lo nuestro, a ciegas, con lo mejor del mundo. Las capturas son privadas y solo sirven para medir: nunca se usan para clientes.</p>
+      <h1 className={`${titulo}`}>Banco de calibración.</h1>
+      <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Trabajos premiados, muy buenos, genéricos y de principiante, con su nota. Sirven para saber si el juez califica como un jurado de verdad y para comparar lo nuestro, a ciegas, con lo mejor del mundo. Las capturas son privadas y solo sirven para medir: nunca se usan para clientes.</p>
 
       <div className="mt-5 flex flex-wrap gap-2 text-[13px]">
         {DISCIPLINAS_BANCO.map((x) => {

@@ -30,7 +30,7 @@ import { urlSitio } from "@/lib/sitio";
 import { leerVivo, vivoActivo } from "@/lib/trabajo";
 import { AhoraEnVivo } from "@/components/estudio/AhoraEnVivo";
 import { dinero } from "@/lib/propuesta";
-import { boton, botonLleno, botonSuave, campo, ESTADO_PROYECTO, exigirEstudio, serif } from "@/lib/estudio";
+import { boton, botonLleno, botonSuave, campo, ESTADO_PROYECTO, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { accionAPapelera, accionCambiar, accionPresupuesto, accionSacarDePapelera, accionDescartarPendiente, accionMandarCliente, accionParar, accionModo, accionPausas, accionPortal, accionReanudar, accionResponder, accionResponsable, accionSeguir, accionSubir, accionVerReparto } from "../acciones";
 
 export const dynamic = "force-dynamic";
@@ -118,9 +118,9 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             {/* Interno (sistema/111): para Unmake no se muestra la plantilla de rubro, que no es lo que es Unmake. */}
             {esInterno(p.pedido) ? `Interno · ${PEDIDOS[p.pedido.tipo].nombre}` : `${PEDIDOS[p.pedido.tipo].nombre}${plantilla ? ` · ${plantilla.nombre}` : ""}`} · {p.papelera ? "En la papelera" : ESTADO_PROYECTO[p.estado]}
           </p>
-          <h1 className={`${serif} mt-1 text-[clamp(40px,5vw,68px)] leading-[0.95]`}>{p.pedido.cliente}</h1>
+          <h1 className={`${titulo} mt-1`}>{p.pedido.cliente}</h1>
         </div>
-        {nota && <div className="text-right"><p className="text-[12px] text-suave">Nota de calidad</p><p className={`${serif} text-[44px] leading-none`}>{String(nota.final).replace(".", ",")}</p></div>}
+        {nota && <div className="text-right"><p className="text-[12px] text-suave">Nota de calidad</p><p className={`${serif} text-[30px] leading-none`}>{String(nota.final).replace(".", ",")}</p></div>}
       </div>
       {/* Arriba solo la ficha (sistema/77): Atlas está en la barra (tecla A) y «Requisitos y calidad» es una pestaña más. */}
       {/* La ficha del cliente (sistema/70): su prospecto, otros pedidos, videos y notas. */}
@@ -144,7 +144,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 <i className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.tono === "vivo" ? "late bg-vivo" : m.tono === "toca" || m.tono === "otro" || m.tono === "cortado" ? "late bg-urgente" : "bg-suave"}`} />
                 <span className="truncate">Fase {m.fase.n} de {m.fase.de} · {m.fase.nombre}</span>
               </div>
-              <p className={`${serif} mt-2 flex flex-wrap items-baseline gap-x-3 text-[clamp(26px,2.8vw,36px)] leading-[1.08]`}>
+              <p className={`${serif} mt-2 flex flex-wrap items-baseline gap-x-3 text-[26px] md:text-[28px] leading-[1.08]`}>
                 <span>{m.corto ?? (m.parado ? m.ahora.replace(/^Lleva \d+ días esperando\. /, "") : m.ahora)}</span>
                 {m.parado ? <span className="font-sans text-[14px] font-medium text-urgente" title="Días esperando una decisión">· {m.parado} días</span> : null}
               </p>
@@ -501,7 +501,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
           <div className="grid gap-5 lg:grid-cols-3">
             <div className={tarjeta}>
               <p className="text-[13px] font-medium">Precio para el cliente</p>
-              <p className={`${serif} mt-1 text-[48px] leading-none`}>{b.precio !== undefined ? dinero(b.precio) : `${b.total ?? 0} h`}</p>
+              <p className={`${serif} mt-1 text-[30px] leading-none`}>{b.precio !== undefined ? dinero(b.precio) : `${b.total ?? 0} h`}</p>
               <p className="mt-2 text-[13px] text-medio">
                 {b.deJay ? `Con tus ${b.base} h` : `Con las ${b.base ?? "—"} h de Ledger`}{b.extra ? ` + ${b.extra} h de cambios` : ""}{b.tarifa ? ` · $${b.tarifa}/h` : " · pon tu tarifa para verlo en dólares"}
               </p>
@@ -524,7 +524,7 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
             </Link>
             <div className={tarjeta}>
               <p className="text-[13px] font-medium">Lo que costó en IA</p>
-              <p className={`${serif} mt-1 text-[48px] leading-none`}>${costo.real.toFixed(2)}</p>
+              <p className={`${serif} mt-1 text-[30px] leading-none`}>${costo.real.toFixed(2)}</p>
               <p className="mt-2 text-[13px] text-medio">Lo que gastó Anthropic en este proyecto. No se cobra aparte.</p>
               <ul className="mt-3 grid gap-1 text-[13px]">
                 {costo.tareas.map((t) => <li key={t.tarea} className="flex justify-between gap-3"><span className="truncate">{nombreTarea(t.tarea)}{t.veces > 1 ? ` ×${t.veces}` : ""}</span><span className="text-medio">${t.usd.toFixed(3)}</span></li>)}

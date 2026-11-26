@@ -1,6 +1,6 @@
 // Revisar una pieza del mes (sistema/96). PATCH: aprobar, pedir un cambio o corregir. POST: Faro escribe el guion de un reel.
 import { cambiarPieza, escribirGuion, ESTADOS_PIEZA, FORMATOS, leerMesContenido, ocultarClaves, type CambioPieza, type EstadoPieza, type FormatoPieza } from "@anonymo/pipeline";
-import { mal, permisoMes } from "@/lib/contenido";
+import { anotarEnDireccion, mal, permisoMes } from "@/lib/contenido";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -20,7 +20,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (c.elegirB === true) cambio.elegirB = true;
   if (typeof c.tituloArte === "string") cambio.tituloArte = c.tituloArte;
   try {
-    return Response.json({ mes: await cambiarPieza(id, String(c.pieza ?? ""), cambio, p.yo!) }, sinCache);
+    const mes = await cambiarPieza(id, String(c.pieza ?? ""), cambio, p.yo!);
+    // Un cambio pedido con su motivo enseña a la Dirección del cliente (sistema/117).
+    if (cambio.estado === "cambio" && typeof cambio.nota === "string" && cambio.nota.trim()) await anotarEnDireccion(mes.cliente, cambio.nota, p.yo!, `contenido ${mes.mes}`);
+    return Response.json({ mes }, sinCache);
   } catch (e) {
     const m = (e as Error).message;
     return mal(m, m.startsWith("No encontramos") ? 404 : 400);

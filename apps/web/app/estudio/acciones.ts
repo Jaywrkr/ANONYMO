@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { mandarAPapelera, sacarDePapelera, borrarProyecto, borrarRemoto, subirRuta, ocultarClaves, bitacora, crear, empezar, entenderPedido, nubeActiva, planificar, proyectosEnNube, replanear, slug, type Pedido } from "@anonymo/pipeline";
 import { cambiarModo, elegirDireccion, pedirDirecciones, guardarProyecto, leerEntrega, type Marca, type ModoTrabajo, type Propuesta } from "@anonymo/pipeline";
 import { agregarReferencia, retirarReferencia, prepararEncargo, aplicarEncargo, cambiarMejora, type AccionEncargo, pedirControl, anotar, aprobar, archivarSolicitud, listarSolicitudes, pedidoDeSolicitud, cambiarResponsable, avanzar, cambiar, existe, cambiarPausas, elegirMotor, parar, guardarArchivo, leerProyecto, quitarPendiente, responder, reanudar, restaurar, tokenPortal, type TareaId } from "@anonymo/pipeline";
-import { aplicarCambio as cambioProspecto, cambiarProspectos, idFicha, CLAVES_SABER, contextoCliente, esInterno, saberDe, type Ficha } from "@anonymo/pipeline";
+import { aplicarCambio as cambioProspecto, cambiarProspectos, idFicha, CLAVES_SABER, contextoConDireccion, esInterno, type Ficha } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 import { sesionConfigurada } from "@/lib/sesion";
@@ -278,7 +278,7 @@ export async function accionNuevoProyecto(f: FormData) {
     // Lo que su ficha ya sabe (sistema/111): Atlas no lo pregunta y planea con eso. Unmake es interno.
     const fichaId = /^[a-z0-9-]{1,60}$/.test(String(f.get("ficha") ?? "")) ? String(f.get("ficha")) : idFicha(nombre);
     const deFicha = (await cartera().catch(() => ({ fichas: [] as Ficha[] }))).fichas.find((x) => x.id === fichaId);
-    const saberCliente = deFicha ? contextoCliente(saberDe(deFicha), CLAVES_SABER) || undefined : undefined;
+    const saberCliente = deFicha ? contextoConDireccion(deFicha, CLAVES_SABER) || undefined : undefined;
     const interno = esInterno({ ficha: fichaId, cliente: nombre });
     const l = await entenderPedido(texto, { cliente: nombre, archivos: archivos.map((a) => a.name), saber: saberCliente, interno });
     const cliente = nombre;

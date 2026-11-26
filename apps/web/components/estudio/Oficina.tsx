@@ -121,7 +121,7 @@ export function Oficina({ proyectos, vivo, alto = "h-[300px] sm:h-[440px] lg:h-[
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[12px]" style={{ color: AREAS[a.area].texto ?? AREAS[a.area].sombra }}>{AREAS[a.area].nombre}</p>
-              <p className="mt-1 font-serif text-[34px] leading-none">{a.nombre}</p>
+              <p className="mt-1 font-serif text-[28px] leading-none">{a.nombre}</p>
               <p className="mt-1 text-[14px] text-medio">{a.rol}</p>
             </div>
             <button onClick={() => setElegido("")} aria-label="Cerrar" className="h-11 w-11 rounded-full bg-[#f1ede6] text-lg leading-none">×</button>

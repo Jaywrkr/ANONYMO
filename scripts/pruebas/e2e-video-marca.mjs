@@ -33,7 +33,7 @@ await p.goto(`${B}/entrar`); await p.check('input[name="quien"][value="luna"]', 
 
 // 1. Crear la marca con logo y música.
 await p.goto(`${B}/estudio/video`);
-await p.click("text=Marcas: logo, colores y música");
+await p.click("text=Marcas de video: logo, colores y música");
 await p.waitForURL(/estudio\/video\/marcas$/);
 await p.fill('input[placeholder="Por ejemplo: Clínica Silva"]', MARCA);
 await p.locator("form input[type=color]").first().fill("#1d3557");

@@ -22,7 +22,7 @@ export default function ErrorEstudio({ error }: { error: Error & { digest?: stri
       <div className="max-w-lg text-center">
         <Cara id="sonda" tam={84} flota className="mx-auto" />
         <p className="mt-5 text-[13px] text-suave">Algo tardó o falló</p>
-        <h1 className="mt-2 font-serif text-[clamp(32px,4vw,46px)] leading-[1.05]">
+        <h1 className="font-serif font-normal tracking-[-0.01em] text-[26px] leading-[1.1] md:text-[32px] mt-2">
           {tiempo ? "Tardó más de lo normal." : "No se pudo mostrar esto."}
         </h1>
         <p className="mt-3 text-[15px] text-medio">

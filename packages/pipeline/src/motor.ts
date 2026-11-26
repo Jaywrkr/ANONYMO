@@ -132,6 +132,8 @@ export const simulado: Motor = {
       `**${TXT[pedido.idioma ?? "es"].objetivo}:** ${c.objetivo}`,
       "",
     ];
+    // Lo que su ficha sabe y la Dirección del cliente (sistema/117): todos los agentes la leen antes de trabajar.
+    if (pedido.saberCliente) lineas.push("## Lo que sabemos del cliente", "", pedido.saberCliente.slice(0, 5000), "");
     if (cambio) lineas.push(`**Cambio pedido:** ${cambio}`, "");
     if (cliente.length) lineas.push("## Lo que dijo el cliente", "", ...cliente.map((x) => `- "${x}"`), "");
     if (consejos?.length) lineas.push("## Lo que sabemos del rubro", "", ...consejos.map((x) => `- ${x}`), "");
