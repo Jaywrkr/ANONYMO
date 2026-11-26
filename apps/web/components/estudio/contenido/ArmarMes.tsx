@@ -8,11 +8,11 @@ export interface ClienteMes { id: string; nombre: string; falta: string; enlace?
 
 const campo = "min-h-11 w-full rounded-xl bg-hueso/60 px-3 text-[15px] outline-none focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-borde)]";
 
-export function ArmarMes({ clientes, meses, inicial }: { clientes: ClienteMes[]; meses: { valor: string; nombre: string }[]; inicial?: string }) {
+export function ArmarMes({ clientes, meses, inicial, pedidoInicial = "" }: { clientes: ClienteMes[]; meses: { valor: string; nombre: string }[]; inicial?: string; pedidoInicial?: string }) {
   const router = useRouter();
   const [cliente, setCliente] = useState(inicial && clientes.some((c) => c.id === inicial) ? inicial : clientes.find((c) => !c.falta)?.id ?? clientes[0]?.id ?? "");
   const [mes, setMes] = useState(meses[0]?.valor ?? "");
-  const [pedido, setPedido] = useState("");
+  const [pedido, setPedido] = useState(pedidoInicial.slice(0, 800));
   const [confirmar, setConfirmar] = useState(false);
   const [trabajo, setTrabajo] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; ficha?: string } | null>(null);

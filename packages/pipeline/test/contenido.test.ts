@@ -132,11 +132,27 @@ test("la revisión automática marca lo que los planificadores nunca dejaban pas
   assert.match(revisarPieza({ ...bien, plantilla: "dato", lamina: { titulo: "x", numero: "87%" } }, "Atendemos a 120 empresas").join(), /87%.*no está en lo que sabemos/);
   assert.deepEqual(revisarPieza({ ...bien, plantilla: "dato", lamina: { titulo: "x", numero: "120" } }, "Atendemos a 120 empresas"), []);
   assert.match(revisarPieza({ ...bien, texto: "Una web desde USD 390.\n¿Te interesa?" }, "", "Sin precios.").join(), /precio/);
-  assert.match(revisarPieza({ ...bien, formato: "reel", plantilla: "portada", lamina: { titulo: "x" } }).join(), /YouTube/);
+  assert.match(revisarPieza({ ...bien, formato: "reel", plantilla: "portada", lamina: { titulo: "x" } }, "", "", "Instagram y YouTube").join(), /YouTube/);
 });
 
 test("el arte se lee aunque la IA lo mande como texto JSON o solo un título (sistema/112)", () => {
   assert.equal(leerLamina(JSON.stringify({ titulo: "Tu web vende mientras duermes" }))?.titulo, "Tu web vende mientras duermes");
   assert.equal(leerLamina("Solo el título")?.titulo, "Solo el título");
   assert.equal(leerLamina(""), undefined);
+});
+
+test("A y B no se mezclan, YouTube solo si publica ahí, y se respeta la cantidad pedida (sistema/114)", async () => {
+  const { coherencia, cantidadPedida, enYouTube, revisarPieza } = await import("../src/video/contenido.ts");
+  // La A trae el texto de la idea B: se cambian.
+  assert.equal(coherencia("Mito: tener redes significa tener clientes", "Una marca no es solo un logo, es la suma de decisiones", "Mito: una marca es solo un logo", "Las redes sin web no venden clientes"), "cambiar");
+  assert.equal(coherencia("Paso 1 desarmar: preguntas antes de diseñar", "Antes de diseñar nada, hacemos preguntas", "Quiénes somos", "Jay y Luna"), "bien");
+  assert.equal(coherencia("Animación de las cinco luces", "Hoy hablamos de impuestos municipales", "", ""), "nada");
+  assert.equal(cantidadPedida("Lanzamiento: las primeras 9 publicaciones para el perfil"), 9);
+  assert.equal(cantidadPedida("12 posts para diciembre"), 12);
+  assert.equal(cantidadPedida("algo especial"), undefined);
+  assert.equal(enYouTube("Instagram"), false);
+  assert.equal(enYouTube("Instagram, YouTube"), true);
+  const reel = { texto: "Mira esto.\n¿Qué opinas?", formato: "reel" as const, historias: [{ texto: "a" }, { texto: "b", sticker: "encuesta" as const }] };
+  assert.ok(!revisarPieza(reel, "", "", "Instagram").some((a) => /YouTube/.test(a)));
+  assert.ok(revisarPieza(reel, "", "", "Instagram y YouTube").some((a) => /YouTube/.test(a)));
 });

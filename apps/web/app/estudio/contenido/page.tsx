@@ -16,9 +16,9 @@ function mesesParaElegir() {
   return [0, 1, 2].map((i) => { const d = new Date(Date.UTC(a, m - 1 + i, 1)); const v = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; return { valor: v, nombre: nombreMes(v) }; });
 }
 
-export default async function Pagina({ searchParams }: { searchParams: Promise<{ cliente?: string }> }) {
+export default async function Pagina({ searchParams }: { searchParams: Promise<{ cliente?: string; pedido?: string }> }) {
   await exigirEstudio();
-  const { cliente } = await searchParams;
+  const { cliente, pedido } = await searchParams;
   let meses: MesContenido[] = [];
   let falla = "";
   try { meses = await listarMeses(); } catch (e) { falla = (e as Error).message; }
@@ -36,7 +36,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
       </div>
       <p className="mt-3 max-w-2xl text-[15px] text-medio">Faro arma el mes de un cliente en series, con la idea, el texto y cómo se ve cada publicación. Las fechas salen de cuántas veces publica. Tú apruebas, pides cambios o corriges, y lo aprobado se copia para mandárselo.</p>
       <h2 className="mt-8 text-[13px] text-suave">Armar un mes</h2>
-      <div className="mt-2 max-w-3xl"><ArmarMes clientes={clientes} meses={mesesParaElegir()} inicial={cliente} /></div>
+      <div className="mt-2 max-w-3xl"><ArmarMes clientes={clientes} meses={mesesParaElegir()} inicial={cliente} pedidoInicial={pedido} /></div>
       <h2 className="mt-10 text-[13px] text-suave">Meses</h2>
       {falla && <p role="alert" className="mt-2 text-[14px] text-[#a33a0b]">No se pudo leer la lista: {falla}</p>}
       {!meses.length && !falla && <p className="mt-2 text-[14px] text-medio">Todavía no hay meses armados.</p>}

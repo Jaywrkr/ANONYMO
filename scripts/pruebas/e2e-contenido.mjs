@@ -74,75 +74,90 @@ try {
   await p.waitForURL(/estudio\/contenido\/c-unmake-\d{4}-\d{2}$/, { timeout: 60000 });
   exigir(meses() === antes + 1, "una sola llamada a Faro");
 
-  // 4 · El mes: series y una pieza por fecha, en lunes, miércoles y viernes.
+  // 4 · El mes como planner (sistema/114): el calendario con una pieza por fecha, lunes, miércoles y viernes.
   const rev = p.locator("[data-mes-revision]");
   await espera(rev);
   const piezas = rev.locator("[data-pieza]");
+  const detalle = rev.locator("[data-detalle]");
   const n = await piezas.count();
   exigir(n >= 12 && n <= 14, `trae una pieza por fecha (${n})`);
-  const dias = await piezas.evaluateAll((xs) => xs.map((x) => x.querySelector("span")?.textContent ?? ""));
-  exigir(dias.every((d) => /^(lunes|miércoles|viernes) \d+$/.test(d)), "las fechas caen lunes, miércoles y viernes");
-  exigir(await p.locator("section[aria-label=Series] > div").count() === 3, "muestra las series del mes");
+  const fechasP = await piezas.evaluateAll((xs) => xs.map((x) => x.getAttribute("data-fecha")));
+  exigir(fechasP.every((f) => [1, 3, 5].includes(new Date(`${f}T12:00:00Z`).getUTCDay())), "las fechas caen lunes, miércoles y viernes");
+  exigir(await rev.locator("[aria-label=Series] > span:has(i)").count() === 3, "muestra las series del mes, cada una con su color");
   exigir(await rev.locator("[data-copiar-mes]").isDisabled(), "sin aprobadas, no hay nada que copiar");
+  exigir(await piezas.nth(0).locator("[data-vista]").count() === 1, "cada día muestra su arte en el calendario, sin dibujarlo");
+  exigir(/Instagram/.test(await p.locator("[data-redes]").innerText()) && !/YouTube/.test(await p.locator("[data-redes]").innerText()), "arriba: solo las redes del cliente");
 
-  // 4b · Como los planificadores (sistema/107): hora, historias con sticker, opción B, sin emojis, y el arte se dibuja y se baja.
+  // 4b · Al tocar un día se abre la pieza al lado: hora, historias con sticker, A y B en pestañas, y el arte.
   exigir(/^\d{2}:\d{2}$/.test(await piezas.nth(0).locator("[data-hora]").innerText()), "cada pieza trae su hora");
-  exigir(/sticker de encuesta: Sí \/ No/.test(await piezas.nth(0).locator("[data-historias]").innerText()), "trae las historias del día, con su sticker");
+  await piezas.nth(0).click();
+  exigir(await espera(detalle) && await detalle.getAttribute("data-detalle") === await piezas.nth(0).getAttribute("data-pieza"), "tocar un día abre su pieza al lado");
+  exigir(/sticker de encuesta: Sí \/ No/.test(await detalle.locator("[data-historias]").innerText()), "trae las historias del día, con su sticker");
+  exigir(await detalle.locator("[data-historias] li").count() === 2, "las historias se ven como pantallas de celular");
+  exigir(await detalle.locator("[data-arte] [data-vista]").count() >= 1, "el arte se ve al instante, como se publica");
   exigir(!(await rev.innerText()).includes("🚀"), "los emojis que puso la IA no llegan");
+  exigir(await detalle.locator("[data-youtube]").count() === 0, "sin YouTube en su ficha, no se escribe para YouTube");
   exigir(await espera(rev.locator("[data-proxima]")), "arriba dice lo próximo que se publica");
-  const p3 = piezas.nth(2);
-  await p3.locator("[data-opcion-b] summary").click();
-  await p3.locator("[data-usar-b]").click();
-  exigir(await espera(p3.locator("[role=status]:has-text('Ahora va la opción B')")) && /Otra idea 3/.test(await p3.locator("p.font-medium").first().innerText()), "usar la opción B la pone como elegida");
-  exigir(/Idea de prueba 3/.test(await p3.locator("[data-opcion-b] summary").innerText()), "y la A queda como alternativa");
-  await p3.locator("[data-dibujar]").click();
-  exigir(await espera(p3.getByRole("button", { name: "Dibujando el arte…" }), 3000), "mientras dibuja, el botón lo dice");
-  exigir(await espera(p3.locator("[data-arte] img").first(), 90000) && await p3.locator("[data-arte] img").count() >= 2, `el arte queda dibujado (${await p3.locator("[data-arte] img").count()} imágenes; ${await p3.locator("[role=alert]").allInnerTexts()})`);
-  const tamano = await p3.locator("[data-arte] img").first().evaluate((i) => new Promise((r) => { const v = () => r([i.naturalWidth, i.naturalHeight]); if (i.complete) v(); else i.onload = v; }));
+  await piezas.nth(2).click();
+  exigir(await detalle.getAttribute("data-detalle") === await piezas.nth(2).getAttribute("data-pieza"), "otro día cambia la pieza abierta");
+  await detalle.locator("[data-tab=B]").click();
+  exigir(/Otra idea 3/.test(await detalle.locator("[data-idea]").innerText()) && /Texto B de prueba 3/.test(await detalle.locator("[data-texto]").innerText()), "la pestaña B muestra su idea con su propio texto: no se mezclan");
+  await detalle.locator("[data-usar-b]").click();
+  exigir(await espera(detalle.locator("[role=status]:has-text('Ahora va la opción B')")) && /Otra idea 3/.test(await detalle.locator("[data-idea]").innerText()), "usar la opción B la pone como elegida");
+  await detalle.locator("[data-tab=B]").click();
+  exigir(/Idea de prueba 3/.test(await detalle.locator("[data-idea]").innerText()), "y la A queda como alternativa");
+  await detalle.locator("[data-tab=A]").click();
+  await detalle.locator("[data-dibujar]").click();
+  exigir(await espera(detalle.getByRole("button", { name: "Preparando el arte…" }), 3000), "mientras prepara el arte, el botón lo dice");
+  exigir(await espera(detalle.locator("[data-arte] img").first(), 90000) && await detalle.locator("[data-arte] img").count() >= 2, `el arte queda listo para Instagram (${await detalle.locator("[data-arte] img").count()} imágenes; ${await detalle.locator("[role=alert]").allInnerTexts()})`);
+  const tamano = await detalle.locator("[data-arte] img").first().evaluate((i) => new Promise((r) => { const v = () => r([i.naturalWidth, i.naturalHeight]); if (i.complete) v(); else i.onload = v; }));
   exigir(tamano[0] === 1080 && (tamano[1] === 1350 || tamano[1] === 1920), `las imágenes salen en tamaño de Instagram (${tamano.join("×")})`);
-  const zipHref = await p3.locator("[data-descargar-arte]").getAttribute("href");
+  const zipHref = await detalle.locator("[data-descargar-arte]").getAttribute("href");
   const zip = await p.evaluate(async (u) => { const r = await fetch(u); const b = new Uint8Array(await r.arrayBuffer()); return { tipo: r.headers.get("content-type"), texto: new TextDecoder("latin1").decode(b) }; }, zipHref);
   exigir(zip.tipo === "application/zip" && /p03-01\.jpg/.test(zip.texto) && /texto\.txt/.test(zip.texto), "se baja todo en un .zip, con el texto para pegar");
 
   // 5 · Aprobar, pedir un cambio con nota y corregir a mano.
-  const p1 = piezas.nth(0), p2 = piezas.nth(1);
-  await p1.locator("[data-aprobar]").click();
-  exigir(await espera(p1.locator("[role=status]:has-text('Aprobada.')")) && await p1.getAttribute("data-estado") === "aprobada", "aprobar dice que quedó aprobada");
-  await p2.locator("[data-pedir-cambio]").click();
-  exigir(await p2.getByRole("button", { name: "Anotar el cambio" }).isDisabled(), "sin nota no se puede pedir un cambio");
-  await p2.locator("textarea").fill("Más corto y sin precio");
-  await p2.getByRole("button", { name: "Anotar el cambio" }).click();
-  exigir(await espera(p2.locator("text=Cambio pedido: Más corto y sin precio")) && await p2.getAttribute("data-estado") === "cambio", "el cambio queda con su nota");
-  await p2.locator("[data-corregir]").click();
-  await p2.getByLabel("El texto que se publica").fill("Tu negocio merece una web que venda.");
-  await p2.getByRole("button", { name: "Guardar" }).click();
-  const corregida = await espera(p2.locator("[role=status]:has-text('Guardado.')")) && await espera(p2.locator("p:has-text('Tu negocio merece una web que venda.')"));
-  const estado2 = await p2.getAttribute("data-estado");
-  exigir(corregida && estado2 === "propuesta", `corregida a mano, vuelve a «Por revisar» (${estado2}; ${await p2.locator("[role=status],[role=alert]").allInnerTexts()})`);
+  await piezas.nth(0).click();
+  const idea1 = await detalle.locator("[data-idea]").innerText();
+  await detalle.locator("[data-aprobar]").click();
+  exigir(await espera(detalle.locator("[role=status]:has-text('Aprobada.')")) && await piezas.nth(0).getAttribute("data-estado") === "aprobada", "aprobar dice que quedó aprobada y se ve en el calendario");
+  await piezas.nth(1).click();
+  await detalle.locator("[data-pedir-cambio]").click();
+  exigir(await detalle.getByRole("button", { name: "Anotar el cambio" }).isDisabled(), "sin nota no se puede pedir un cambio");
+  await detalle.locator("textarea").fill("Más corto y sin precio");
+  await detalle.getByRole("button", { name: "Anotar el cambio" }).click();
+  exigir(await espera(detalle.locator("text=Cambio pedido: Más corto y sin precio")) && await piezas.nth(1).getAttribute("data-estado") === "cambio", "el cambio queda con su nota");
+  await detalle.locator("[data-corregir]").click();
+  await detalle.getByLabel("El texto que se publica").fill("Tu negocio merece una web que venda.");
+  await detalle.getByRole("button", { name: "Guardar" }).click();
+  const corregida = await espera(detalle.locator("[role=status]:has-text('Guardado.')")) && await espera(detalle.locator("[data-texto]:has-text('Tu negocio merece una web que venda.')"));
+  const estado2 = await piezas.nth(1).getAttribute("data-estado");
+  exigir(corregida && estado2 === "propuesta", `corregida a mano, vuelve a «Por revisar» (${estado2}; ${await detalle.locator("[role=status],[role=alert]").allInnerTexts()})`);
   await rev.getByRole("button", { name: /^Aprobada \(/ }).click();
-  exigir(await piezas.count() === 1, "el filtro muestra solo las aprobadas");
+  exigir(await rev.locator("[data-pieza].opacity-35").count() === n - 1, "el filtro deja a la vista solo las aprobadas");
   await rev.getByRole("button", { name: /^Todas \(/ }).click();
 
   // 6 · El guion de un reel: pregunta antes y queda en la pieza.
-  const idReel = await rev.locator("[data-pieza]:has([data-escribir-guion])").first().getAttribute("data-pieza");
-  const reel = rev.locator(`[data-pieza="${idReel}"]`);
+  await rev.locator("[data-pieza]:has-text('Reel')").first().click();
   const g0 = guiones();
-  await reel.locator("[data-escribir-guion]").click();
-  await reel.getByRole("button", { name: "Todavía no" }).click();
+  await detalle.locator("[data-escribir-guion]").click();
+  await detalle.getByRole("button", { name: "Todavía no" }).click();
   exigir(guiones() === g0, "cancelar el guion no gasta");
-  await reel.locator("[data-escribir-guion]").click();
-  await reel.getByRole("button", { name: "Sí, escribirlo" }).click();
-  exigir(await espera(reel.locator("[data-guion]"), 60000) && /Gancho:/.test(await reel.locator("[data-guion]").innerText()), "el guion del reel queda en la pieza");
+  await detalle.locator("[data-escribir-guion]").click();
+  await detalle.getByRole("button", { name: "Sí, escribirlo" }).click();
+  exigir(await espera(detalle.locator("[data-guion]"), 60000) && /Gancho:/.test(await detalle.locator("[data-guion]").innerText()), "el guion del reel queda en la pieza");
 
   // 7 · Copiar lo aprobado para mandárselo al cliente.
   await rev.locator("[data-copiar-mes]").click();
   exigir(await espera(rev.locator("[role=status]:has-text('Copiado: 1 pieza aprobada')")), "copiar dice cuántas copió");
   const copiado = await p.evaluate(() => navigator.clipboard.readText());
-  exigir(copiado.startsWith("Contenido de Unmake") && copiado.includes(await p1.locator("p.font-medium").first().innerText()) && !copiado.includes("Tu negocio merece"), "copia solo lo aprobado");
+  exigir(copiado.startsWith("Contenido de Unmake") && copiado.includes(idea1) && !copiado.includes("Tu negocio merece"), "copia solo lo aprobado");
 
   // 8 · Queda guardado y la lista lo cuenta.
   await p.reload();
-  exigir(await espera(rev) && await piezas.nth(0).getAttribute("data-estado") === "aprobada" && await piezas.nth(1).locator("text=Tu negocio merece").count() === 1, "al recargar sigue igual");
+  await espera(rev);
+  await piezas.nth(1).click();
+  exigir(await piezas.nth(0).getAttribute("data-estado") === "aprobada" && await detalle.locator("text=Tu negocio merece").count() === 1, "al recargar sigue igual");
   await p.screenshot({ path: join(capturas, "1-mes.png"), fullPage: true });
   await p.goto(`${B}/estudio/contenido`);
   exigir(/1 de \d+ aprobadas/.test(await p.locator("[data-mes]").first().innerText()), "la lista dice cuántas van aprobadas");
@@ -178,6 +193,11 @@ try {
   await espera(c.locator("[data-mes-revision]"));
   exigir(await c.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "en el celular no hay scroll de lado");
   await c.screenshot({ path: join(capturas, "2-celular.png") });
+  await c.locator("[data-pieza]").first().click();
+  exigir(await espera(c.locator("[data-detalle]")) && await c.locator("[data-detalle] [data-aprobar], [data-detalle] [data-pedir-cambio]").first().isVisible(), "en el celular la pieza se abre a pantalla completa, con sus botones a mano");
+  await c.screenshot({ path: join(capturas, "3-celular-pieza.png") });
+  await c.getByRole("button", { name: "← Volver al mes" }).click();
+  exigir(!(await c.locator("[data-detalle]").count()), "«Volver al mes» la cierra");
   await cel.close();
   await ctx.close();
 } finally {
