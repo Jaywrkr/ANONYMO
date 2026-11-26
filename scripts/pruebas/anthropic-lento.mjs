@@ -31,6 +31,20 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_guia", name: "leer_guia_de_marca", input }], usage: { input_tokens: 3000, output_tokens: 120 } }));
       return;
     }
+    // La revisión contra la vara (sistema/120): tiene que ver la pieza dibujada (y la vara, si hay). La primera vez no
+    // llega y trae el título reescrito; la versión rehecha llega. Así se prueba que se rehace sola.
+    if (cuerpo.tools?.[0]?.name === "revisar_con_vara") {
+      const c = cuerpo.messages?.[0]?.content ?? [];
+      const imgs = Array.isArray(c) ? c.filter((b) => b.type === "image" && b.source?.data).length : 0;
+      const t = Array.isArray(c) ? c.filter((b) => b.type === "text").map((b) => b.text).join("\n") : String(c);
+      if (!imgs || !/La pieza dibujada/.test(t)) { res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { type: "invalid_request_error", message: "falta la pieza dibujada" } })); return; }
+      const titulo = (t.match(/"titulo":"([^"]*)"/) ?? [])[1] ?? "";
+      const rehecha = titulo.includes("(a la vara)");
+      const input = rehecha ? { nota: 8, motivos: ["Una sola idea, con aire, al nivel de su trabajo."] } : { nota: 5, motivos: ["El título dice demasiado: en el celular no se lee de un vistazo."], lamina: { titulo: `${titulo.split(" ").slice(0, 5).join(" ")} (a la vara)` } };
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_vara", name: "revisar_con_vara", input }], usage: { input_tokens: 2500, output_tokens: 80 } }));
+      return;
+    }
     // Atlas entiende pedidos en palabras normales (sistema/106): reglas simples sobre el mensaje y la lista de clientes.
     if (cuerpo.system?.startsWith("Atlas entiende pedidos")) {
       const t = String(cuerpo.messages?.[0]?.content ?? "");

@@ -53,6 +53,8 @@ export interface Contexto {
   directo?: boolean;
   /** «proponer»: esta vez propone 3 direcciones de diseño; o la dirección ya elegida, que todos respetan (sistema/37). */
   direccion?: "proponer" | Direccion;
+  /** La vara del cliente como imágenes (sistema/120): capturas de su trabajo real y de lo que para ellos es bueno. */
+  vara?: import("./clientes/material.ts").CapturaVara[];
 }
 
 /** Qué está haciendo un agente en este momento (sistema/36). */
@@ -193,7 +195,7 @@ const MARGEN_VUELTA = Number(process.env.ANONYMO_MARGEN_MS ?? 15_000);
 /** Motor real: llama a la API de Anthropic. Sin probar hasta que Jay ponga la clave. */
 export const real: Motor = {
   nombre: "real",
-  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, memoria, referencias, marca, parcial, plazo, latido, direccion, directo }) {
+  async trabajar({ pedido, tarea, lecturas, cambio, version, preguntas, herramientas, cliente, archivos, consejos, condiciones, memoria, referencias, marca, parcial, plazo, latido, direccion, directo, vara }) {
     const clave = claveAnthropic();
     if (!clave) throw new Error("Falta ANTHROPIC_API_KEY.");
     // Con el tope de gasto alcanzado no se llama a la IA (sistema/91).
@@ -269,7 +271,9 @@ export const real: Motor = {
     const visibles = (archivos ?? []).filter((x) => x.ruta && existsSync(x.ruta));
     // Las más nuevas primero, hasta 8 y sin pasar de ~8 MB (sistema/40): más imágenes hacen que la IA tarde
     // minutos en empezar a responder. Yendo directo a escribir (vuelta de rescate) no se mandan imágenes.
-    let cupo = sinAdjuntos ? 0 : 8 * 1024 * 1024-(referencias??[]).reduce((n,r)=>n+r.bytes.length,0);
+    // La vara del cliente va siempre (también en rescate), como las referencias: es con lo que se le va a medir.
+    const varaVista = (vara ?? []).slice(0, 3);
+    let cupo = sinAdjuntos ? 0 : 8 * 1024 * 1024-(referencias??[]).reduce((n,r)=>n+r.bytes.length,0)-varaVista.reduce((n,v)=>n+v.datos.length*0.75,0);
     const imagenesElegidas = visibles
       .filter((x) => /^image\/(jpeg|png|webp|gif)$/.test(x.tipo) && pesa(x.ruta) < 4 * 1024 * 1024)
       .slice(-8)
@@ -282,9 +286,10 @@ export const real: Motor = {
       .slice(-2);
     const documentos:Bloque[]=documentosElegidos.map((x)=>({type:"document",source:{type:"base64",media_type:"application/pdf",data:readFileSync(x.ruta!).toString("base64")}}));
     const visuales:Bloque[]=(referencias??[]).flatMap(r=>[{type:"text",text:`Referencia ref-${r.id}: ${r.titulo}. SHA256 ${r.imagen}`},{type:"image",source:{type:"base64",media_type:r.tipo,data:r.bytes.toString("base64")}}]);
-    const adjuntos = [...visuales,...imagenes, ...documentos];
+    const bloquesDeVara:Bloque[] = varaVista.length ? [...varaVista.flatMap((v)=>[{type:"text",text:`Vara del cliente · ${v.trabajo?"su trabajo real":"lo que para ellos es bueno"} · ${v.url}${v.nota?` — ${v.nota}`:""}`},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:v.datos}}]),{type:"text",text:"Estas capturas son la vara del cliente: lo que entregues tiene que estar a esa altura y se va a revisar al lado de ellas."}] : [];
+    const adjuntos = [...bloquesDeVara,...visuales,...imagenes, ...documentos];
     const mensajes: { role: "user" | "assistant"; content: string | Bloque[] }[] = [
-      { role: "user", content: adjuntos.length ? [...adjuntos, { type: "text", text: usuario+"\n# Material efectivamente adjunto\n"+JSON.stringify({referencias:(referencias??[]).map(r=>r.id),archivos:[...imagenesElegidas,...documentosElegidos].map(a=>a.nombre)}) }] : usuario+"\nNo se adjuntaron imágenes ni documentos en esta vuelta." },
+      { role: "user", content: adjuntos.length ? [...adjuntos, { type: "text", text: usuario+"\n# Material efectivamente adjunto\n"+JSON.stringify({referencias:(referencias??[]).map(r=>r.id),archivos:[...imagenesElegidas,...documentosElegidos].map(a=>a.nombre),vara:varaVista.map(v=>v.url)}) }] : usuario+"\nNo se adjuntaron imágenes ni documentos en esta vuelta." },
     ];
     // Vuelta anterior sin tiempo (sistema/36): el agente ve lo que ya escribió y sigue desde ahí.
     const yaEscrito = parcial?.trimEnd() ?? "";

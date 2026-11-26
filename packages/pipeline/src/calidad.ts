@@ -12,6 +12,7 @@ import { condicionesDe, contextoCalidad } from './requisitos.ts';
 import { imagenesDirecciones, archivosSitio, leerArchivoSitio } from './sitio.ts';
 import { claveAnthropic, json, ocultarClaves, pensamiento, textoDe } from './ia.ts';
 import { esInterno } from './clientes/anonymo.ts';
+import { bloquesVara, varaDePedido } from './clientes/material.ts';
 import type { Comprobacion, ControlEntrega, Entrega, Pedido, Proyecto, TareaId } from './tipos.ts';
 
 /** La nota del juez corregida con su última calibración contra el banco (sistema/55). Sin calibración: undefined. */
@@ -118,6 +119,7 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
       for(const r of archivos){const error=validarSvg(leerPieza(p.pedido.id,e.tarea,e.version,r)!.toString());if(error)throw Object.assign(new Error(r+': '+error),{defecto:true});}
     }
     const visual = proponer || e.tarea === '4.vector' || vectorial;
+    let vara: Awaited<ReturnType<typeof varaDePedido>> = [];
     if (visual) {
       const {inspeccionar} = await import('./inspeccionar.ts');
       const r = await inspeccionar(p,e,proponer,plazo,informe.huella);
@@ -128,6 +130,8 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
       const fallos=r.comprobaciones.filter(c=>c.estado==='falla');
       if(fallos.length)throw Object.assign(new Error('Hay comprobaciones que fallaron: '+fallos.slice(0,3).map(c=>c.evidencia).join(' · ')),{defecto:true});
       if(r.comprobaciones.some(c=>c.estado==='pendiente'))throw new Error('Faltan pruebas funcionales: '+r.comprobaciones.filter(c=>c.estado==='pendiente').slice(0,3).map(c=>c.evidencia).join(' · '));
+      vara = await varaDePedido(p.pedido);
+      if(vara.length)condiciones.push({id:'visual-vara',texto:'Está a la altura de la vara del cliente: sus capturas (su trabajo real y lo que para ellos es bueno).',fuente:'Dirección del cliente'});
       for (const [id,texto] of Object.entries({ fidelidad: 'El diseño responde al pedido y sus referencias.', originalidad: 'Hay composición propia, no una plantilla genérica.', tipografia: 'Tipografía y jerarquía cuidadas.', composicion: 'Composición, ritmo e imágenes resueltos.', movil: vectorial?'El logo mantiene legibilidad a 16, 32 y 128 píxeles y en una tinta.':'La pieza funciona visualmente en celular.' })) condiciones.push({id:`visual-${id}`,texto,fuente:'Revisión visual'});
     } else if (['3.kine','3.eco'].includes(e.tarea)) {
       throw new Error('Esta entrega describe una pieza visual o sonora, pero aún necesita archivos reproducibles para poder verificarla.');
@@ -139,10 +143,12 @@ export async function controlar(p: Proyecto, e: Entrega, proponer: boolean, plaz
     if (!clave) throw new Error('Falta la conexión de IA para revisar la entrega.');
     informe.referencias=referencias.map(({id,revision,imagen,titulo,aprender,evitar})=>({id,revision,sha256:imagen,titulo,aprender,evitar}));
     const imagenes = informe.capturas.map(c => readFileSync(join(carpeta(),p.pedido.id,c.ruta)));
-    if (imagenes.reduce((s,b) => s+b.length,0)+referencias.reduce((s,r)=>s+r.bytes.length,0) > 8*1024*1024) throw new Error('Las capturas superan el límite de revisión visual. Divide la pieza.');
+    // La vara del cliente (sistema/120): el juez mira la entrega al lado de sus capturas. Solo en las entregas visuales.
+    if (imagenes.reduce((s,b) => s+b.length,0)+referencias.reduce((s,r)=>s+r.bytes.length,0)+vara.reduce((s,v)=>s+v.datos.length*0.75,0) > 8*1024*1024) throw new Error('Las capturas superan el límite de revisión visual. Divide la pieza.');
     const disponible = Math.min(90000, (plazo ?? Date.now()+100000) - Date.now()-5000);
     if (disponible < 10000) throw new Error('Faltó tiempo para completar la revisión. Vuelve a verificar esta versión.');
     const mensaje = [
+      ...bloquesVara(vara),
       ...referencias.flatMap(r=>[{type:"text",text:`Referencia ref-${r.id}: ${r.titulo}, SHA256 ${r.imagen}. ${r.aprender}. Evitar: ${r.evitar}`},{type:"image",source:{type:"base64",media_type:r.tipo,data:r.bytes.toString("base64")}}]),
       {type:"text",text:textoReferencias(referencias)},
       ...informe.capturas.flatMap((c,i) => [{ type:'text',text:`Captura ${i+1}: ${c.pagina}, ${c.ancho}px, SHA256 ${c.sha256}` }, {type:'image', source:{type:'base64',media_type:'image/jpeg',data:imagenes[i].toString('base64')}}]),

@@ -63,6 +63,22 @@ try {
   exigir((cal.match(/"type":"image"/g) ?? []).length >= 1 && cal.includes("su trabajo"), "Faro recibe las capturas como imágenes, no solo los enlaces");
   exigir(!cal.includes("una referencia de primer nivel") || cal.includes("referencia de calidad"), "las referencias van como vara, no como trabajo del cliente");
 
+  // 3b · La revisión contra la vara (sistema/120): sola, al abrir el mes. Cada pieza se dibuja y se mira al lado de las
+  // capturas; la que no llega, Faro la rehace y se vuelve a mirar.
+  exigir(await espera(p.locator("[data-vara-progreso]"), 15000), "al abrir el mes, empieza la revisión con la vara");
+  const total = await p.locator("[data-pieza]").count();
+  await p.waitForFunction((n) => document.querySelectorAll("[data-vara-nota]").length >= n, total, { timeout: 280000 }).catch(() => {});
+  exigir(await p.locator("[data-vara-nota]").count() === total, `cada pieza queda con su nota frente a la vara (${await p.locator("[data-vara-nota]").count()} de ${total})`);
+  const varas = readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes('"revisar_con_vara"'));
+  const conVara = varas.filter((l) => (l.match(/"type":"image"/g) ?? []).length >= 2 && l.includes("Vara del cliente"));
+  exigir(varas.length >= total * 2 && conVara.length === varas.length, `la revisión ve la pieza dibujada al lado de las capturas de la vara (${conVara.length} de ${varas.length})`);
+  await p.locator("[data-pieza]").first().click();
+  const caja = p.locator("[data-detalle] [data-vara]");
+  exigir(await espera(caja) && (await caja.getAttribute("data-vara")) === "llega" && /8\s*\/10/.test(await caja.innerText()) && /rehízo una vez/.test(await caja.innerText()), `la pieza que no llegaba, Faro la rehízo sola y ahora llega (${await caja.innerText().catch(() => "")})`);
+  const titulo = await p.locator("[data-detalle] [data-arte] iframe").first().getAttribute("srcdoc").catch(() => "");
+  exigir((titulo ?? "").includes("(a la vara)"), "el arte muestra la versión rehecha");
+  await p.screenshot({ path: join(capturas, "3-vara.png"), fullPage: true });
+
   // 4 · Una pieza «trabajo» muestra la captura real en la vista previa y al prepararla para Instagram.
   const detalle = p.locator("[data-detalle]");
   let encontrada = false;

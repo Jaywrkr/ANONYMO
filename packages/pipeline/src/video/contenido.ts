@@ -82,6 +82,8 @@ export interface Pieza {
   artes?: string[];
   /** Lo que la revisión automática encontró (sistema/107): se ve en la pieza antes de aprobar. */
   avisos?: string[];
+  /** La nota frente a la vara del cliente (sistema/120): se mira el arte dibujado al lado de sus capturas. */
+  vara?: import("./vara.ts").VaraPieza;
 }
 
 export interface PasoMes { cuando: string; quien: string; que: string }
@@ -573,9 +575,37 @@ export async function cambiarPieza(mesId: string, piezaId: string, c: CambioPiez
   if (c.estado === "aprobada") delete p.nota;
   // Si se corrige a mano una pieza con cambio pedido, vuelve a quedar por revisar.
   if (!c.estado && p.estado === "cambio" && que.some((x) => ["idea", "texto", "visual", "título del arte"].includes(x))) p.estado = "propuesta";
+  // Lo que cambió a mano se vuelve a mirar contra la vara (sistema/120).
+  if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) delete p.vara;
   if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) { const a = revisarPieza(p, "", "", m.canales).filter((x) => !x.startsWith("La cifra")); if (a.length) p.avisos = a; else delete p.avisos; }
   if (que.length) m.historia.push({ cuando: new Date().toISOString(), quien: por, que: `${p.fecha}: ${que.join(", ")}` });
   m.actualizado = new Date().toISOString();
+  await guardar(l);
+  return m;
+}
+
+/**
+ * Guarda lo que dijo la revisión contra la vara (sistema/120) y, si Faro la rehízo, lo nuevo. Lee lo último antes de
+ * guardar: si mientras tanto alguien la aprobó o la cambió a mano, no se le pisa el contenido, solo se anota la nota.
+ */
+export async function guardarVara(mesId: string, piezaId: string, c: { vara: import("./vara.ts").VaraPieza; lamina?: Lamina; texto?: string; antes: { titulo: string; texto: string; artes?: string } }): Promise<MesContenido> {
+  const l = await leer();
+  const m = l.meses[mesId];
+  const p = m?.piezas.find((x) => x.id === piezaId);
+  if (!m || !p) throw new Error("No encontramos esa pieza.");
+  // Si ya prepararon el arte para Instagram mientras se revisaba, tampoco se toca: lo vieron así.
+  const intacta = p.estado !== "aprobada" && p.lamina?.titulo === c.antes.titulo && p.texto === c.antes.texto && (p.artes ?? []).join(",") === (c.antes.artes ?? "");
+  if (intacta && (c.lamina || c.texto)) {
+    if (c.lamina) p.lamina = c.lamina;
+    if (c.texto) p.texto = corto(c.texto, 2200) || p.texto;
+    delete p.artes;
+    const a = revisarPieza(p, "", "", m.canales).filter((x) => !x.startsWith("La cifra"));
+    if (a.length) p.avisos = a; else delete p.avisos;
+  }
+  p.vara = c.vara;
+  const ahora = new Date().toISOString();
+  m.historia.push({ cuando: ahora, quien: "faro", que: `${p.fecha}: vara ${c.vara.nota}/10${c.vara.rehecha ? `, la rehízo ${c.vara.rehecha === 1 ? "una vez" : `${c.vara.rehecha} veces`}` : ""}${c.vara.llega ? "" : " — no llega todavía"}` });
+  m.actualizado = ahora;
   await guardar(l);
   return m;
 }
