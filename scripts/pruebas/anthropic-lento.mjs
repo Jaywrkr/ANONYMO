@@ -72,10 +72,14 @@ http.createServer((req, res) => {
       const conTrabajo = imagenes > 0 && /· su trabajo ·/.test(texto);
       const fechas = (texto.split(/## Fechas[^\n]*\n/)[1] ?? "").split("\n").filter((l) => /^\d+\. \d{4}-\d{2}-\d{2}/.test(l));
       const series = [{ nombre: "Antes y después", para: "Mostrar el trabajo terminado", plantilla: "frase" }, { nombre: "Preguntas de clientes", para: "Responder dudas reales", plantilla: "lista" }, { nombre: "Detrás de cámaras", para: "Que conozcan al equipo", plantilla: "tachado" }];
-      if (conTrabajo) series[0] = { nombre: "Trabajo", para: "Mostrar el trabajo real", plantilla: "trabajo" };
-      const filas = fechas.map((l, i) => ({ n: i + 1, serie: series[i % 3].nombre, formato: i % 4 === 3 ? "reel" : i % 3 === 1 ? "carrusel" : "post", hora: i % 2 ? "08:30" : "18:00", ideaA: `Idea de prueba ${i + 1}: ${series[i % 3].nombre.toLowerCase()}`, ideaB: `Otra idea ${i + 1}` }));
+      // Con trabajo real y referencias de estudio (sistema/121), Faro decide que la cuenta es un portafolio.
+      const portafolio = conTrabajo && /Agencia|estudio|diseño/i.test(texto);
+      if (portafolio) series.splice(0, 3, { nombre: "Casos", para: "Cada proyecto contado", plantilla: "caso" }, { nombre: "Detalles", para: "Un recorte de cerca", plantilla: "detalle" }, { nombre: "En el mundo", para: "El trabajo puesto en un espacio", plantilla: "espacio" });
+      else if (conTrabajo) series[0] = { nombre: "Trabajo", para: "Mostrar el trabajo real", plantilla: "trabajo" };
+      const formatoDe = (i) => (i % 4 === 3 ? "reel" : portafolio ? (i % 3 === 0 ? "carrusel" : "post") : i % 3 === 1 ? "carrusel" : "post");
+      const filas = fechas.map((l, i) => ({ n: i + 1, serie: series[i % 3].nombre, formato: formatoDe(i), hora: i % 2 ? "08:30" : "18:00", ideaA: `Idea de prueba ${i + 1}: ${series[i % 3].nombre.toLowerCase()}`, ideaB: `Otra idea ${i + 1}` }));
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_cal", name: "armar_calendario", input: { series, fechas: filas } }], usage: { input_tokens: 1200, output_tokens: 900 } }));
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_cal", name: "armar_calendario", input: { enfoque: portafolio ? "portafolio" : "conversacion", porQueEnfoque: portafolio ? "Es un estudio: su trabajo se juzga con los ojos." : "Vende confianza y respuestas.", series, fechas: filas } }], usage: { input_tokens: 1200, output_tokens: 900 } }));
       return;
     }
     // Faro escribe las piezas de una tanda: opción A y B, arte según la plantilla, historias y YouTube en reels.
@@ -83,10 +87,11 @@ http.createServer((req, res) => {
       const texto = String(cuerpo.messages?.[0]?.content ?? "");
       const filas = [...texto.matchAll(/^(\d+)\. \d{4}-\d{2}-\d{2} \S+ · serie «[^»]+» · (\w+) · plantilla «(\w+)»/gm)].map((m) => ({ n: Number(m[1]), formato: m[2], plantilla: m[3] }));
       const archivo = (texto.match(/^- ([a-z0-9-]+-1440\.jpg) · su trabajo/m) ?? [])[1];
-      const lamina = (n, pl, o) => pl === "trabajo" ? { imagen: archivo ?? "no-existe-1440.jpg", titulo: `Trabajo real ${n}${o}` } : pl === "tachado" ? { tachado: "Excusa", titulo: `Decisión ${n}${o}.` } : pl === "lista" ? { antetitulo: "PRUEBA · LISTA", titulo: `3 cosas para revisar ${n}${o}`, bajada: "Una bajada de prueba.", items: [{ t: "Primer punto", d: "Por qué importa." }, { t: "Segundo punto", d: "Por qué importa." }, { t: "Tercer punto" }], cierre: "Guárdalo." } : { titulo: `Título de prueba ${n}${o}`, bajada: "Una bajada corta." };
+      const portafolio = /## Enfoque\nportafolio/.test(texto);
+      const lamina = (n, pl, o) => ["trabajo", "caso", "detalle", "espacio"].includes(pl) || (portafolio && pl === "portada") ? { imagen: archivo ?? "no-existe-1440.jpg", titulo: `Proyecto real ${n}${o}`, ...(pl === "caso" ? { antetitulo: "Web · 2026", bajada: "Diseño y desarrollo." } : {}), ...(pl === "detalle" ? { recorte: n % 2 ? "arriba" : "medio" } : {}) } : pl === "tachado" ? { tachado: "Excusa", titulo: `Decisión ${n}${o}.` } : pl === "lista" ? { antetitulo: "PRUEBA · LISTA", titulo: `3 cosas para revisar ${n}${o}`, bajada: "Una bajada de prueba.", items: [{ t: "Primer punto", d: "Por qué importa." }, { t: "Segundo punto", d: "Por qué importa." }, { t: "Tercer punto" }], cierre: "Guárdalo." } : { titulo: `Título de prueba ${n}${o}`, bajada: "Una bajada corta." };
       const piezas = filas.map(({ n, formato, plantilla }) => ({
         n,
-        A: { texto: `Texto de prueba ${n}. 🚀 Escríbenos por WhatsApp para saber más.\n¿Lo guardas?`, visual: "Solo el arte", lamina: lamina(n, plantilla, "A") },
+        A: { texto: portafolio ? `Proyecto real ${n}\nDiseño y desarrollo web · 2026` : `Texto de prueba ${n}. 🚀 Escríbenos por WhatsApp para saber más.\n¿Lo guardas?`, visual: "Solo el arte", lamina: lamina(n, plantilla, "A") },
         B: { texto: `Texto B de prueba ${n}.\n¿Qué opinas?`, visual: "Solo el arte", lamina: lamina(n, plantilla, "B") },
         historias: [{ texto: "Comparte el post con una línea." }, { texto: "¿Te pasó alguna vez?", sticker: "encuesta", opciones: ["Sí", "No"] }],
         ...(formato === "reel" ? { youtube: { titulo: `Reel de prueba ${n} #shorts`, descripcion: "Una descripción de prueba." } } : {}),

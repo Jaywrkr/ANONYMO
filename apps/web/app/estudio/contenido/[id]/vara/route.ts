@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     for (;;) {
       const arte: Buffer[] = [];
       for (const a of laminasHTML(estilo, { id: pz.id, formato: pz.formato, plantilla: pz.plantilla, lamina, serie: pz.serie, nSerie, historias: [], imagenes }).slice(0, 2)) arte.push(await dibujar(page, a));
-      const r = await revisarConVara({ arte, vara, direccion: textoDireccionCliente(direccion), nombre: m.nombre, pieza: { texto, plantilla: pz.plantilla, formato: pz.formato, lamina, idea: pz.idea } });
+      const r = await revisarConVara({ arte, vara, direccion: textoDireccionCliente(direccion), nombre: m.nombre, enfoque: m.enfoque, pieza: { texto, plantilla: pz.plantilla, formato: pz.formato, lamina, idea: pz.idea } });
       if (!r) return mal("Falta la clave de Anthropic: sin ella no se puede revisar contra la vara.", 503);
       const llega = r.nota >= NOTA_VARA;
       // Se rehace sola si no llega y Faro trajo algo nuevo; después de 2 vueltas queda como está, con sus motivos.
@@ -47,6 +47,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       console.error(`[vara] ${id} ${pz.id}: nota ${r.nota}, Faro la rehace (${rehecha}/${RONDAS_VARA})`);
     }
   } catch (e) {
+    console.error(`[vara] ${id} ${pz.id} falló: ${ocultarClaves((e as Error).message).slice(0, 300)}`);
     return mal(`No se pudo revisar contra la vara: ${ocultarClaves((e as Error).message).slice(0, 200)}`, 502);
   } finally {
     await nav.close().catch(() => {});

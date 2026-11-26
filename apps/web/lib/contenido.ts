@@ -20,7 +20,7 @@ export function faltaParaMes(f: Ficha): string {
 }
 
 /** Faro arma el mes con lo que se sabe del cliente. Lanza un error en palabras simples si falta algo. */
-export async function crearMes(f: Ficha, mes: string, pedido: string | undefined, por: string) {
+export async function crearMes(f: Ficha, mes: string, pedido: string | undefined, por: string, reemplazar = false) {
   const falta = faltaParaMes(f);
   if (falta) throw Object.assign(new Error(falta), { status: 409 });
   const s = saberDe(f);
@@ -29,7 +29,7 @@ export async function crearMes(f: Ficha, mes: string, pedido: string | undefined
     ...m, datos: m.vista === "escritorio" && i < 8 ? await leerMaterial(m.archivo).then((d) => (d ? Buffer.from(d).toString("base64") : undefined)).catch(() => undefined) : undefined,
   })));
   return armarMes({
-    material,
+    material, reemplazar,
     cliente: f.id, nombre: f.nombre, mes, por, pedido: pedido || undefined,
     saber: contextoCliente(s, [...TAREAS_SABER.contenido.minimo, ...TAREAS_SABER.contenido.mejor]),
     canales: s.canales?.valor ?? "Instagram", frecuencia: s.frecuencia?.valor ?? "", color: s.color?.valor,
