@@ -30,7 +30,7 @@ Las interfaces visuales siguen siendo necesarias (planner, perfil de 9 posts, vi
 | # | Fase | Se acepta si |
 |---|---|---|
 | 1 | **Ordenar la interfaz** | Sin duplicados; menú corto (Inicio, Clientes, Producción, Taller); textos y botones más calmados para que destaque lo importante; celular para decidir y capturar, no el escritorio encogido; ninguna acción te saca de donde estás |
-| 2 | **La Dirección del cliente** | Guía PDF, web y lo que ya existía (ficha, kits de Video, estilos del código) en un solo lugar, con «esto entendí»; todos los agentes la leen |
+| 2 | **La Dirección del cliente, con la calidad adentro** | Guía PDF, web y lo que ya existía (ficha, kits de Video, estilos del código) en un solo lugar, con «esto entendí»; todos los agentes la leen. Incluye «qué es bueno para este cliente» con sus referencias de primer nivel: ahí se funden el Banco y el Criterio de hoy |
 | 3 | **El chat flotante con los agentes** | Atlas pasa con el agente que toca, se ve quién habla, sabe el cliente y la pantalla, responde con tarjetas que abren lo visual |
 | 4 | **Lo que te toca** | Cada uno ve lo suyo, con dueño por tarjeta; en el celular es casi lo único |
 | 5 | **El tablero y las tres opciones de diseño** | Inspiración por capturas, links, Savee y «Compartir» del celular; Faro investiga cuentas parecidas y devuelve 3 sistemas vistos como perfil de 9 posts, cada uno con lo que lo inspiró |
@@ -41,11 +41,43 @@ Las interfaces visuales siguen siendo necesarias (planner, perfil de 9 posts, vi
 | 10 | **Video, web y comunicación con el mismo molde** | Leen la Dirección y entregan tarjetas igual que contenido |
 | 11 | **Revisión final de todo** | La misma auditoría de la fase 1, con el chat y todo lo nuevo, en celular y escritorio |
 
+## La calidad es lo que se vende (acordado por voz, 25 nov noche)
+
+La interfaz es el medio; lo que importa es que el trabajo salga bien. La calidad no es una pantalla nueva, vive dentro del ciclo:
+
+- **Antes de producir**: la Dirección fija qué es «bueno» para ese cliente (su marca, su tablero, las referencias de primer nivel que eligieron). Esa es la vara.
+- **Al producir**: cada agente revisa su trabajo contra esa Dirección antes de entregarlo. Si no llega, **se rehace solo** y no le llega a nadie.
+- **Al decidir**: la tarjeta trae una línea con la nota y lo que falta. Lo que Luna o Jay dicen al aprobar o rechazar queda guardado en la Dirección del cliente (o en el Criterio de la casa si vale para todos), sin pasos extra.
+- **En el Taller** queda una sola vista para ver cómo va calibrado el juez. El Banco y el Criterio dejan de ser pantallas del día a día.
+- **Cada fase se da por hecha cuando los casos reales salen bien**, mirados como si fuéramos el cliente; no basta con que funcione.
+
+## Los primeros clientes son de la casa
+
+Para pulir el sistema con casos reales y exigentes, en este orden:
+
+1. **La web de Coresolutions y la web de @jaywrkr**, que ya existen y les gustan a Jay y Luna. Se cargan como **referencia de calidad** y como **trabajo real de Unmake** (falta confirmar que Coresolutions acepta que se muestre como trabajo de Unmake).
+2. **Las redes de Unmake**, armadas con ese trabajo real (así el portafolio no arranca vacío ni con trabajo que no es de Unmake).
+3. Después, clientes de afuera.
+
+A quién le llega: las webs a Jay, las redes de Unmake a Luna, cada una en «Lo que te toca» y con aviso al celular.
+
+## Pantallas que hay que rehacer (de la auditoría y de lo hablado)
+
+En orden. Cada una se rehace con las piezas comunes y pensando en el chat con Atlas:
+
+1. **Video** (la que Jay señaló): mezcla pedir guion, subir y la lista en una página larga. Un paso a la vez.
+2. **Nuevo pedido**: formulario largo que compite con el chat; debería ser hablarle a Atlas.
+3. **La página del proyecto**: siete pestañas; lo que importa es qué te toca y en qué va.
+4. **Clientes nuevos de Imán**: lista, tanda y tablero son tres vistas de lo mismo.
+5. **Biblioteca y La oficina**: muestran lo mismo (quién hizo qué); con el chat y la ficha casi sobran.
+6. **La propuesta**: página muy larga; el cliente la ve y la acepta en su portal.
+7. **La campana de avisos**: repite «Lo que te toca»; deben ser lo mismo.
+
 **Para después (no ahora):** cobrar y facturar, publicar automático, decidir en lote deslizando, que el sistema adelante el mes solo, pedir el motivo de cada «no».
 
 **Quitado del plan:** el paso de referencias por separado (va dentro de la fase 5) y el Banco como pantalla del día a día (pasa al Taller).
 
-**Pendiente de definir:** cómo se pasan trabajo Luna y Jay dentro del chat; un calendario compartido de los dos (shootings, entregas, reuniones).
+**Pendiente de definir:** cómo se pasan trabajo Luna y Jay dentro del chat; un calendario compartido de los dos (shootings, entregas, reuniones); el archivo de material de cada cliente (fotos, logos, videos ordenados para que los agentes usen lo real).
 
 ---
 

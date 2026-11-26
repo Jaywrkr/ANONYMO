@@ -1,6 +1,6 @@
 # Instrucciones para agentes de código (Codex, Claude, etc.)
 
-Lee [HANDOFF.md](HANDOFF.md) antes de empezar: estado actual, prioridades de Jay y cómo probar. [README.md](README.md) explica el proyecto.
+Lee [PENDIENTES.md](PENDIENTES.md) y [HANDOFF.md](HANDOFF.md) antes de empezar: estado actual, prioridades de Jay y cómo probar. [README.md](README.md) explica el proyecto.
 
 ## Flujo
 - Trabaja en una rama nueva por mejora: `sistema/NN-nombre` (estudio, pipeline) o `web/NN-nombre` (web pública), saliendo de `main` actualizado. La última fue `sistema/116-ordenar-interfaz`. **El plan vigente son las 11 fases de [docs/mapa-agencia.md](docs/mapa-agencia.md)** (25 nov 2026). Antes de proponer algo nuevo, lee [docs/mapa-agencia.md](docs/mapa-agencia.md) y cumple [docs/experiencia.md](docs/experiencia.md).
