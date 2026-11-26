@@ -35,6 +35,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
         </div>
       </div>
       <p className="mt-3 max-w-2xl text-[15px] text-medio">Faro arma el mes de un cliente en series, con la idea, el texto y cómo se ve cada publicación. Las fechas salen de cuántas veces publica. Tú apruebas, pides cambios o corriges, y lo aprobado se copia para mandárselo.</p>
+      <p className="mt-3"><Link href="/estudio/contenido/plantillas" className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]" data-ir-plantillas>Plantillas nuevas de Unmake: revisar y aprobar</Link></p>
       <h2 className="mt-8 text-[13px] text-suave">Armar un mes</h2>
       <div className="mt-2 max-w-3xl"><ArmarMes clientes={clientes} meses={mesesParaElegir()} inicial={cliente} pedidoInicial={pedido} /></div>
       <h2 className="mt-10 text-[13px] text-suave">Meses</h2>

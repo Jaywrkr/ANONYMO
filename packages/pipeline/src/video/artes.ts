@@ -17,6 +17,17 @@ export async function dibujar(page: Page, a: ArteDibujo): Promise<Buffer> {
   return page.screenshot({ type: "jpeg", quality: 92, fullPage: false });
 }
 
+/** Revisa el arte ya cargado en el navegador (sistema/115): texto que se sale de su caja e imágenes que no cargaron. */
+export async function revisarArte(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const avisos: string[] = [];
+    for (const e of document.querySelectorAll<HTMLElement>("[data-caja]"))
+      if (e.scrollHeight > e.clientHeight + 2 || e.scrollWidth > e.clientWidth + 2) avisos.push(`Un texto se sale de su lugar: «${(e.textContent ?? "").slice(0, 40)}…».`);
+    for (const i of document.images) if (!i.complete || i.naturalWidth === 0) avisos.push("Una imagen no cargó.");
+    return avisos;
+  }).catch(() => []);
+}
+
 // — Dónde vive el arte: _arte/<mes>/<archivo>.jpg (nube privada o proyectos/; las rutas sueltas tienen tres niveles) —
 export const ARCHIVO_ARTE = /^[a-z0-9-]{1,80}\.jpg$/;
 const relArte = (mes: string, archivo: string) => `_arte/${mes}/${archivo}`;

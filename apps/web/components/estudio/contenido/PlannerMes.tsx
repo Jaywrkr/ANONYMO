@@ -27,7 +27,7 @@ const campo = "w-full rounded-xl bg-hueso/60 px-3 py-2.5 text-[15px] outline-non
  * El arte tal como se publica: el mismo HTML que se dibuja en JPG, achicado al ancho que haya.
  * Sin «ancho», mide su espacio (las celdas del calendario cambian con la pantalla).
  */
-function Vista({ a, ancho, titulo, perezosa = false }: { a: ArteDibujo; ancho?: number; titulo: string; perezosa?: boolean }) {
+export function Vista({ a, ancho, titulo, perezosa = false }: { a: ArteDibujo; ancho?: number; titulo: string; perezosa?: boolean }) {
   const caja = useRef<HTMLDivElement>(null);
   const [medido, setMedido] = useState(ancho ?? 0);
   useEffect(() => {
