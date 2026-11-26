@@ -16,7 +16,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   const { id } = await params;
   const m = await leerMesContenido(id);
   if (!m) notFound();
-  const estilo = (m.estilo && ESTILOS[m.estilo]) || estiloPara(m.cliente, m.nombre);
+  const estilo = m.estiloArte ?? ((m.estilo && ESTILOS[m.estilo]) || estiloPara(m.cliente, m.nombre));
   const redes = REDES.filter(([r]) => r.test(m.canales)).map(([, n]) => n);
   return (
     <div className="px-4 py-7 md:px-10">

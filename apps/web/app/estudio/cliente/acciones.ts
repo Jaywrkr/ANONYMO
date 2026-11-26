@@ -2,7 +2,7 @@
 // Lo que Jay y Luna escriben a mano en la ficha de un cliente (sistema/70): notas, contacto y otros nombres.
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { CLAVES_SABER, NO_APLICA, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe } from "@anonymo/pipeline";
+import { CLAVES_SABER, NO_APLICA, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe, aprobarPropuesta, direccionVacia, editarDireccion, guardarGuia, leerGuiaPdf, leerMarcaWeb, type DireccionCliente } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 
@@ -109,6 +109,56 @@ export async function accionBuscarDatos(f: FormData) {
     destino = `/estudio/cliente/${id}?ok=${encodeURIComponent(aviso || "Listo.")}#saber`;
   } catch (e) {
     destino = `/estudio/cliente/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#leido`;
+  }
+  revalidatePath(`/estudio/cliente/${id}`);
+  redirect(destino, RedirectType.replace);
+}
+
+/** La Dirección del cliente (sistema/117): leer su web, subir su guía, aprobar «esto entendí», descartar o editar. */
+export async function accionDireccion(f: FormData) {
+  const yo = await exigirEstudio();
+  const id = String(f.get("id") ?? "");
+  const accion = String(f.get("accion") ?? "");
+  let destino = `/estudio/cliente/${id}#direccion`;
+  try {
+    const ficha = (await cartera()).fichas.find((x) => x.id === id);
+    if (!ficha) throw new Error("No encontramos ese cliente.");
+    const nombre = ficha.guardada?.nombre ?? ficha.nombre;
+    const antes: DireccionCliente = ficha.guardada?.direccion ?? direccionVacia();
+    let d = antes, aviso = "";
+    if (accion === "leer-web") {
+      const web = ficha.guardada?.web ?? ficha.contacto.web;
+      if (!web) throw new Error("Para leer su marca, anota su web en «Contacto y notas».");
+      const p = await leerMarcaWeb(web);
+      if (!p.colores.length && !p.letras.length && !p.logo) throw new Error("Leímos su web pero no encontramos colores, letras ni logo. Súbelos a mano o sube su guía de marca.");
+      d = { ...antes, propuesta: p };
+      aviso = "Leímos su web. Revisa «esto entendí» y apruébalo.";
+    } else if (accion === "guia") {
+      const archivo = f.get("guia");
+      if (!(archivo instanceof File) || !archivo.size) throw new Error("Elige el PDF de su guía de marca.");
+      if (!/pdf$/i.test(archivo.type) && !/\.pdf$/i.test(archivo.name)) throw new Error("La guía tiene que ser un PDF.");
+      if (archivo.size > 4 * 1024 * 1024) throw new Error("El PDF pesa más de 4 MB. Exporta una versión más liviana (sin imágenes en alta) y vuelve a subirlo.");
+      const datos = new Uint8Array(await archivo.arrayBuffer());
+      const p = await leerGuiaPdf(datos, archivo.name.slice(0, 80), { cliente: id });
+      await guardarGuia(id, datos);
+      d = { ...antes, guia: { nombre: archivo.name.slice(0, 80), subida: new Date().toISOString(), bytes: archivo.size }, propuesta: p };
+      aviso = "Leímos su guía. Revisa «esto entendí» y apruébalo.";
+    } else if (accion === "aprobar") {
+      if (!antes.propuesta) throw new Error("No hay nada por aprobar.");
+      d = aprobarPropuesta(antes, yo);
+      aviso = "Aprobado. Los agentes ya trabajan con esta Dirección.";
+    } else if (accion === "descartar") {
+      d = { ...antes, propuesta: undefined };
+      aviso = "Descartado. No cambió nada.";
+    } else if (accion === "editar") {
+      const t = (k: string) => (f.has(k) ? String(f.get(k) ?? "") : undefined);
+      d = editarDireccion(antes, { colores: t("colores"), letras: t("letras"), palabras: t("palabras"), si: t("si"), no: t("no"), referencias: t("referencias") }, yo);
+      aviso = "Dirección guardada.";
+    } else throw new Error("No entendí qué hacer.");
+    await guardarFicha(id, { nombre, direccion: d }, yo);
+    destino = `/estudio/cliente/${id}?ok=${encodeURIComponent(aviso)}#direccion`;
+  } catch (e) {
+    destino = `/estudio/cliente/${id}?error=${encodeURIComponent(ocultarClaves((e as Error).message))}#direccion`;
   }
   revalidatePath(`/estudio/cliente/${id}`);
   redirect(destino, RedirectType.replace);

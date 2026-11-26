@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { pedirEstructura } from "../ia.ts";
-import { estiloPara } from "./artes.ts";
+import { estiloPara, type EstiloArte } from "./artes.ts";
+import { textoDireccionCliente, type DireccionCliente } from "../clientes/direccion.ts";
 
 export type FormatoPieza = "reel" | "carrusel" | "post" | "historia";
 export const FORMATOS: Record<FormatoPieza, string> = { reel: "Reel", carrusel: "Carrusel", post: "Post", historia: "Historia" };
@@ -96,6 +97,10 @@ export interface MesContenido {
   piezas: Pieza[];
   /** El estilo del arte (sistema/107): unmake, coresolutions, jaywrkr o el de su ficha. */
   estilo?: string;
+  /** El estilo ya resuelto con la Dirección del cliente (sistema/117): sus colores y letras. Manda sobre «estilo». */
+  estiloArte?: EstiloArte;
+  /** Quién lo revisa (sistema/117): las redes son de Luna salvo que digan otra cosa. Le llega en «Lo que te toca». */
+  responsable?: "jay" | "luna";
   historia: PasoMes[];
   creado: string;
   actualizado: string;
@@ -401,16 +406,17 @@ export function leerMesIA(x: unknown, fechas: string[]) {
 }
 
 /** Faro arma el mes y queda guardado para revisar. Un mes por cliente: si ya existe, no se vuelve a gastar. */
-export async function armarMes(o: { cliente: string; nombre: string; mes: string; saber: string; canales: string; frecuencia: string; pedido?: string; por: string; color?: string }): Promise<MesContenido> {
+export async function armarMes(o: { cliente: string; nombre: string; mes: string; saber: string; canales: string; frecuencia: string; pedido?: string; por: string; color?: string; direccion?: DireccionCliente; responsable?: "jay" | "luna" }): Promise<MesContenido> {
   if (!/^\d{4}-\d{2}$/.test(o.mes)) throw new Error("No entendí el mes.");
   const id = idMes(o.cliente, o.mes);
   if ((await leer()).meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}. Ábrelo desde Contenido.`);
   // Si pidieron una cantidad («las primeras 9 publicaciones»), son esas: las primeras fechas del mes (sistema/114).
   const todas = fechasDelMes(o.mes, o.frecuencia), cuantas = cantidadPedida(o.pedido);
   const fechas = cuantas ? todas.slice(0, cuantas) : todas;
-  const estilo = estiloPara(o.cliente, o.nombre, o.color);
+  const estilo = estiloPara(o.cliente, o.nombre, o.color, o.direccion);
   const contexto = [
     `## Cliente\n${o.nombre}`,
+    textoDireccionCliente(o.direccion).slice(0, 3000),
     `## Lo que sabemos del cliente (úsalo tal cual; no inventes nada más de su negocio)\n${o.saber.slice(0, 4000)}`,
     `## Reglas de marca\n${estilo.reglas}`,
     o.pedido?.trim() ? `## Lo que pidieron para este mes\n${o.pedido.trim().slice(0, 800)}` : "",
@@ -485,7 +491,7 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   }
   const ahora = new Date().toISOString();
   const mes: MesContenido = {
-    id, cliente: o.cliente, nombre: o.nombre, mes: o.mes, canales: o.canales, frecuencia: o.frecuencia, pedido: o.pedido?.trim() || undefined, series, piezas, estilo: estilo.id,
+    id, cliente: o.cliente, nombre: o.nombre, mes: o.mes, canales: o.canales, frecuencia: o.frecuencia, pedido: o.pedido?.trim() || undefined, series, piezas, responsable: o.responsable ?? "luna", estilo: estilo.id, estiloArte: o.direccion && (o.direccion.colores.length || o.direccion.letras.length) ? estilo : undefined,
     historia: [
       { cuando: ahora, quien: o.por, que: `Pidió el mes de ${nombreMes(o.mes)}` },
       { cuando: ahora, quien: "faro", que: `Armó ${piezas.length} piezas en ${series.length} series, cada una con opción A y B, texto, arte e historias${piezas.length < fechas.length ? ` (faltaron ${fechas.length - piezas.length})` : ""}` },

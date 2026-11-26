@@ -1,5 +1,5 @@
 // Faro escribe el guion de un video antes de grabarlo (sistema/71).
-import { clienteConFicha, contextoCliente, escribirGuion, idFicha, idGuionValido, leerGuion, ocultarClaves, puedeHacer, saberDe, TAREAS_SABER, textoFaltan } from "@anonymo/pipeline";
+import { clienteConFicha, contextoConDireccion, escribirGuion, idFicha, idGuionValido, leerGuion, ocultarClaves, puedeHacer, saberDe, TAREAS_SABER, textoFaltan } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { mal, permiso } from "@/lib/video";
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     if (f && clienteConFicha(f)) {
       const s = saberDe(f), e = puedeHacer(s, "guion");
       if (!e.listo) return mal(`Para escribirle un guion a ${f.nombre} falta saber: ${textoFaltan(e.faltan)}. Complétalo en su ficha (Clientes → ${f.nombre}).`, 409);
-      saber = contextoCliente(s, [...TAREAS_SABER.guion.minimo, ...TAREAS_SABER.guion.mejor]);
+      saber = contextoConDireccion(f, [...TAREAS_SABER.guion.minimo, ...TAREAS_SABER.guion.mejor]);
     }
   }
   try {

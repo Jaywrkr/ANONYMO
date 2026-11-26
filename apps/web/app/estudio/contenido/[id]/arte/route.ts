@@ -18,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const pz = m?.piezas.find((x) => x.id === c.pieza);
   if (!m || !pz) return mal("No encontramos esa pieza.", 404);
   if (!pz.lamina || !pz.plantilla) return mal("Esta pieza es de antes y no trae lo que va escrito en el arte. Arma el mes de nuevo para que Faro lo escriba.", 409);
-  const estilo = (m.estilo && ESTILOS[m.estilo]) || estiloPara(m.cliente, m.nombre);
+  const estilo = m.estiloArte ?? ((m.estilo && ESTILOS[m.estilo]) || estiloPara(m.cliente, m.nombre));
   // «Nº» cuenta las piezas de su serie hasta esta, como en los planificadores.
   const nSerie = m.piezas.filter((x) => x.serie === pz.serie && x.fecha <= pz.fecha).length;
   const nav = await navegadorCapturas();

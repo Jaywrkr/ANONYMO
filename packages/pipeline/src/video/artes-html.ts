@@ -2,6 +2,7 @@
 // sin servidor ni navegador. artes.ts lo usa para dibujar los JPG.
 import type { FormatoPieza, Historia, Lamina, PlantillaArte } from "./contenido.ts";
 import { UNMAKE_LINE } from "./fuentes/unmake-line.ts";
+import type { DireccionCliente } from "../clientes/direccion.ts";
 
 export interface EstiloArte {
   id: string;
@@ -29,6 +30,8 @@ export interface EstiloArte {
   luz?: boolean;
   /** Cómo le habla a la gente: va a las reglas de Faro. */
   reglas: string;
+  /** Letras de Google Fonts que hay que cargar (las de la Dirección del cliente, sistema/117). */
+  fuentes?: string[];
 }
 
 const FUENTES_GOOGLE = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Geist+Mono:wght@300;400&display=block" rel="stylesheet">';
@@ -54,8 +57,33 @@ export const ESTILOS: Record<string, EstiloArte> = {
   },
 };
 
-/** El estilo de un cliente: Unmake, Coresolutions y @jaywrkr tienen el suyo; los demás salen del color de su ficha. */
-export function estiloPara(cliente: string, nombre = "", color = ""): EstiloArte {
+const saturado = (h: string) => { const n = parseInt(h.slice(1), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; return (Math.max(...c) - Math.min(...c)) / 255 >= 0.12; };
+const luzDe = (h: string) => { const n = parseInt(h.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+
+/** El estilo que sale de la Dirección del cliente (sistema/117): sus colores y sus letras mandan sobre lo de siempre. */
+export function estiloDeDireccion(d: DireccionCliente | undefined, base: EstiloArte): EstiloArte {
+  if (!d || (!d.colores.length && !d.letras.length)) return base;
+  const neutros = d.colores.filter((c) => !saturado(c.hex)), acentos = d.colores.filter((c) => saturado(c.hex)).map((c) => c.hex);
+  const fondo = d.colores.find((c) => /fondo/i.test(c.nombre ?? ""))?.hex ?? neutros.find((c) => luzDe(c.hex) > 0.85)?.hex ?? (d.colores.length ? base.fondo : base.fondo);
+  const tinta = d.colores.find((c) => /tinta|texto/i.test(c.nombre ?? ""))?.hex ?? neutros.find((c) => luzDe(c.hex) < 0.3)?.hex ?? base.tinta;
+  const [t, x] = [d.letras.find((l) => l.uso === "títulos") ?? d.letras[0], d.letras.find((l) => l.uso === "texto") ?? d.letras[1] ?? d.letras[0]];
+  const familia = (f: string | undefined, resto: string) => (f ? `'${f.replace(/'/g, "")}', ${resto}` : resto);
+  return {
+    ...base,
+    fondo, tinta,
+    acentos: acentos.length ? acentos : base.acentos,
+    titulo: t ? familia(t.familia, base.titulo) : base.titulo,
+    texto: x ? familia(x.familia, base.texto) : base.texto,
+    fuentes: [...new Set([t?.familia, x?.familia].filter(Boolean) as string[])],
+    reglas: `${base.reglas} Sigue la Dirección del cliente: sus colores, sus letras y lo que sí y lo que no.`,
+  };
+}
+
+/** El estilo de un cliente: Unmake, Coresolutions y @jaywrkr tienen el suyo; los demás salen del color de su ficha. Si tiene Dirección, manda ella. */
+export function estiloPara(cliente: string, nombre = "", color = "", direccion?: DireccionCliente): EstiloArte {
+  return estiloDeDireccion(direccion, estiloBase(cliente, nombre, color));
+}
+function estiloBase(cliente: string, nombre: string, color: string): EstiloArte {
   const id = `${cliente} ${nombre}`.toLowerCase();
   if (/^(unmake|anonymo)\b/.test(cliente) || /\bunmake\b/.test(id)) return ESTILOS.unmake!;
   if (/coresolutions|core-solutions/.test(id)) return ESTILOS.coresolutions!;
@@ -85,7 +113,8 @@ function marco(e: EstiloArte, ancho: number, alto: number, cuerpo: string, o: { 
   const cabeza = e.franja
     ? `<div class="cab" style="color:#fff"><span class="mono">▣ ${esc(o.serie.toUpperCase())} · ${dos(o.nSerie)}</span><span style="font-weight:600;letter-spacing:.04em">${esc(e.firma)}</span></div>`
     : `<div class="cab"><span>${esc(e.firma)}</span><span>${esc(e.minusculas ? o.serie.toLowerCase() : o.serie.toUpperCase())} · Nº ${dos(o.nSerie)}</span></div>`;
-  return `<!doctype html><html><head><meta charset="utf-8">${FUENTES_GOOGLE}<style>
+  const propias = e.fuentes?.length ? `<link href="https://fonts.googleapis.com/css2?${e.fuentes.map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}`).join("&")}&display=block" rel="stylesheet">` : "";
+  return `<!doctype html><html><head><meta charset="utf-8">${FUENTES_GOOGLE}${propias}<style>
 @font-face{font-family:'Unmake Line';src:url(${UNMAKE_LINE}) format('woff2')}
 *{box-sizing:border-box;margin:0}html,body{width:${ancho}px;height:${alto}px;overflow:hidden}
 body{background:${luz}${fondo};color:${tinta};font-family:${e.texto};position:relative;-webkit-font-smoothing:antialiased}

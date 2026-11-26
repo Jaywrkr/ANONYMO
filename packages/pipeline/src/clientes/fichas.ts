@@ -4,6 +4,7 @@
 import { slug } from "../solicitudes.ts";
 import type { Prospecto } from "../prospectos/tipos.ts";
 import type { LecturaFuentes } from "./fuentes.ts";
+import type { DireccionCliente } from "./direccion.ts";
 
 /** Lo que Jay y Luna escriben a mano en la ficha. */
 export interface FichaGuardada {
@@ -21,6 +22,8 @@ export interface FichaGuardada {
   lectura?: LecturaFuentes;
   /** Cuándo se leyó su web por última vez (sistema/109): la ficha la lee sola una vez; después, a pedido. */
   leidoEl?: string;
+  /** La Dirección del cliente (sistema/117): su marca y qué es bueno para él. La leen todos los agentes. */
+  direccion?: DireccionCliente;
   creado: string;
   actualizado: string;
   por?: string;

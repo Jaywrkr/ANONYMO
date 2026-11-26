@@ -59,6 +59,12 @@ try {
   if (!(await f2.isVisible())) await p.locator("summary:has-text('Lo que sabemos de')").click();
   exigir(await f2.locator("[name=saber-oferta]").inputValue() === "Webs para negocios de Cuenca, desde USD 900", "lo que ya estaba escrito no se pisa");
   exigir(await espera(p.locator("[data-tarea=contenido][data-listo=si] [data-ir-contenido]")), "con todo, la ficha ofrece armar su mes");
+  // 2b · La Dirección de Unmake (sistema/117): lo que escriben ustedes llega a Faro.
+  await p.locator("[data-editar-direccion] summary").click();
+  await p.locator("[data-editar-direccion] [name=no]").fill("Sin fotos de banco");
+  await p.locator("[data-editar-direccion] [name=palabras]").fill("directo\nsimple");
+  await p.locator("[data-guardar-direccion]").click();
+  exigir(await espera(p.locator("[role=status]:has-text('Dirección guardada')")), "la Dirección de Unmake se guarda");
   await p.locator("[data-ir-contenido]").click();
   await p.waitForURL(/estudio\/contenido\?cliente=unmake/);
   exigir(await form.locator("select").first().inputValue() === "unmake" && await form.locator("[data-falta-mes]").count() === 0, "llega con Unmake elegido y sin faltas");
@@ -73,6 +79,8 @@ try {
   exigir(await espera(form.getByRole("button", { name: "Faro está armando el mes…" }), 3000), "mientras arma, el botón lo dice y queda bloqueado");
   await p.waitForURL(/estudio\/contenido\/c-unmake-\d{4}-\d{2}$/, { timeout: 60000 });
   exigir(meses() === antes + 1, "una sola llamada a Faro");
+  const conDireccion = readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes("Faro arma el mes de contenido")).pop() ?? "";
+  exigir(conDireccion.includes("La Dirección del cliente") && conDireccion.includes("Sin fotos de banco"), "Faro recibe la Dirección del cliente al armar el mes");
 
   // 4 · El mes como planner (sistema/114): el calendario con una pieza por fecha, lunes, miércoles y viernes.
   const rev = p.locator("[data-mes-revision]");
@@ -185,6 +193,17 @@ try {
   const nueva = panel.locator("[data-tarjeta]").filter({ hasText: `Contenido de Unmake · ${otro}` }).filter({ hasText: "Faro armó" });
   exigir(await espera(nueva, 60000) && meses() === antes2 + 1, "la caja arma el otro mes y trae la tarjeta para revisarlo");
   await p.keyboard.press("Escape");
+
+  // 9b · El cambio pedido con su motivo queda en la Dirección, y el mes le llega a Luna (sistema/117).
+  await p.goto(`${B}/estudio/cliente/unmake`);
+  exigir(/Más corto y sin precio/.test(await p.locator("[data-aprendido]").innerText().catch(() => "")), "el motivo del cambio queda en «Lo que dijeron al revisar»");
+  const deLuna = await nav.newContext({ viewport: { width: 1360, height: 900 } });
+  const l = await deLuna.newPage();
+  await l.goto(`${B}/entrar`); await l.check('input[name="quien"][value="luna"]', { force: true }); await l.fill('input[name="clave"]', "prueba-clave-luna"); await l.click("text=Entrar al estudio"); await l.waitForURL(/estudio$/);
+  exigir(await espera(l.locator("[data-mes-toca]").first()) && /por revisar/.test(await l.locator("[data-mes-toca]").first().innerText()), "a Luna le llega el mes de contenido en «Te toca»");
+  await deLuna.close();
+  await p.goto(`${B}/estudio`);
+  exigir(await p.locator("[data-mes-toca]").count() === 0, "a Jay no, porque las redes son de Luna");
 
   // 10 · En el celular: nada se sale de la pantalla.
   const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });

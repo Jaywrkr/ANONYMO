@@ -5,6 +5,7 @@ import { DATOS, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, 
 import { Cara } from "@/components/estudio/piezas";
 import { AbrirAtlas } from "@/components/estudio/AbrirAtlas";
 import { BuscarSolo } from "@/components/estudio/clientes/BuscarSolo";
+import { DireccionDelCliente } from "@/components/estudio/clientes/DireccionCliente";
 import { exigirEstudio, serif, campo, boton, botonLleno, titulo } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
 import { accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
@@ -83,6 +84,9 @@ export default async function Ficha({ params, searchParams }: { params: Promise<
         {f.contacto.web && <a href={f.contacto.web} target="_blank" rel="noreferrer" className={boton}>Su web</a>}
       </div>
       {fallas.length > 0 && <p role="alert" className="mt-4 rounded-2xl bg-[#fde8e4] p-4 text-[14px] text-[#8a1c0c]">Una parte no respondió y puede faltar algo: {fallas.join(" · ")}</p>}
+
+      {/* La Dirección del cliente (sistema/117): lo primero de la ficha, porque es lo que siguen todos los agentes. */}
+      <DireccionDelCliente id={f.id} nombre={f.nombre} d={g?.direccion} web={g?.web ?? f.contacto.web} />
 
       {/* Qué se puede hacer y qué falta (sistema/92, más visual en sistema/109): cara de quien la hace, cuadritos de
           avance, una línea concreta y los datos que faltan como chips que llevan a su campo. La más cerca de estar lista, primero. */}
