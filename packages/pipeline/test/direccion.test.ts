@@ -75,3 +75,12 @@ test("la guía reemplaza los colores que venían de la web", () => {
   assert.deepEqual(d.colores.map((c) => c.hex), ["#01095c"]);
   assert.deepEqual(d.letras.map((l) => l.familia), ["Inter"], "si la guía no dice letras, quedan las de la web");
 });
+
+test("la letra propia (@font-face) gana y el logo en svg se encuentra", () => {
+  const html = `<style>@font-face{font-family:'Unmake Line';src:url(x.woff2)}h1{font-family:'Unmake Line',monospace}body{font-family:'IBM Plex Sans'}</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans&display=swap" rel="stylesheet"><link rel="apple-touch-icon" href="/apple-icon.png">
+<a><svg class="logo" aria-label="unmake."><path d="M0 0h10v10z"/></svg></a>`;
+  const m = marcaDeWeb(html, [], "https://www.unmake.studio/");
+  assert.equal(m.letras[0]!.familia, "Unmake Line");
+  assert.match(m.logo ?? "", /^data:image\/svg\+xml;base64,/);
+});

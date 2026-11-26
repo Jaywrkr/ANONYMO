@@ -2,7 +2,7 @@
 // Lo que Jay y Luna escriben a mano en la ficha de un cliente (sistema/70): notas, contacto y otros nombres.
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { CLAVES_SABER, NO_APLICA, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe, TRABAJOS_UNMAKE, aprobarPropuesta, direccionVacia, editarDireccion, guardarGuia, leerGuiaPdf, leerMarcaWeb, type DireccionCliente } from "@anonymo/pipeline";
+import { CLAVES_SABER, NO_APLICA, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe, TRABAJOS_UNMAKE, aprobarPropuesta, direccionVacia, editarDireccion, guardarGuia, leerGuiaPdf, leerMarcaWeb, logoDeWeb, navegadorCapturas, type DireccionCliente } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 
@@ -137,6 +137,11 @@ export async function accionDireccion(f: FormData) {
       const web = ficha.guardada?.web ?? ficha.contacto.web;
       if (!web) throw new Error("Para leer su marca, anota su web en «Contacto y notas».");
       const p = await leerMarcaWeb(web);
+      // El logo como se ve de verdad (también los que dibuja un script): con el navegador del estudio (sistema/118).
+      const nav = await navegadorCapturas().catch(() => undefined);
+      if (nav) {
+        try { const l = await logoDeWeb(nav, /^https?:\/\//i.test(web) ? web : `https://${web}`); if (l) p.logo = l; } finally { await nav.close().catch(() => {}); }
+      }
       if (!p.colores.length && !p.letras.length && !p.logo) throw new Error("Leímos su web pero no encontramos colores, letras ni logo. Súbelos a mano o sube su guía de marca.");
       d = { ...antes, propuesta: p };
       aviso = "Leímos su web. Revisa «esto entendí» y apruébalo.";
@@ -159,7 +164,7 @@ export async function accionDireccion(f: FormData) {
       aviso = "Descartado. No cambió nada.";
     } else if (accion === "editar") {
       const t = (k: string) => (f.has(k) ? String(f.get(k) ?? "") : undefined);
-      d = editarDireccion(antes, { colores: t("colores"), letras: t("letras"), palabras: t("palabras"), si: t("si"), no: t("no"), referencias: t("referencias") }, yo);
+      d = editarDireccion(antes, { colores: t("colores"), letras: t("letras"), palabras: t("palabras"), si: t("si"), no: t("no"), referencias: t("referencias"), trabajos: t("trabajos") }, yo);
       aviso = "Dirección guardada.";
     } else throw new Error("No entendí qué hacer.");
     await guardarFicha(id, { nombre, direccion: d }, yo);

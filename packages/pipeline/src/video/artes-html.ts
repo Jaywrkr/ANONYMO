@@ -102,7 +102,7 @@ const dos = (n: number) => String(n).padStart(2, "0");
 const tam = (t: string | undefined, base: number, piso: number, largo = 28) => Math.round(Math.max(piso, Math.min(base, base * Math.sqrt(largo / Math.max(1, (t ?? "").length)))));
 
 export interface ArteDibujo { nombre: string; ancho: number; alto: number; html: string }
-export interface PiezaArte { id: string; formato: FormatoPieza; plantilla: PlantillaArte; lamina: Lamina; serie: string; nSerie: number; historias?: Historia[] }
+export interface PiezaArte { id: string; formato: FormatoPieza; plantilla: PlantillaArte; lamina: Lamina; serie: string; nSerie: number; historias?: Historia[]; /** De dónde sale cada captura (archivo → dirección o data:). Sin esto, /material/<archivo>. */ imagenes?: Record<string, string> }
 
 function marco(e: EstiloArte, ancho: number, alto: number, cuerpo: string, o: { serie: string; nSerie: number; pagina?: string; acento: string; invertido: boolean; ultima?: boolean }) {
   const fondo = o.invertido ? e.tinta : e.fondo, tinta = o.invertido ? e.fondo : e.tinta, suave = e.suave;
@@ -143,6 +143,17 @@ export function laminasHTML(e: EstiloArte, p: PiezaArte): ArteDibujo[] {
   if (p.formato === "reel" || p.plantilla === "portada") {
     const cuerpo = `${ante}${h1(L.titulo, 104, 60)}${baj(L.bajada)}`;
     return [{ nombre: `${p.id}-portada`, ancho: 1080, alto: 1920, html: marco(e, 1080, 1920, cuerpo, { ...base, ultima: true }) }];
+  }
+  if (p.plantilla === "trabajo" && L.imagen) {
+    // El trabajo real con aire alrededor (sistema/118): la captura arriba, una línea abajo. En carrusel, después la del celular.
+    const src = (archivo: string) => esc(p.imagenes?.[archivo] ?? `/material/${archivo}`);
+    const celular = L.imagen.replace(/-1440\.jpg$/, "-390.jpg");
+    const marcoImg = (archivo: string, movil: boolean) => movil
+      ? `<div style="align-self:center;width:46%;aspect-ratio:9/16;overflow:hidden;border-radius:28px;box-shadow:0 0 0 2px ${e.suave}55"><img src="${src(archivo)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block"></div>`
+      : `<div style="width:100%;aspect-ratio:16/11;overflow:hidden;border-radius:10px;box-shadow:0 0 0 1px ${e.suave}55"><img src="${src(archivo)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block"></div>`;
+    const linea = `<p class="t" style="font-size:${tam(L.titulo, 46, 32)}px;max-width:90%">${esc(L.titulo)}</p>`;
+    if (p.formato === "carrusel" && celular !== L.imagen) return [lamina(1, 2, `${marcoImg(L.imagen, false)}${linea}`), lamina(2, 2, `${marcoImg(celular, true)}${baj(L.bajada ?? "En el celular.")}`)];
+    return [lamina(1, 1, `${marcoImg(L.imagen, false)}${linea}`)];
   }
   if (p.plantilla === "tachado") {
     const c = `<div style="display:flex;flex-wrap:wrap;gap:28px 40px;align-items:baseline;justify-content:center;text-align:center"><span class="t" style="font-size:${tam(L.tachado, 80, 48, 10)}px"><s>${esc(L.tachado)}</s></span><span class="t" style="font-size:${tam(L.titulo, 80, 48, 10)}px">${esc(L.titulo)}</span></div>`;

@@ -14,7 +14,16 @@ const PRIORIDAD: Record<OrigenDir, number> = { guia: 4, ustedes: 3, web: 2, agen
 export interface Color { hex: string; nombre?: string; origen: OrigenDir }
 export interface Letra { familia: string; uso?: "títulos" | "texto"; origen: OrigenDir }
 export interface LineaDir { texto: string; origen: OrigenDir }
-export interface ReferenciaDir { url: string; nota?: string; origen: OrigenDir }
+export interface ReferenciaDir {
+  url: string;
+  nota?: string;
+  origen: OrigenDir;
+  /** Es trabajo real del cliente (para mostrar), no solo una referencia de calidad (sistema/118). */
+  trabajo?: boolean;
+  /** Capturas de esa web, en computadora y celular (sistema/118): los agentes ven la vara, no solo el enlace. */
+  capturas?: import("./material.ts").CapturaMaterial[];
+  capturadaEl?: string;
+}
 export interface Aprendido { texto: string; cuando: string; por: string; donde?: string }
 
 /** Lo que se leyó de un PDF o de la web y espera que alguien lo apruebe. */
@@ -92,18 +101,26 @@ export function marcaDeWeb(html: string, css: string[], base: string): Omit<Prop
     const nombre = decodeURIComponent(f.slice(7).split(":")[0]!.replace(/\+/g, " ")).trim();
     if (nombre) familias.set(nombre, (familias.get(nombre) ?? 0) + 5);
   }
+  // La letra propia de la marca (@font-face) pesa más que cualquier otra: es la que la distingue.
+  for (const m of todo.matchAll(/@font-face\s*\{[^}]*?font-family\s*:\s*["']?([^;"'}]+)["']?/gi)) {
+    const nombre = m[1]!.trim();
+    if (nombre && !GENERICAS.test(nombre) && nombre.length < 40) familias.set(nombre, (familias.get(nombre) ?? 0) + 20);
+  }
   for (const m of todo.matchAll(/font-family\s*:\s*([^;}"]+)/gi)) {
     const primera = m[1]!.split(",")[0]!.replace(/["']/g, "").trim();
     if (primera && !GENERICAS.test(primera) && primera.length < 40) familias.set(primera, (familias.get(primera) ?? 0) + 1);
   }
   const letras = [...familias.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([familia], i) => ({ familia, uso: (i === 0 ? "títulos" : "texto") as Letra["uso"] }));
-  // Logo: una imagen o svg que se llame logo; si no, el ícono para iPhone o la imagen para compartir.
+  // Logo: una imagen o un svg que digan «logo»; si no, el ícono en svg; el ícono para iPhone solo al final.
   const abs = (u: string) => { try { return new URL(u, base).toString(); } catch { return undefined; } };
   const imgLogo = html.match(/<img[^>]+(?:src|alt|class|id)=["'][^"']*logo[^"']*["'][^>]*>/i)?.[0];
   const srcLogo = imgLogo?.match(/src=["']([^"']+)["']/i)?.[1];
-  const icono = html.match(/<link[^>]+rel=["']apple-touch-icon["'][^>]*href=["']([^"']+)["']/i)?.[1] ?? html.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["']apple-touch-icon["']/i)?.[1];
-  const og = html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["']/i)?.[1];
-  const logo = [srcLogo, icono, og].map((u) => (u ? abs(u) : undefined)).find((u) => u && /^https?:/.test(u));
+  const svgLogo = html.match(/<svg[^>]*(?:class|id|aria-label)=["'][^"']*logo[^"']*["'][^>]*>[\s\S]*?<\/svg>/i)?.[0];
+  const svgUrl = svgLogo && svgLogo.length < 60_000 && /<(path|text|use|rect|circle|polygon|g)\b/i.test(svgLogo)
+    ? `data:image/svg+xml;base64,${Buffer.from(svgLogo.includes("xmlns=") ? svgLogo : svgLogo.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"')).toString("base64")}` : undefined;
+  const iconoSvg = html.match(/<link[^>]+rel=["']icon["'][^>]*href=["']([^"']+\.svg)["']/i)?.[1] ?? html.match(/<link[^>]+href=["']([^"']+\.svg)["'][^>]*rel=["']icon["']/i)?.[1];
+  const tactil = html.match(/<link[^>]+rel=["']apple-touch-icon["'][^>]*href=["']([^"']+)["']/i)?.[1] ?? html.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["']apple-touch-icon["']/i)?.[1];
+  const logo = srcLogo ? abs(srcLogo) : svgUrl ?? [iconoSvg, tactil].map((u) => (u ? abs(u) : undefined)).find((u) => u && /^https?:/.test(u));
   return { colores, letras, logo };
 }
 
@@ -202,14 +219,22 @@ export function aprobarPropuesta(d: DireccionCliente, por: string): DireccionCli
 }
 
 /** Lo que escriben ustedes a mano: una línea por cosa. Reemplaza solo lo suyo; lo de la guía y la web queda. */
-export interface EdicionDireccion { colores?: string; letras?: string; palabras?: string; si?: string; no?: string; referencias?: string }
+export interface EdicionDireccion { colores?: string; letras?: string; palabras?: string; si?: string; no?: string; referencias?: string; /** Su trabajo real para mostrar: un enlace por línea, con nota. */ trabajos?: string }
 const lineas = (t: string | undefined) => String(t ?? "").split(/\n|;/).map((x) => limpio(x, 200)).filter(Boolean);
 export function editarDireccion(d: DireccionCliente, e: EdicionDireccion, por: string): DireccionCliente {
   const nuestro = <T extends { origen: OrigenDir }>(lista: T[], nuevos: T[] | undefined) => (nuevos === undefined ? lista : [...lista.filter((x) => x.origen !== "ustedes"), ...nuevos]);
-  const refs = e.referencias === undefined ? undefined : lineas(e.referencias).map((l) => {
+  const leerRefs = (texto: string, trabajo: boolean) => lineas(texto).map((l) => {
     const url = l.match(/https?:\/\/\S+/)?.[0];
-    return url ? { url: url.slice(0, 300), nota: limpio(l.replace(url, "").replace(/^[\s—–-]+|[\s—–-]+$/g, ""), 160) || undefined, origen: "ustedes" as OrigenDir } : undefined;
+    if (!url) return undefined;
+    const antes = d.referencias.find((r) => r.url === url.slice(0, 300));
+    // Las capturas de una web que ya estaba se conservan: no hay que volver a sacarlas.
+    return { url: url.slice(0, 300), nota: limpio(l.replace(url, "").replace(/^[\s—–-]+|[\s—–-]+$/g, ""), 160) || undefined, origen: "ustedes" as OrigenDir, ...(trabajo ? { trabajo: true } : {}), ...(antes?.capturas ? { capturas: antes.capturas, capturadaEl: antes.capturadaEl } : {}) };
   }).filter(Boolean) as ReferenciaDir[];
+  // Referencias y trabajo se editan por separado: si solo viene uno, el otro queda como estaba.
+  const refs = e.referencias === undefined && e.trabajos === undefined ? undefined : [
+    ...(e.trabajos === undefined ? d.referencias.filter((r) => r.origen === "ustedes" && r.trabajo) : leerRefs(e.trabajos, true)),
+    ...(e.referencias === undefined ? d.referencias.filter((r) => r.origen === "ustedes" && !r.trabajo) : leerRefs(e.referencias, false)),
+  ];
   return {
     ...d,
     colores: nuestro(d.colores, e.colores === undefined ? undefined : lineas(e.colores).map((l) => { const m = l.match(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|\b[0-9a-f]{6}\b/i)?.[0]; const h = m ? hex6(m) : undefined; return h ? { hex: h, nombre: limpio(l.replace(m!, "").replace(/^[\s—–:-]+/, ""), 40) || undefined, origen: "ustedes" as OrigenDir } : undefined; }).filter(Boolean) as Color[]).slice(0, 10),
@@ -217,7 +242,7 @@ export function editarDireccion(d: DireccionCliente, e: EdicionDireccion, por: s
     palabras: nuestro(d.palabras, e.palabras === undefined ? undefined : lineas(e.palabras).slice(0, 6).map((texto) => ({ texto: texto.slice(0, 40), origen: "ustedes" as OrigenDir }))),
     si: nuestro(d.si, e.si === undefined ? undefined : lineas(e.si).slice(0, 16).map((texto) => ({ texto, origen: "ustedes" as OrigenDir }))),
     no: nuestro(d.no, e.no === undefined ? undefined : lineas(e.no).slice(0, 16).map((texto) => ({ texto, origen: "ustedes" as OrigenDir }))),
-    referencias: nuestro(d.referencias, refs?.slice(0, 12)),
+    referencias: nuestro(d.referencias, refs?.slice(0, 16)),
     actualizada: new Date().toISOString(),
     por,
   };
@@ -245,6 +270,7 @@ export function textoDireccionCliente(d: DireccionCliente | undefined): string {
     d.letras.length ? `Letras: ${d.letras.map((l) => `${l.familia}${l.uso ? ` para ${l.uso}` : ""}`).join(", ")}.` : "",
     d.si.length ? `Sí:\n${d.si.map((x) => `- ${x.texto}`).join("\n")}` : "",
     d.no.length ? `No:\n${d.no.map((x) => `- ${x.texto}`).join("\n")}` : "",
+    d.referencias.some((r) => r.trabajo) ? `Trabajo real de este cliente para mostrar (hay capturas en el material):\n${d.referencias.filter((r) => r.trabajo).map((r) => `- ${r.url}${r.nota ? ` — ${r.nota}` : ""}`).join("\n")}` : "",
     d.referencias.length ? `Qué es bueno para este cliente (referencias que eligieron Jay y Luna; esa es la vara):\n${d.referencias.map((r) => `- ${r.url}${r.nota ? ` — ${r.nota}` : ""}`).join("\n")}` : "",
     d.aprendido.length ? `Lo que dijeron al revisar antes (no repetir esos errores):\n${d.aprendido.slice(0, 10).map((a) => `- ${a.texto}`).join("\n")}` : "",
   ].filter(Boolean);
