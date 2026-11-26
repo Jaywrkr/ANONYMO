@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const d = await leerMaterial(a).catch(() => undefined);
     if (d) imagenes[a] = `data:image/jpeg;base64,${Buffer.from(d).toString("base64")}`;
   }
-  if (pz.plantilla === "trabajo" && pz.lamina.imagen && !imagenes[pz.lamina.imagen]) return mal("Falta la captura de este trabajo. Abre la ficha del cliente para que se capture de nuevo.", 409);
+  if (pz.lamina.imagen && !imagenes[pz.lamina.imagen]) return mal("Falta la captura de este trabajo. Abre la ficha del cliente para que se capture de nuevo.", 409);
   const nav = await navegadorCapturas();
   try {
     const page = await nav.newPage();

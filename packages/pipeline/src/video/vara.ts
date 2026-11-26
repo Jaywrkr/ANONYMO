@@ -27,7 +27,8 @@ Pregúntate: ¿esto se ve y se lee al mismo nivel que la vara? ¿Respeta la Dire
 Nota de 0 a 10, con exigencia real: 7 es «se puede publicar sin vergüenza al lado de la vara»; 9 es «está a la altura de su mejor trabajo».
 Motivos: hasta 3, concretos, en frases cortas y simples, sin jerga (qué falla y dónde).
 Si la nota es menor que ${NOTA_VARA}, reescribe lo que va en el arte (lamina) y, si hace falta, el texto, para que llegue. Mantén la idea y la plantilla. Títulos cortos (menos de 60 letras). No inventes datos del cliente.
-Lo que no se arregla con palabras (color, letra, composición) dilo en los motivos.`;
+Lo que no se arregla con palabras (color, letra, composición) dilo en los motivos.
+Si la pieza es de una cuenta de portafolio (muestra trabajo), un texto largo o una frase de consejo es un error: reescríbelo al nombre del proyecto y qué se hizo.`;
 
 const HERRAMIENTA_VARA = {
   nombre: "revisar_con_vara",
@@ -70,7 +71,7 @@ export function aplicarLamina(l: Lamina, c: Partial<Lamina> | undefined): Lamina
 
 /** Mira el arte dibujado al lado de la vara. Sin clave de IA devuelve undefined. */
 export async function revisarConVara(o: {
-  arte: Buffer[]; vara: CapturaVara[]; direccion: string; nombre: string;
+  arte: Buffer[]; vara: CapturaVara[]; direccion: string; nombre: string; enfoque?: string;
   pieza: { texto: string; plantilla?: PlantillaArte; formato: FormatoPieza; lamina: Lamina; idea: string };
 }) {
   const contenido = [
@@ -78,6 +79,7 @@ export async function revisarConVara(o: {
     ...o.arte.slice(0, 2).flatMap((b, i) => [{ type: "text", text: `La pieza dibujada${o.arte.length > 1 ? `, lámina ${i + 1}` : ""}:` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b.toString("base64") } }]),
     { type: "text", text: [
       `## Cliente\n${o.nombre}`,
+      o.enfoque === "portafolio" ? "## Enfoque\nPortafolio: la cuenta muestra su trabajo. Juzga cómo se presenta el trabajo (aire, recorte, que se vea de primer nivel), no el texto: el texto debe ser mínimo." : "",
       o.direccion.slice(0, 3000),
       o.vara.length ? "" : "## Vara\nNo hay capturas: compárala con la Dirección y con lo mejor de su rubro.",
       `## La pieza\nIdea: ${o.pieza.idea}\nFormato: ${o.pieza.formato} · plantilla «${o.pieza.plantilla ?? "frase"}»\nLo que va en el arte: ${JSON.stringify({ ...o.pieza.lamina, imagen: undefined })}\nTexto de la publicación:\n${o.pieza.texto}`,

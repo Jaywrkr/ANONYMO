@@ -6,6 +6,7 @@
 // «Bajar para Instagram» lo dibuja en JPG. Reemplaza a MesRevision (sistema/96).
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EstadoPieza, FormatoPieza, MesContenido, Pieza } from "@anonymo/pipeline";
+import { ENFOQUES } from "@anonymo/pipeline/src/video/enfoques.ts";
 import { laminasHTML, type ArteDibujo, type EstiloArte } from "@anonymo/pipeline/src/video/artes-html.ts";
 
 const FORMATO: Record<FormatoPieza, string> = { reel: "Reel", carrusel: "Carrusel", post: "Post", historia: "Historia" };
@@ -57,6 +58,19 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
   const [nota, setNota] = useState("");
   const [borrador, setBorrador] = useState({ idea: "", texto: "", visual: "", tituloArte: "" });
   const [filtro, setFiltro] = useState<"todas" | EstadoPieza>("todas");
+  // Volver a armar el mes (sistema/121): Faro lo hace de nuevo y el anterior queda guardado.
+  const [rearmar, setRearmar] = useState<null | "preguntar" | "trabajando" | string>(null);
+  async function volverAArmar() {
+    setRearmar("trabajando");
+    try {
+      const r = await fetch("/estudio/contenido/armar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cliente: mes.cliente, mes: mes.mes, pedido: mes.pedido, reemplazar: true }) });
+      const j = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) throw new Error(j.error ?? "Faro no pudo armarlo. Vuelve a intentar.");
+      window.location.reload();
+    } catch (e) {
+      setRearmar((e as Error).message === "Failed to fetch" ? "Se cortó la conexión. Vuelve a intentar." : (e as Error).message);
+    }
+  }
   // La revisión contra la vara (sistema/120): al abrir el mes, cada pieza sin nota se dibuja y se mira al lado de la
   // vara del cliente, de a dos. Si no llega, Faro la rehace sola. Nadie tiene que tocar nada.
   const [vara, setVara] = useState<{ hechas: number; total: number; error?: string } | null>(null);
@@ -160,7 +174,18 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
             </button>
           ))}
           <button type="button" data-copiar-mes disabled={!conteo.aprobada} onClick={() => void copiar()} className={`${boton} ml-auto`}>Copiar lo aprobado para enviar</button>
+          <button type="button" data-rearmar disabled={!!rearmar} onClick={() => setRearmar("preguntar")} className={boton}>Volver a armar</button>
         </div>
+        {rearmar && (
+          <div data-rearmar-confirmar role={rearmar === "trabajando" ? "status" : undefined} className="flex flex-wrap items-center gap-3 rounded-xl bg-white px-4 py-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">
+            {rearmar === "trabajando" ? <span>Faro está armando el mes de nuevo. Tarda uno a tres minutos: no cierres esta pantalla.</span>
+              : rearmar === "preguntar" ? <>
+                <span>Faro lo arma de nuevo con lo que sabe hoy del cliente (su Dirección, su trabajo y lo aprendido). El de ahora queda guardado. Usa IA: unos centavos.</span>
+                <button type="button" data-rearmar-si onClick={() => void volverAArmar()} className="inline-flex min-h-10 items-center rounded-full bg-tinta px-4 text-white">Sí, armarlo de nuevo</button>
+                <button type="button" onClick={() => setRearmar(null)} className="inline-flex min-h-10 items-center px-2 underline underline-offset-4">No</button>
+              </> : <><span className="text-[#a33a0b]">{rearmar}</span><button type="button" onClick={() => setRearmar(null)} className="underline underline-offset-4">Cerrar</button></>}
+          </div>
+        )}
         {vara && (
           <div data-vara-progreso role="status" className="flex items-center gap-3 text-[13px] text-medio">
             <span className="flex h-1.5 w-28 overflow-hidden rounded-full bg-[#eee9e0]"><i className="h-full bg-tinta transition-all" style={{ width: `${(vara.hechas / Math.max(1, vara.total)) * 100}%` }} /></span>
@@ -169,6 +194,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
           </div>
         )}
         {copiado && !copiado.startsWith("t:") && <p role="status" className="text-[13px] text-[#17714a]">{copiado}</p>}
+        {mes.enfoque && <p data-enfoque={mes.enfoque} className="text-[13px] text-medio"><span className="text-tinta">Faro: {ENFOQUES[mes.enfoque].toLowerCase()}.</span>{mes.porQueEnfoque ? ` ${mes.porQueEnfoque}` : ""}</p>}
         <p className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-medio" aria-label="Series">
           {mes.series.map((s) => <span key={s.nombre} className="inline-flex items-center gap-1.5" title={s.para}><i className="h-2.5 w-2.5 rounded-full" style={{ background: colorSerie(s.nombre) }} />{s.nombre}</span>)}
           <span className="text-suave">· Cada lunes: 15 min de revisión (guardados, compartidos y mensajes).</span>

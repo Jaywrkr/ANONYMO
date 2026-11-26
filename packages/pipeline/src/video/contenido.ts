@@ -16,7 +16,16 @@ export type EstadoPieza = "propuesta" | "aprobada" | "cambio";
 export const ESTADOS_PIEZA: Record<EstadoPieza, string> = { propuesta: "Por revisar", aprobada: "Aprobada", cambio: "Pidieron un cambio" };
 
 /** Cada serie usa siempre la misma plantilla de arte, para que se reconozca de lejos (sistema/107). */
-export type PlantillaArte = "frase" | "tachado" | "lista" | "dato" | "mito" | "pregunta" | "trabajo" | "portada";
+export type PlantillaArte = "frase" | "tachado" | "lista" | "dato" | "mito" | "pregunta" | "trabajo" | "caso" | "detalle" | "espacio" | "portada";
+/**
+ * Qué tipo de cuenta es (sistema/121). Lo decide Faro mirando al cliente: «portafolio» muestra lo que hace (estudios,
+ * agencias, arquitectura, fotografía, obra: cada publicación es un proyecto y casi no lleva texto); «conversacion»
+ * responde y enseña (salud, legal, servicios: frases, listas, datos); «mixto», un poco de cada uno.
+ */
+import { ENFOQUES, type EnfoqueCuenta } from "./enfoques.ts";
+export { ENFOQUES, type EnfoqueCuenta };
+import { PLANTILLAS_TRABAJO } from "./artes-html.ts";
+export { PLANTILLAS_TRABAJO };
 export const PLANTILLAS_ARTE: Record<PlantillaArte, { nombre: string; para: string; formatos: FormatoPieza[] }> = {
   frase: { nombre: "Frase", para: "Una idea en una frase grande, con mucho aire.", formatos: ["post"] },
   tachado: { nombre: "Tachado", para: "Una palabra tachada y la que la reemplaza («Excusa → Decisión.»).", formatos: ["post"] },
@@ -25,6 +34,9 @@ export const PLANTILLAS_ARTE: Record<PlantillaArte, { nombre: string; para: stri
   mito: { nombre: "Mito", para: "Lo que se cree y lo que es en realidad, en tres láminas.", formatos: ["carrusel"] },
   pregunta: { nombre: "Pregunta", para: "Una pregunta que hacen los clientes y la respuesta en pasos.", formatos: ["carrusel"] },
   trabajo: { nombre: "Trabajo", para: "Una captura real de su trabajo, con aire y una sola línea. Solo si hay material real.", formatos: ["post", "carrusel"] },
+  caso: { nombre: "Caso", para: "Un proyecto contado en láminas: la web en computadora y celular, dos detalles de cerca, la vista del celular y el cierre con nombre, qué se hizo y el año. Solo con material real.", formatos: ["carrusel"] },
+  detalle: { nombre: "Detalle", para: "Un solo recorte de cerca de un trabajo real (la letra, un componente, una sección), con mucho aire. Casi sin texto.", formatos: ["post"] },
+  espacio: { nombre: "Espacio", para: "El trabajo real puesto en el mundo: la pantalla en perspectiva sobre un plano de color, como un cartel. Casi sin texto.", formatos: ["post"] },
   portada: { nombre: "Portada de reel", para: "La portada del reel: el título que se ve en el perfil.", formatos: ["reel"] },
 };
 export const esPlantillaArte = (x: unknown): x is PlantillaArte => typeof x === "string" && x in PLANTILLAS_ARTE;
@@ -43,6 +55,8 @@ export interface Lamina {
   cierre?: string;
   /** Plantilla «trabajo» (sistema/118): el archivo de la captura real que se muestra (del material del cliente). */
   imagen?: string;
+  /** «detalle» y «caso» (sistema/121): qué parte de la captura se muestra de cerca. */
+  recorte?: "arriba" | "medio" | "abajo";
 }
 export type Sticker = "encuesta" | "pregunta" | "quiz" | "deslizador";
 /** Una historia del día: qué se sube y, si lleva, qué sticker y con qué opciones. */
@@ -100,6 +114,9 @@ export interface MesContenido {
   pedido?: string;
   series: { nombre: string; para: string; plantilla?: PlantillaArte }[];
   piezas: Pieza[];
+  /** Qué tipo de cuenta decidió Faro para este cliente (sistema/121), y por qué. */
+  enfoque?: EnfoqueCuenta;
+  porQueEnfoque?: string;
   /** El estilo del arte (sistema/107): unmake, coresolutions, jaywrkr o el de su ficha. */
   estilo?: string;
   /** El estilo ya resuelto con la Dirección del cliente (sistema/117): sus colores y letras. Manda sobre «estilo». */
@@ -111,7 +128,9 @@ export interface MesContenido {
   actualizado: string;
 }
 
-interface ListaMeses { actualizado: string; meses: Record<string, MesContenido> }
+interface ListaMeses { actualizado: string; meses: Record<string, MesContenido>;
+  /** Los meses que se volvieron a armar (sistema/121): el anterior no se borra, queda aquí (los 3 últimos). */
+  anteriores?: Record<string, MesContenido[]> }
 
 const REL = "_contenido/lista/meses.json";
 const local = () => join(carpeta(), REL);
@@ -198,6 +217,12 @@ export function mesDeTexto(texto: string, ahora = new Date()): string | undefine
 export const SISTEMA_MES = `Faro arma el mes de contenido de un cliente de Unmake. Piensa en series: pocos temas que se repiten y se reconocen de lejos.
 Respondes siempre con la herramienta «armar_calendario». Todavía no escribes las piezas: solo el calendario.
 
+Lo primero es decidir el ENFOQUE de la cuenta, como lo haría un director creativo, y decir por qué en una frase («porQueEnfoque»):
+- «portafolio»: el cliente vende algo que se ve y se juzga con los ojos: estudios, agencias, diseño, arquitectura, interiores, fotografía, video, obra, carpintería, cocina de autor. Las cuentas de este tipo que funcionan (estudios de primer nivel) NO publican frases ni consejos: publican su trabajo. Cada publicación es un proyecto o una parte de un proyecto; el texto es mínimo (nombre, qué se hizo, año). Series por tipo de presentación, no por tema: «caso» (carrusel del proyecto), «detalle» (un recorte de cerca), «espacio» (el trabajo puesto en el mundo), «trabajo» (la pieza con aire). Los reels muestran el trabajo en movimiento (el recorrido de la web). Solo es posible si hay capturas de «su trabajo» en el material real; cada proyecto se puede mostrar varias veces con presentaciones distintas.
+- «conversacion»: el cliente vende confianza y respuestas: salud, legal, belleza, servicios técnicos, comercio. Enseña, responde dudas reales y muestra criterio: frases, listas, datos, mitos, preguntas.
+- «mixto»: muestra trabajo y además conversa (por ejemplo, una empresa de tecnología que tiene proyectos y también responde dudas). Mayoría del lado que más le sirve.
+La Dirección del cliente (lo que escribieron Jay y Luna, sus referencias y lo aprendido) manda sobre tu criterio. Si sus referencias de «qué es bueno» son cuentas o estudios que muestran trabajo, es «portafolio».
+
 Reglas:
 - Usa solo lo que se sabe del cliente. No inventes precios, promociones, premios, nombres, cifras ni datos de su negocio.
 - De 3 a 5 series. Cada serie tiene UNA plantilla de arte fija para que se reconozca: ${Object.entries(PLANTILLAS_ARTE).filter(([k]) => k !== "portada").map(([k, v]) => `«${k}» (${v.para})`).join("; ")}. Los reels usan la portada, sea cual sea su serie.
@@ -210,6 +235,8 @@ Reglas:
 export const SISTEMA_PIEZAS = `Faro escribe las piezas del mes de contenido de un cliente de Unmake: todo lo que hace falta para publicar sin pensar.
 Respondes siempre con la herramienta «escribir_piezas», con una pieza por cada fecha que te pasan.
 
+El enfoque de la cuenta viene en «## Enfoque». En «portafolio», el trabajo habla: el texto son 1 a 3 líneas (el nombre del proyecto, qué se hizo en pocas palabras, el año o la disciplina), sin preguntas forzadas ni llamados a la acción, sin explicar lo que se ve; las historias muestran el proceso o un detalle, y el sticker solo si viene natural (por ejemplo, encuesta entre dos detalles). En «conversacion» y «mixto», las reglas de abajo.
+
 Para cada pieza escribe las dos opciones (A y B), con la misma serie y plantilla:
 - «texto»: lo que acompaña la publicación. La primera línea se entiende sola y engancha. De 2 a 6 líneas cortas. Termina con una pregunta concreta o una acción simple (guardarlo, mandárselo a alguien, escribir por mensaje). Sin emojis, sin hashtags, sin frases de motivación vacías, sin sonar a anuncio.
 - «lamina»: lo que va escrito en el arte, según la plantilla:
@@ -220,7 +247,11 @@ Para cada pieza escribe las dos opciones (A y B), con la misma serie y plantilla
   · mito: titulo (el mito, como lo dice la gente), items con un solo elemento cuyo d es la realidad, y cierre.
   · pregunta: titulo (la pregunta como la hace el cliente), items (los pasos de la respuesta) y cierre.
   · trabajo: imagen (el nombre EXACTO de un archivo de «Material real») y titulo (una sola línea corta sobre ese trabajo). Sin bajada larga: el trabajo habla.
-  · portada (reels): titulo corto para la portada.
+  · caso: imagen (archivo EXACTO de computadora, «-1440.jpg», de «su trabajo»), titulo (el nombre del proyecto), bajada (qué se hizo, en pocas palabras), antetitulo (disciplina o año).
+  · detalle: imagen (archivo EXACTO), recorte («arriba», «medio» o «abajo»: la parte con más carácter) y titulo (dos a cinco palabras: el nombre del proyecto o del detalle).
+  · espacio: imagen (archivo EXACTO) y titulo (el nombre del proyecto).
+  Las dos opciones de una pieza de trabajo pueden mostrar el mismo proyecto con otro recorte u otro proyecto.
+  · portada (reels): titulo corto para la portada. En «portafolio», además imagen (el archivo EXACTO del proyecto que se recorre) y visual: «Recorrido de la web en el celular».
 - «visual»: solo si hace falta una foto o video real: qué se graba o fotografía. Si el arte basta, escribe «Solo el arte».
 - «historias» (de la opción A): 2 o 3, en orden. La 1 comparte el post con una línea. La 2 lleva un sticker (encuesta con 2 opciones, pregunta, quiz o deslizador) conectado con el post. La 3, si va, es el proceso o la respuesta a las 24 horas.
 - «youtube» solo en reels: titulo (con #shorts, máximo 90 caracteres) y descripcion (2 a 4 líneas).
@@ -256,13 +287,15 @@ const HERRAMIENTA_CALENDARIO = {
   esquema: {
     type: "object",
     properties: {
+      enfoque: { type: "string", enum: ["portafolio", "conversacion", "mixto"] },
+      porQueEnfoque: { type: "string", description: "Por qué este enfoque, en una frase." },
       series: { type: "array", items: { type: "object", properties: { nombre: { type: "string" }, para: { type: "string" }, plantilla: { type: "string", enum: Object.keys(PLANTILLAS_ARTE).filter((k) => k !== "portada") } }, required: ["nombre", "para", "plantilla"] } },
       fechas: { type: "array", items: { type: "object", properties: { n: { type: "integer" }, serie: { type: "string" }, formato: { type: "string", enum: ["reel", "carrusel", "post"] }, hora: { type: "string" }, ideaA: { type: "string" }, ideaB: { type: "string" } }, required: ["n", "serie", "formato", "hora", "ideaA", "ideaB"] } },
     },
-    required: ["series", "fechas"],
+    required: ["enfoque", "series", "fechas"],
   },
 };
-const ESQUEMA_LAMINA = { type: "object", properties: { imagen: { type: "string", description: "Solo plantilla «trabajo»: el archivo del material real." }, antetitulo: { type: "string" }, titulo: { type: "string" }, bajada: { type: "string" }, tachado: { type: "string" }, numero: { type: "string" }, items: { type: "array", items: { type: "object", properties: { t: { type: "string" }, d: { type: "string" } }, required: ["t"] } }, cierre: { type: "string" } }, required: ["titulo"] };
+const ESQUEMA_LAMINA = { type: "object", properties: { imagen: { type: "string", description: "Solo plantillas de trabajo (trabajo, caso, detalle, espacio): el archivo EXACTO del material real." }, recorte: { type: "string", enum: ["arriba", "medio", "abajo"] }, antetitulo: { type: "string" }, titulo: { type: "string" }, bajada: { type: "string" }, tachado: { type: "string" }, numero: { type: "string" }, items: { type: "array", items: { type: "object", properties: { t: { type: "string" }, d: { type: "string" } }, required: ["t"] } }, cierre: { type: "string" } }, required: ["titulo"] };
 const ESQUEMA_OPCION = { type: "object", properties: { texto: { type: "string" }, visual: { type: "string" }, lamina: ESQUEMA_LAMINA }, required: ["texto", "lamina"] };
 const HERRAMIENTA_PIEZAS = {
   nombre: "escribir_piezas",
@@ -300,6 +333,7 @@ export function leerLamina(x: unknown): Lamina | undefined {
   for (const [k, n] of [["antetitulo", 60], ["bajada", 220], ["tachado", 60], ["numero", 16], ["cierre", 160]] as const) { const v = limpio(r[k], n); if (v) l[k] = v; }
   const imagen = limpio(r.imagen, 100);
   if (/^[a-z0-9][a-z0-9-]{2,80}\.jpg$/.test(imagen)) l.imagen = imagen;
+  if (r.recorte === "arriba" || r.recorte === "medio" || r.recorte === "abajo") l.recorte = r.recorte;
   const items = (Array.isArray(r.items) ? r.items : []).map((i) => ({ t: limpio((i as { t?: unknown })?.t, 110), d: limpio((i as { d?: unknown })?.d, 260) || undefined })).filter((i) => i.t).slice(0, 7);
   if (items.length) l.items = items;
   return l;
@@ -316,9 +350,16 @@ function leerHistorias(x: unknown): Historia[] {
 
 
 /** La revisión automática de una pieza contra las reglas de los planificadores (sistema/107). */
-export function revisarPieza(p: Pick<Pieza, "texto" | "formato" | "plantilla" | "lamina" | "historias" | "youtube">, saber = "", reglas = "", canales = ""): string[] {
+export function revisarPieza(p: Pick<Pieza, "texto" | "formato" | "plantilla" | "lamina" | "historias" | "youtube">, saber = "", reglas = "", canales = "", enfoque: EnfoqueCuenta = "conversacion"): string[] {
   const avisos: string[] = [];
   const ultima = p.texto.trim().split("\n").filter(Boolean).pop() ?? "";
+  // Una pieza que muestra trabajo no necesita pregunta ni sticker (sistema/121): el trabajo habla.
+  const deTrabajo = enfoque === "portafolio" || (!!p.plantilla && PLANTILLAS_TRABAJO.includes(p.plantilla));
+  if (deTrabajo) {
+    if (p.texto.trim().split("\n").filter(Boolean).length > 4) avisos.push("Es una pieza de trabajo: el texto sobra. Déjalo en el nombre, qué se hizo y el año.");
+    if (p.plantilla && PLANTILLAS_TRABAJO.includes(p.plantilla) && !p.lamina?.imagen) avisos.push("Falta la captura del trabajo.");
+    return avisos;
+  }
   if (!/\?\s*$/.test(ultima) && !/\b(guárda|guarda|mánda|manda|envía|envia|escríbe|escribe|comenta|comparte|compárte|agenda|visita|revisa|pregúnta|pregunta)/i.test(ultima)) avisos.push("El texto no termina con una pregunta ni con una acción.");
   if ((p.historias?.length ?? 0) < 2) avisos.push("Le faltan historias: van 2 o 3.");
   else if (!p.historias!.some((h) => h.sticker)) avisos.push("Ninguna historia lleva sticker.");
@@ -392,7 +433,8 @@ export function leerCalendarioIA(x: unknown, fechas: string[]) {
   }
   filas.sort((a, b) => a.n - b.n);
   if (!series.length || filas.length < Math.ceil(fechas.length * 0.8)) throw new Error("Faro no devolvió el mes completo. Vuelve a pedirlo.");
-  return { series, filas };
+  const enfoque: EnfoqueCuenta = r.enfoque === "portafolio" || r.enfoque === "mixto" ? r.enfoque : "conversacion";
+  return { series, filas, enfoque, porQueEnfoque: limpio(r.porQueEnfoque, 240) };
 }
 
 /** Lo que devuelve la IA, limpio, con límites y una pieza por fecha. Si faltan muchas, no sirve. */
@@ -415,13 +457,15 @@ export function leerMesIA(x: unknown, fechas: string[]) {
 
 /** Faro arma el mes y queda guardado para revisar. Un mes por cliente: si ya existe, no se vuelve a gastar. */
 export async function armarMes(o: { cliente: string; nombre: string; mes: string; saber: string; canales: string; frecuencia: string; pedido?: string; por: string; color?: string; direccion?: DireccionCliente; responsable?: "jay" | "luna";
+  /** Volver a armar un mes que ya existe (sistema/121): el anterior queda guardado, no se borra. */
+  reemplazar?: boolean;
   /** El material real del cliente (sistema/118): capturas de su trabajo y de sus referencias. Las que traen «datos» (jpg en base64) Faro las ve. */
   material?: { archivo: string; url: string; nota?: string; trabajo: boolean; vista: "escritorio" | "celular"; datos?: string }[] }): Promise<MesContenido> {
   if (!/^\d{4}-\d{2}$/.test(o.mes)) throw new Error("No entendí el mes.");
   const id = idMes(o.cliente, o.mes);
   const material = (o.material ?? []).filter((m) => /^[a-z0-9][a-z0-9-]{2,80}\.jpg$/.test(m.archivo));
   const deTrabajo = material.filter((m) => m.trabajo);
-  if ((await leer()).meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}. Ábrelo desde Contenido.`);
+  if (!o.reemplazar && (await leer()).meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}. Ábrelo desde Contenido.`);
   // Si pidieron una cantidad («las primeras 9 publicaciones»), son esas: las primeras fechas del mes (sistema/114).
   const todas = fechasDelMes(o.mes, o.frecuencia), cuantas = cantidadPedida(o.pedido);
   const fechas = cuantas ? todas.slice(0, cuantas) : todas;
@@ -434,8 +478,8 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     o.pedido?.trim() ? `## Lo que pidieron para este mes\n${o.pedido.trim().slice(0, 800)}` : "",
     `## Dónde publica\n${o.canales}`,
     material.length
-      ? `## Material real (capturas que ves arriba; en la plantilla «trabajo», «imagen» es el archivo EXACTO)\n${material.map((m) => `- ${m.archivo} · ${m.trabajo ? "su trabajo" : "referencia de calidad"} · ${m.vista} · ${m.url}${m.nota ? ` — ${m.nota}` : ""}`).join("\n")}\n${material.some((m) => m.trabajo) ? "Muestra su trabajo real: al menos una serie usa la plantilla «trabajo», como en los estudios que publican su portafolio." : "Las capturas son la vara de calidad: no las publiques como si fueran del cliente; no uses la plantilla «trabajo»."}`
-      : "## Material real\nNo hay capturas: no uses la plantilla «trabajo».",
+      ? `## Material real (capturas que ves arriba; en la plantilla «trabajo», «imagen» es el archivo EXACTO)\n${material.map((m) => `- ${m.archivo} · ${m.trabajo ? "su trabajo" : "referencia de calidad"} · ${m.vista} · ${m.url}${m.nota ? ` — ${m.nota}` : ""}`).join("\n")}\n${material.some((m) => m.trabajo) ? "Hay trabajo real para mostrar: con él puedes usar las plantillas de trabajo (trabajo, caso, detalle, espacio). Las referencias de calidad son la vara: nunca las publiques como si fueran del cliente." : "Las capturas son la vara de calidad: no las publiques como si fueran del cliente; no uses las plantillas de trabajo (trabajo, caso, detalle, espacio)."}`
+      : "## Material real\nNo hay capturas: no uses las plantillas de trabajo (trabajo, caso, detalle, espacio).",
   ].filter(Boolean).join("\n\n");
   // Lo que Faro ve (sistema/118): las capturas como imágenes, no solo los enlaces. Hasta 4, primero su trabajo.
   const vistas = material.filter((m) => m.datos && m.vista === "escritorio").sort((a, b) => Number(b.trabajo) - Number(a.trabajo)).slice(0, 4);
@@ -448,15 +492,23 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     throw new Error(`Faro no pudo armar el mes: ${(e as Error).message}`);
   }
   if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Faro no puede armar el mes.");
-  const { series, filas } = leerCalendarioIA(crudo, fechas);
-  // Sin trabajo real que mostrar, la plantilla «trabajo» no se usa: pasa a frase (sistema/118).
-  if (!deTrabajo.length) { for (const x of series) if (x.plantilla === "trabajo") x.plantilla = "frase"; for (const f of filas) if (f.plantilla === "trabajo") f.plantilla = "frase"; }
+  const cal = leerCalendarioIA(crudo, fechas);
+  const { series, filas } = cal;
+  let { enfoque, porQueEnfoque } = cal;
+  // Sin trabajo real que mostrar, las plantillas de trabajo no se usan y no hay portafolio posible (sistema/118 y 121):
+  // pasan a frase y el mes lo dice, para que agreguen su trabajo en la Dirección.
+  if (!deTrabajo.length) {
+    const sinTrabajo = (x: { plantilla: PlantillaArte }) => { if (PLANTILLAS_TRABAJO.includes(x.plantilla)) x.plantilla = "frase"; };
+    series.forEach(sinTrabajo); filas.forEach(sinTrabajo);
+    for (const f of filas) if (f.formato === "carrusel" && !PLANTILLAS_ARTE[f.plantilla].formatos.includes("carrusel")) f.formato = "post";
+    if (enfoque === "portafolio") { enfoque = "mixto"; porQueEnfoque = `${porQueEnfoque ? `${porQueEnfoque} ` : ""}Pero todavía no hay capturas de su trabajo: agréguenlo en «Su trabajo real» de su Dirección para mostrarlo.`.trim(); }
+  }
   // 2 · Las piezas, en tandas de 2 en paralelo (sistema/112: con 4, cada tanda con A, B, historias y arte rozaba el límite
   // de 90 s o se cortaba por largo, y fallaba en silencio). Si una tanda falla, se intenta una vez más y se anota por qué.
   const tandas: Fila[][] = [];
   for (let i = 0; i < filas.length; i += 2) tandas.push(filas.slice(i, i + 2));
   const motivos: string[] = [];
-  const escribir = (t: Fila[]) => pedirEstructura(SISTEMA_PIEZAS, `${contexto}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 6000, { origen: "faro", tarea: "contenido" });
+  const escribir = (t: Fila[]) => pedirEstructura(SISTEMA_PIEZAS, `${contexto}\n\n## Enfoque\n${enfoque} (${ENFOQUES[enfoque]})${porQueEnfoque ? `: ${porQueEnfoque}` : ""}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 6000, { origen: "faro", tarea: "contenido" });
   const porN = new Map<number, Record<string, unknown>>();
   const lista = (r: unknown) => { const v = objeto((r as { piezas?: unknown })?.piezas); return (Array.isArray(v) ? v : []).map(objeto); };
   /** Una pieza sirve si trae texto y arte en su opción A (leídos con tolerancia). */
@@ -489,7 +541,10 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     if (coh === "cambiar" && textoB0 && laminaB0) { [texto, textoB0] = [textoB0, texto]; [lamina, laminaB0] = [laminaB0, lamina]; [visualA, visualB] = [visualB, visualA]; console.error(`[contenido] pieza ${f.n}: la A traía la idea B; se cambiaron de lugar`); }
     if (!texto || !lamina) { console.error(`[contenido] pieza ${f.n} descartada: ${!p ? "no llegó" : !texto ? "sin texto" : "sin arte"} (llegó: ${p ? Object.keys(p).join(",") : "nada"}; A: ${typeof p?.A})`); continue; }
     // La captura de una pieza «trabajo» tiene que ser de su trabajo real; si no la nombró bien, se usa una, rotando.
-    if (f.plantilla === "trabajo") for (const l of [lamina, laminaB0]) if (l && !deTrabajo.some((m) => m.archivo === l.imagen)) l.imagen = deTrabajo[piezas.length % deTrabajo.length]?.archivo;
+    // Las de trabajo (y los reels de un portafolio) muestran una captura de computadora de su trabajo real.
+    const deEscritorio = deTrabajo.filter((m) => m.vista === "escritorio");
+    const conCaptura = PLANTILLAS_TRABAJO.includes(f.plantilla) || (f.formato === "reel" && enfoque === "portafolio");
+    if (conCaptura && deEscritorio.length) for (const l of [lamina, laminaB0]) if (l && !deEscritorio.some((m) => m.archivo === l.imagen)) l.imagen = deEscritorio[piezas.length % deEscritorio.length]?.archivo;
     const textoB = textoB0, laminaB = laminaB0;
     const yt = (objeto(p?.youtube) ?? {}) as Record<string, unknown>;
     piezas.push({
@@ -501,8 +556,8 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
       estado: "propuesta",
     });
     const ultima = piezas[piezas.length - 1]!;
-    const avisos = revisarPieza(ultima, o.saber, estilo.reglas, o.canales);
-    if (coh === "nada") avisos.unshift("El texto no habla de la idea: revísalo antes de aprobar.");
+    const avisos = revisarPieza(ultima, o.saber, estilo.reglas, o.canales, enfoque);
+    if (coh === "nada" && !conCaptura) avisos.unshift("El texto no habla de la idea: revísalo antes de aprobar.");
     if (avisos.length) ultima.avisos = avisos;
   }
   if (piezas.length < Math.ceil(fechas.length * 0.8)) {
@@ -513,16 +568,19 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   }
   const ahora = new Date().toISOString();
   const mes: MesContenido = {
-    id, cliente: o.cliente, nombre: o.nombre, mes: o.mes, canales: o.canales, frecuencia: o.frecuencia, pedido: o.pedido?.trim() || undefined, series, piezas, responsable: o.responsable ?? "luna", estilo: estilo.id, estiloArte: o.direccion && (o.direccion.colores.length || o.direccion.letras.length) ? estilo : undefined,
+    id, cliente: o.cliente, nombre: o.nombre, mes: o.mes, enfoque, ...(porQueEnfoque ? { porQueEnfoque } : {}), canales: o.canales, frecuencia: o.frecuencia, pedido: o.pedido?.trim() || undefined, series, piezas, responsable: o.responsable ?? "luna", estilo: estilo.id, estiloArte: o.direccion && (o.direccion.colores.length || o.direccion.letras.length) ? estilo : undefined,
     historia: [
       { cuando: ahora, quien: o.por, que: `Pidió el mes de ${nombreMes(o.mes)}` },
+      { cuando: ahora, quien: "faro", que: `Enfoque: ${ENFOQUES[enfoque].toLowerCase()}${porQueEnfoque ? ` (${porQueEnfoque})` : ""}` },
       { cuando: ahora, quien: "faro", que: `Armó ${piezas.length} piezas en ${series.length} series, cada una con opción A y B, texto, arte e historias${piezas.length < fechas.length ? ` (faltaron ${fechas.length - piezas.length})` : ""}` },
     ],
     creado: ahora, actualizado: ahora,
   };
   // Se vuelve a leer justo antes de guardar: si otro lo armó mientras tanto, gana el primero.
   const l = await leer();
-  if (l.meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}.`);
+  const viejo = l.meses[id];
+  if (viejo && !o.reemplazar) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}.`);
+  if (viejo) { l.anteriores = { ...l.anteriores, [id]: [viejo, ...(l.anteriores?.[id] ?? [])].slice(0, 3) }; mes.historia.unshift({ cuando: ahora, quien: o.por, que: "Lo volvió a armar (el anterior quedó guardado)" }); }
   l.meses[id] = mes;
   await guardar(l);
   return mes;
@@ -577,7 +635,7 @@ export async function cambiarPieza(mesId: string, piezaId: string, c: CambioPiez
   if (!c.estado && p.estado === "cambio" && que.some((x) => ["idea", "texto", "visual", "título del arte"].includes(x))) p.estado = "propuesta";
   // Lo que cambió a mano se vuelve a mirar contra la vara (sistema/120).
   if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) delete p.vara;
-  if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) { const a = revisarPieza(p, "", "", m.canales).filter((x) => !x.startsWith("La cifra")); if (a.length) p.avisos = a; else delete p.avisos; }
+  if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) { const a = revisarPieza(p, "", "", m.canales, m.enfoque).filter((x) => !x.startsWith("La cifra")); if (a.length) p.avisos = a; else delete p.avisos; }
   if (que.length) m.historia.push({ cuando: new Date().toISOString(), quien: por, que: `${p.fecha}: ${que.join(", ")}` });
   m.actualizado = new Date().toISOString();
   await guardar(l);
@@ -599,7 +657,7 @@ export async function guardarVara(mesId: string, piezaId: string, c: { vara: imp
     if (c.lamina) p.lamina = c.lamina;
     if (c.texto) p.texto = corto(c.texto, 2200) || p.texto;
     delete p.artes;
-    const a = revisarPieza(p, "", "", m.canales).filter((x) => !x.startsWith("La cifra"));
+    const a = revisarPieza(p, "", "", m.canales, m.enfoque).filter((x) => !x.startsWith("La cifra"));
     if (a.length) p.avisos = a; else delete p.avisos;
   }
   p.vara = c.vara;

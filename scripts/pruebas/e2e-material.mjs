@@ -63,6 +63,11 @@ try {
   exigir((cal.match(/"type":"image"/g) ?? []).length >= 1 && cal.includes("su trabajo"), "Faro recibe las capturas como imágenes, no solo los enlaces");
   exigir(!cal.includes("una referencia de primer nivel") || cal.includes("referencia de calidad"), "las referencias van como vara, no como trabajo del cliente");
 
+  // 3a · El enfoque lo decide Faro (sistema/121): un estudio con trabajo real es un portafolio, no frases.
+  exigir(await p.locator("[data-enfoque=portafolio]").count() === 1, `Faro decide que Unmake muestra su trabajo (${await p.locator("[data-enfoque]").innerText().catch(() => "sin enfoque")})`);
+  const docs = await p.locator("[data-pieza] iframe").evaluateAll((xs) => xs.map((x) => x.getAttribute("srcdoc") ?? ""));
+  exigir(docs.filter((d) => d.includes("/material/")).length >= Math.ceil(docs.length * 0.9), `casi todas las piezas muestran su trabajo real (${docs.filter((d) => d.includes("/material/")).length} de ${docs.length})`);
+  exigir(docs.every((d) => !/Título de prueba|Decisión \d/.test(d)), "ninguna pieza es una frase o un consejo");
   // 3b · La revisión contra la vara (sistema/120): sola, al abrir el mes. Cada pieza se dibuja y se mira al lado de las
   // capturas; la que no llega, Faro la rehace y se vuelve a mirar.
   exigir(await espera(p.locator("[data-vara-progreso]"), 15000), "al abrir el mes, empieza la revisión con la vara");
@@ -92,6 +97,16 @@ try {
   await detalle.locator("[data-dibujar]").click();
   exigir(await espera(detalle.locator("[data-arte] img").first(), 120000), `el arte con la captura queda listo para Instagram (${await detalle.locator("[role=alert]").allInnerTexts()})`);
   await p.screenshot({ path: join(capturas, "2-pieza-trabajo.png"), fullPage: true });
+
+  // 5 · Volver a armar (sistema/121): Faro lo arma de nuevo y el anterior queda guardado.
+  const antesFaro = readFileSync(registro, "utf8").split("\n").filter((l) => l.includes("Faro arma el mes de contenido")).length;
+  await p.locator("[data-rearmar]").click();
+  await p.locator("[data-rearmar-si]").click();
+  exigir(await espera(p.locator("[data-rearmar-confirmar][role=status]"), 5000), "mientras lo vuelve a armar, lo dice");
+  await p.waitForLoadState("load");
+  await p.waitForFunction(() => !document.querySelector("[data-rearmar-confirmar]") && document.querySelectorAll("[data-pieza]").length > 0, null, { timeout: 120000 }).catch(() => {});
+  const despuesFaro = readFileSync(registro, "utf8").split("\n").filter((l) => l.includes("Faro arma el mes de contenido")).length;
+  exigir(despuesFaro === antesFaro + 1 && await p.locator("[data-pieza]").count() > 0, `«Volver a armar» le pide el mes otra vez a Faro (${antesFaro} → ${despuesFaro})`);
   await ctx.close();
 } finally {
   await nav.close();
