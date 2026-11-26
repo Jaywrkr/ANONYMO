@@ -23,9 +23,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const nSerie = m.piezas.filter((x) => x.serie === pz.serie && x.fecha <= pz.fecha).length;
   // Las capturas del trabajo real van dentro del arte (sistema/118): el navegador que dibuja no tiene la sesión.
   const imagenes: Record<string, string> = {};
-  for (const a of [pz.lamina.imagen, pz.lamina.imagen?.replace(/-1440\.jpg$/, "-390.jpg")].filter(Boolean) as string[]) {
+  for (const a of [...new Set([pz.lamina.imagen, ...(pz.lamina.vistas ?? []), pz.lamina.logo].filter(Boolean) as string[])]) {
     const d = await leerMaterial(a).catch(() => undefined);
-    if (d) imagenes[a] = `data:image/jpeg;base64,${Buffer.from(d).toString("base64")}`;
+    if (d) imagenes[a] = `data:${a.endsWith(".png") ? "image/png" : "image/jpeg"};base64,${Buffer.from(d).toString("base64")}`;
   }
   if (pz.lamina.imagen && !imagenes[pz.lamina.imagen]) return mal("Falta la captura de este trabajo. Abre la ficha del cliente para que se capture de nuevo.", 409);
   const nav = await navegadorCapturas();
@@ -51,6 +51,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!m || !pz?.artes?.length) return mal("Esa pieza todavía no tiene arte dibujado.", 404);
   const archivos: Record<string, Uint8Array> = {};
   for (const a of pz.artes) { const d = await leerArte(id, a); if (d) archivos[a] = d; }
+  // El video del recorrido (sistema/122): el reel de un trabajo es ese video.
+  if (pz.lamina?.video) { const v = await leerMaterial(pz.lamina.video).catch(() => undefined); if (v) archivos["reel.mp4"] = v; }
   // El texto para pegar en Instagram va dentro del .zip, junto a las imágenes.
   archivos["texto.txt"] = new TextEncoder().encode([pz.texto, "", ...(pz.historias ?? []).map((h, i) => `Historia ${i + 1}: ${h.texto}${h.sticker ? ` (sticker ${h.sticker}${h.opciones?.length ? `: ${h.opciones.join(" / ")}` : ""})` : ""}`)].join("\n"));
   const zip = zipSync(archivos, { level: 0 });

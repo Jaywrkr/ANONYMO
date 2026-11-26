@@ -306,6 +306,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
                 )}
                 <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed" data-texto>{op.texto}</p>
                 <button type="button" data-copiar-texto onClick={() => void copiarTexto(op.texto, `t:${p.id}${opcion}`)} className="mt-1 inline-flex min-h-11 items-center text-[12.5px] text-medio underline underline-offset-4">{copiado === `t:${p.id}${opcion}` ? "Texto copiado" : "Copiar el texto"}</button>
+                {op.lamina?.video && <video data-video src={`/material/${op.lamina.video}`} controls muted playsInline preload="metadata" className="mt-2 w-40 rounded-md" />}
                 {op.visual && !/^solo el arte\.?$/i.test(op.visual.trim()) && <p className="text-[13px] text-medio">Para grabar o fotografiar: {op.visual}</p>}
                 {verB && <button type="button" data-usar-b disabled={!!trabajo} onClick={() => void pedir(p, "PATCH", { elegirB: true }, "Cambiando", "Ahora va la opción B. La A quedó como alternativa.").then(() => setOpcion("A"))} className={`${lleno} mt-2`}>{ocupada && trabajo?.que === "Cambiando" ? "Cambiando…" : "Usar esta opción"}</button>}
               </div>

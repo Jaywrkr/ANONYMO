@@ -16,7 +16,7 @@ export type EstadoPieza = "propuesta" | "aprobada" | "cambio";
 export const ESTADOS_PIEZA: Record<EstadoPieza, string> = { propuesta: "Por revisar", aprobada: "Aprobada", cambio: "Pidieron un cambio" };
 
 /** Cada serie usa siempre la misma plantilla de arte, para que se reconozca de lejos (sistema/107). */
-export type PlantillaArte = "frase" | "tachado" | "lista" | "dato" | "mito" | "pregunta" | "trabajo" | "caso" | "detalle" | "espacio" | "portada";
+export type PlantillaArte = "frase" | "tachado" | "lista" | "dato" | "mito" | "pregunta" | "trabajo" | "caso" | "detalle" | "espacio" | "logo" | "portada";
 /**
  * Qué tipo de cuenta es (sistema/121). Lo decide Faro mirando al cliente: «portafolio» muestra lo que hace (estudios,
  * agencias, arquitectura, fotografía, obra: cada publicación es un proyecto y casi no lleva texto); «conversacion»
@@ -34,9 +34,10 @@ export const PLANTILLAS_ARTE: Record<PlantillaArte, { nombre: string; para: stri
   mito: { nombre: "Mito", para: "Lo que se cree y lo que es en realidad, en tres láminas.", formatos: ["carrusel"] },
   pregunta: { nombre: "Pregunta", para: "Una pregunta que hacen los clientes y la respuesta en pasos.", formatos: ["carrusel"] },
   trabajo: { nombre: "Trabajo", para: "Una captura real de su trabajo, con aire y una sola línea. Solo si hay material real.", formatos: ["post", "carrusel"] },
-  caso: { nombre: "Caso", para: "Un proyecto contado en láminas: la web en computadora y celular, dos detalles de cerca, la vista del celular y el cierre con nombre, qué se hizo y el año. Solo con material real.", formatos: ["carrusel"] },
-  detalle: { nombre: "Detalle", para: "Un solo recorte de cerca de un trabajo real (la letra, un componente, una sección), con mucho aire. Casi sin texto.", formatos: ["post"] },
-  espacio: { nombre: "Espacio", para: "El trabajo real puesto en el mundo: la pantalla en perspectiva sobre un plano de color, como un cartel. Casi sin texto.", formatos: ["post"] },
+  caso: { nombre: "Caso", para: "Un proyecto en carrusel: los tramos de su web a pantalla completa, uno por lámina, y su logo al final. Sin texto en la imagen. Solo con trabajo real.", formatos: ["carrusel"] },
+  detalle: { nombre: "Detalle", para: "Un solo tramo de un trabajo real a pantalla completa: la parte más estética. Sin texto en la imagen.", formatos: ["post"] },
+  logo: { nombre: "Logo", para: "El logo de un proyecto, solo, sobre su color. Solo si ese proyecto tiene logo.", formatos: ["post"] },
+  espacio: { nombre: "Detalle", para: "(de antes) Igual que detalle.", formatos: ["post"] },
   portada: { nombre: "Portada de reel", para: "La portada del reel: el título que se ve en el perfil.", formatos: ["reel"] },
 };
 export const esPlantillaArte = (x: unknown): x is PlantillaArte => typeof x === "string" && x in PLANTILLAS_ARTE;
@@ -57,6 +58,15 @@ export interface Lamina {
   imagen?: string;
   /** «detalle» y «caso» (sistema/121): qué parte de la captura se muestra de cerca. */
   recorte?: "arriba" | "medio" | "abajo";
+  /** Lo que se dibuja a pantalla completa (sistema/122): los archivos del material del proyecto, en orden. */
+  vistas?: string[];
+  /** El logo del proyecto (archivo), para la plantilla «logo» y el cierre de un caso. */
+  logo?: string;
+  /** El video del recorrido de la web (archivo .mp4), en los reels de un trabajo. */
+  video?: string;
+  /** Los colores propios del trabajo que se muestra (sistema/122): el post va con ellos, no con los del estudio. */
+  fondo?: string;
+  tinta?: string;
 }
 export type Sticker = "encuesta" | "pregunta" | "quiz" | "deslizador";
 /** Una historia del día: qué se sube y, si lleva, qué sticker y con qué opciones. */
@@ -218,14 +228,14 @@ export const SISTEMA_MES = `Faro arma el mes de contenido de un cliente de Unmak
 Respondes siempre con la herramienta «armar_calendario». Todavía no escribes las piezas: solo el calendario.
 
 Lo primero es decidir el ENFOQUE de la cuenta, como lo haría un director creativo, y decir por qué en una frase («porQueEnfoque»):
-- «portafolio»: el cliente vende algo que se ve y se juzga con los ojos: estudios, agencias, diseño, arquitectura, interiores, fotografía, video, obra, carpintería, cocina de autor. Las cuentas de este tipo que funcionan (estudios de primer nivel) NO publican frases ni consejos: publican su trabajo. Cada publicación es un proyecto o una parte de un proyecto; el texto es mínimo (nombre, qué se hizo, año). Series por tipo de presentación, no por tema: «caso» (carrusel del proyecto), «detalle» (un recorte de cerca), «espacio» (el trabajo puesto en el mundo), «trabajo» (la pieza con aire). Los reels muestran el trabajo en movimiento (el recorrido de la web). Solo es posible si hay capturas de «su trabajo» en el material real; cada proyecto se puede mostrar varias veces con presentaciones distintas.
+- «portafolio»: el cliente vende algo que se ve y se juzga con los ojos: estudios, agencias, diseño, arquitectura, interiores, fotografía, video, obra, carpintería, cocina de autor. Las cuentas de este tipo que funcionan (estudios de primer nivel) NO publican frases ni consejos: publican su trabajo. Cada publicación es un proyecto o una parte de un proyecto: la imagen ES el trabajo del cliente, con los colores del cliente, sin fondo, logo, rótulo ni texto del estudio encima. El texto va solo en la descripción y es mínimo (nombre, qué se hizo, año). Así publican los estudios: un día un tramo estético de una web, otro el logo solo, otro un carrusel del proyecto, otro un video de la web en uso; mezclando proyectos y tipos de material. Series por tipo de material, no por tema: «caso» (carrusel con los tramos de la web), «detalle» (un tramo solo), «logo» (el logo sobre su color, solo si el proyecto tiene logo). Los reels son el video del recorrido de la web (solo proyectos con video). Nunca la web metida en una laptop o un celular dibujado, ni sobre un fondo: eso se ve viejo. Solo es posible con proyectos en «Proyectos para publicar»; no pongas dos días seguidos el mismo proyecto con el mismo tipo, y usa todos los proyectos.
 - «conversacion»: el cliente vende confianza y respuestas: salud, legal, belleza, servicios técnicos, comercio. Enseña, responde dudas reales y muestra criterio: frases, listas, datos, mitos, preguntas.
 - «mixto»: muestra trabajo y además conversa (por ejemplo, una empresa de tecnología que tiene proyectos y también responde dudas). Mayoría del lado que más le sirve.
 La Dirección del cliente (lo que escribieron Jay y Luna, sus referencias y lo aprendido) manda sobre tu criterio. Si sus referencias de «qué es bueno» son cuentas o estudios que muestran trabajo, es «portafolio».
 
 Reglas:
 - Usa solo lo que se sabe del cliente. No inventes precios, promociones, premios, nombres, cifras ni datos de su negocio.
-- De 3 a 5 series. Cada serie tiene UNA plantilla de arte fija para que se reconozca: ${Object.entries(PLANTILLAS_ARTE).filter(([k]) => k !== "portada").map(([k, v]) => `«${k}» (${v.para})`).join("; ")}. Los reels usan la portada, sea cual sea su serie.
+- De 3 a 5 series. Cada serie tiene UNA plantilla de arte fija para que se reconozca: ${Object.entries(PLANTILLAS_ARTE).filter(([k]) => !["portada", "trabajo", "espacio"].includes(k)).map(([k, v]) => `«${k}» (${v.para})`).join("; ")}. Los reels usan la portada, sea cual sea su serie.
 - Una fecha por cada una de la lista, en el mismo orden. «n» es el número de la fecha. Las series se alternan.
 - Formatos: carrusel para enseñar en pasos, post para una idea o frase, reel para lo que se muestra en movimiento o habla una persona. Al menos un reel por semana si publica en Instagram.
 - «hora»: la mejor hora para su público, en Cuenca (por ejemplo 08:30 para empresas en días laborables, 18:00 o 19:00 para personas).
@@ -247,9 +257,7 @@ Para cada pieza escribe las dos opciones (A y B), con la misma serie y plantilla
   · mito: titulo (el mito, como lo dice la gente), items con un solo elemento cuyo d es la realidad, y cierre.
   · pregunta: titulo (la pregunta como la hace el cliente), items (los pasos de la respuesta) y cierre.
   · trabajo: imagen (el nombre EXACTO de un archivo de «Material real») y titulo (una sola línea corta sobre ese trabajo). Sin bajada larga: el trabajo habla.
-  · caso: imagen (archivo EXACTO de computadora, «-1440.jpg», de «su trabajo»), titulo (el nombre del proyecto), bajada (qué se hizo, en pocas palabras), antetitulo (disciplina o año).
-  · detalle: imagen (archivo EXACTO), recorte («arriba», «medio» o «abajo»: la parte con más carácter) y titulo (dos a cinco palabras: el nombre del proyecto o del detalle).
-  · espacio: imagen (archivo EXACTO) y titulo (el nombre del proyecto).
+  · caso, detalle y logo: imagen (el archivo EXACTO del proyecto, tal como aparece en «Proyectos para publicar») y titulo (el nombre del proyecto). Nada más: el sistema pone los tramos, el logo y los colores del proyecto.
   Las dos opciones de una pieza de trabajo pueden mostrar el mismo proyecto con otro recorte u otro proyecto.
   · portada (reels): titulo corto para la portada. En «portafolio», además imagen (el archivo EXACTO del proyecto que se recorre) y visual: «Recorrido de la web en el celular».
 - «visual»: solo si hace falta una foto o video real: qué se graba o fotografía. Si el arte basta, escribe «Solo el arte».
@@ -289,7 +297,7 @@ const HERRAMIENTA_CALENDARIO = {
     properties: {
       enfoque: { type: "string", enum: ["portafolio", "conversacion", "mixto"] },
       porQueEnfoque: { type: "string", description: "Por qué este enfoque, en una frase." },
-      series: { type: "array", items: { type: "object", properties: { nombre: { type: "string" }, para: { type: "string" }, plantilla: { type: "string", enum: Object.keys(PLANTILLAS_ARTE).filter((k) => k !== "portada") } }, required: ["nombre", "para", "plantilla"] } },
+      series: { type: "array", items: { type: "object", properties: { nombre: { type: "string" }, para: { type: "string" }, plantilla: { type: "string", enum: Object.keys(PLANTILLAS_ARTE).filter((k) => !["portada", "trabajo", "espacio"].includes(k)) } }, required: ["nombre", "para", "plantilla"] } },
       fechas: { type: "array", items: { type: "object", properties: { n: { type: "integer" }, serie: { type: "string" }, formato: { type: "string", enum: ["reel", "carrusel", "post"] }, hora: { type: "string" }, ideaA: { type: "string" }, ideaB: { type: "string" } }, required: ["n", "serie", "formato", "hora", "ideaA", "ideaB"] } },
     },
     required: ["enfoque", "series", "fechas"],
@@ -457,14 +465,17 @@ export function leerMesIA(x: unknown, fechas: string[]) {
 
 /** Faro arma el mes y queda guardado para revisar. Un mes por cliente: si ya existe, no se vuelve a gastar. */
 export async function armarMes(o: { cliente: string; nombre: string; mes: string; saber: string; canales: string; frecuencia: string; pedido?: string; por: string; color?: string; direccion?: DireccionCliente; responsable?: "jay" | "luna";
+  /** Los proyectos de su trabajo con lo que hay para publicar de cada uno (sistema/122): tramos, logo, video. */
+  proyectos?: import("../clientes/material.ts").ProyectoMaterial[];
   /** Volver a armar un mes que ya existe (sistema/121): el anterior queda guardado, no se borra. */
   reemplazar?: boolean;
   /** El material real del cliente (sistema/118): capturas de su trabajo y de sus referencias. Las que traen «datos» (jpg en base64) Faro las ve. */
-  material?: { archivo: string; url: string; nota?: string; trabajo: boolean; vista: "escritorio" | "celular"; datos?: string }[] }): Promise<MesContenido> {
+  material?: { archivo: string; url: string; nota?: string; trabajo: boolean; vista: "escritorio" | "celular"; datos?: string; fondo?: string; tinta?: string }[] }): Promise<MesContenido> {
   if (!/^\d{4}-\d{2}$/.test(o.mes)) throw new Error("No entendí el mes.");
   const id = idMes(o.cliente, o.mes);
   const material = (o.material ?? []).filter((m) => /^[a-z0-9][a-z0-9-]{2,80}\.jpg$/.test(m.archivo));
-  const deTrabajo = material.filter((m) => m.trabajo);
+  const proyectos = o.proyectos ?? [];
+  const deTrabajo = proyectos.length ? material.filter((m) => m.trabajo) : [];
   if (!o.reemplazar && (await leer()).meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}. Ábrelo desde Contenido.`);
   // Si pidieron una cantidad («las primeras 9 publicaciones»), son esas: las primeras fechas del mes (sistema/114).
   const todas = fechasDelMes(o.mes, o.frecuencia), cuantas = cantidadPedida(o.pedido);
@@ -480,6 +491,7 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     material.length
       ? `## Material real (capturas que ves arriba; en la plantilla «trabajo», «imagen» es el archivo EXACTO)\n${material.map((m) => `- ${m.archivo} · ${m.trabajo ? "su trabajo" : "referencia de calidad"} · ${m.vista} · ${m.url}${m.nota ? ` — ${m.nota}` : ""}`).join("\n")}\n${material.some((m) => m.trabajo) ? "Hay trabajo real para mostrar: con él puedes usar las plantillas de trabajo (trabajo, caso, detalle, espacio). Las referencias de calidad son la vara: nunca las publiques como si fueran del cliente." : "Las capturas son la vara de calidad: no las publiques como si fueran del cliente; no uses las plantillas de trabajo (trabajo, caso, detalle, espacio)."}`
       : "## Material real\nNo hay capturas: no uses las plantillas de trabajo (trabajo, caso, detalle, espacio).",
+    proyectos.length ? `## Proyectos para publicar (su trabajo real; «imagen» es el archivo EXACTO)\n${proyectos.map((x) => `- ${x.nombre} · imagen: ${x.base} · ${x.paginas.length} ${x.paginas.length === 1 ? "tramo" : "tramos"} de su web · logo: ${x.logo ? "sí" : "no"} · video: ${x.video ? "sí" : "no"}${x.nota ? ` — ${x.nota}` : ""}`).join("\n")}` : "",
   ].filter(Boolean).join("\n\n");
   // Lo que Faro ve (sistema/118): las capturas como imágenes, no solo los enlaces. Hasta 4, primero su trabajo.
   const vistas = material.filter((m) => m.datos && m.vista === "escritorio").sort((a, b) => Number(b.trabajo) - Number(a.trabajo)).slice(0, 4);
@@ -531,6 +543,8 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     }));
   }
   const piezas: Pieza[] = [];
+  const usados = new Map<string, number>();
+  let turno = 0;
   for (const f of filas) {
     const p = porN.get(f.n);
     const A = (objeto(p?.A) ?? {}) as Record<string, unknown>, B = (objeto(p?.B) ?? {}) as Record<string, unknown>;
@@ -541,10 +555,22 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     if (coh === "cambiar" && textoB0 && laminaB0) { [texto, textoB0] = [textoB0, texto]; [lamina, laminaB0] = [laminaB0, lamina]; [visualA, visualB] = [visualB, visualA]; console.error(`[contenido] pieza ${f.n}: la A traía la idea B; se cambiaron de lugar`); }
     if (!texto || !lamina) { console.error(`[contenido] pieza ${f.n} descartada: ${!p ? "no llegó" : !texto ? "sin texto" : "sin arte"} (llegó: ${p ? Object.keys(p).join(",") : "nada"}; A: ${typeof p?.A})`); continue; }
     // La captura de una pieza «trabajo» tiene que ser de su trabajo real; si no la nombró bien, se usa una, rotando.
-    // Las de trabajo (y los reels de un portafolio) muestran una captura de computadora de su trabajo real.
-    const deEscritorio = deTrabajo.filter((m) => m.vista === "escritorio");
-    const conCaptura = PLANTILLAS_TRABAJO.includes(f.plantilla) || (f.formato === "reel" && enfoque === "portafolio");
-    if (conCaptura && deEscritorio.length) for (const l of [lamina, laminaB0]) if (l && !deEscritorio.some((m) => m.archivo === l.imagen)) l.imagen = deEscritorio[piezas.length % deEscritorio.length]?.archivo;
+    // Las de trabajo (y los reels de un portafolio) muestran material real de un proyecto (sistema/122). Faro elige el
+    // proyecto; el sistema pone qué tramo (rotando, para que no se repita), su logo, su video y sus colores.
+    const conCaptura = proyectos.length > 0 && (PLANTILLAS_TRABAJO.includes(f.plantilla) || (f.formato === "reel" && enfoque === "portafolio"));
+    if (conCaptura) for (const l of [lamina, laminaB0]) {
+      if (!l) continue;
+      const pr = proyectos.find((x) => x.base === l.imagen) ?? proyectos[turno++ % proyectos.length]!;
+      const n = usados.get(pr.base) ?? 0;
+      l.imagen = pr.base; l.fondo = pr.fondo; l.tinta = pr.tinta;
+      delete l.vistas; delete l.logo; delete l.video;
+      if (f.formato === "reel") { l.vistas = [pr.vertical ?? pr.paginas[0]!]; if (pr.video) l.video = pr.video; }
+      else if (f.plantilla === "caso") { l.vistas = pr.paginas.slice(0, 5); if (pr.logo) l.logo = pr.logo; }
+      else if (f.plantilla === "logo" && pr.logo) l.logo = pr.logo;
+      // La B muestra el tramo siguiente al de la A; el turno avanza uno por pieza, para recorrer toda la web.
+      else if (l === lamina) { l.vistas = [pr.paginas[n % pr.paginas.length]!]; usados.set(pr.base, n + 1); }
+      else l.vistas = [pr.paginas[n % pr.paginas.length]!];
+    }
     const textoB = textoB0, laminaB = laminaB0;
     const yt = (objeto(p?.youtube) ?? {}) as Record<string, unknown>;
     piezas.push({

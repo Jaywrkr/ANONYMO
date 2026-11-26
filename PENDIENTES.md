@@ -16,7 +16,8 @@ Lo que sigue, en orden. El plan completo está en [docs/mapa-agencia.md](docs/ma
 - [x] Capturas en la nube (rama `sistema/119-capturas-servidor`): el navegador de Vercel ya no se cae; motivo real si una web no deja entrar.
 - [x] La vara con imágenes (rama `sistema/120-vara-con-imagenes`): cada pieza del mes con nota frente a las capturas y rehecha sola si no llega; los agentes de proyectos y su revisión ven las capturas.
 - [x] Portafolio (rama `sistema/121-portafolio`): Faro decide el enfoque de la cuenta; plantillas caso, detalle y espacio; volver a armar un mes.
-- [ ] Reel de recorrido como video (la web bajando sola, MP4) para las cuentas de portafolio.
+- [x] Material para publicar (rama `sistema/122-obra-sin-marco`): tramos, logo y video del recorrido de cada web; piezas a pantalla completa sin marco de Unmake.
+- [ ] Subir material que no es una web (logos, videos, fotos de un proyecto) a «Su trabajo real».
 - [ ] Productos propios de Unmake en «Su trabajo real»: WhiteDot, Kubono y otros (Jay da los enlaces).
 - [ ] Fase 2, lo que falta: fundir Banco y Criterio en la Dirección; guías de más de 4 MB (subida directa a la nube).
 - [ ] Cargar las webs de Coresolutions y @jaywrkr como referencia de calidad y trabajo real de Unmake.

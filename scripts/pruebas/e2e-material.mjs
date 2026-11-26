@@ -16,8 +16,10 @@ const fallas = [];
 const exigir = (ok, texto) => { console.log(`${ok ? "✓" : "✗"} ${texto}`); if (!ok) fallas.push(texto); };
 const espera = (loc, ms = 20000) => loc.waitFor({ timeout: ms }).then(() => true, () => false);
 
+const TRAMO = (bg, fg, t) => `<section style="min-height:100vh;background:${bg};color:${fg};padding:12vh 7vw;box-sizing:border-box"><h1 style="font-size:72px;margin:0">${t}</h1><p>Una web de prueba para capturar.</p></section>`;
 const PAGINA = (t) => `<!doctype html><html><head><title>${t}</title><meta name="viewport" content="width=device-width"></head><body style="margin:0;font-family:sans-serif;background:#01095c;color:#fff">
-<header style="padding:24px 48px"><b>${t}</b></header><h1 style="font-size:72px;padding:80px 48px;margin:0">Infraestructura preparada para lo que viene.</h1><p style="padding:0 48px">Una web de prueba para capturar.</p></body></html>`;
+<header style="position:absolute;top:0;left:0;padding:24px 48px"><svg class="logo" width="220" height="28" viewBox="0 0 220 28"><circle cx="14" cy="14" r="12" fill="#fff"/><text x="34" y="20" fill="#fff" font-size="16" font-weight="700">${t}</text></svg></header>
+${TRAMO("#01095c", "#fff", "Infraestructura preparada para lo que viene.")}${TRAMO("#ffffff", "#01095c", "Cloud. Respaldo. Seguridad.")}${TRAMO("#8a97ff", "#01095c", "Quince años.")}${TRAMO("#01095c", "#fff", "Hablemos.")}</body></html>`;
 const sitio = createServer((q, r) => { r.writeHead(200, { "content-type": "text/html; charset=utf-8" }); r.end(PAGINA(q.url === "/ref" ? "Referencia" : "Coresolutions de prueba")); }).listen(45779, "127.0.0.1");
 
 const nav = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
@@ -51,6 +53,9 @@ try {
   const cargan = await imgs.evaluateAll((xs) => Promise.all(xs.map((i) => new Promise((r) => { const v = () => r(i.naturalWidth); if (i.complete) v(); else i.onload = v; }))));
   exigir(cargan.every((w) => w > 0), "las capturas se ven en la ficha");
   exigir(cargan.includes(1440) && cargan.includes(390), `en tamaño de computadora y de celular (${cargan.join(", ")})`);
+  // Lo que hay para publicar de cada web (sistema/122): tramos a pantalla completa, su logo y el video del recorrido.
+  const paraPublicar = await p.locator("[data-trabajo] [data-para-publicar]").last().innerText().catch(() => "");
+  exigir(/[3-5] tramos/.test(paraPublicar) && /logo/.test(paraPublicar) && /video/.test(paraPublicar), `de su trabajo quedan tramos, logo y video para publicar (${paraPublicar})`);
   await p.screenshot({ path: join(capturas, "1-material.png"), fullPage: true });
 
   // 3 · Faro arma el mes viendo las capturas y una serie muestra su trabajo real.
@@ -68,6 +73,9 @@ try {
   const docs = await p.locator("[data-pieza] iframe").evaluateAll((xs) => xs.map((x) => x.getAttribute("srcdoc") ?? ""));
   exigir(docs.filter((d) => d.includes("/material/")).length >= Math.ceil(docs.length * 0.9), `casi todas las piezas muestran su trabajo real (${docs.filter((d) => d.includes("/material/")).length} de ${docs.length})`);
   exigir(docs.every((d) => !/Título de prueba|Decisión \d/.test(d)), "ninguna pieza es una frase o un consejo");
+  exigir(docs.filter((d) => d.includes("/material/")).every((d) => !/unmake\.|Nº \d|border-radius/.test(d)), "las piezas de trabajo son el material a pantalla completa: sin marca del estudio ni aparatos dibujados");
+  exigir(docs.some((d) => /-p[1-5]\.jpg/.test(d)) && docs.some((d) => d.includes("-logo.png")) && docs.some((d) => d.includes("-v.jpg")), "el mes mezcla tramos de la web, el logo solo y la portada del video");
+  exigir(new Set(docs.flatMap((d) => d.match(/-p[1-5]\.jpg/g) ?? [])).size >= 3, "los tramos van rotando: no se repite siempre el mismo");
   // 3b · La revisión contra la vara (sistema/120): sola, al abrir el mes. Cada pieza se dibuja y se mira al lado de las
   // capturas; la que no llega, Faro la rehace y se vuelve a mirar.
   exigir(await espera(p.locator("[data-vara-progreso]"), 15000), "al abrir el mes, empieza la revisión con la vara");
@@ -80,8 +88,6 @@ try {
   await p.locator("[data-pieza]").first().click();
   const caja = p.locator("[data-detalle] [data-vara]");
   exigir(await espera(caja) && (await caja.getAttribute("data-vara")) === "llega" && /8\s*\/10/.test(await caja.innerText()) && /rehízo una vez/.test(await caja.innerText()), `la pieza que no llegaba, Faro la rehízo sola y ahora llega (${await caja.innerText().catch(() => "")})`);
-  const titulo = await p.locator("[data-detalle] [data-arte] iframe").first().getAttribute("srcdoc").catch(() => "");
-  exigir((titulo ?? "").includes("(a la vara)"), "el arte muestra la versión rehecha");
   await p.screenshot({ path: join(capturas, "3-vara.png"), fullPage: true });
 
   // 4 · Una pieza «trabajo» muestra la captura real en la vista previa y al prepararla para Instagram.
@@ -97,6 +103,13 @@ try {
   await detalle.locator("[data-dibujar]").click();
   exigir(await espera(detalle.locator("[data-arte] img").first(), 120000), `el arte con la captura queda listo para Instagram (${await detalle.locator("[role=alert]").allInnerTexts()})`);
   await p.screenshot({ path: join(capturas, "2-pieza-trabajo.png"), fullPage: true });
+
+  // 4b · El reel de un trabajo es el video real de la web bajando.
+  await p.locator("[data-pieza]").nth(3).click();
+  const video = detalle.locator("[data-video]");
+  exigir(await espera(video, 8000) && /-v\.mp4$/.test((await video.getAttribute("src")) ?? ""), "el reel trae el video del recorrido de la web");
+  const mp4 = await p.request.get(`${B}${await video.getAttribute("src").catch(() => "/x")}`);
+  exigir(mp4.ok() && mp4.headers()["content-type"] === "video/mp4" && (await mp4.body()).length > 20000, "y el video se puede abrir");
 
   // 5 · Volver a armar (sistema/121): Faro lo arma de nuevo y el anterior queda guardado.
   const antesFaro = readFileSync(registro, "utf8").split("\n").filter((l) => l.includes("Faro arma el mes de contenido")).length;

@@ -2,7 +2,7 @@
 // sin servidor ni navegador. artes.ts lo usa para dibujar los JPG.
 import type { FormatoPieza, Historia, Lamina, PlantillaArte } from "./contenido.ts";
 /** Las plantillas que muestran trabajo real (sistema/121): necesitan una captura del material. Vive aquí porque este archivo también corre en el navegador. */
-export const PLANTILLAS_TRABAJO: PlantillaArte[] = ["trabajo", "caso", "detalle", "espacio"];
+export const PLANTILLAS_TRABAJO: PlantillaArte[] = ["trabajo", "caso", "detalle", "espacio", "logo"];
 import { UNMAKE_LINE } from "./fuentes/unmake-line.ts";
 import type { DireccionCliente } from "../clientes/direccion.ts";
 
@@ -131,6 +131,30 @@ body{background:${luz}${fondo};color:${tinta};font-family:${e.texto};position:re
 </style></head><body>${franja}<div class="pad">${cabeza}<div class="cuerpo">${cuerpo}</div><div class="pie"><span>${o.pagina ?? ""}</span><span>${o.ultima ? esc(e.cierreMarca ?? "") : ""}</span></div></div></body></html>`;
 }
 
+/** Un lienzo limpio: solo el color del cliente y su trabajo. Nada del estudio. */
+function lienzo(ancho: number, alto: number, fondo: string, cuerpo: string) {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0}html,body{width:${ancho}px;height:${alto}px;overflow:hidden;background:${fondo}}
+body{position:relative;display:flex;align-items:center;justify-content:center}img{display:block}</style></head><body>${cuerpo}</body></html>`;
+}
+
+/**
+ * Las piezas de trabajo (sistema/122), como las publican los estudios: material real del proyecto a pantalla completa.
+ * Sin aparatos, sin marcos, sin fondo ni texto del estudio. «caso»: los tramos de la web, uno por lámina, y su logo al
+ * final; «detalle»: un tramo; «logo»: su logo solo sobre su color; reel: la portada del video del recorrido.
+ */
+function obraHTML(p: PiezaArte, L: Lamina, W: number, H: number): ArteDibujo[] {
+  const fondo = L.fondo ?? "#0e0e10";
+  const src = (archivo: string) => esc(p.imagenes?.[archivo] ?? `/material/${archivo}`);
+  const vistas = L.vistas?.length ? L.vistas : [L.imagen!];
+  const sangre = (archivo: string) => `<img src="${src(archivo)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top">`;
+  const logo = L.logo ? `<img src="${src(L.logo)}" alt="" style="max-width:44%;max-height:26%;object-fit:contain">` : "";
+  const uno = (nombre: string, ancho: number, alto: number, cuerpo: string) => ({ nombre, ancho, alto, html: lienzo(ancho, alto, fondo, cuerpo) });
+  if (p.formato === "reel" || p.plantilla === "portada") return [uno(`${p.id}-portada`, 1080, 1920, sangre(vistas[0]!))];
+  if (p.plantilla === "logo" && logo) return [uno(`${p.id}-01`, W, H, logo)];
+  if (p.plantilla === "caso") return [...vistas.slice(0, 6).map((v, i) => uno(`${p.id}-${dos(i + 1)}`, W, H, sangre(v))), ...(logo ? [uno(`${p.id}-${dos(Math.min(vistas.length, 6) + 1)}`, W, H, logo)] : [])];
+  return [uno(`${p.id}-01`, W, H, sangre(vistas[0]!))];
+}
+
 /** Las láminas de una pieza (y su portada si es reel), en HTML listo para dibujar. */
 export function laminasHTML(e: EstiloArte, p: PiezaArte): ArteDibujo[] {
   const L = p.lamina, W = 1080, H = 1350;
@@ -142,46 +166,10 @@ export function laminasHTML(e: EstiloArte, p: PiezaArte): ArteDibujo[] {
   const lamina = (n: number, total: number, cuerpo: string) => ({ nombre: `${p.id}-${dos(n)}`, ancho: W, alto: H, html: marco(e, W, H, cuerpo, { ...base, pagina: total > 1 ? `${dos(n)} / ${dos(total)}${n === 1 ? "  ·  desliza →" : ""}` : "", ultima: n === total }) });
   const h1 = (t: string, b = 92, piso = 54) => `<h1 class="t" style="font-size:${tam(t, b, piso)}px">${esc(t)}</h1>`;
 
-  // — El trabajo real (sistema/118 y 121): siempre con aire alrededor, nunca a toda la lámina. —
-  const src = (archivo: string) => esc(p.imagenes?.[archivo] ?? `/material/${archivo}`);
-  const celularDe = (archivo: string) => archivo.replace(/-1440\.jpg$/, "-390.jpg");
-  const borde = `${e.suave}55`;
-  const pantalla = (archivo: string, posicion = "top") => `<img src="${src(archivo)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:${posicion};display:block">`;
-  /** Una laptop dibujada con código: pantalla con marco oscuro y la base. */
-  const laptop = (archivo: string, ancho: string) => `<div style="width:${ancho};align-self:center"><div style="background:#0d0d0f;border-radius:18px 18px 4px 4px;padding:14px 14px 18px;box-shadow:0 30px 60px rgba(0,0,0,.28)"><div style="aspect-ratio:16/10;overflow:hidden;border-radius:4px;background:#fff">${pantalla(archivo)}</div></div><div style="height:16px;margin:0 -6%;background:linear-gradient(#cfcfd3,#9c9ca2);border-radius:0 0 14px 14px"></div></div>`;
-  /** Un celular dibujado con código. */
-  // Por alto, no por ancho: así nunca se sale de la lámina.
-  const telefono = (archivo: string, alto: number, extra = "") => `<div style="height:${alto}px;width:${Math.round((alto * 9) / 19.5)}px;flex:none;background:#0d0d0f;border-radius:${Math.round(alto / 20)}px;padding:${Math.round(alto / 70)}px;box-shadow:0 0 0 2px ${borde},0 30px 70px rgba(0,0,0,.32);${extra}"><div style="width:100%;height:100%;overflow:hidden;border-radius:${Math.round(alto / 26)}px;background:#fff">${pantalla(archivo)}</div></div>`;
-  /** Un recorte de cerca de la captura: la parte que eligió Faro. */
-  const POS = { arriba: "0% 0%", medio: "0% 50%", abajo: "0% 100%" } as const;
-  const recorte = (archivo: string, cual: Lamina["recorte"] = "arriba", alto = "62%") => `<div style="width:84%;height:${alto};align-self:center;border-radius:6px;background:#fff url('${src(archivo)}') no-repeat;background-size:165% auto;background-position:${POS[cual ?? "arriba"]};box-shadow:0 0 0 1px ${borde}"></div>`;
-  const rotulo = (t?: string, chico = false) => (t ? `<p class="t" style="font-size:${chico ? 30 : tam(t, 46, 32)}px;max-width:86%;align-self:center;text-align:center${chico ? ";opacity:.75" : ""}">${esc(t)}</p>` : "");
+  // — El trabajo real (sistema/122): como lo publican los estudios de primer nivel. El post ES el trabajo del cliente,
+  // con SUS colores (los de su web, guardados al capturarla): sin marco, firma, serie, contador ni texto del estudio. —
   const conImagen = !!L.imagen && (PLANTILLAS_TRABAJO.includes(p.plantilla) || p.formato === "reel");
-
-  if ((p.formato === "reel" || p.plantilla === "portada") && conImagen) {
-    // Portada del recorrido: el celular con la web, el nombre chico abajo.
-    const cuerpo = `${telefono(celularDe(L.imagen!), 1180, "align-self:center")}${rotulo(L.titulo)}`;
-    return [{ nombre: `${p.id}-portada`, ancho: 1080, alto: 1920, html: marco(e, 1080, 1920, cuerpo, { ...base, ultima: true }) }];
-  }
-  if (p.plantilla === "caso" && L.imagen) {
-    const otro = L.recorte === "medio" ? "abajo" : "medio";
-    const total = 5;
-    return [
-      lamina(1, total, `<div style="position:relative;align-self:center;width:100%;display:flex;justify-content:center">${laptop(L.imagen, "86%")}${telefono(celularDe(L.imagen), 400, "position:absolute;right:2%;bottom:-8%")}</div>${L.antetitulo ? `<p class="ante" style="align-self:center;margin-top:40px">${esc(L.antetitulo)}</p>` : ""}${rotulo(L.titulo)}`),
-      lamina(2, total, recorte(L.imagen, L.recorte ?? "arriba", "78%")),
-      lamina(3, total, recorte(L.imagen, otro, "78%")),
-      lamina(4, total, telefono(celularDe(L.imagen), 900, "align-self:center")),
-      lamina(5, total, `${ante}${h1(L.titulo, 96, 56)}${baj(L.bajada)}`),
-    ];
-  }
-  if (p.plantilla === "detalle" && L.imagen) return [lamina(1, 1, `${recorte(L.imagen, L.recorte, "72%")}${rotulo(L.titulo, true)}`)];
-  if (p.plantilla === "espacio" && L.imagen) {
-    // La pantalla en el mundo: un cartel en perspectiva sobre un plano de color, con su sombra en el piso.
-    const escena = `<div style="align-self:center;width:100%;height:74%;position:relative;perspective:1800px;border-radius:8px;overflow:hidden;background:linear-gradient(180deg,${acento}33 0%,${acento}22 62%,${e.tinta}1f 62%,${e.tinta}0d 100%)">
-<div style="position:absolute;left:14%;top:12%;width:68%;aspect-ratio:16/10;transform:rotateY(-22deg) rotateX(4deg);transform-origin:left center;box-shadow:40px 50px 60px rgba(0,0,0,.30);background:#fff;overflow:hidden">${pantalla(L.imagen)}</div>
-<div style="position:absolute;left:18%;right:10%;top:64%;height:10%;background:radial-gradient(50% 50% at 50% 50%,rgba(0,0,0,.22),transparent 70%)"></div></div>`;
-    return [lamina(1, 1, `${escena}${rotulo(L.titulo, true)}`)];
-  }
+  if (conImagen) return obraHTML(p, L, W, H);
   if (p.formato === "reel" || p.plantilla === "portada") {
     const cuerpo = `${ante}${h1(L.titulo, 104, 60)}${baj(L.bajada)}`;
     return [{ nombre: `${p.id}-portada`, ancho: 1080, alto: 1920, html: marco(e, 1080, 1920, cuerpo, { ...base, ultima: true }) }];
@@ -231,6 +219,10 @@ export function historiasHTML(e: EstiloArte, p: PiezaArte, portada?: string): Ar
   const base = { serie: p.serie, nSerie: p.nSerie, acento, invertido: !!e.invertir && p.nSerie % 2 === 0, ultima: true };
   const out: ArteDibujo[] = [];
   const h = p.historias ?? [];
+  // Una pieza de trabajo (sistema/122): la historia es el post sobre su propio color, sin texto del estudio.
+  if (p.lamina.imagen && (PLANTILLAS_TRABAJO.includes(p.plantilla) || p.formato === "reel")) {
+    return portada ? [{ nombre: `${p.id}-historia-1`, ancho: W, alto: H, html: lienzo(W, H, p.lamina.fondo ?? "#0e0e10", `<img src="${portada}" alt="" style="width:80%;">`) }] : [];
+  }
   if (portada) out.push({ nombre: `${p.id}-historia-1`, ancho: W, alto: H, html: marco(e, W, H, `<img src="${portada}" style="width:78%;align-self:center;box-shadow:0 30px 80px rgba(0,0,0,.35)"><p class="t" style="font-size:${tam(h[0]?.texto, 52, 36)}px;text-align:center">${esc(h[0]?.texto ?? "")}</p>`, base) });
   const conSticker = h.find((x) => x.sticker);
   if (conSticker) {
