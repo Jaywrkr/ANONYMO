@@ -3,6 +3,7 @@
 import { NOMBRE_ORIGEN_DIR, type DireccionCliente, type OrigenDir, type PropuestaDireccion } from "@anonymo/pipeline";
 import { accionDireccion } from "@/app/estudio/cliente/acciones";
 import { boton, botonLleno, campo } from "@/lib/estudio";
+import { CapturarReferencias } from "./CapturarReferencias";
 
 const PUNTO: Record<OrigenDir, string> = { guia: "#1f6feb", ustedes: "#1a1816", web: "#a39a92", agente: "#d4ccc0" };
 const fuentesGoogle = (familias: string[]) => (familias.length ? `https://fonts.googleapis.com/css2?${familias.map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}`).join("&")}&display=swap` : "");
@@ -63,6 +64,28 @@ function Lista({ titulo, items, vacio }: { titulo: string; items: { texto: strin
   );
 }
 
+/** Cada web con sus capturas (computadora y celular), su enlace y su nota. */
+function Referencias({ lista }: { lista: DireccionCliente["referencias"] }) {
+  return (
+    <ul className="mt-2 grid gap-3 sm:grid-cols-2" data-referencias>
+      {lista.map((r) => (
+        <li key={r.url} className="min-w-0 rounded-2xl bg-hueso/60 p-2.5">
+          {r.capturas?.length ? (
+            <a href={r.url} target="_blank" rel="noreferrer" className="flex items-start gap-2" data-capturada>
+              {r.capturas.map((c) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={c.archivo} src={`/material/${c.archivo}`} alt={`${r.url} en ${c.vista}`} loading="lazy" className={`rounded-[8px] object-cover object-top shadow-[0_0_0_1px_rgba(26,24,22,.08)] ${c.vista === "escritorio" ? "aspect-[16/10] w-[76%]" : "aspect-[9/16] w-[20%]"}`} />
+              ))}
+            </a>
+          ) : <div className="grid aspect-[16/7] place-items-center rounded-[8px] bg-white/70 text-[12px] text-suave" data-sin-captura>Sin captura todavía</div>}
+          <p className="mt-2 flex min-w-0 items-baseline gap-2 px-1 text-[13.5px]"><Origen o={r.origen} /><a href={r.url} target="_blank" rel="noreferrer" className="truncate underline underline-offset-4">{r.url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</a></p>
+          {r.nota && <p className="px-1 text-[12.5px] text-medio">{r.nota}</p>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Entendi({ id, p }: { id: string; p: PropuestaDireccion }) {
   return (
     <div className="mt-4 rounded-2xl bg-[#eef4ff] p-4 md:p-5" data-entendi>
@@ -112,12 +135,20 @@ export function DireccionDelCliente({ id, nombre, d, web }: { id: string; nombre
               <Lista titulo="Sí" items={d!.si} vacio="Nada anotado." />
               <Lista titulo="No" items={d!.no} vacio="Nada anotado." />
             </div>
+            {d!.referencias.some((r) => r.trabajo) && (
+              <div data-trabajo>
+                <p className="text-[12px] text-suave">Su trabajo real · lo que se muestra en sus piezas</p>
+                <Referencias lista={d!.referencias.filter((r) => r.trabajo)} />
+              </div>
+            )}
             <div data-bueno>
               <p className="text-[12px] text-suave">Qué es bueno para {nombre} · la vara con la que se revisa cada entrega</p>
-              {d!.referencias.length
-                ? <ul className="mt-1.5 grid gap-1 text-[14px]">{d!.referencias.map((r) => <li key={r.url} className="flex min-w-0 items-baseline gap-2"><Origen o={r.origen} /><a href={r.url} target="_blank" rel="noreferrer" className="truncate underline underline-offset-4">{r.url.replace(/^https?:\/\/(www\.)?/, "")}</a>{r.nota && <span className="shrink-0 text-medio">— {r.nota}</span>}</li>)}</ul>
-                : <p className="mt-1.5 text-[13px] text-suave">Sin referencias. Agreguen dos o tres trabajos de primer nivel que para él estén bien hechos.</p>}
+              {d!.referencias.some((r) => !r.trabajo)
+                ? <Referencias lista={d!.referencias.filter((r) => !r.trabajo)} />
+                : d!.referencias.length ? <p className="mt-1.5 text-[13px] text-suave">Su trabajo real también es la vara. Agreguen trabajos de afuera que para {nombre} estén bien hechos.</p>
+                : <p className="mt-1.5 text-[13px] text-suave">Sin referencias. Agreguen dos o tres trabajos de primer nivel que para {nombre} estén bien hechos.</p>}
             </div>
+            {d!.referencias.length > 0 && <CapturarReferencias id={id} pendientes={d!.referencias.filter((r) => !r.capturas?.length).length} total={d!.referencias.length} />}
             {d!.aprendido.length > 0 && (
               <div data-aprendido>
                 <p className="text-[12px] text-suave">Lo que dijeron al revisar</p>
@@ -152,7 +183,8 @@ export function DireccionDelCliente({ id, nombre, d, web }: { id: string; nombre
           <label className="grid gap-1 text-[13px]">Lo que sí · uno por línea<textarea name="si" rows={4} defaultValue={nuestras(d?.si)} className={campo} /></label>
           <label className="grid gap-1 text-[13px]">Lo que no · uno por línea<textarea name="no" rows={4} defaultValue={nuestras(d?.no)} className={campo} /></label>
           <label className="grid gap-1 text-[13px]">Letras · la de títulos primero<textarea name="letras" rows={2} defaultValue={(d?.letras ?? []).filter((l) => l.origen === "ustedes").map((l) => l.familia).join("\n")} className={campo} /></label>
-          <label className="grid gap-1 text-[13px]">Qué es bueno · un enlace por línea, con una nota («https://… — el aire y la letra»)<textarea name="referencias" rows={4} defaultValue={(d?.referencias ?? []).filter((r) => r.origen === "ustedes").map((r) => `${r.url}${r.nota ? ` — ${r.nota}` : ""}`).join("\n")} className={campo} /></label>
+          <label className="grid gap-1 text-[13px]">Su trabajo real para mostrar · un enlace por línea, con una nota<textarea name="trabajos" rows={3} defaultValue={(d?.referencias ?? []).filter((r) => r.origen === "ustedes" && r.trabajo).map((r) => `${r.url}${r.nota ? ` — ${r.nota}` : ""}`).join("\n")} className={campo} /></label>
+          <label className="grid gap-1 text-[13px]">Qué es bueno · un enlace por línea, con una nota («https://… — el aire y la letra»)<textarea name="referencias" rows={4} defaultValue={(d?.referencias ?? []).filter((r) => r.origen === "ustedes" && !r.trabajo).map((r) => `${r.url}${r.nota ? ` — ${r.nota}` : ""}`).join("\n")} className={campo} /></label>
           <div className="md:col-span-2"><button className={botonLleno} data-trabajando="Guardando…" data-guardar-direccion>Guardar la Dirección</button></div>
         </form>
       </details>

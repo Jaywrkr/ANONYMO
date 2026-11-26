@@ -28,7 +28,7 @@ export const PROPIAS_ANONYMO: PropuestaDato[] = DATOS_ANONYMO.map(([clave, valor
  * Los primeros trabajos de Unmake (sistema/117, 26 nov): las dos webs que ya existen y les gustan a Jay y Luna.
  * Son la vara de calidad («qué es bueno») y el portafolio real con que arranca su contenido.
  */
-export const TRABAJOS_UNMAKE: { url: string; nota: string }[] = [
-  { url: "https://coresolutions-web.vercel.app/", nota: "web de Coresolutions: empresa seria, clara, navy e IBM Plex" },
-  { url: "https://jayjaramillo.vercel.app/", nota: "web de @jaywrkr: una historia con scroll, Geist Mono, mucho aire, nada de plantilla" },
+export const TRABAJOS_UNMAKE: { url: string; nota: string; trabajo: true }[] = [
+  { url: "https://coresolutions-web.vercel.app/", nota: "web de Coresolutions: empresa seria, clara, navy e IBM Plex", trabajo: true },
+  { url: "https://jayjaramillo.vercel.app/", nota: "web de @jaywrkr: una historia con scroll, Geist Mono, mucho aire, nada de plantilla", trabajo: true },
 ];

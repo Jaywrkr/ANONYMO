@@ -16,7 +16,7 @@ export type EstadoPieza = "propuesta" | "aprobada" | "cambio";
 export const ESTADOS_PIEZA: Record<EstadoPieza, string> = { propuesta: "Por revisar", aprobada: "Aprobada", cambio: "Pidieron un cambio" };
 
 /** Cada serie usa siempre la misma plantilla de arte, para que se reconozca de lejos (sistema/107). */
-export type PlantillaArte = "frase" | "tachado" | "lista" | "dato" | "mito" | "pregunta" | "portada";
+export type PlantillaArte = "frase" | "tachado" | "lista" | "dato" | "mito" | "pregunta" | "trabajo" | "portada";
 export const PLANTILLAS_ARTE: Record<PlantillaArte, { nombre: string; para: string; formatos: FormatoPieza[] }> = {
   frase: { nombre: "Frase", para: "Una idea en una frase grande, con mucho aire.", formatos: ["post"] },
   tachado: { nombre: "Tachado", para: "Una palabra tachada y la que la reemplaza («Excusa → Decisión.»).", formatos: ["post"] },
@@ -24,6 +24,7 @@ export const PLANTILLAS_ARTE: Record<PlantillaArte, { nombre: string; para: stri
   dato: { nombre: "Dato", para: "Un número real grande y qué significa. Solo con cifras que se saben.", formatos: ["post", "carrusel"] },
   mito: { nombre: "Mito", para: "Lo que se cree y lo que es en realidad, en tres láminas.", formatos: ["carrusel"] },
   pregunta: { nombre: "Pregunta", para: "Una pregunta que hacen los clientes y la respuesta en pasos.", formatos: ["carrusel"] },
+  trabajo: { nombre: "Trabajo", para: "Una captura real de su trabajo, con aire y una sola línea. Solo si hay material real.", formatos: ["post", "carrusel"] },
   portada: { nombre: "Portada de reel", para: "La portada del reel: el título que se ve en el perfil.", formatos: ["reel"] },
 };
 export const esPlantillaArte = (x: unknown): x is PlantillaArte => typeof x === "string" && x in PLANTILLAS_ARTE;
@@ -40,6 +41,8 @@ export interface Lamina {
   /** «lista», «pregunta» y «mito»: una lámina por punto. */
   items?: { t: string; d?: string }[];
   cierre?: string;
+  /** Plantilla «trabajo» (sistema/118): el archivo de la captura real que se muestra (del material del cliente). */
+  imagen?: string;
 }
 export type Sticker = "encuesta" | "pregunta" | "quiz" | "deslizador";
 /** Una historia del día: qué se sube y, si lleva, qué sticker y con qué opciones. */
@@ -214,6 +217,7 @@ Para cada pieza escribe las dos opciones (A y B), con la misma serie y plantilla
   · dato: numero (solo una cifra que esté en lo que se sabe), titulo y bajada.
   · mito: titulo (el mito, como lo dice la gente), items con un solo elemento cuyo d es la realidad, y cierre.
   · pregunta: titulo (la pregunta como la hace el cliente), items (los pasos de la respuesta) y cierre.
+  · trabajo: imagen (el nombre EXACTO de un archivo de «Material real») y titulo (una sola línea corta sobre ese trabajo). Sin bajada larga: el trabajo habla.
   · portada (reels): titulo corto para la portada.
 - «visual»: solo si hace falta una foto o video real: qué se graba o fotografía. Si el arte basta, escribe «Solo el arte».
 - «historias» (de la opción A): 2 o 3, en orden. La 1 comparte el post con una línea. La 2 lleva un sticker (encuesta con 2 opciones, pregunta, quiz o deslizador) conectado con el post. La 3, si va, es el proceso o la respuesta a las 24 horas.
@@ -256,7 +260,7 @@ const HERRAMIENTA_CALENDARIO = {
     required: ["series", "fechas"],
   },
 };
-const ESQUEMA_LAMINA = { type: "object", properties: { antetitulo: { type: "string" }, titulo: { type: "string" }, bajada: { type: "string" }, tachado: { type: "string" }, numero: { type: "string" }, items: { type: "array", items: { type: "object", properties: { t: { type: "string" }, d: { type: "string" } }, required: ["t"] } }, cierre: { type: "string" } }, required: ["titulo"] };
+const ESQUEMA_LAMINA = { type: "object", properties: { imagen: { type: "string", description: "Solo plantilla «trabajo»: el archivo del material real." }, antetitulo: { type: "string" }, titulo: { type: "string" }, bajada: { type: "string" }, tachado: { type: "string" }, numero: { type: "string" }, items: { type: "array", items: { type: "object", properties: { t: { type: "string" }, d: { type: "string" } }, required: ["t"] } }, cierre: { type: "string" } }, required: ["titulo"] };
 const ESQUEMA_OPCION = { type: "object", properties: { texto: { type: "string" }, visual: { type: "string" }, lamina: ESQUEMA_LAMINA }, required: ["texto", "lamina"] };
 const HERRAMIENTA_PIEZAS = {
   nombre: "escribir_piezas",
@@ -292,6 +296,8 @@ export function leerLamina(x: unknown): Lamina | undefined {
   if (!titulo) return undefined;
   const l: Lamina = { titulo };
   for (const [k, n] of [["antetitulo", 60], ["bajada", 220], ["tachado", 60], ["numero", 16], ["cierre", 160]] as const) { const v = limpio(r[k], n); if (v) l[k] = v; }
+  const imagen = limpio(r.imagen, 100);
+  if (/^[a-z0-9][a-z0-9-]{2,80}\.jpg$/.test(imagen)) l.imagen = imagen;
   const items = (Array.isArray(r.items) ? r.items : []).map((i) => ({ t: limpio((i as { t?: unknown })?.t, 110), d: limpio((i as { d?: unknown })?.d, 260) || undefined })).filter((i) => i.t).slice(0, 7);
   if (items.length) l.items = items;
   return l;
@@ -406,9 +412,13 @@ export function leerMesIA(x: unknown, fechas: string[]) {
 }
 
 /** Faro arma el mes y queda guardado para revisar. Un mes por cliente: si ya existe, no se vuelve a gastar. */
-export async function armarMes(o: { cliente: string; nombre: string; mes: string; saber: string; canales: string; frecuencia: string; pedido?: string; por: string; color?: string; direccion?: DireccionCliente; responsable?: "jay" | "luna" }): Promise<MesContenido> {
+export async function armarMes(o: { cliente: string; nombre: string; mes: string; saber: string; canales: string; frecuencia: string; pedido?: string; por: string; color?: string; direccion?: DireccionCliente; responsable?: "jay" | "luna";
+  /** El material real del cliente (sistema/118): capturas de su trabajo y de sus referencias. Las que traen «datos» (jpg en base64) Faro las ve. */
+  material?: { archivo: string; url: string; nota?: string; trabajo: boolean; vista: "escritorio" | "celular"; datos?: string }[] }): Promise<MesContenido> {
   if (!/^\d{4}-\d{2}$/.test(o.mes)) throw new Error("No entendí el mes.");
   const id = idMes(o.cliente, o.mes);
+  const material = (o.material ?? []).filter((m) => /^[a-z0-9][a-z0-9-]{2,80}\.jpg$/.test(m.archivo));
+  const deTrabajo = material.filter((m) => m.trabajo);
   if ((await leer()).meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}. Ábrelo desde Contenido.`);
   // Si pidieron una cantidad («las primeras 9 publicaciones»), son esas: las primeras fechas del mes (sistema/114).
   const todas = fechasDelMes(o.mes, o.frecuencia), cuantas = cantidadPedida(o.pedido);
@@ -421,16 +431,24 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     `## Reglas de marca\n${estilo.reglas}`,
     o.pedido?.trim() ? `## Lo que pidieron para este mes\n${o.pedido.trim().slice(0, 800)}` : "",
     `## Dónde publica\n${o.canales}`,
+    material.length
+      ? `## Material real (capturas que ves arriba; en la plantilla «trabajo», «imagen» es el archivo EXACTO)\n${material.map((m) => `- ${m.archivo} · ${m.trabajo ? "su trabajo" : "referencia de calidad"} · ${m.vista} · ${m.url}${m.nota ? ` — ${m.nota}` : ""}`).join("\n")}\n${material.some((m) => m.trabajo) ? "Muestra su trabajo real: al menos una serie usa la plantilla «trabajo», como en los estudios que publican su portafolio." : "Las capturas son la vara de calidad: no las publiques como si fueran del cliente; no uses la plantilla «trabajo»."}`
+      : "## Material real\nNo hay capturas: no uses la plantilla «trabajo».",
   ].filter(Boolean).join("\n\n");
+  // Lo que Faro ve (sistema/118): las capturas como imágenes, no solo los enlaces. Hasta 4, primero su trabajo.
+  const vistas = material.filter((m) => m.datos && m.vista === "escritorio").sort((a, b) => Number(b.trabajo) - Number(a.trabajo)).slice(0, 4);
+  const conImagenes = (texto: string) => (vistas.length ? [...vistas.flatMap((m) => [{ type: "text", text: `Captura ${m.archivo} (${m.trabajo ? "su trabajo" : "referencia"}):` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: m.datos } }]), { type: "text", text: texto }] : texto);
   // 1 · El calendario.
   let crudo: unknown;
   try {
-    crudo = await pedirEstructura(SISTEMA_MES, `${contexto}\n\n## Fechas (${fechas.length}, ${nombreMes(o.mes)})\n${fechas.map((f, i) => `${i + 1}. ${f} (${DIA[(new Date(`${f}T12:00:00Z`).getUTCDay() + 6) % 7]})`).join("\n")}`, HERRAMIENTA_CALENDARIO, 5000, { origen: "faro", tarea: "contenido" });
+    crudo = await pedirEstructura(SISTEMA_MES, conImagenes(`${contexto}\n\n## Fechas (${fechas.length}, ${nombreMes(o.mes)})\n${fechas.map((f, i) => `${i + 1}. ${f} (${DIA[(new Date(`${f}T12:00:00Z`).getUTCDay() + 6) % 7]})`).join("\n")}`), HERRAMIENTA_CALENDARIO, 5000, { origen: "faro", tarea: "contenido" });
   } catch (e) {
     throw new Error(`Faro no pudo armar el mes: ${(e as Error).message}`);
   }
   if (crudo === undefined) throw new Error("Falta la clave de Anthropic (ANTHROPIC_API_KEY): sin ella Faro no puede armar el mes.");
   const { series, filas } = leerCalendarioIA(crudo, fechas);
+  // Sin trabajo real que mostrar, la plantilla «trabajo» no se usa: pasa a frase (sistema/118).
+  if (!deTrabajo.length) { for (const x of series) if (x.plantilla === "trabajo") x.plantilla = "frase"; for (const f of filas) if (f.plantilla === "trabajo") f.plantilla = "frase"; }
   // 2 · Las piezas, en tandas de 2 en paralelo (sistema/112: con 4, cada tanda con A, B, historias y arte rozaba el límite
   // de 90 s o se cortaba por largo, y fallaba en silencio). Si una tanda falla, se intenta una vez más y se anota por qué.
   const tandas: Fila[][] = [];
@@ -468,6 +486,8 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
     const coh = texto && lamina ? coherencia(f.ideaA, `${texto} ${lamina.titulo}`, f.ideaB, `${textoB0} ${laminaB0?.titulo ?? ""}`) : "bien";
     if (coh === "cambiar" && textoB0 && laminaB0) { [texto, textoB0] = [textoB0, texto]; [lamina, laminaB0] = [laminaB0, lamina]; [visualA, visualB] = [visualB, visualA]; console.error(`[contenido] pieza ${f.n}: la A traía la idea B; se cambiaron de lugar`); }
     if (!texto || !lamina) { console.error(`[contenido] pieza ${f.n} descartada: ${!p ? "no llegó" : !texto ? "sin texto" : "sin arte"} (llegó: ${p ? Object.keys(p).join(",") : "nada"}; A: ${typeof p?.A})`); continue; }
+    // La captura de una pieza «trabajo» tiene que ser de su trabajo real; si no la nombró bien, se usa una, rotando.
+    if (f.plantilla === "trabajo") for (const l of [lamina, laminaB0]) if (l && !deTrabajo.some((m) => m.archivo === l.imagen)) l.imagen = deTrabajo[piezas.length % deTrabajo.length]?.archivo;
     const textoB = textoB0, laminaB = laminaB0;
     const yt = (objeto(p?.youtube) ?? {}) as Record<string, unknown>;
     piezas.push({

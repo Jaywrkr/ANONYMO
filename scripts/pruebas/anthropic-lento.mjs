@@ -51,9 +51,14 @@ http.createServer((req, res) => {
     }
     // Faro arma el mes de contenido (sistema/107): primero el calendario, una fila por fecha, con series de plantilla fija.
     if (cuerpo.system?.startsWith("Faro arma el mes de contenido")) {
-      const texto = String(cuerpo.messages?.[0]?.content ?? "");
+      const contenido = cuerpo.messages?.[0]?.content ?? "";
+      // Con material (sistema/118) llegan las capturas como imágenes y el texto al final.
+      const texto = Array.isArray(contenido) ? contenido.filter((b) => b.type === "text").map((b) => b.text).join("\n") : String(contenido);
+      const imagenes = Array.isArray(contenido) ? contenido.filter((b) => b.type === "image" && b.source?.data).length : 0;
+      const conTrabajo = imagenes > 0 && /· su trabajo ·/.test(texto);
       const fechas = (texto.split(/## Fechas[^\n]*\n/)[1] ?? "").split("\n").filter((l) => /^\d+\. \d{4}-\d{2}-\d{2}/.test(l));
       const series = [{ nombre: "Antes y después", para: "Mostrar el trabajo terminado", plantilla: "frase" }, { nombre: "Preguntas de clientes", para: "Responder dudas reales", plantilla: "lista" }, { nombre: "Detrás de cámaras", para: "Que conozcan al equipo", plantilla: "tachado" }];
+      if (conTrabajo) series[0] = { nombre: "Trabajo", para: "Mostrar el trabajo real", plantilla: "trabajo" };
       const filas = fechas.map((l, i) => ({ n: i + 1, serie: series[i % 3].nombre, formato: i % 4 === 3 ? "reel" : i % 3 === 1 ? "carrusel" : "post", hora: i % 2 ? "08:30" : "18:00", ideaA: `Idea de prueba ${i + 1}: ${series[i % 3].nombre.toLowerCase()}`, ideaB: `Otra idea ${i + 1}` }));
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_cal", name: "armar_calendario", input: { series, fechas: filas } }], usage: { input_tokens: 1200, output_tokens: 900 } }));
@@ -63,7 +68,8 @@ http.createServer((req, res) => {
     if (cuerpo.system?.startsWith("Faro escribe las piezas")) {
       const texto = String(cuerpo.messages?.[0]?.content ?? "");
       const filas = [...texto.matchAll(/^(\d+)\. \d{4}-\d{2}-\d{2} \S+ · serie «[^»]+» · (\w+) · plantilla «(\w+)»/gm)].map((m) => ({ n: Number(m[1]), formato: m[2], plantilla: m[3] }));
-      const lamina = (n, pl, o) => pl === "tachado" ? { tachado: "Excusa", titulo: `Decisión ${n}${o}.` } : pl === "lista" ? { antetitulo: "PRUEBA · LISTA", titulo: `3 cosas para revisar ${n}${o}`, bajada: "Una bajada de prueba.", items: [{ t: "Primer punto", d: "Por qué importa." }, { t: "Segundo punto", d: "Por qué importa." }, { t: "Tercer punto" }], cierre: "Guárdalo." } : { titulo: `Título de prueba ${n}${o}`, bajada: "Una bajada corta." };
+      const archivo = (texto.match(/^- ([a-z0-9-]+-1440\.jpg) · su trabajo/m) ?? [])[1];
+      const lamina = (n, pl, o) => pl === "trabajo" ? { imagen: archivo ?? "no-existe-1440.jpg", titulo: `Trabajo real ${n}${o}` } : pl === "tachado" ? { tachado: "Excusa", titulo: `Decisión ${n}${o}.` } : pl === "lista" ? { antetitulo: "PRUEBA · LISTA", titulo: `3 cosas para revisar ${n}${o}`, bajada: "Una bajada de prueba.", items: [{ t: "Primer punto", d: "Por qué importa." }, { t: "Segundo punto", d: "Por qué importa." }, { t: "Tercer punto" }], cierre: "Guárdalo." } : { titulo: `Título de prueba ${n}${o}`, bajada: "Una bajada corta." };
       const piezas = filas.map(({ n, formato, plantilla }) => ({
         n,
         A: { texto: `Texto de prueba ${n}. 🚀 Escríbenos por WhatsApp para saber más.\n¿Lo guardas?`, visual: "Solo el arte", lamina: lamina(n, plantilla, "A") },
