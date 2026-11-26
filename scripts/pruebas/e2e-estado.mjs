@@ -37,11 +37,11 @@ try {
   exigir(await espera(p.locator("[role=status]:has-text('Se acabó el cupo de búsquedas de Google por hoy')"), 30000), "sin cupo, Imán lo dice en palabras simples");
 
   // 2 · La página de estado.
-  await p.click("aside summary:has-text('Mejorar el estudio')");
+  await p.click("aside summary:has-text('Taller')");
   await p.click("aside >> text=Estado del sistema");
   await p.waitForURL(/estudio\/estado$/);
   const estado = p.locator("ul[aria-label=Estado]");
-  exigir(await espera(estado), "Estado del sistema abre desde «Mejorar el estudio»");
+  exigir(await espera(estado), "Estado del sistema abre desde «Taller»");
   const texto = await estado.innerText();
   exigir(/Nube privada/.test(texto) && /Responde en \d+ ms/.test(texto), "dice que la nube responde");
   exigir(/Google Maps/.test(texto) && /1 de 200 consultas hoy/.test(texto), "cuenta lo que se gastó de Google hoy");

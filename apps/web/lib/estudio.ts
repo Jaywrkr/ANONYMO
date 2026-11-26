@@ -41,6 +41,8 @@ export const botonSuave = "inline-flex min-h-11 items-center gap-1 rounded-full 
 export const campo =
   "w-full rounded-xl bg-white px-3.5 py-3 text-[15px] text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)] outline-none transition placeholder:text-[#b3ab9f] focus:shadow-[inset_0_0_0_1.5px_var(--color-tinta)]";
 export const serif = "font-serif font-normal tracking-[-0.01em]";
+/** El título de cada pantalla del estudio (sistema/116): un solo tamaño en todo el estudio, más calmado, para que destaque lo que hay que hacer y no el nombre de la pantalla. */
+export const titulo = `${serif} text-[26px] leading-[1.1] md:text-[32px]`;
 
 export const ESTADO_PROYECTO: Record<string, string> = {
   plan: "Plan por aprobar",

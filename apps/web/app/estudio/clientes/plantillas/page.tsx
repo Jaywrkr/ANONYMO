@@ -1,7 +1,7 @@
 // Las plantillas de la muestra (sistema/79): 2 variantes por rubro, con un negocio de ejemplo.
 import Link from "next/link";
 import { leerProspectos, PLANTILLAS_MUESTRA, resultadosPlantillas } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { PestanasClientes } from "@/components/estudio/clientes/PestanasClientes";
 import { TONOS, VARIANTES } from "@/lib/ejemplos-muestra";
 
@@ -24,7 +24,7 @@ export default async function Plantillas() {
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
       <p className="text-[13px] text-suave">Ventas · Imán</p>
-      <h1 className={`${serif} text-[40px] leading-none`}>Plantillas de la muestra.</h1>
+      <h1 className={`${titulo}`}>Plantillas de la muestra.</h1>
       <PestanasClientes actual="plantillas" />
       <p className="mt-5 max-w-3xl text-[15px] text-medio">
         Cada negocio recibe una de las que le sirven a su rubro (a un pediatra no le toca «Noche»), repartidas parejo para saber cuál hace que respondan más. Los colores son los del negocio si los conocemos; si no, los de su rubro. Para cambiarla: Clientes nuevos → el negocio → «Más» → «Plantilla».

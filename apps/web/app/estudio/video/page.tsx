@@ -1,7 +1,7 @@
 // Departamento de video (sistema/62): Luna sube un video y recibe el resultado. Aquí está la lista y la subida.
 import Link from "next/link";
 import { listarGuiones, listarVideos, MAX_VIDEO, type Guion, type TrabajoVideo } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { SubirVideo } from "@/components/estudio/video/SubirVideo";
 import { Guiones } from "@/components/estudio/video/Guiones";
 import { Cara } from "@/components/estudio/piezas";
@@ -28,11 +28,11 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
         <Cara id="corte" tam={56} flota />
         <div>
           <p className="text-[13px] text-suave">Guiones y edición · Faro y Corte</p>
-          <h1 className={`${serif} text-[40px] leading-none`}>Video.</h1>
+          <h1 className={`${titulo}`}>Video.</h1>
         </div>
       </div>
-      <p className="mt-3 hidden max-w-2xl text-[15px] text-medio md:block">Sube un video de alguien hablando o haciendo algo. Lo escuchamos para quitar los silencios, lo dividimos en partes que puedes quitar con un toque, Corte, nuestro editor, hace lo que le pidas y lo entregamos en 9:16, 1:1 o 16:9.</p>
-      <p className="mt-3"><Link href="/estudio/video/marcas" className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">Marcas: logo, colores y música de cada cliente →</Link> <Link href="/estudio/contenido" className="ml-2 inline-flex min-h-11 items-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">El mes de contenido →</Link></p>
+      <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Pide un guion antes de grabar o sube lo grabado: Corte lo edita.</p>
+      <p className="mt-2"><Link href="/estudio/video/marcas" className="inline-flex min-h-11 items-center text-[13px] text-medio underline-offset-4 hover:underline">Marcas de video: logo, colores y música</Link></p>
       {/* Las dos acciones en el orden del trabajo (sistema/76): primero el guion, después lo grabado. */}
       <div className="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Qué quieres hacer">
         <a href="#guiones" className="flex min-h-20 items-center gap-4 rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(26,24,22,.06)] transition hover:shadow-[0_0_0_1px_rgba(26,24,22,.2)]">

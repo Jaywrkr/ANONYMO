@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { botonLleno, botonSuave, campo, exigirEstudio, serif } from "@/lib/estudio";
+import { botonLleno, botonSuave, campo, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { accionNuevoProyecto } from "../acciones";
 import { Enviar } from "./Enviar";
 import { Contar } from "@/components/estudio/Contar";
@@ -29,7 +29,7 @@ export default async function NuevoProyecto({ searchParams }: { searchParams: Pr
           <Cara id="atlas" tam={56} flota />
           <div>
             <p className="text-[13px] text-suave">Nuevo pedido · queda a nombre de {yo === "luna" ? "Luna" : "Jay"}</p>
-            <h1 className={`${serif} text-[clamp(36px,4.4vw,56px)] leading-[1]`}>Cuéntale a Atlas.</h1>
+            <h1 className={`${titulo}`}>Cuéntale a Atlas.</h1>
           </div>
         </div>
         <p className="mt-3 max-w-xl text-[15px] text-medio">Lo que hablaste con el cliente, como se lo contarías a un socio.</p>

@@ -1,7 +1,7 @@
 // La cartera de clientes (sistema/70): cada cliente con todo lo suyo, lo más movido arriba.
 import Link from "next/link";
 import { leerProspectos, resumenFicha } from "@anonymo/pipeline";
-import { exigirEstudio, serif, campo, botonLleno } from "@/lib/estudio";
+import { exigirEstudio, serif, campo, botonLleno, titulo } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
 import { Cara } from "@/components/estudio/piezas";
 import { PestanasClientes } from "@/components/estudio/clientes/PestanasClientes";
@@ -21,7 +21,7 @@ export default async function Pagina() {
         <Cara id="atlas" tam={56} flota />
         <div>
           <p className="text-[13px] text-suave">Cada cliente en un solo lugar · Atlas</p>
-          <h1 className={`${serif} text-[40px] leading-none`}>Clientes.</h1>
+          <h1 className={`${titulo}`}>Clientes.</h1>
         </div>
       </div>
       <PestanasClientes actual="cartera" cartera={fichas.length} nuevos={nuevos} />

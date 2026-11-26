@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ESTILOS, estiloPara, leerMesContenido, nombreMes } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { PlannerMes } from "@/components/estudio/contenido/PlannerMes";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
     <div className="px-4 py-7 md:px-10">
       <p><Link href="/estudio/contenido" className="text-[13px] text-medio underline-offset-4 hover:underline">← Contenido</Link></p>
       <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-2">
-        <h1 className={`${serif} text-[36px] leading-tight`}>{m.nombre} <span className="text-medio">· {nombreMes(m.mes)}</span></h1>
+        <h1 className={`${titulo}`}>{m.nombre} <span className="text-medio">· {nombreMes(m.mes)}</span></h1>
         <p className="flex flex-wrap items-center gap-1.5 pb-2" aria-label="Dónde publica" data-redes>
           {(redes.length ? redes : [m.canales]).map((r) => <span key={r} className="rounded-full bg-white px-3 py-1 text-[12px] shadow-[inset_0_0_0_1px_var(--color-borde)]">{r}</span>)}
           <span className="text-[12px] text-suave">· {m.piezas.length} publicaciones</span>

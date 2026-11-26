@@ -1,3 +1,4 @@
+import { titulo } from "@/lib/estudio";
 import {randomUUID} from 'node:crypto';
 import {accionEncargarAtlas,accionReintentarEncargo,accionEstadoMejora} from '../../acciones';
 import {Enviar} from '../../nuevo/Enviar';
@@ -12,7 +13,7 @@ export const metadata={title:'Atlas — Estudio',robots:{index:false}};
 export default async function Atlas({params}:{params:Promise<{id:string}>}){
  await exigirEstudio();const {id}=await params;if(!/^[a-z0-9_-]+$/.test(id))notFound();await traer(id);if(!existe(id))notFound();
  const p=leerProyecto(id),decisiones=decisionesConEstado(id),mejoras=mejorasDe(id),charla=conversacionesDe(id).slice(-30).reverse();
- return <div className="px-5 py-7 md:px-10"><Link href={`/estudio/${id}`} className="inline-flex min-h-11 items-center text-[14px]">← {p.pedido.cliente}</Link><h1 className={`${serif} mt-3 text-[40px]`}>Memoria del proyecto.</h1><p className="mt-2 max-w-2xl text-[14px] text-medio">Consulta el avance y las decisiones de este proyecto. Si falta una explicación registrada, el equipo lo indicará.</p>
+ return <div className="px-5 py-7 md:px-10"><Link href={`/estudio/${id}`} className="inline-flex min-h-11 items-center text-[14px]">← {p.pedido.cliente}</Link><h1 className={`${titulo} mt-3`}>Memoria del proyecto.</h1><p className="mt-2 hidden max-w-2xl text-[14px] text-medio md:block">Consulta el avance y las decisiones de este proyecto. Si falta una explicación registrada, el equipo lo indicará.</p>
   <AbrirAtlas id={id} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] text-white"/>
   {/* Lo que se habló de este proyecto con Atlas (sistema/106): antes se veía solo en la pestaña «Proyecto» del chat. */}
   <details open={charla.length>0} className="mt-5 rounded-2xl bg-white p-4"><summary id="conversacion-atlas" className="min-h-11 cursor-pointer font-medium">Conversación con Atlas · {charla.length}</summary>{!charla.length&&<p className="my-3 text-[13px] text-medio">Todavía no se le preguntó nada de este proyecto. Ábrelo y pregúntale cómo va.</p>}{charla.map(m=><article key={m.id} className="border-t border-black/10 py-3 text-[14px]"><p className="text-[12px] text-medio">{m.quien==='jay'?'Jay':'Luna'} · {new Date(m.fecha).toLocaleString('es-EC',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Guayaquil'})}</p><p className="mt-1 font-medium">{m.pregunta}</p><p className="mt-1 whitespace-pre-wrap text-[#3d3a36]">{m.respuesta}</p></article>)}</details>

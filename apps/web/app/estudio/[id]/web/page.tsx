@@ -6,7 +6,7 @@ import { archivosSitio, existe, leerEntrega, leerMiWeb, leerVisitas, mesDe, resu
 import { accionWebEnVivo } from "./acciones";
 import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { urlSitio } from "@/lib/sitio";
 import { VistaWeb } from "@/components/estudio/VistaWeb";
 import { Cara, hace } from "@/components/estudio/piezas";
@@ -44,7 +44,7 @@ export default async function Web({ params, searchParams }: { params: Promise<{ 
           <Cara id={a.id} tam={56} flota />
           <div>
             <p className="text-[13px] text-suave">{a.nombre}{e ? ` · versión ${e.version} · ${hace(e.creado)}` : ""}</p>
-            <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1]`}>La web</h1>
+            <h1 className={`${titulo} mt-1`}>La web</h1>
           </div>
         </div>
         {v ? (

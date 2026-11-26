@@ -1,6 +1,6 @@
 // El escritorio de Imán (sistema/66): negocios con buena fama y mala web, listos para escribirles.
 import { clavePlaces, GRUPOS_RUBRO, CIUDADES, leerProspectos, TANDA_DIARIA } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { listaVacia, vistaLista, type VistaLista } from "@/lib/clientes";
 import { baseUrl } from "@/lib/base";
 import { clavePublicaAvisos } from "@/lib/avisos-celular";
@@ -22,7 +22,7 @@ export default async function Pagina() {
         <Cara id="iman" tam={56} flota />
         <div>
           <p className="text-[13px] text-suave">Ventas · Imán</p>
-          <h1 className={`${serif} text-[40px] leading-none`}>Clientes nuevos.</h1>
+          <h1 className={`${titulo}`}>Clientes nuevos.</h1>
         </div>
       </div>
       <PestanasClientes actual="nuevos" nuevos={inicial.prospectos.length} />

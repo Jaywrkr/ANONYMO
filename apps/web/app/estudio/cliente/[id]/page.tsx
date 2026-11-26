@@ -5,7 +5,7 @@ import { DATOS, GRUPOS_SABER, NOMBRE_FUENTE, NOMBRE_FUENTE_LEIDA, CLAVES_SABER, 
 import { Cara } from "@/components/estudio/piezas";
 import { AbrirAtlas } from "@/components/estudio/AbrirAtlas";
 import { BuscarSolo } from "@/components/estudio/clientes/BuscarSolo";
-import { exigirEstudio, serif, campo, boton, botonLleno } from "@/lib/estudio";
+import { exigirEstudio, serif, campo, boton, botonLleno, titulo } from "@/lib/estudio";
 import { cartera } from "@/lib/cartera";
 import { accionBuscarDatos, accionGuardarFicha, accionGuardarSaber } from "../acciones";
 
@@ -72,7 +72,7 @@ export default async function Ficha({ params, searchParams }: { params: Promise<
       <div className="mt-3 flex items-center gap-4">
         <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[16px] font-medium" style={{ background: f.kits[0]?.color ?? "#e9e4dc", color: f.kits[0]?.color ? "#fff" : "#5d5a55" }}>{f.nombre.split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || f.nombre.slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0">
-          <h1 className={`${serif} text-[clamp(34px,4vw,48px)] leading-none`}>{f.nombre}</h1>
+          <h1 className={`${titulo}`}>{f.nombre}</h1>
           <p className="mt-1 text-[14px] text-medio">{resumenFicha(f)}</p>
         </div>
       </div>

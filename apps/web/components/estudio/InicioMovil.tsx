@@ -15,7 +15,7 @@ export function InicioMovil({proyectos,nombre,error,avisos=[],pendientes=0}:{pro
  return <div className="px-4 pb-8 pt-6 lg:hidden" data-testid="inicio-movil">
   <p className="text-[13px] text-medio">{nombre} · tu estudio</p>
   {/* El mismo titular que en computadora (sistema/76): dice qué hacer, no solo qué pasa. */}
-  <h1 className="mt-1 font-serif text-[38px] leading-none">{pendientes?`Tienes ${pendientes===1?'una cosa':`${pendientes} cosas`} por decidir.`:'Todo al día.'}</h1>
+  <h1 className="font-serif font-normal tracking-[-0.01em] text-[26px] leading-[1.1] md:text-[32px] mt-1">{pendientes?`Tienes ${pendientes===1?'una cosa':`${pendientes} cosas`} por decidir.`:'Todo al día.'}</h1>
   <div className="mt-3"><SeguimientoMovil/></div>
   <form role="search" action="/estudio/biblioteca" className="sticky top-2 z-10 mt-5 flex min-w-0 items-center gap-2 rounded-2xl bg-white p-2 shadow-sm">
    <label className="min-w-0 flex-1"><span className="sr-only">Buscar proyectos y entregas</span><input name="q" value={q} onChange={e=>setQ(e.target.value)} placeholder="Busca un cliente, una idea, una entrega…" className="w-full rounded-xl bg-transparent px-2 py-3 text-[16px] outline-none"/></label>
@@ -26,7 +26,7 @@ export function InicioMovil({proyectos,nombre,error,avisos=[],pendientes=0}:{pro
   {filtro!=="trabajo"&&avisos.filter(a=>a.href.includes("?ver=cliente")||a.href==="/estudio#te-toca").filter(a=>normal(a.titulo+" "+a.detalle).includes(normal(q))).map((a,i)=><Link key={a.href+i} href={a.href==="/estudio#te-toca"?"/estudio?vista=completa#te-toca":a.href} className="mt-4 block rounded-2xl border border-urgente/30 bg-white p-4 text-[14px]"><strong>{a.titulo}</strong><span className="mt-1 block text-medio">{a.detalle}</span></Link>)}
   <div className="mt-5 grid gap-4">{encontrados.map(p=><article key={p.id} className="min-w-0 rounded-[22px] bg-white p-5 shadow-sm">
    <div className="flex items-center gap-2 text-[12px] text-medio"><i className={`h-2 w-2 rounded-full ${p.estado==='en-curso'?'late bg-vivo':p.toca?'bg-urgente':'bg-suave'}`}/>{p.fase}</div>
-   <Link href={`/estudio/${p.id}`} className="mt-2 block break-words font-serif text-[31px] leading-tight">{p.nombre}</Link>
+   <Link href={`/estudio/${p.id}`} className="mt-1 block break-words font-serif text-[22px] leading-tight">{p.nombre}</Link>
    <p className="mt-2 text-[14px] leading-snug">{p.texto}</p>
    {/* Tarjeta corta (sistema/75): una línea de estado, el último avance y la acción. Atlas está en la barra de abajo. */}
    <p className="mt-2 text-[12px] text-medio">{p.generadas} de {p.total} entregas · {new Date(p.actualizado).toLocaleString("es-EC",{timeZone:"America/Guayaquil",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>

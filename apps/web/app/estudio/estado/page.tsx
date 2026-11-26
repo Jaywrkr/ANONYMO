@@ -1,6 +1,6 @@
 // Estado del sistema (sistema/78): en una pantalla, qué está bien, qué falta y qué falló. Para no enterarse tarde.
 import { clavePlaces, diaCuenca, leerCelulares, leerEstado, leerProspectos, nubeActiva } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { CopiaAhora } from "@/components/estudio/CopiaAhora";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function Estado() {
   return (
     <div className="px-5 pb-20 pt-7 md:px-10">
       <p className="text-[13px] text-suave">Mejorar el estudio</p>
-      <h1 className={`${serif} text-[40px] leading-none`}>{malas ? `${malas} ${malas === 1 ? "cosa necesita" : "cosas necesitan"} atención.` : "Todo en orden."}</h1>
+      <h1 className={`${titulo}`}>{malas ? `${malas} ${malas === 1 ? "cosa necesita" : "cosas necesitan"} atención.` : "Todo en orden."}</h1>
 
       <ul className="mt-6 grid max-w-3xl gap-2" aria-label="Estado">
         {filas.map((f) => (

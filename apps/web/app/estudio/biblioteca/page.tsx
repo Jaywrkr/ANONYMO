@@ -7,7 +7,7 @@ import { urlBoceto, urlSitio } from "@/lib/sitio";
 import { Cara, hace } from "@/components/estudio/piezas";
 import { traerTodo } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Biblioteca — Estudio", robots: { index: false } };
@@ -66,7 +66,7 @@ export default async function Biblioteca({ searchParams }: { searchParams: Promi
   return (
     <div className="px-5 pb-16 pt-7 md:px-10 md:pt-9">
       <p className="text-[13px] text-suave">Biblioteca</p>
-      <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,52px)] leading-[1.02]`}>Todo lo que hizo el estudio.</h1>
+      <h1 className={`${titulo} mt-1`}>Todo lo que hizo el estudio.</h1>
 
       <form role="search" action="/estudio/biblioteca" className="mt-6 flex max-w-2xl items-center gap-2 rounded-full bg-white py-1.5 pl-5 pr-1.5 shadow-[0_0_0_1px_var(--color-borde)] focus-within:shadow-[0_0_0_1.5px_var(--color-tinta)]">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0 text-suave" aria-hidden><path d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM20 20l-3.5-3.5" /></svg>

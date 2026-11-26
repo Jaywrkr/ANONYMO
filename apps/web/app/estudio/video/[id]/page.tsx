@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { idFicha, idVideoValido, leerGuion, leerVideo, listarKits } from "@anonymo/pipeline";
-import { exigirEstudio, serif } from "@/lib/estudio";
+import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { kitParaVista } from "@/lib/video";
 import { EditorVideo } from "@/components/estudio/video/EditorVideo";
 
@@ -20,7 +20,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   return (
     <div className="px-5 py-7 md:px-10">
       <Link href="/estudio/video" className="inline-flex min-h-11 items-center text-[13px] text-medio hover:text-tinta">← Videos</Link>
-      <h1 className={`${serif} text-[34px] leading-tight md:text-[40px]`}>{t.nombre}</h1>
+      <h1 className={`${titulo}`}>{t.nombre}</h1>
       <p className="mt-1 text-[13px] text-suave">{[t.cliente, t.duracion ? `${Math.round(t.duracion)} s` : "", t.ancho && t.alto ? `${t.ancho}×${t.alto}` : ""].filter(Boolean).join(" · ")}</p>
       {/* De dónde viene (sistema/71): el guion de Faro que lee Corte y la ficha del cliente. */}
       {(guion || t.cliente) && <p className="mt-1 flex flex-wrap gap-3 text-[13px]">

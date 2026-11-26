@@ -7,7 +7,7 @@ import { traer } from "@/lib/nube";
 import { espacio } from "@/lib/espacio";
 import { momento, nombreFase, nombreSocio } from "@/lib/camino";
 import { sesionConfigurada } from "@/lib/sesion";
-import { boton, botonLleno, campo, exigirEstudio, serif } from "@/lib/estudio";
+import { boton, botonLleno, campo, exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { html } from "@/lib/markdown";
 import { Cara } from "@/components/estudio/piezas";
 import { Enviar } from "../../nuevo/Enviar";
@@ -81,7 +81,7 @@ export default async function Revisar({ params, searchParams }: Props) {
                 <Cara id={a.id} tam={104} flota />
               </div>
               <p className="mt-3 text-[12px] text-suave">{n + 1} de {total} · {a.rol}</p>
-              <p className={`${serif} text-[38px] leading-none`}>{a.nombre}</p>
+              <p className={`${serif} text-[28px] leading-none`}>{a.nombre}</p>
               {en?.dice && <p className={`${serif} mt-4 text-[20px] leading-[1.2]`}>“{en.dice}”</p>}
               {en?.necesita && en.necesita !== "—" && (
                 <div className="mt-4 rounded-xl bg-[#fff6ec] p-3 text-[13px]"><span className="font-medium">Necesita:</span> {en.necesita}</div>
@@ -89,7 +89,7 @@ export default async function Revisar({ params, searchParams }: Props) {
             </aside>
             <article className="min-w-0 max-w-[74ch]">
               <p className="text-[13px] text-suave">Entrega de {a.nombre}</p>
-              <h1 className={`${serif} text-[clamp(34px,4vw,56px)] leading-[0.98]`}>{en?.titulo ?? contratoPorId(t)?.entrega}</h1>
+              <h1 className={`${titulo}`}>{en?.titulo ?? contratoPorId(t)?.entrega}</h1>
               {en ? <div className="entrega mt-6" dangerouslySetInnerHTML={{ __html: html(en.contenido) }} /> : <p className="mt-4 text-medio">Esta entrega todavía no está.</p>}
             </article>
           </div>
@@ -118,7 +118,7 @@ export default async function Revisar({ params, searchParams }: Props) {
         <div className="mx-auto grid w-full max-w-[880px] flex-1 content-start gap-6 px-5 py-10 md:px-10">
           <div>
             <p className="text-[13px] text-suave">Último paso de la revisión</p>
-            <h1 className={`${serif} text-[clamp(36px,4.4vw,56px)] leading-[1]`}>¿Cómo quedó {fase}?</h1>
+            <h1 className={`${titulo}`}>¿Cómo quedó {fase}?</h1>
             <p className="mt-2 text-[15px] text-medio">{m.despues}</p>
           </div>
           <ul className="grid gap-1.5 sm:grid-cols-2">

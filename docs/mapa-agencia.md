@@ -1,4 +1,55 @@
-# Mapa de la agencia (sistema/67)
+# Mapa de la agencia
+
+> **El norte desde el 25 nov 2026 (sistema/116).** Acordado con Jay por voz. Lo de abajo de la línea es la versión anterior (sistema/67) y queda como historia.
+
+## La idea
+
+Unmake es Luna y Jay manejando una agencia completa con agentes. Ustedes hacen tres cosas: **dirigir** (cómo se ve y se siente cada cliente), **decidir** (elegir, aprobar, pedir cambio) y **relacionarse** (vender, hablar con el cliente, shootings y eventos). Todo lo demás lo hacen los agentes. Si una pantalla o un mensaje no sirve a una de esas tres cosas, sobra.
+
+No es solo redes: marca, web, contenido, video o un evento siguen el mismo molde.
+
+## Las piezas
+
+**La Dirección de cada cliente** (el centro). La hacen Luna y Jay. Junta, en este orden de prioridad: 1) la guía de marca del cliente (PDF o design system), 2) lo que dicen ustedes (tablero de inspiración, lo que sí, lo que no, cómo se debe sentir, el material real que hay), 3) su web, 4) lo que deduce el agente. Al leer un PDF o una web, el sistema muestra «esto entendí» para aprobar. Todos los agentes la leen por la misma puerta y la revisión automática chequea contra ella. Encima va el Criterio de la casa, que vale para todos.
+
+**Dónde trabajan ustedes:**
+- **El chat flotante**, sobre cualquier pantalla. Atlas recibe y pasa con el agente que toca (Faro, Corte, Mira, Orla, Imán, Ledger…); se ve quién responde y nunca hablan dos a la vez. Sabe en qué pantalla y en qué cliente estás. Responde con tarjetas: al tocarlas se abre lo visual detrás y el chat sigue ahí. Si ya estás en esa pantalla, el cambio se ve en vivo. En el celular el chat ocupa la pantalla y lo visual sube encima.
+- **Lo que te toca**: lo pendiente de cada uno. Cada tarjeta tiene un dueño (Jay: venta, precio, marca y web; Luna: contenido, video, shootings y cliente); el otro la ve si quiere opinar.
+- **La ficha del cliente**: su Dirección y sus trabajos (marca, web, contenido, video, eventos). Los módulos viven dentro de la ficha, no como secciones sueltas.
+- **Imán** tiene vista propia para buscar clientes. Un cliente que traen ustedes entra por el chat («tengo un cliente nuevo, este es su Instagram»).
+- **El Taller** guarda lo de mantenimiento: criterio, banco, gasto, estado, conexiones.
+
+Las interfaces visuales siguen siendo necesarias (planner, perfil de 9 posts, video, web): el chat es la forma de trabajar y la pantalla es donde se ve el trabajo.
+
+**Cómo avanza cada trabajo:** se entiende el pedido → se produce → se revisa → ustedes deciden → se entrega. Atlas decide qué pasos entran: el shooting de Luna, el portal del cliente o el informe del mes **solo si hacen falta** (un logo no lleva shooting).
+
+**El cliente, en su portal**: ve su mes como un perfil, comenta sobre la pieza, aprueba el mes entero y elige entre opciones que ustedes ya filtraron. No diseña: si pudiera cambiar colores y letras, desharía la dirección creativa.
+
+## Las fases (una rama o más por fase, en este orden)
+
+| # | Fase | Se acepta si |
+|---|---|---|
+| 1 | **Ordenar la interfaz** | Sin duplicados; menú corto (Inicio, Clientes, Producción, Taller); textos y botones más calmados para que destaque lo importante; celular para decidir y capturar, no el escritorio encogido; ninguna acción te saca de donde estás |
+| 2 | **La Dirección del cliente** | Guía PDF, web y lo que ya existía (ficha, kits de Video, estilos del código) en un solo lugar, con «esto entendí»; todos los agentes la leen |
+| 3 | **El chat flotante con los agentes** | Atlas pasa con el agente que toca, se ve quién habla, sabe el cliente y la pantalla, responde con tarjetas que abren lo visual |
+| 4 | **Lo que te toca** | Cada uno ve lo suyo, con dueño por tarjeta; en el celular es casi lo único |
+| 5 | **El tablero y las tres opciones de diseño** | Inspiración por capturas, links, Savee y «Compartir» del celular; Faro investiga cuentas parecidas y devuelve 3 sistemas vistos como perfil de 9 posts, cada uno con lo que lo inspiró |
+| 6 | **Contenido con el sistema elegido** | Faro arma el mes con el sistema aprobado; probado con Unmake, una peluquería de prueba y Coresolutions |
+| 7 | **El portal del cliente** | Ve el mes como perfil, comenta, aprueba y elige entre opciones filtradas |
+| 8 | **La producción de Luna** | Shootings cuando hacen falta: fecha, lista de tomas y el material del cliente ordenado para que los agentes usen lo real |
+| 9 | **El informe del mes** | Pulso arma qué funcionó y alimenta el mes siguiente |
+| 10 | **Video, web y comunicación con el mismo molde** | Leen la Dirección y entregan tarjetas igual que contenido |
+| 11 | **Revisión final de todo** | La misma auditoría de la fase 1, con el chat y todo lo nuevo, en celular y escritorio |
+
+**Para después (no ahora):** cobrar y facturar, publicar automático, decidir en lote deslizando, que el sistema adelante el mes solo, pedir el motivo de cada «no».
+
+**Quitado del plan:** el paso de referencias por separado (va dentro de la fase 5) y el Banco como pantalla del día a día (pasa al Taller).
+
+**Pendiente de definir:** cómo se pasan trabajo Luna y Jay dentro del chat; un calendario compartido de los dos (shootings, entregas, reuniones).
+
+---
+
+# Versión anterior (sistema/67)
 
 ANONYMO funciona como una agencia completa de nivel mundial: Jay y Luna deciden, los 22 agentes producen y Atlas reparte el trabajo. Este documento es el norte del producto: qué funciones tiene la agencia, en qué estado está cada una y en qué orden se construye.
 

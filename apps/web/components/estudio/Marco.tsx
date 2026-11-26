@@ -103,7 +103,7 @@ const I = {
 const enClientes = (ruta: string) => ruta.startsWith("/estudio/clientes") || ruta.startsWith("/estudio/cliente/");
 
 /** Páginas del Taller: herramientas para mejorar la casa, no para el trabajo de cada día. */
-const TALLER = ["/estudio/estado", "/estudio/gasto", "/estudio/criterio", "/estudio/banco", "/estudio/conexiones", "/estudio/analitica"];
+const TALLER = ["/estudio/estado", "/estudio/gasto", "/estudio/criterio", "/estudio/banco", "/estudio/conexiones", "/estudio/analitica", "/estudio/biblioteca", "/estudio/oficina", "/estudio/papelera"];
 
 /** Pide permiso para avisar con notificaciones del navegador (una vez). */
 function PermisoAvisos() {
@@ -175,14 +175,13 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
           {tetoca > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-urgente px-1.5 text-[11px] font-medium text-white" title="Cosas que esperan tu decisión">{tetoca}</span>}
         </Link>
         <Link href="/estudio/clientes" onClick={alIr} className={fila(enClientes(ruta))} aria-current={enClientes(ruta) ? "page" : undefined}><Icono d={I.clientes} /> Clientes</Link>
-        <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
+        <p className="px-2.5 pb-0.5 pt-3 text-[11px] text-tinta/50">Producción</p>
         <Link href="/estudio/contenido" onClick={alIr} className={fila(ruta.startsWith("/estudio/contenido"))} aria-current={ruta.startsWith("/estudio/contenido") ? "page" : undefined}><Icono d={I.contenido} /> Contenido</Link>
+        <Link href="/estudio/video" onClick={alIr} className={fila(ruta.startsWith("/estudio/video"))} aria-current={ruta.startsWith("/estudio/video") ? "page" : undefined}><Icono d={I.video} /> Video</Link>
         {/* Atlas en un solo lugar (sistema/76): antes flotaba y tapaba el contenido. */}
         <button type="button" aria-label="Abrir chat de Atlas" onClick={() => { alIr?.(); window.dispatchEvent(new CustomEvent("anonymo:atlas", { detail: {} })); }} className={`${fila(false)} w-full text-left`}>
           <span aria-hidden className="grid h-4 w-4 place-items-center rounded-full bg-tinta font-serif text-[10px] text-white">A</span> Atlas <kbd className="ml-auto font-mono text-[10px] text-tinta/40">A</kbd>
         </button>
-        <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}><Icono d={I.biblioteca} /> Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">B</kbd></Link>
-        <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}><Icono d={I.oficina} /> La oficina <span className="ml-auto font-mono text-[11px] text-tinta/45">22</span></Link>
       </div>
 
       <div className="grid min-h-0 gap-0.5">
@@ -216,7 +215,7 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
         {/* El Taller (sistema/68): lo que mejora la casa, separado del trabajo diario. Abierto si estás en una de sus páginas. */}
         <details open={TALLER.some((t) => ruta.startsWith(t))} className="group">
           <summary className={`${fila(false)} cursor-pointer list-none text-tinta/70 [&::-webkit-details-marker]:hidden`}>
-            <Icono d={I.taller} /> Mejorar el estudio
+            <Icono d={I.taller} /> Taller
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="ml-auto transition group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
           </summary>
           <div className="grid gap-0.5 pl-3">
@@ -225,10 +224,12 @@ function Barra({ yo, conSalir, espacios, tetoca, papelera, activo, ruta, alIr, a
             <Link href="/estudio/criterio" onClick={alIr} className={fila(ruta === "/estudio/criterio")} aria-current={ruta === "/estudio/criterio" ? "page" : undefined}>Criterio de la casa</Link>
             <Link href="/estudio/banco" onClick={alIr} className={fila(ruta === "/estudio/banco")} aria-current={ruta === "/estudio/banco" ? "page" : undefined}>Banco de calibración</Link>
             <Link href="/estudio/conexiones" onClick={alIr} className={fila(ruta === "/estudio/conexiones")} aria-current={ruta === "/estudio/conexiones" ? "page" : undefined}>Conexiones del estudio</Link>
+            <Link href="/estudio/biblioteca" onClick={alIr} className={fila(ruta === "/estudio/biblioteca")} aria-current={ruta === "/estudio/biblioteca" ? "page" : undefined}>Biblioteca <kbd className="ml-auto font-mono text-[10px] text-tinta/45">B</kbd></Link>
+            <Link href="/estudio/oficina" onClick={alIr} className={fila(ruta === "/estudio/oficina")} aria-current={ruta === "/estudio/oficina" ? "page" : undefined}>La oficina</Link>
             <Link href="/estudio/analitica" onClick={alIr} className={fila(ruta === "/estudio/analitica")} aria-current={ruta === "/estudio/analitica" ? "page" : undefined}>Métricas de la web</Link>
+            <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")} aria-current={ruta === "/estudio/papelera" ? "page" : undefined}>Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>
           </div>
         </details>
-        <Link href="/estudio/papelera" onClick={alIr} className={fila(ruta === "/estudio/papelera")} aria-current={ruta === "/estudio/papelera" ? "page" : undefined}><Icono d={I.papelera} /> Papelera {papelera > 0 && <span className="ml-auto font-mono text-[11px] text-tinta/45">{papelera}</span>}</Link>
         <a href="/" target="_blank" rel="noreferrer" className={fila(false)}><Icono d={I.web} /> Ver la web</a>
         <div className="mt-2 flex items-center gap-2 px-2.5">
           <span className="flex">
@@ -295,9 +296,9 @@ export function Marco({ children, ...props }: Props) {
           <Link href="/estudio" aria-label="Unmake, inicio del estudio" className="block"><LogoUnmake className="h-[24px] w-auto" /></Link>
           {activo && <span className="flex min-w-0 items-center gap-1.5 text-[13px]"><i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: activo.punto }} /><span className="truncate">{activo.nombre}</span></span>}
           <span className="ml-auto"><Campana avisos={props.avisos} /></span>
-          <button type="button" onClick={() => setAbierto(true)} aria-expanded={abierto} aria-controls="menu-estudio" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/60 px-4 text-[13px]">
-            {/* Sin número aquí (sistema/88): ya lo dicen la campana y «Inicio» en la barra de abajo. Tres veces el mismo número era ruido. */}
-            Menú
+          <button type="button" onClick={() => setAbierto(true)} aria-expanded={abierto} aria-controls="menu-estudio" aria-label="Menú" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-tinta/80 hover:bg-white/60">
+            {/* Sin número aquí (sistema/88). Un ícono, no un botón con texto (sistema/116): arriba solo va lo que identifica dónde estás. */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h10" /></svg>
           </button>
         </div>
         {abierto && (

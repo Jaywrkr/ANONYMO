@@ -18,7 +18,7 @@ import { traerTodo } from "@/lib/nube";
 import { puestos } from "@/lib/oficina";
 import { momento, nombreSocio, type Momento } from "@/lib/camino";
 import { espacio } from "@/lib/espacio";
-import { botonLleno, exigirEstudio, serif } from "@/lib/estudio";
+import { botonLleno, exigirEstudio, serif, titulo } from "@/lib/estudio";
 
 export const dynamic = "force-dynamic";
 // Las acciones que hacen trabajar a los agentes pueden tardar: hasta 5 minutos en línea.
@@ -102,7 +102,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0">
           <p className="text-[13px] text-suave">{fechaLarga()}</p>
-          <h1 className={`${serif} mt-1 text-[clamp(34px,4.2vw,54px)] leading-[1.02]`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
+          <h1 className={`${titulo} mt-1`}>{saludo(nombreYo)} <span className="text-[#b3ab9f]">{resumen}</span></h1>
         </div>
         <div className="flex gap-2">
           <AbrirPaleta className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium shadow-[inset_0_0_0_1px_var(--color-borde)]">Ir a… <kbd className="font-mono text-[10px] text-suave">Ctrl K</kbd></AbrirPaleta>
@@ -114,7 +114,7 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
       {proyectos.length === 0 && solicitudes.length === 0 ? (
         <section className="mt-10 rounded-[22px] bg-white p-8 shadow-[0_0_0_1px_rgba(26,24,22,.05)] md:p-12">
           <Cara id="atlas" tam={80} flota />
-          <p className={`${serif} mt-5 text-[36px] leading-[1.05]`}>Así funciona el estudio.</p>
+          <p className={`${serif} mt-5 text-[28px] leading-[1.05]`}>Así funciona el estudio.</p>
           <ol className="mt-6 grid gap-4 md:grid-cols-3">
             {[["1", "Cuéntale el pedido a Atlas", "Lo que hablaste con el cliente, en tus palabras. Pega enlaces y suelta fotos."], ["2", "Revisa su plan", "Atlas decide quién trabaja y cuánto cuesta. Tú dices «que empiecen»."], ["3", "Revisa cada fase", "El equipo trabaja y se detiene para que apruebes o pidas cambios."]].map(([n, t, d]) => (
               <li key={n} className="rounded-2xl bg-[#f6f3ee] p-5"><span className="font-mono text-[12px] text-suave">{n}</span><p className="mt-1 text-[16px] font-medium">{t}</p><p className="mt-1 text-[14px] text-medio">{d}</p></li>

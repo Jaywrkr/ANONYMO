@@ -1,3 +1,4 @@
+import { titulo } from "@/lib/estudio";
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {historialVersionado,guardadoVersionado,indiceActual,compararIndices,bytesVersionados,versionadoActivo} from '@anonymo/pipeline';
@@ -13,7 +14,7 @@ export default async function Guardados({params,searchParams}:{params:Promise<{i
  const elegida=copia?await guardadoVersionado(id,copia):null;if(copia&&!elegida)notFound();
  const cambios=elegida?compararIndices(actual,elegida):[],p=JSON.parse((await bytesVersionados(id,actual.archivos['estado.json'])).toString('utf8'));
  return <main className="mx-auto grid max-w-3xl gap-6 px-5 py-10">
-  <Link className={boton} href={`/estudio/${id}`}>Volver al proyecto</Link><h1 className={`${serif} text-4xl`}>Avances guardados</h1>
+  <Link className={boton} href={`/estudio/${id}`}>Volver al proyecto</Link><h1 className={`${titulo}`}>Avances guardados</h1>
   <p className="text-medio">Revisa un avance o vuelve a una copia anterior. La recuperación crea una revisión nueva, deja el proyecto en pausa y exige volver a verificar las entregas.</p>
   {resultado&&<p role={resultado==='recuperado'?'status':'alert'} className="rounded-xl bg-white p-4">{resultado==='recuperado'?'Copia recuperada. El proyecto sigue en pausa; revisa las entregas antes de continuar.':'No se confirmó la recuperación. Puede que el proyecto haya cambiado o siga trabajando. Revisa la comparación y su estado antes de volver a intentar.'}</p>}
   {elegida&&<section aria-label="Comparación de la copia" className="grid gap-4 rounded-2xl bg-white p-5">
