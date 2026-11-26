@@ -7,8 +7,7 @@ Lo que sigue, en orden. El plan completo está en [docs/mapa-agencia.md](docs/ma
 **Jay**
 - [ ] Probar la rama `sistema/116-ordenar-interfaz` (v1.17) en celular y computadora y fusionarla si está bien.
 - [ ] **No fusionar** `sistema/115-plantillas-unmake`: su motor se reusa en la fase 5.
-- [ ] Confirmar que Coresolutions acepta que su web se muestre como trabajo de Unmake.
-- [ ] Confirmar las dos webs: Coresolutions = `Jaywrkr/WEBCOREV1` (Vercel `coresolutions-web`) y @jaywrkr = `Jaywrkr/WEBJAYV1`; ¿cuáles son sus enlaces públicos?
+- [x] Las dos webs: https://coresolutions-web.vercel.app/ (Coresolutions es empresa de Jay: se muestra sin pedir permiso) y https://jayjaramillo.vercel.app/. Entran a «qué es bueno» de Unmake al tocar «Buscar datos» en su ficha (`TRABAJOS_UNMAKE`).
 - [ ] Armar enero de Unmake para probar el planner nuevo (diciembre se armó con el código viejo).
 
 **Claude (estudio)**

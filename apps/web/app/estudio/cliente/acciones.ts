@@ -2,7 +2,7 @@
 // Lo que Jay y Luna escriben a mano en la ficha de un cliente (sistema/70): notas, contacto y otros nombres.
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { CLAVES_SABER, NO_APLICA, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe, aprobarPropuesta, direccionVacia, editarDireccion, guardarGuia, leerGuiaPdf, leerMarcaWeb, type DireccionCliente } from "@anonymo/pipeline";
+import { CLAVES_SABER, NO_APLICA, esAnonymo, fuentesDe, guardarFicha, idFicha, leerFuentes, ocultarClaves, PROPIAS_ANONYMO, saberDe, TRABAJOS_UNMAKE, aprobarPropuesta, direccionVacia, editarDireccion, guardarGuia, leerGuiaPdf, leerMarcaWeb, type DireccionCliente } from "@anonymo/pipeline";
 import { cartera } from "@/lib/cartera";
 import { exigirEstudio } from "@/lib/estudio";
 
@@ -102,7 +102,14 @@ export async function accionBuscarDatos(f: FormData) {
     // Lo que el estudio sabe de sí mismo (Unmake) no se revisa: se guarda directo si falta (sistema/109).
     const directos = Object.fromEntries(leida.propuestas.filter((p) => p.fuente === "estudio" && !saber[p.clave]).map((p) => [p.clave, p.valor]));
     const lectura = { ...leida, propuestas: leida.propuestas.filter((p) => p.fuente !== "estudio"), por: yo };
-    await guardarFicha(id, { nombre: ficha.guardada?.nombre ?? ficha.nombre, saber: directos, lectura }, yo);
+    // Unmake: sus primeros trabajos entran a «qué es bueno» de su Dirección, sin pisar lo que ya haya (sistema/117).
+    let direccion: DireccionCliente | undefined;
+    if (esAnonymo(ficha.id)) {
+      const d = ficha.guardada?.direccion ?? direccionVacia();
+      const faltan = TRABAJOS_UNMAKE.filter((t) => !d.referencias.some((r) => r.url === t.url));
+      if (faltan.length) direccion = { ...d, referencias: [...d.referencias, ...faltan.map((t) => ({ ...t, origen: "ustedes" as const }))], actualizada: new Date().toISOString(), por: yo };
+    }
+    await guardarFicha(id, { nombre: ficha.guardada?.nombre ?? ficha.nombre, saber: directos, lectura, ...(direccion ? { direccion } : {}) }, yo);
     const n = lectura.propuestas.length, d = Object.keys(directos).length;
     const leyo = lectura.web?.estado === "ok" ? "su web" : "";
     const aviso = [d ? `Guardamos ${d} ${d === 1 ? "dato" : "datos"} que el estudio ya sabe de sí.` : "", n ? `Encontramos ${n} ${n === 1 ? "dato" : "datos"}${leyo ? ` en ${leyo}` : ""}: están en su lugar, marcados en verde.` : leyo ? `Leímos ${leyo} y no hay nada nuevo.` : d ? "" : "No pudimos leer nada. Mira abajo por qué."].filter(Boolean).join(" ");
