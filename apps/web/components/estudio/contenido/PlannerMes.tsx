@@ -57,6 +57,31 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
   const [nota, setNota] = useState("");
   const [borrador, setBorrador] = useState({ idea: "", texto: "", visual: "", tituloArte: "" });
   const [filtro, setFiltro] = useState<"todas" | EstadoPieza>("todas");
+  // La revisión contra la vara (sistema/120): al abrir el mes, cada pieza sin nota se dibuja y se mira al lado de la
+  // vara del cliente, de a dos. Si no llega, Faro la rehace sola. Nadie tiene que tocar nada.
+  const [vara, setVara] = useState<{ hechas: number; total: number; error?: string } | null>(null);
+  const varaCorre = useRef(false);
+  useEffect(() => {
+    if (varaCorre.current) return;
+    const cola = mes.piezas.filter((x) => x.lamina && x.plantilla && !x.vara && x.estado !== "aprobada").map((x) => x.id);
+    if (!cola.length) return;
+    varaCorre.current = true;
+    let hechas = 0;
+    setVara({ hechas: 0, total: cola.length });
+    const uno = async () => {
+      for (let pid = cola.shift(); pid; pid = cola.shift()) {
+        try {
+          const r = await fetch(`/estudio/contenido/${mes.id}/vara`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pieza: pid }) });
+          const j = (await r.json().catch(() => ({}))) as { error?: string; mes?: MesContenido };
+          if (r.ok && j.mes) { const nuevo = j.mes; setMes((m) => (nuevo.actualizado >= m.actualizado ? nuevo : m)); }
+          else { setVara((v) => v && { ...v, error: j.error ?? "No se pudo revisar una pieza." }); if (r.status === 503 || r.status === 403) cola.length = 0; }
+        } catch { setVara((v) => v && { ...v, error: "Se cortó la conexión mientras revisaba." }); }
+        hechas++;
+        setVara((v) => v && { ...v, hechas });
+      }
+    };
+    void Promise.all([uno(), uno()]).then(() => { varaCorre.current = false; setVara((v) => (v && !v.error ? null : v)); });
+  }, [mes.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [copiado, setCopiado] = useState("");
   // En computadora la pieza se abre al lado desde el principio; en celular, solo al tocar un día.
   useEffect(() => { if (window.matchMedia("(min-width: 1024px)").matches) setSel((s) => s ?? (proxima ?? mes.piezas[0])?.id ?? null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -90,7 +115,9 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
       const r = await fetch(`/estudio/contenido/${mes.id}/${ruta}`, { method: metodo, headers: { "content-type": "application/json" }, body: JSON.stringify({ pieza: p.id, ...cuerpo }) });
       const j = (await r.json().catch(() => ({}))) as { error?: string; mes?: MesContenido };
       if (!r.ok || !j.mes) throw new Error(j.error ?? "No se pudo guardar. Vuelve a intentar.");
-      setMes(j.mes);
+      // Lo más nuevo gana: la revisión con la vara corre al mismo tiempo y su respuesta puede llegar después.
+      const nuevo = j.mes;
+      setMes((m) => (nuevo.actualizado >= m.actualizado ? nuevo : m));
       setModo(null);
       setAviso({ pieza: p.id, ok: true, texto: hecho });
     } catch (e) {
@@ -134,6 +161,13 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
           ))}
           <button type="button" data-copiar-mes disabled={!conteo.aprobada} onClick={() => void copiar()} className={`${boton} ml-auto`}>Copiar lo aprobado para enviar</button>
         </div>
+        {vara && (
+          <div data-vara-progreso role="status" className="flex items-center gap-3 text-[13px] text-medio">
+            <span className="flex h-1.5 w-28 overflow-hidden rounded-full bg-[#eee9e0]"><i className="h-full bg-tinta transition-all" style={{ width: `${(vara.hechas / Math.max(1, vara.total)) * 100}%` }} /></span>
+            {vara.hechas < vara.total ? `Revisando con la vara: ${vara.hechas} de ${vara.total}` : "Revisión con la vara terminada"}
+            {vara.error && <span className="text-[#a33a0b]">· {vara.error}</span>}
+          </div>
+        )}
         {copiado && !copiado.startsWith("t:") && <p role="status" className="text-[13px] text-[#17714a]">{copiado}</p>}
         <p className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-medio" aria-label="Series">
           {mes.series.map((s) => <span key={s.nombre} className="inline-flex items-center gap-1.5" title={s.para}><i className="h-2.5 w-2.5 rounded-full" style={{ background: colorSerie(s.nombre) }} />{s.nombre}</span>)}
@@ -169,6 +203,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
                       <span className="flex items-center justify-between gap-1 px-0.5 text-[12px] md:w-full">
                         <span className="font-medium" data-dia><span className="capitalize md:hidden">{dia(x.fecha)}</span><span className="hidden md:inline">{c.n}</span></span>
                         <span className="flex items-center gap-1">
+                          {x.vara ? <span data-vara-nota={x.vara.nota} className={`text-[11px] tabular-nums ${x.vara.llega ? "text-medio" : "text-[#a33a0b]"}`} title={x.vara.llega ? "Llega a la vara" : "No llega a la vara"}>{x.vara.nota}</span> : null}
                           {x.avisos?.length ? <i className="h-2 w-2 rounded-full bg-[#e5341b]" title="Tiene avisos" /> : null}
                           <i className={`h-2 w-2 rounded-full ${ESTADO[x.estado].punto}`} title={ESTADO[x.estado].texto} />
                         </span>
@@ -268,6 +303,13 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
               </div>
             )}
             {p.youtube && <p data-youtube className="mt-2 text-[13px] text-medio">YouTube Shorts: «{p.youtube.titulo}»</p>}
+            {p.vara && (
+              <div data-vara={p.vara.llega ? "llega" : "no-llega"} className={`mt-3 rounded-xl px-3 py-2 text-[13px] ${p.vara.llega ? "bg-hueso/60" : "border border-[#e5341b]/50 bg-[#fff5f2]"}`}>
+                <p className="flex items-baseline gap-2"><span className="text-[18px] tabular-nums">{p.vara.nota}</span><span className="text-medio">/10 frente a la vara{p.vara.llega ? " · llega" : " · no llega todavía"}{p.vara.rehecha ? ` · Faro la rehízo ${p.vara.rehecha === 1 ? "una vez" : `${p.vara.rehecha} veces`}` : ""}</span></p>
+                {p.vara.motivos.length > 0 && <ul className="mt-1 grid gap-0.5 text-medio">{p.vara.motivos.map((a, i) => <li key={i}>· {a}</li>)}</ul>}
+                {!p.vara.capturas && <p className="mt-1 text-[12px] text-suave">Sin capturas: se comparó solo con la Dirección.</p>}
+              </div>
+            )}
             {p.avisos && p.avisos.length > 0 && <div data-avisos className="mt-3 rounded-xl border border-[#e5341b]/50 bg-[#fff5f2] px-3 py-2 text-[13px]"><p className="text-[12px] text-[#a33a0b]">Revísalo antes de aprobar:</p><ul className="mt-1 grid gap-0.5">{p.avisos.map((a, i) => <li key={i}>· {a}</li>)}</ul></div>}
             {p.nota && <p className="mt-3 rounded-xl bg-[#fff1ea] px-3 py-2 text-[13px] text-[#8a2f08]">Cambio pedido: {p.nota}</p>}
             {p.guion && <pre data-guion className="mt-3 whitespace-pre-wrap rounded-xl bg-hueso/60 p-3 font-sans text-[13px]">{p.guion}</pre>}

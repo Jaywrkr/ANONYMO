@@ -1,5 +1,6 @@
 import { esInterno } from "./clientes/anonymo.ts";
 import {adjuntosReferencias} from './estandar.ts';
+import { varaDePedido } from "./clientes/material.ts";
 // Corre un proyecto hasta la siguiente pausa y maneja las decisiones de Jay y Luna.
 import {guardarPiezas} from "./piezas.ts";
 import {registrarDecisiones,detectarMejora,capturarContextoDecision,contextoTrabajo,memoriaPara} from "./operaciones.ts";
@@ -238,7 +239,9 @@ export async function avanzar(id: string, motor: Motor = elegirMotor(), aviso: A
       for (const h of herramientas) bitacora(id, `${h.herramienta}: ${h.ok ? "ok" : "pendiente"}.`);
       const memoria=memoriaPara(id,t),capturado=capturarContextoDecision(id,t,p,leidas);capturado.memoria=memoria.map(d=>d.id);
       const contexto=contextoTrabajo(id,t,version,capturado,!!sigue);
-      const r = await motor.trabajar({ pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
+      // La vara del cliente como imágenes (sistema/120): el agente ve lo que se espera, no solo los enlaces.
+      const vara = c.agente === "ledger" ? [] : await varaDePedido(p.pedido);
+      const r = await motor.trabajar({ vara, pedido: p.pedido, tarea: t, lecturas: leidas, cambio, version, preguntas: p.plan.preguntas, herramientas, cliente: (p.notasCliente ?? []).map((n) => n.texto),
         consejos: [...(consejosPara(p.pedido.plantilla, c.agente) ?? []), ...(c.agente === "ledger" && p.presupuesto?.horasJay ? [`Jay fijó ${p.presupuesto.horasJay} h reales para todo el proyecto: reparte tus horas para que sumen eso.`] : [])],
         archivos: listarArchivos(id).map((a) => ({ nombre: a.nombre, nota: a.nota, tipo: a.tipo, ruta: rutaArchivo(id, a.nombre) })),
         condiciones: condicionesDe(p,t), referencias:adjuntosReferencias(id,t), memoria, marca: p.marca, parcial: sigue, plazo: op.plazo, direccion: proponer ? "proponer" : elegida, directo: (p.reintentos?.[t] ?? 0) > 0, latido: op.latido ? (x) => op.latido!(t, x) : undefined });

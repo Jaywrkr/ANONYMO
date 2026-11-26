@@ -14,7 +14,8 @@ Lo que sigue, en orden. El plan completo está en [docs/mapa-agencia.md](docs/ma
 - [x] **Fase 2, primera parte (rama `sistema/117-direccion`)**: la Dirección en la ficha (guía PDF, web, lo de ustedes, «esto entendí», qué es bueno), todos los agentes la leen, los cambios pedidos enseñan y las redes le llegan a Luna.
 - [x] Referencias vivas (rama `sistema/118-referencias-vivas`): capturas de cada web de la Dirección, Faro las ve, plantilla «Trabajo».
 - [x] Capturas en la nube (rama `sistema/119-capturas-servidor`): el navegador de Vercel ya no se cae; motivo real si una web no deja entrar.
-- [ ] Fase 2, lo que falta: que la revisión compare cada entrega con las capturas de la vara; revisión que rehace sola lo que no llega a la vara, nota en la tarjeta de cada entrega, fundir Banco y Criterio en la Dirección; guías de más de 4 MB (subida directa a la nube).
+- [x] La vara con imágenes (rama `sistema/120-vara-con-imagenes`): cada pieza del mes con nota frente a las capturas y rehecha sola si no llega; los agentes de proyectos y su revisión ven las capturas.
+- [ ] Fase 2, lo que falta: fundir Banco y Criterio en la Dirección; guías de más de 4 MB (subida directa a la nube).
 - [ ] Cargar las webs de Coresolutions y @jaywrkr como referencia de calidad y trabajo real de Unmake.
 - [x] Que cada trabajo le llegue a quien le toca: los meses de contenido a Luna en «Te toca» (las webs ya eran de Jay por fase). Falta confirmar el aviso al celular para los meses.
 - [ ] Probar los tres casos de punta a punta (IA falsa) y dejarlos listos para que Jay los lance desde el chat al final del día: web de Coresolutions, web de @jaywrkr y, con esas, las redes de Unmake.

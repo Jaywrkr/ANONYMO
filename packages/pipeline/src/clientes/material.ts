@@ -133,3 +133,45 @@ export async function capturarReferencias(abrir: () => Promise<Browser>, cliente
 export function materialDe(d: DireccionCliente | undefined): { archivo: string; vista: CapturaMaterial["vista"]; url: string; nota?: string; trabajo: boolean }[] {
   return (d?.referencias ?? []).flatMap((r) => (r.capturas ?? []).map((c) => ({ archivo: c.archivo, vista: c.vista, url: r.url, nota: r.nota, trabajo: !!r.trabajo })));
 }
+
+/** Una captura de la vara lista para mostrársela a la IA (base64). */
+export interface CapturaVara { archivo: string; url: string; nota?: string; trabajo: boolean; datos: string }
+
+/**
+ * La vara del cliente como imágenes (sistema/120): las capturas de computadora de su trabajo real primero y después
+ * las de «qué es bueno», hasta `max`. Las que no se pueden leer se saltan. Sirve para Faro, los agentes y la revisión.
+ */
+export async function varaDeDireccion(d: DireccionCliente | undefined, max = 3): Promise<CapturaVara[]> {
+  const lista = materialDe(d).filter((m) => m.vista === "escritorio").sort((a, b) => Number(b.trabajo) - Number(a.trabajo));
+  const out: CapturaVara[] = [];
+  for (const m of lista) {
+    if (out.length >= max) break;
+    const datos = await leerMaterial(m.archivo).catch(() => undefined);
+    if (datos?.length) out.push({ archivo: m.archivo, url: m.url, nota: m.nota, trabajo: m.trabajo, datos: Buffer.from(datos).toString("base64") });
+  }
+  return out;
+}
+
+/** Los bloques de imagen de la vara, cada uno con lo que muestra, para la API de la IA. */
+export function bloquesVara(v: CapturaVara[]): { type: string; text?: string; source?: unknown }[] {
+  return v.flatMap((m) => [
+    { type: "text", text: `Vara del cliente · ${m.trabajo ? "su trabajo real" : "lo que para ellos es bueno"} · ${m.url}${m.nota ? ` — ${m.nota}` : ""}` },
+    { type: "image", source: { type: "base64", media_type: "image/jpeg", data: m.datos } },
+  ]);
+}
+
+/**
+ * La vara del cliente de un pedido (sistema/120): por su ficha (o por su nombre si es de antes). Si algo falla, nada:
+ * los agentes trabajan igual, con la Dirección escrita.
+ */
+export async function varaDePedido(pedido: { ficha?: string; cliente: string }, max = 3): Promise<CapturaVara[]> {
+  try {
+    const { leerFichas } = await import("./almacen-fichas.ts");
+    const { idFicha } = await import("./fichas.ts");
+    const f = (await leerFichas()).fichas;
+    return await varaDeDireccion((f[pedido.ficha ?? ""] ?? f[idFicha(pedido.cliente)])?.direccion, max);
+  } catch (e) {
+    console.error("[material] no se pudo leer la vara del pedido:", (e as Error).message);
+    return [];
+  }
+}
