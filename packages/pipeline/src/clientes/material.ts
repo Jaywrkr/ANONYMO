@@ -33,15 +33,22 @@ export async function leerMaterial(archivo: string): Promise<Uint8Array | undefi
   return existsSync(r) ? readFileSync(r) : undefined;
 }
 
-/** CapturaMaterial una web en computadora (1440) y en celular (390): lo que se ve al entrar y un poco más. */
+/**
+ * Captura una web en computadora (1440) y en celular (390): lo que se ve al entrar y un poco más.
+ * Un solo contexto y una sola página que cambia de ancho: el Chromium del servidor (Vercel) corre en un solo
+ * proceso y se cae si se abren varios contextos seguidos (sistema/119).
+ */
 export async function capturarWeb(nav: Browser, cliente: string, url: string, o: { esperaMs?: number; timeoutMs?: number } = {}): Promise<CapturaMaterial[]> {
   if (!direccionPermitida(url)) throw new Error("Esa dirección no se puede abrir.");
   const out: CapturaMaterial[] = [];
-  for (const [vista, ancho, alto] of [["escritorio", 1440, 900], ["celular", 390, 844]] as const) {
-    const ctx = await nav.newContext({ viewport: { width: ancho, height: alto }, isMobile: ancho < 1000, deviceScaleFactor: 1, locale: "es-EC" });
-    try {
-      const p = await ctx.newPage();
-      await p.goto(url, { waitUntil: "load", timeout: o.timeoutMs ?? 40_000 });
+  const ctx = await nav.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, locale: "es-EC" });
+  try {
+    const p = await ctx.newPage();
+    for (const [vista, ancho, alto] of [["escritorio", 1440, 900], ["celular", 390, 844]] as const) {
+      await p.setViewportSize({ width: ancho, height: alto });
+      if (vista === "escritorio") await p.goto(url, { waitUntil: "domcontentloaded", timeout: o.timeoutMs ?? 40_000 });
+      else await p.reload({ waitUntil: "domcontentloaded", timeout: o.timeoutMs ?? 40_000 });
+      await p.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
       await p.waitForTimeout(o.esperaMs ?? 3500); // las webs con entrada animada
       const total = await p.evaluate(() => document.documentElement.scrollHeight).catch(() => alto);
       const h = Math.max(alto, Math.min(total, ancho > 1000 ? 1800 : 1600));
@@ -49,11 +56,18 @@ export async function capturarWeb(nav: Browser, cliente: string, url: string, o:
       const archivo = nombreCaptura(cliente, url, vista);
       await guardarMaterial(archivo, datos);
       out.push({ archivo, ancho, alto: h, vista });
-    } finally {
-      await ctx.close().catch(() => {});
     }
+  } finally {
+    await ctx.close().catch(() => {});
   }
   return out;
+}
+
+/** Por qué no se pudo, en palabras simples, con la causa real al final para poder arreglarlo. */
+export function motivoMaterial(e: unknown): string {
+  const m = String((e as Error)?.message ?? e).split("\n")[0]!.replace(/\s+/g, " ").slice(0, 140);
+  const simple = /Timeout/i.test(m) ? "La web tardó demasiado en abrir" : /ERR_NAME_NOT_RESOLVED|ENOTFOUND/.test(m) ? "La dirección no existe" : /closed|crash|disconnected/i.test(m) ? "El navegador del servidor se cerró" : /ERR_CONNECTION|ERR_TUNNEL|ERR_BLOCKED|403/i.test(m) ? "La web no dejó entrar al navegador" : "No se pudo capturar";
+  return `${simple} (${m}).`;
 }
 
 /** El logo tal como se ve en la web (también los que dibuja un script): una imagen del elemento que dice «logo». */
@@ -83,23 +97,34 @@ export async function logoDeWeb(nav: Browser, url: string): Promise<string | und
 /** Las referencias de la Dirección que todavía no tienen capturas (o todas si se pide de nuevo). */
 export const porCapturar = (d: DireccionCliente | undefined, todas = false) => (d?.referencias ?? []).filter((r) => todas || !r.capturas?.length);
 
-/** CapturaMaterial las referencias que faltan y devuelve la Dirección con sus capturas, más lo que no se pudo y por qué. */
-export async function capturarReferencias(nav: Browser, cliente: string, d: DireccionCliente, o: { todas?: boolean; plazo?: number } = {}): Promise<{ direccion: DireccionCliente; hechas: number; fallas: { url: string; motivo: string }[] }> {
+/** Captura las referencias que faltan y devuelve la Dirección con sus capturas, más lo que no se pudo y por qué. */
+export async function capturarReferencias(abrir: () => Promise<Browser>, cliente: string, d: DireccionCliente, o: { todas?: boolean; plazo?: number } = {}): Promise<{ direccion: DireccionCliente; hechas: number; fallas: { url: string; motivo: string }[] }> {
   const fallas: { url: string; motivo: string }[] = [];
   let hechas = 0;
   const referencias: ReferenciaDir[] = [];
-  for (const r of d.referencias) {
-    const toca = o.todas || !r.capturas?.length;
-    if (!toca || (o.plazo && Date.now() > o.plazo)) { referencias.push(r); continue; }
-    try {
-      const capturas = await capturarWeb(nav, cliente, r.url);
-      referencias.push({ ...r, capturas, capturadaEl: new Date().toISOString() });
-      hechas++;
-    } catch (e) {
-      const m = String((e as Error)?.message ?? e);
-      fallas.push({ url: r.url, motivo: /Timeout/i.test(m) ? "La web tardó demasiado en abrir." : /ERR_NAME_NOT_RESOLVED|ENOTFOUND/.test(m) ? "La dirección no existe." : "La web no dejó entrar al navegador." });
-      referencias.push(r);
+  let nav: Browser | undefined;
+  try {
+    for (const r of d.referencias) {
+      const toca = o.todas || !r.capturas?.length;
+      if (!toca || (o.plazo && Date.now() > o.plazo)) { referencias.push(r); continue; }
+      let capturas: CapturaMaterial[] | undefined, error: unknown;
+      // Si el navegador se cayó, se abre otro y se intenta una vez más.
+      for (let intento = 0; intento < 2 && !capturas; intento++) {
+        try {
+          if (!nav || !nav.isConnected()) nav = await abrir();
+          capturas = await capturarWeb(nav, cliente, r.url);
+        } catch (e) {
+          error = e;
+          console.error(`[material] ${r.url} (intento ${intento + 1}):`, (e as Error)?.message ?? e);
+          const murio = !nav?.isConnected() || /closed|crash|disconnected/i.test(String((e as Error)?.message));
+          if (murio) { await nav?.close().catch(() => {}); nav = undefined; } else break;
+        }
+      }
+      if (capturas) { referencias.push({ ...r, capturas, capturadaEl: new Date().toISOString() }); hechas++; }
+      else { fallas.push({ url: r.url, motivo: motivoMaterial(error) }); referencias.push(r); }
     }
+  } finally {
+    await nav?.close().catch(() => {});
   }
   return { direccion: { ...d, referencias, actualizada: new Date().toISOString() }, hechas, fallas };
 }
