@@ -303,7 +303,7 @@ function leerHistorias(x: unknown): Historia[] {
 
 
 /** La revisión automática de una pieza contra las reglas de los planificadores (sistema/107). */
-export function revisarPieza(p: Pick<Pieza, "texto" | "formato" | "plantilla" | "lamina" | "historias" | "youtube">, saber = "", reglas = ""): string[] {
+export function revisarPieza(p: Pick<Pieza, "texto" | "formato" | "plantilla" | "lamina" | "historias" | "youtube">, saber = "", reglas = "", canales = ""): string[] {
   const avisos: string[] = [];
   const ultima = p.texto.trim().split("\n").filter(Boolean).pop() ?? "";
   if (!/\?\s*$/.test(ultima) && !/\b(guárda|guarda|mánda|manda|envía|envia|escríbe|escribe|comenta|comparte|compárte|agenda|visita|revisa|pregúnta|pregunta)/i.test(ultima)) avisos.push("El texto no termina con una pregunta ni con una acción.");
@@ -320,9 +320,36 @@ export function revisarPieza(p: Pick<Pieza, "texto" | "formato" | "plantilla" | 
       else if (!saber.replace(/\s/g, "").includes(cifra)) avisos.push(`La cifra «${l.numero}» no está en lo que sabemos del cliente: confírmala antes de publicar.`);
     }
   }
-  if (p.formato === "reel" && !p.youtube) avisos.push("Al reel le falta su texto para YouTube Shorts.");
+  // Solo si el cliente está en YouTube (sistema/114): si no, pedirlo es un aviso falso.
+  if (p.formato === "reel" && !p.youtube && enYouTube(canales)) avisos.push("Al reel le falta su texto para YouTube Shorts.");
   if (/sin precios/i.test(reglas) && /(\$\s?\d|\busd\b|\bprecio)/i.test(`${p.texto} ${l?.titulo ?? ""} ${l?.bajada ?? ""}`)) avisos.push("Habla de precio y la marca no muestra precios.");
   return avisos;
+}
+
+/** ¿El cliente publica en YouTube? Sale de «Dónde publica» de su ficha. */
+export const enYouTube = (canales: string) => /youtube|shorts/i.test(canales);
+
+/** Palabras con contenido (4+ letras, sin tildes ni palabras de relleno) para comparar de qué habla un texto. */
+const RELLENO = new Set(["para", "como", "este", "esta", "esto", "todo", "toda", "pero", "tiene", "tienen", "hace", "hacer", "cada", "sobre", "entre", "desde", "cuando", "donde", "porque", "nuestra", "nuestro", "nosotros", "tambien", "solo", "unmake", "aqui", "algo", "otra", "otro", "mismo", "misma", "mito"]);
+const palabrasDe = (t: string) => new Set(t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9ñ]+/).filter((w) => w.length >= 4 && !RELLENO.has(w)));
+const comunes = (a: Set<string>, b: Set<string>) => [...a].filter((w) => b.has(w)).length;
+/**
+ * ¿El texto y el arte hablan de su idea? (sistema/114). Faro a veces escribía la A con la idea de la B.
+ * «cambiar»: el contenido de la A es de la idea B (y viceversa) → se cambian de lugar. «nada»: no se parece a ninguna.
+ */
+export function coherencia(ideaA: string, contA: string, ideaB: string, contB: string): "bien" | "cambiar" | "nada" {
+  const iA = palabrasDe(ideaA), iB = palabrasDe(ideaB), cA = palabrasDe(contA), cB = palabrasDe(contB);
+  const aA = comunes(iA, cA), aB = comunes(iB, cA);
+  if (ideaB && aB >= 2 && aB > aA && (!contB || comunes(iA, cB) >= comunes(iB, cB))) return "cambiar";
+  if (iA.size >= 3 && aA === 0) return "nada";
+  return "bien";
+}
+
+/** Cuántas piezas pidieron, si lo dijeron: «las primeras 9 publicaciones» → 9. */
+export function cantidadPedida(pedido = ""): number | undefined {
+  const m = pedido.match(/\b(\d{1,2})\s+(?:primeras?\s+)?(?:publicaciones|posts?|piezas|carruseles|reels)\b/i) ?? pedido.match(/\b(?:las|los)\s+(?:primer[oa]s\s+)?(\d{1,2})\s+(?:publicaciones|posts?|piezas)\b/i);
+  const n = m ? Number(m[1]) : NaN;
+  return n >= 1 && n <= 31 ? n : undefined;
 }
 
 interface Fila { n: number; fecha: string; serie: string; formato: FormatoPieza; plantilla: PlantillaArte; hora: string; ideaA: string; ideaB: string }
@@ -378,7 +405,9 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   if (!/^\d{4}-\d{2}$/.test(o.mes)) throw new Error("No entendí el mes.");
   const id = idMes(o.cliente, o.mes);
   if ((await leer()).meses[id]) throw new Error(`Ya hay un mes de contenido para ${o.nombre} en ${nombreMes(o.mes)}. Ábrelo desde Contenido.`);
-  const fechas = fechasDelMes(o.mes, o.frecuencia);
+  // Si pidieron una cantidad («las primeras 9 publicaciones»), son esas: las primeras fechas del mes (sistema/114).
+  const todas = fechasDelMes(o.mes, o.frecuencia), cuantas = cantidadPedida(o.pedido);
+  const fechas = cuantas ? todas.slice(0, cuantas) : todas;
   const estilo = estiloPara(o.cliente, o.nombre, o.color);
   const contexto = [
     `## Cliente\n${o.nombre}`,
@@ -427,20 +456,25 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   for (const f of filas) {
     const p = porN.get(f.n);
     const A = (objeto(p?.A) ?? {}) as Record<string, unknown>, B = (objeto(p?.B) ?? {}) as Record<string, unknown>;
-    const texto = limpio(A.texto, 2200), lamina = leerLamina(A.lamina);
+    let texto = limpio(A.texto, 2200), lamina = leerLamina(A.lamina);
+    let textoB0 = limpio(B.texto, 2200), laminaB0 = leerLamina(B.lamina), visualA = limpio(A.visual, 600), visualB = limpio(B.visual, 600);
+    // Coherencia (sistema/114): si lo escrito en la A es de la idea B, se cambian de lugar para que nada quede mezclado.
+    const coh = texto && lamina ? coherencia(f.ideaA, `${texto} ${lamina.titulo}`, f.ideaB, `${textoB0} ${laminaB0?.titulo ?? ""}`) : "bien";
+    if (coh === "cambiar" && textoB0 && laminaB0) { [texto, textoB0] = [textoB0, texto]; [lamina, laminaB0] = [laminaB0, lamina]; [visualA, visualB] = [visualB, visualA]; console.error(`[contenido] pieza ${f.n}: la A traía la idea B; se cambiaron de lugar`); }
     if (!texto || !lamina) { console.error(`[contenido] pieza ${f.n} descartada: ${!p ? "no llegó" : !texto ? "sin texto" : "sin arte"} (llegó: ${p ? Object.keys(p).join(",") : "nada"}; A: ${typeof p?.A})`); continue; }
-    const textoB = limpio(B.texto, 2200), laminaB = leerLamina(B.lamina);
+    const textoB = textoB0, laminaB = laminaB0;
     const yt = (objeto(p?.youtube) ?? {}) as Record<string, unknown>;
     piezas.push({
       id: `p${String(piezas.length + 1).padStart(2, "0")}`, fecha: f.fecha, hora: f.hora, serie: f.serie, formato: f.formato, plantilla: f.plantilla,
-      idea: f.ideaA, texto, visual: limpio(A.visual, 600) || "Solo el arte", lamina,
-      ...(textoB && laminaB && f.ideaB ? { b: { idea: f.ideaB, texto: textoB, visual: limpio(B.visual, 600) || "Solo el arte", lamina: laminaB } } : {}),
+      idea: f.ideaA, texto, visual: visualA || "Solo el arte", lamina,
+      ...(textoB && laminaB && f.ideaB ? { b: { idea: f.ideaB, texto: textoB, visual: visualB || "Solo el arte", lamina: laminaB } } : {}),
       historias: leerHistorias(p?.historias),
-      ...(f.formato === "reel" && limpio(yt.titulo, 100) ? { youtube: { titulo: limpio(yt.titulo, 100), descripcion: limpio(yt.descripcion, 600) } } : {}),
+      ...(f.formato === "reel" && enYouTube(o.canales) && limpio(yt.titulo, 100) ? { youtube: { titulo: limpio(yt.titulo, 100), descripcion: limpio(yt.descripcion, 600) } } : {}),
       estado: "propuesta",
     });
     const ultima = piezas[piezas.length - 1]!;
-    const avisos = revisarPieza(ultima, o.saber, estilo.reglas);
+    const avisos = revisarPieza(ultima, o.saber, estilo.reglas, o.canales);
+    if (coh === "nada") avisos.unshift("El texto no habla de la idea: revísalo antes de aprobar.");
     if (avisos.length) ultima.avisos = avisos;
   }
   if (piezas.length < Math.ceil(fechas.length * 0.8)) {
@@ -513,7 +547,7 @@ export async function cambiarPieza(mesId: string, piezaId: string, c: CambioPiez
   if (c.estado === "aprobada") delete p.nota;
   // Si se corrige a mano una pieza con cambio pedido, vuelve a quedar por revisar.
   if (!c.estado && p.estado === "cambio" && que.some((x) => ["idea", "texto", "visual", "título del arte"].includes(x))) p.estado = "propuesta";
-  if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) { const a = revisarPieza(p, "", "").filter((x) => !x.startsWith("La cifra")); if (a.length) p.avisos = a; else delete p.avisos; }
+  if (que.some((x) => ["texto", "título del arte", "eligió la otra opción"].includes(x))) { const a = revisarPieza(p, "", "", m.canales).filter((x) => !x.startsWith("La cifra")); if (a.length) p.avisos = a; else delete p.avisos; }
   if (que.length) m.historia.push({ cuando: new Date().toISOString(), quien: por, que: `${p.fecha}: ${que.join(", ")}` });
   m.actualizado = new Date().toISOString();
   await guardar(l);

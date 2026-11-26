@@ -30,12 +30,17 @@ const YA_DICE: Record<string, RegExp> = {
   "Ya tiene logo y colores.": /\b(ya tiene (logo|marca)|logo y (la )?paleta|design system|marca existente)\b/i,
 };
 
+/** ¿Pide publicaciones de redes y nada más (ni web, ni marca, ni evento)? */
+const esDeRedes = (t: string) => /\b(publicaci\w*|posts?|historias|destacad\w*|reels?|carruseles|contenido para redes|calendario de contenido)\b/i.test(t) && !/\b(web|página|sitio|logo nuevo|identidad|naming|nombre nuevo|evento|inauguración)\b/i.test(t);
+
 export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?: boolean }) {
   const [texto, setTexto] = useState(inicial);
   // Lo que la ficha del cliente elegido ya sabe (lo avisa «¿Para quién?»).
   const [sabe, setSabe] = useState<string[]>([]);
+  const [ficha, setFicha] = useState<string>();
   useEffect(() => {
-    const oir = (e: Event) => setSabe((e as CustomEvent<{ sabe?: string[] }>).detail?.sabe ?? []);
+    const oir = (e: Event) => { const d = (e as CustomEvent<{ sabe?: string[]; ficha?: string }>).detail; setSabe(d?.sabe ?? []); setFicha(d?.ficha); };
+    setFicha((window as unknown as { __pedidoFicha?: string }).__pedidoFicha);
     window.addEventListener("pedido:cliente", oir);
     setSabe((window as unknown as { __pedidoSabe?: string[] }).__pedidoSabe ?? []);
     return () => window.removeEventListener("pedido:cliente", oir);
@@ -80,6 +85,14 @@ export function Contar({ inicial = "", foco = true }: { inicial?: string; foco?:
         })}
         <span className="ml-auto text-suave">{palabras} palabras</span>
       </div>
+
+      {/* Si lo que pides son publicaciones para redes, eso se arma en Contenido, no como proyecto (sistema/114). */}
+      {esDeRedes(texto) && (
+        <p role="note" data-ir-a-contenido className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-[#eef3ff] px-4 py-3 text-[14px] text-[#1f3a8a]">
+          <span className="min-w-0 flex-1">Esto son publicaciones para redes: Faro las arma en <b className="font-medium">Contenido</b>, con el arte de su marca, día por día.</span>
+          <a href={`/estudio/contenido?${new URLSearchParams({ ...(ficha ? { cliente: ficha } : {}), pedido: texto.slice(0, 800) })}`} className="inline-flex min-h-10 items-center rounded-full bg-[#1f3a8a] px-4 text-[13px] text-white">Armarlo en Contenido →</a>
+        </p>
+      )}
 
       {/* Cinco etiquetas a la vista (sistema/77); el resto, en «Más detalles»: menos decisiones antes de escribir. */}
       <div className="grid gap-3">

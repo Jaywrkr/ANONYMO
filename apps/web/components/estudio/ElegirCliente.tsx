@@ -50,8 +50,10 @@ export function ElegirCliente({ clientes, inicial }: { clientes: OpcionCliente[]
   useEffect(() => {
     const sabe = elegido?.tipo === "ficha" ? elegido.c.sabe ?? [] : [];
     // Queda también a mano por si la caja todavía no escuchaba (los dos montan a la vez).
-    (window as unknown as { __pedidoSabe?: string[] }).__pedidoSabe = sabe;
-    window.dispatchEvent(new CustomEvent("pedido:cliente", { detail: { sabe } }));
+    const ficha = elegido?.tipo === "ficha" ? elegido.c.id : undefined;
+    (window as unknown as { __pedidoSabe?: string[]; __pedidoFicha?: string }).__pedidoSabe = sabe;
+    (window as unknown as { __pedidoFicha?: string }).__pedidoFicha = ficha;
+    window.dispatchEvent(new CustomEvent("pedido:cliente", { detail: { sabe, ficha } }));
   }, [elegido]);
 
   const lista = useMemo(() => {

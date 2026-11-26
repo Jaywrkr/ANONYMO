@@ -6,7 +6,7 @@ import Link from "next/link";
 import { SeguimientoMovil } from "@/components/estudio/SeguimientoMovil";
 import { notFound } from "next/navigation";
 import { FASES, PEDIDOS, agentePorId } from "@anonymo/agentes";
-import { esInterno, estadoEntrega, TEXTO_CALIDAD, contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
+import { ESTILOS, esInterno, estadoEntrega, TEXTO_CALIDAD, contratoPorId, dependientes, repartir, esImagen, existe, listarArchivos, leerBitacora, leerEntrega, leerNota, leerProyecto, nombreTarea, type TareaId, calendario, sumar, PRECIOS, plantillaPorId, presupuestoVivo, responsable, nubeActiva, modoDe, versionesSitio } from "@anonymo/pipeline";
 import { Calendario } from "@/components/estudio/Calendario";
 import { PlanAtlas } from "@/components/estudio/PlanAtlas";
 import { EquipoVivo } from "@/components/estudio/EquipoVivo";
@@ -257,8 +257,8 @@ export default async function ProyectoEstudio({ params, searchParams }: Props) {
                 </Link>
               ) : null}
               <Link href={`/estudio/${id}?ver=marca`} className={`${tarjeta} group flex items-center gap-4 transition hover:-translate-y-0.5`}>
-                <span className="flex shrink-0 -space-x-2">{(p.marca?.colores.length ? p.marca.colores.slice(0, 4).map((c) => c.hex) : ["#1a1816", "#e7e3da", "#f4f1eb"]).map((h, i) => <i key={i} className="h-9 w-9 rounded-full shadow-[0_0_0_2px_#fff]" style={{ background: h }} />)}</span>
-                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">Marca del cliente</span><span className="block text-[13px] text-medio">{p.marca?.colores.length ? `${p.marca.colores.length} colores · ${p.marca.fuentes.length} fuentes` : "Sin definir: se usan los colores de Unmake."}</span></span>
+                <span className="flex shrink-0 -space-x-2">{(p.marca?.colores.length ? p.marca.colores.slice(0, 4).map((c) => c.hex) : esInterno(p.pedido) ? [ESTILOS.unmake!.tinta, ...ESTILOS.unmake!.acentos.slice(0, 2), ESTILOS.unmake!.fondo] : ["#1a1816", "#e7e3da", "#f4f1eb"]).map((h, i) => <i key={i} className="h-9 w-9 rounded-full shadow-[0_0_0_2px_#fff]" style={{ background: h }} />)}</span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-medium">{esInterno(p.pedido) ? "Marca de Unmake" : "Marca del cliente"}</span><span className="block text-[13px] text-medio">{p.marca?.colores.length ? `${p.marca.colores.length} colores · ${p.marca.fuentes.length} fuentes` : esInterno(p.pedido) ? "La de siempre: el design system de Unmake." : "Sin definir: se usan los colores de Unmake."}</span></span>
                 <span className="text-suave transition group-hover:translate-x-0.5">→</span>
               </Link>
               <details className={`${tarjeta} group`}>
