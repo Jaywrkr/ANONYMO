@@ -10,3 +10,4 @@ export * from "./guiones.ts";
 export * from "./contenido.ts";
 export * from "./artes.ts";
 export * from "./vara.ts";
+export * from "./faro-disena.ts";

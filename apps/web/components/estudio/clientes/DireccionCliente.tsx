@@ -4,6 +4,7 @@ import { NOMBRE_ORIGEN_DIR, type DireccionCliente, type OrigenDir, type Propuest
 import { accionDireccion } from "@/app/estudio/cliente/acciones";
 import { boton, botonLleno, campo } from "@/lib/estudio";
 import { CapturarReferencias } from "./CapturarReferencias";
+import { ImagenesBuenas } from "./ImagenesBuenas";
 
 const PUNTO: Record<OrigenDir, string> = { guia: "#1f6feb", ustedes: "#1a1816", web: "#a39a92", agente: "#d4ccc0" };
 const fuentesGoogle = (familias: string[]) => (familias.length ? `https://fonts.googleapis.com/css2?${familias.map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}`).join("&")}&display=swap` : "");
@@ -125,6 +126,9 @@ export function DireccionDelCliente({ id, nombre, d, web }: { id: string; nombre
       <p className="mt-1 text-[13px] text-medio">Lo que todos los agentes siguen al trabajar para {nombre}. Si algo choca, manda su guía de marca, después lo que dicen ustedes y al final su web.</p>
 
       {d?.propuesta && <Entendi id={id} p={d.propuesta} />}
+
+      {/* Qué es bueno, en imágenes (sistema/123): Faro las ve al diseñar y la revisión compara cada pieza con ellas. */}
+      <ImagenesBuenas id={id} nombre={nombre} imagenes={d?.imagenes ?? []} />
 
       {vacia && !d?.propuesta
         ? <p className="mt-5 rounded-2xl bg-hueso/70 p-4 text-[14px]" data-direccion-vacia>Todavía no tiene Dirección. Empieza leyendo su web o subiendo su guía de marca; después completan entre ustedes lo que sí, lo que no y qué es bueno para él.</p>

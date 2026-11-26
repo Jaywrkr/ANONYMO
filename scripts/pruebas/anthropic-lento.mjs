@@ -31,6 +31,35 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_guia", name: "leer_guia_de_marca", input }], usage: { input_tokens: 3000, output_tokens: 120 } }));
       return;
     }
+    // Faro diseña una pieza (sistema/123): tiene que ver las referencias y el material como imágenes; escribe el HTML
+    // con «material:» y, si le piden cambiar, lo dice en el diseño. El juicio da 5 a la primera versión y 8 a la segunda.
+    if (cuerpo.tools?.[0]?.name === "disenar_pieza") {
+      const c = cuerpo.messages?.[0]?.content ?? [];
+      const t = Array.isArray(c) ? c.filter((b) => b.type === "text").map((b) => b.text).join("\n") : String(c);
+      const imgs = Array.isArray(c) ? c.filter((b) => b.type === "image" && b.source?.data).length : 0;
+      if (!/Referencia de lo que es bueno/.test(t) || !/Material del proyecto/.test(t) || imgs < 2) { res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { type: "invalid_request_error", message: "faltan las referencias o el material" } })); return; }
+      const lista = (t.split("## Material disponible (nombres exactos)\n")[1] ?? "").split("\n").filter((l) => l.startsWith("- ")).map((l) => l.slice(2).split(":")[0]);
+      const tramo = lista.find((x) => /-p\d\.jpg$/.test(x)) ?? lista[0], logo = lista.find((x) => x.endsWith("-logo.png"));
+      const otra = /Lo que hay que cambiar/.test(t);
+      const lamina = (fondo, cuerpo) => `<!doctype html><html><head><style>html,body{margin:0;width:1080px;height:1350px;overflow:hidden;background:${fondo}}</style></head><body>${cuerpo}</body></html>`;
+      const input = { formato: "carrusel", texto: "Coresolutions\nWeb · 2026", porQue: otra ? "Más aire, como la referencia." : "Un tramo a sangre y el logo solo.", laminas: [
+        { html: lamina("#01095c", `<img src="material:${tramo}" style="position:absolute;inset:${otra ? 120 : 0}px;width:${otra ? 840 : 1080}px;height:${otra ? 1110 : 1350}px;object-fit:cover"><script>alert(1)</script>`) },
+        ...(logo ? [{ html: lamina("#01095c", `<img src="material:${logo}" style="position:absolute;left:290px;top:600px;width:500px">`) }] : []),
+      ] };
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_dis", name: "disenar_pieza", input }], usage: { input_tokens: 9000, output_tokens: 1500 } }));
+      return;
+    }
+    if (cuerpo.tools?.[0]?.name === "juzgar_pieza") {
+      const c = cuerpo.messages?.[0]?.content ?? [];
+      const t = Array.isArray(c) ? c.filter((b) => b.type === "text").map((b) => b.text).join("\n") : String(c);
+      if (!/La pieza a juzgar/.test(t) || !/Referencia de lo que es bueno/.test(t)) { res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { type: "invalid_request_error", message: "falta la pieza o las referencias" } })); return; }
+      const v = Number((t.match(/Versión (\d+)/) ?? [])[1] ?? 1);
+      const input = v >= 2 ? { nota: 8, motivos: ["Respira como las referencias."] } : { nota: 5, motivos: ["El tramo va pegado al borde: le falta aire."], cambiar: "Deja aire alrededor del tramo." };
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", id: "tu_juz", name: "juzgar_pieza", input }], usage: { input_tokens: 6000, output_tokens: 80 } }));
+      return;
+    }
     // La revisión contra la vara (sistema/120): tiene que ver la pieza dibujada (y la vara, si hay). La primera vez no
     // llega y trae el título reescrito; la versión rehecha llega. Así se prueba que se rehace sola.
     if (cuerpo.tools?.[0]?.name === "revisar_con_vara") {

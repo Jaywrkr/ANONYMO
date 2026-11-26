@@ -51,6 +51,9 @@ export interface DireccionCliente {
   no: LineaDir[];
   /** Qué es bueno para este cliente: referencias de primer nivel elegidas por ustedes. */
   referencias: ReferenciaDir[];
+  /** Qué es bueno, en imágenes (sistema/123): capturas de cuentas o piezas de primer nivel que subieron ustedes. Faro
+   * las ve al diseñar y la revisión compara cada pieza con ellas. Los archivos viven en el material del cliente. */
+  imagenes?: { archivo: string; nota?: string; por?: string; subida: string }[];
   guia?: { nombre: string; subida: string; bytes: number };
   propuesta?: PropuestaDireccion;
   /** Lo que ustedes dijeron al aprobar o pedir cambios: los agentes lo leen antes de trabajar. */
@@ -290,6 +293,7 @@ export function direccionDe(x: unknown): DireccionCliente | undefined {
     si: arr<LineaDir>(o.si).filter((l) => l?.texto),
     no: arr<LineaDir>(o.no).filter((l) => l?.texto),
     referencias: arr<ReferenciaDir>(o.referencias).filter((r) => r?.url),
+    ...(Array.isArray(o.imagenes) && o.imagenes.length ? { imagenes: arr<NonNullable<DireccionCliente["imagenes"]>[number]>(o.imagenes).filter((m) => /^[a-z0-9][a-z0-9-]{2,80}\.(jpg|png)$/.test(m?.archivo ?? "")) } : {}),
     guia: o.guia,
     propuesta: o.propuesta,
     aprendido: arr<Aprendido>(o.aprendido),
