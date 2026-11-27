@@ -18,7 +18,9 @@ Lo que sigue, en orden. El plan completo está en [docs/mapa-agencia.md](docs/ma
 - [x] Portafolio (rama `sistema/121-portafolio`): Faro decide el enfoque de la cuenta; plantillas caso, detalle y espacio; volver a armar un mes.
 - [x] Material para publicar (rama `sistema/122-obra-sin-marco`): tramos, logo y video del recorrido de cada web; piezas a pantalla completa sin marco de Unmake.
 - [x] Faro diseña cada pieza (rama `sistema/123-faro-disena`), con imágenes de referencia y revisión que rehace sola.
-- [ ] Con Jay: un post de Core y uno de @jaywrkr hechos por Faro, hasta aprobarlos. Después, que los meses usen ese modo.
+- [ ] Con Jay: un post de Core y uno de @jaywrkr hechos por Faro, hasta aprobarlos.
+- [x] Los meses los diseña Faro (rama `sistema/127-mes-con-faro`): feed, reels con portada y video, lo aprendido aparte, vista de perfil y paquete para el celular.
+- [ ] Ficha de Dirección con el estilo personal de Jay (para sus piezas).
 - [x] Fichas de los 22 agentes, sparring de Nova antes de diseñar, consultas directas, «registro:» y «cliché:» (rama `sistema/124-fichas-agentes`).
 - [ ] Radar semanal automático de Sonda; Tempo mandando las tomas a Luna; Trofeo guardando el caso como página de la web.
 - [ ] Video de la web en uso (cursor, clics) hecho por el sistema; pedido de tomas a Luna.

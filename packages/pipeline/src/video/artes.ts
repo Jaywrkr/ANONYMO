@@ -14,7 +14,7 @@ export async function dibujar(page: Page, a: ArteDibujo): Promise<Buffer> {
   await page.setViewportSize({ width: a.ancho, height: a.alto });
   await page.setContent(a.html, { waitUntil: "load", timeout: 15000 }).catch(() => {});
   await page.evaluate(() => Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 4000))])).catch(() => {});
-  return page.screenshot({ type: "jpeg", quality: 92, fullPage: false });
+  return page.screenshot({ type: "jpeg", quality: 92, fullPage: false, animations: "disabled", caret: "hide", timeout: 30000 });
 }
 
 // — Dónde vive el arte: _arte/<mes>/<archivo>.jpg (nube privada o proyectos/; las rutas sueltas tienen tres niveles) —

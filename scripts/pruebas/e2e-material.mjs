@@ -76,18 +76,12 @@ try {
   exigir(docs.filter((d) => d.includes("/material/")).every((d) => !/unmake\.|Nº \d|border-radius/.test(d)), "las piezas de trabajo son el material a pantalla completa: sin marca del estudio ni aparatos dibujados");
   exigir(docs.some((d) => /-p[1-5]\.jpg/.test(d)) && docs.some((d) => d.includes("-logo.png")) && docs.some((d) => d.includes("-v.jpg")), "el mes mezcla tramos de la web, el logo solo y la portada del video");
   exigir(new Set(docs.flatMap((d) => d.match(/-p[1-5]\.jpg/g) ?? [])).size >= 3, "los tramos van rotando: no se repite siempre el mismo");
-  // 3b · La revisión contra la vara (sistema/120): sola, al abrir el mes. Cada pieza se dibuja y se mira al lado de las
-  // capturas; la que no llega, Faro la rehace y se vuelve a mirar.
-  exigir(await espera(p.locator("[data-vara-progreso]"), 15000), "al abrir el mes, empieza la revisión con la vara");
-  const total = await p.locator("[data-pieza]").count();
-  await p.waitForFunction((n) => document.querySelectorAll("[data-vara-nota]").length >= n, total, { timeout: 280000 }).catch(() => {});
-  exigir(await p.locator("[data-vara-nota]").count() === total, `cada pieza queda con su nota frente a la vara (${await p.locator("[data-vara-nota]").count()} de ${total})`);
-  const varas = readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes('"revisar_con_vara"'));
-  const conVara = varas.filter((l) => (l.match(/"type":"image"/g) ?? []).length >= 2 && l.includes("Vara del cliente"));
-  exigir(varas.length >= total * 2 && conVara.length === varas.length, `la revisión ve la pieza dibujada al lado de las capturas de la vara (${conVara.length} de ${varas.length})`);
-  await p.locator("[data-pieza]").first().click();
-  const caja = p.locator("[data-detalle] [data-vara]");
-  exigir(await espera(caja) && (await caja.getAttribute("data-vara")) === "llega" && /8\s*\/10/.test(await caja.innerText()) && /rehízo una vez/.test(await caja.innerText()), `la pieza que no llegaba, Faro la rehízo sola y ahora llega (${await caja.innerText().catch(() => "")})`);
+  // 3b · Con trabajo real, el arte lo diseña Faro (sistema/127): al abrir el mes no se gasta en revisar las plantillas
+  // contra la vara; se ofrece que Faro diseñe el mes (eso se prueba en e2e-faro.mjs).
+  const antesVara = readFileSync(registro, "utf8").split("\n").filter((l) => l.includes('"revisar_con_vara"')).length;
+  await p.waitForTimeout(4000);
+  exigir(await p.locator("[data-vara-progreso]").count() === 0 && readFileSync(registro, "utf8").split("\n").filter((l) => l.includes('"revisar_con_vara"')).length === antesVara, "con trabajo real, no se gasta en revisar plantillas");
+  exigir(await p.locator("[data-faro-mes] [data-disenar-mes]").count() === 1, "se ofrece que Faro diseñe el mes");
   await p.screenshot({ path: join(capturas, "3-vara.png"), fullPage: true });
 
   // 4 · Una pieza «trabajo» muestra la captura real en la vista previa y al prepararla para Instagram.

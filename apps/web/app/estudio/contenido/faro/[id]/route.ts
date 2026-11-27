@@ -2,7 +2,7 @@
 // PATCH: aprobar o pedir un cambio con una nota (lo que se pide queda en lo aprendido del cliente).
 import { NOTA_PIEZA, VUELTAS_PIEZA, cambiarPiezaFaro, idPiezaValido, leerPiezaFaro, ocultarClaves } from "@anonymo/pipeline";
 import { quienEsta } from "@/lib/estudio";
-import { vueltaDeFaro } from "@/lib/faro";
+import { reflejarEnMes, vueltaDeFaro } from "@/lib/faro";
 import { anotarEnDireccion } from "@/lib/contenido";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (p.estado === "aprobada") return mal("Ya está aprobada.", 409);
   try {
     const nueva = await vueltaDeFaro(id, p);
+    await reflejarEnMes(nueva, yo);
     const v = nueva.versiones.at(-1)!;
     // Otra vuelta sola si no llegó a la vara y no se pasó de las vueltas (contando desde el último pedido de Jay o Luna).
     const seguidas = nueva.versiones.slice().reverse().findIndex((x) => x.pedido?.startsWith("Jay o Luna")) + 1 || nueva.versiones.length;
@@ -41,5 +42,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const p = await cambiarPiezaFaro(id, (x) => { x.estado = c.accion === "aprobar" ? "aprobada" : "cambio"; if (c.accion === "cambio") { x.nota = nota; const v = x.versiones.at(-1); if (v) v.pedido = `Jay o Luna: ${nota}`; } }).catch(() => undefined);
   if (!p) return mal("No encontramos esa pieza.", 404);
   if (c.accion === "cambio") await anotarEnDireccion(p.cliente, nota, yo, `pieza de ${p.proyecto.nombre}`);
+  // Si es una publicación del mes, el calendario queda igual (sistema/127).
+  await reflejarEnMes(p, yo);
   return Response.json({ pieza: p }, { headers: { "cache-control": "no-store" } });
 }

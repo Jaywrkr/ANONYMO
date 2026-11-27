@@ -5,7 +5,8 @@
 // como se publica, las historias como pantallas de celular y las acciones abajo. El arte se ve al instante (HTML);
 // «Bajar para Instagram» lo dibuja en JPG. Reemplaza a MesRevision (sistema/96).
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { EstadoPieza, FormatoPieza, MesContenido, Pieza } from "@anonymo/pipeline";
+import type { EstadoPieza, FormatoPieza, MesContenido, Pieza, PiezaFaro } from "@anonymo/pipeline";
+import { LaminasFaro, NotaFaro, PaqueteFaro, arteFaro, decidirFaro, vueltasFaro } from "./FaroComun";
 import { ENFOQUES } from "@anonymo/pipeline/src/video/enfoques.ts";
 import { laminasHTML, type ArteDibujo, type EstiloArte } from "@anonymo/pipeline/src/video/artes-html.ts";
 
@@ -46,8 +47,67 @@ function Vista({ a, ancho, titulo, perezosa = false }: { a: ArteDibujo; ancho?: 
   );
 }
 
-export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo: EstiloArte }) {
+export function PlannerMes({ inicial, estilo, faro: faroInicial = [], conTrabajo = false }: { inicial: MesContenido; estilo: EstiloArte; faro?: PiezaFaro[]; conTrabajo?: boolean }) {
   const [mes, setMes] = useState(inicial);
+  // Las piezas que diseña Faro (sistema/127), por publicación del mes.
+  const [faro, setFaro] = useState<Record<string, PiezaFaro>>(() => Object.fromEntries(faroInicial.filter((f) => f.enMes).map((f) => [f.enMes!.pieza, f])));
+  const [vista, setVista] = useState<"calendario" | "perfil">("calendario");
+  /** Una publicación del mes, cambiada aquí mismo (lo mismo que guardó el servidor). */
+  const tocarPieza = (id: string, c: Partial<Pieza>) => setMes((m) => ({ ...m, piezas: m.piezas.map((x) => (x.id === id ? { ...x, ...c } : x)) }));
+  /** Una versión nueva de Faro: su texto pasa a la publicación y, si tenía un cambio pedido, vuelve a quedar por revisar. */
+  const ponerFaro = (f: PiezaFaro) => {
+    if (!f.enMes) return;
+    setFaro((x) => ({ ...x, [f.enMes!.pieza]: f }));
+    const v = f.versiones.at(-1);
+    setMes((m) => ({ ...m, piezas: m.piezas.map((x) => (x.id !== f.enMes!.pieza ? x : { ...x, faro: f.id, ...(v && f.estado === "propuesta" ? { texto: v.texto || x.texto, estado: x.estado === "cambio" ? "propuesta" : x.estado, nota: x.estado === "cambio" ? undefined : x.nota } : {}) })) }));
+  };
+  /** Faro diseña una publicación del mes: crea su pieza (o usa la que hay) y hace las vueltas hasta llegar a la vara. */
+  async function disenar(pz: Pieza) {
+    const r = await fetch(`/estudio/contenido/${mes.id}/faro`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pieza: pz.id }) });
+    const j = (await r.json().catch(() => ({}))) as { error?: string; pieza?: PiezaFaro };
+    if (!r.ok || !j.pieza) throw new Error(j.error ?? "No se pudo pedir a Faro.");
+    ponerFaro(j.pieza);
+    await vueltasFaro(j.pieza.id, ponerFaro, (que) => setTrabajo({ pieza: pz.id, que }));
+  }
+  async function disenarUna(pz: Pieza) {
+    if (trabajo) return;
+    setAviso(null);
+    try { await disenar(pz); setAviso({ pieza: pz.id, ok: true, texto: "Faro la diseñó. Revísala y apruébala." }); }
+    catch (e) { setAviso({ pieza: pz.id, ok: false, texto: (e as Error).message === "Failed to fetch" ? "Se cortó la conexión. Vuelve a intentar." : (e as Error).message }); }
+    finally { setTrabajo(null); }
+  }
+  // Faro diseña todo el mes (sistema/127): de a una, en orden, las que no tienen diseño ni están aprobadas.
+  const [todo, setTodo] = useState<null | "preguntar" | { hechas: number; total: number; error?: string; fin?: boolean }>(null);
+  const porDisenar = mes.piezas.filter((x) => x.estado !== "aprobada" && !faro[x.id]?.versiones.length);
+  async function disenarMes() {
+    const cola = [...porDisenar];
+    setTodo({ hechas: 0, total: cola.length });
+    let hechas = 0, error = "";
+    for (const pz of cola) {
+      setSel(pz.id);
+      try { await disenar(pz); } catch (e) { error = `${pz.fecha}: ${(e as Error).message === "Failed to fetch" ? "se cortó la conexión" : (e as Error).message}`; if (/sesión|trabajo real/i.test(error)) { setTodo({ hechas, total: cola.length, error, fin: true }); setTrabajo(null); return; } }
+      hechas++;
+      setTodo({ hechas, total: cola.length, ...(error ? { error } : {}) });
+    }
+    setTrabajo(null);
+    setTodo({ hechas, total: cola.length, ...(error ? { error } : {}), fin: true });
+  }
+  /** Aprobar o pedir un cambio a una publicación que diseñó Faro: se guarda en su pieza y en el mes. */
+  async function decidirEnMes(pz: Pieza, f: PiezaFaro, accion: "aprobar" | "cambio") {
+    if (trabajo) return;
+    setTrabajo({ pieza: pz.id, que: accion === "aprobar" ? "Aprobando" : "Anotando" });
+    setAviso(null);
+    try {
+      const nueva = await decidirFaro(f.id, accion, accion === "cambio" ? nota : undefined);
+      setFaro((x) => ({ ...x, [pz.id]: nueva }));
+      tocarPieza(pz.id, accion === "aprobar" ? { estado: "aprobada", nota: undefined } : { estado: "cambio", nota });
+      setModo(null);
+      if (accion === "cambio") { await vueltasFaro(f.id, ponerFaro, (que) => setTrabajo({ pieza: pz.id, que })); setAviso({ pieza: pz.id, ok: true, texto: "Faro la rehízo con tu cambio." }); }
+      else setAviso({ pieza: pz.id, ok: true, texto: "Aprobada. Ya puedes guardarla en el celular." });
+    } catch (e) {
+      setAviso({ pieza: pz.id, ok: false, texto: (e as Error).message === "Failed to fetch" ? "Se cortó la conexión. Vuelve a intentar." : (e as Error).message });
+    } finally { setTrabajo(null); }
+  }
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" });
   const proxima = mes.piezas.find((p) => p.fecha >= hoy);
   const [sel, setSel] = useState<string | null>(null);
@@ -77,7 +137,9 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
   const varaCorre = useRef(false);
   useEffect(() => {
     if (varaCorre.current) return;
-    const cola = mes.piezas.filter((x) => x.lamina && x.plantilla && !x.vara && x.estado !== "aprobada").map((x) => x.id);
+    // Si el cliente tiene trabajo real, el arte lo diseña Faro (sistema/127): no se gasta en revisar las plantillas.
+    if (conTrabajo) return;
+    const cola = mes.piezas.filter((x) => x.lamina && x.plantilla && !x.vara && !x.faro && x.estado !== "aprobada").map((x) => x.id);
     if (!cola.length) return;
     varaCorre.current = true;
     let hechas = 0;
@@ -154,6 +216,9 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
   const p = mes.piezas.find((x) => x.id === sel);
   const ocupada = !!p && trabajo?.pieza === p.id;
   const verB = opcion === "B" && !!p?.b;
+  // Si Faro diseñó esta publicación (sistema/127), su arte reemplaza al de la plantilla.
+  const fp = p ? faro[p.id] : undefined;
+  const fv = fp?.versiones.at(-1);
   const op = p ? (verB ? { idea: p.b!.idea, texto: p.b!.texto, visual: p.b!.visual, lamina: p.b!.lamina } : { idea: p.idea, texto: p.texto, visual: p.visual, lamina: p.lamina }) : undefined;
 
   return (
@@ -176,6 +241,26 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
           <button type="button" data-copiar-mes disabled={!conteo.aprobada} onClick={() => void copiar()} className={`${boton} ml-auto`}>Copiar lo aprobado para enviar</button>
           <button type="button" data-rearmar disabled={!!rearmar} onClick={() => setRearmar("preguntar")} className={boton}>Volver a armar</button>
         </div>
+        {/* Faro diseña el mes (sistema/127): sin plantillas, con el trabajo real, revisado por Nova y Mira. */}
+        {conTrabajo && (porDisenar.length > 0 || todo) && (
+          <div data-faro-mes className="flex flex-wrap items-center gap-3 rounded-xl bg-white px-4 py-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">
+            {todo === null && <>
+              <span>{porDisenar.length === mes.piezas.length ? "Faro todavía no diseñó este mes." : `Faro todavía no diseñó ${porDisenar.length} ${porDisenar.length === 1 ? "publicación" : "publicaciones"}.`}</span>
+              <button type="button" data-disenar-mes disabled={!!trabajo} onClick={() => setTodo("preguntar")} className="inline-flex min-h-10 items-center rounded-full bg-tinta px-4 text-white disabled:opacity-40">Que Faro diseñe el mes</button>
+            </>}
+            {todo === "preguntar" && <>
+              <span>Faro diseña {porDisenar.length === 1 ? "la publicación" : `las ${porDisenar.length} publicaciones`} de a una, con el trabajo real y revisadas por Nova y Mira. Tarda de 2 a 5 minutos cada una: deja esta pantalla abierta. Usa IA: cerca de un dólar por publicación.</span>
+              <button type="button" data-disenar-mes-si onClick={() => void disenarMes()} className="inline-flex min-h-10 items-center rounded-full bg-tinta px-4 text-white">Sí, que lo diseñe</button>
+              <button type="button" onClick={() => setTodo(null)} className="inline-flex min-h-10 items-center px-2 underline underline-offset-4">No</button>
+            </>}
+            {todo && typeof todo === "object" && <>
+              <span className="flex h-1.5 w-28 overflow-hidden rounded-full bg-[#eee9e0]"><i className="h-full bg-tinta transition-all" style={{ width: `${(todo.hechas / Math.max(1, todo.total)) * 100}%` }} /></span>
+              <span role="status">{todo.fin ? `Faro terminó: ${todo.hechas} de ${todo.total}. Revísalas y apruébalas.` : `Faro diseñando ${Math.min(todo.hechas + 1, todo.total)} de ${todo.total}. No cierres esta pantalla.`}</span>
+              {todo.error && <span className="text-[#a33a0b]">· {todo.error}</span>}
+              {todo.fin && <button type="button" onClick={() => setTodo(null)} className="underline underline-offset-4">Cerrar</button>}
+            </>}
+          </div>
+        )}
         {rearmar && (
           <div data-rearmar-confirmar role={rearmar === "trabajando" ? "status" : undefined} className="flex flex-wrap items-center gap-3 rounded-xl bg-white px-4 py-3 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)]">
             {rearmar === "trabajando" ? <span>Faro está armando el mes de nuevo. Tarda uno a tres minutos: no cierres esta pantalla.</span>
@@ -205,13 +290,35 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
         <button type="button" onClick={() => abrir(proxima.id)} data-proxima className="block rounded-[18px] bg-tinta p-4 text-left text-white">
           <span className="block text-[12px] text-white/60">{proxima.fecha === hoy ? "Hoy" : "Lo próximo"} · <span className="capitalize">{dia(proxima.fecha)}</span>{proxima.hora ? ` · ${proxima.hora}` : ""} · {FORMATO[proxima.formato]}</span>
           <span className="mt-1 block text-[15px]">{proxima.idea}</span>
-          <span className="mt-1 block text-[12px] text-white/60">{proxima.estado === "aprobada" ? (proxima.artes?.length ? "Aprobada y con arte: lista para publicar." : "Aprobada. Falta bajar el arte.") : "Todavía no está aprobada."}{proxima.historias?.length ? ` · ${proxima.historias.length} historias` : ""}</span>
+          <span className="mt-1 block text-[12px] text-white/60">{proxima.estado === "aprobada" ? (proxima.artes?.length || faro[proxima.id]?.versiones.length ? "Aprobada y con arte: lista para publicar." : "Aprobada. Falta bajar el arte.") : "Todavía no está aprobada."}{proxima.historias?.length ? ` · ${proxima.historias.length} historias` : ""}</span>
         </button>
       )}
 
+      <div role="tablist" aria-label="Cómo ver el mes" className="inline-flex w-fit rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_var(--color-borde)]">
+        {(["calendario", "perfil"] as const).map((v) => <button key={v} type="button" role="tab" aria-selected={vista === v} data-vista-mes={v} onClick={() => setVista(v)} className={`min-h-9 rounded-full px-4 text-[13px] ${vista === v ? "bg-tinta text-white" : "text-medio"}`}>{v === "calendario" ? "Calendario" : "Como su perfil"}</button>)}
+      </div>
+
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)]">
+        {/* Como su perfil de Instagram (sistema/127): la grilla de 3, lo más nuevo arriba, sin historias. */}
+        {vista === "perfil" && (
+          <div data-perfil className="mx-auto grid w-full max-w-[560px] grid-cols-3 gap-0.5 self-start">
+            {mes.piezas.filter((x) => x.formato !== "historia").sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.hora ?? "").localeCompare(a.hora ?? "")).map((x) => {
+              const fa = faro[x.id]?.versiones.at(-1)?.laminas[0];
+              const lam = fa ? undefined : laminas(x, "A")[0];
+              return (
+                <button key={x.id} type="button" data-perfil-pieza={x.id} aria-pressed={sel === x.id} onClick={() => abrir(x.id)} className={`relative aspect-[4/5] overflow-hidden bg-hueso text-left ${sel === x.id ? "outline outline-2 outline-tinta" : ""}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {fa ? <img src={arteFaro(fa)} alt={`Publicación del ${dia(x.fecha)}`} className="h-full w-full object-cover" /> : lam ? <Vista a={lam} titulo={`Arte del ${dia(x.fecha)}`} perezosa /> : <span className="block p-2 text-[11px] text-medio">{x.idea}</span>}
+                  {x.formato === "reel" && <span className="absolute right-1.5 top-1.5 rounded bg-black/55 px-1.5 text-[10px] text-white">Reel</span>}
+                  {x.formato === "carrusel" && <span className="absolute right-1.5 top-1.5 rounded bg-black/55 px-1.5 text-[10px] text-white">◫</span>}
+                  <i className={`absolute bottom-1.5 left-1.5 h-2 w-2 rounded-full ${ESTADO[x.estado].punto}`} title={ESTADO[x.estado].texto} />
+                </button>
+              );
+            })}
+          </div>
+        )}
         {/* El calendario: en computadora, la grilla del mes; en celular, la misma semana a semana, en columna. */}
-        <div data-calendario className="grid gap-1.5">
+        <div data-calendario className={`grid gap-1.5 ${vista === "perfil" ? "hidden" : ""}`}>
           <div className="hidden grid-cols-7 gap-1.5 text-[11px] uppercase tracking-[0.08em] text-suave md:grid">{SEMANA.map((d) => <span key={d} className="px-1">{d}</span>)}</div>
           {semanas.map((sem, i) => (
             <div key={i} className="grid grid-cols-1 gap-1.5 md:grid-cols-7">
@@ -234,7 +341,10 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
                           <i className={`h-2 w-2 rounded-full ${ESTADO[x.estado].punto}`} title={ESTADO[x.estado].texto} />
                         </span>
                       </span>
-                      <span className="block w-24 shrink-0 overflow-hidden rounded-md md:w-full">{lam ? <Vista a={lam} titulo={`Arte del ${dia(x.fecha)}`} perezosa /> : <span className="block aspect-[4/5] w-full bg-hueso" />}</span>
+                      <span className="block w-24 shrink-0 overflow-hidden rounded-md md:w-full">{faro[x.id]?.versiones.at(-1)?.laminas[0]
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={arteFaro(faro[x.id]!.versiones.at(-1)!.laminas[0]!)} alt="" data-faro-mini className="aspect-[4/5] w-full bg-hueso object-cover" />
+                        : lam ? <Vista a={lam} titulo={`Arte del ${dia(x.fecha)}`} perezosa /> : <span className="block aspect-[4/5] w-full bg-hueso" />}</span>
                       <span className="min-w-0 flex-1 px-0.5 md:w-full">
                         <span className="flex items-center gap-1 text-[11px] text-medio"><i className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorSerie(x.serie) }} /><span data-hora>{x.hora ?? ""}</span></span>
                         <span className="block truncate text-[11px] text-medio">{FORMATO[x.formato]}</span>
@@ -262,7 +372,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
             </div>
 
             {/* A y B en pestañas: cada una con su idea, su texto y su arte. Nunca se mezclan. */}
-            {p.b && (
+            {p.b && !fv && (
               <div role="tablist" aria-label="Opciones" className="mt-3 inline-flex rounded-full bg-hueso p-1">
                 {(["A", "B"] as const).map((o) => (
                   <button key={o} type="button" role="tab" aria-selected={opcion === o} onClick={() => setOpcion(o)} data-tab={o}
@@ -288,7 +398,14 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
               <div data-opcion={verB ? "B" : "A"}>
                 <p className="mt-3 text-[16px] font-medium leading-snug" data-idea>{op.idea}</p>
                 {/* El arte tal como se publica; si es carrusel, sus láminas para pasar de lado. */}
-                {op.lamina && (
+                {fv && fp ? (
+                  <div data-arte-faro className="mt-3">
+                    <LaminasFaro p={fp} v={fv} chica />
+                    {fv.porQue && <p className="mt-1 text-[13px] text-suave">Faro: {fv.porQue}</p>}
+                    <NotaFaro v={fv} />
+                    {p.estado === "aprobada" && <PaqueteFaro p={fp} v={{ ...fv, texto: op.texto }} />}
+                  </div>
+                ) : op.lamina && (
                   <div data-arte className="mt-3">
                     <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
                       {laminas(p, verB ? "B" : "A").map((a, i) => <div key={a.nombre} className="shrink-0 snap-start overflow-hidden rounded-lg shadow-[0_0_0_1px_rgba(26,24,22,.08)]"><Vista a={a} ancho={a.alto > a.ancho * 1.5 ? 150 : 220} titulo={`Lámina ${i + 1}`} /></div>)}
@@ -306,7 +423,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
                 )}
                 <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed" data-texto>{op.texto}</p>
                 <button type="button" data-copiar-texto onClick={() => void copiarTexto(op.texto, `t:${p.id}${opcion}`)} className="mt-1 inline-flex min-h-11 items-center text-[12.5px] text-medio underline underline-offset-4">{copiado === `t:${p.id}${opcion}` ? "Texto copiado" : "Copiar el texto"}</button>
-                {op.lamina?.video && <video data-video src={`/material/${op.lamina.video}`} controls muted playsInline preload="metadata" className="mt-2 w-40 rounded-md" />}
+                {!fv && op.lamina?.video && <video data-video src={`/material/${op.lamina.video}`} controls muted playsInline preload="metadata" className="mt-2 w-40 rounded-md" />}
                 {op.visual && !/^solo el arte\.?$/i.test(op.visual.trim()) && <p className="text-[13px] text-medio">Para grabar o fotografiar: {op.visual}</p>}
                 {verB && <button type="button" data-usar-b disabled={!!trabajo} onClick={() => void pedir(p, "PATCH", { elegirB: true }, "Cambiando", "Ahora va la opción B. La A quedó como alternativa.").then(() => setOpcion("A"))} className={`${lleno} mt-2`}>{ocupada && trabajo?.que === "Cambiando" ? "Cambiando…" : "Usar esta opción"}</button>}
               </div>
@@ -330,7 +447,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
               </div>
             )}
             {p.youtube && <p data-youtube className="mt-2 text-[13px] text-medio">YouTube Shorts: «{p.youtube.titulo}»</p>}
-            {p.vara && (
+            {p.vara && !fv && (
               <div data-vara={p.vara.llega ? "llega" : "no-llega"} className={`mt-3 rounded-xl px-3 py-2 text-[13px] ${p.vara.llega ? "bg-hueso/60" : "border border-[#e5341b]/50 bg-[#fff5f2]"}`}>
                 <p className="flex items-baseline gap-2"><span className="text-[18px] tabular-nums">{p.vara.nota}</span><span className="text-medio">/10 frente a la vara{p.vara.llega ? " · llega" : " · no llega todavía"}{p.vara.rehecha ? ` · Faro la rehízo ${p.vara.rehecha === 1 ? "una vez" : `${p.vara.rehecha} veces`}` : ""}</span></p>
                 {p.vara.motivos.length > 0 && <ul className="mt-1 grid gap-0.5 text-medio">{p.vara.motivos.map((a, i) => <li key={i}>· {a}</li>)}</ul>}
@@ -345,7 +462,7 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
               <div className="mt-3 grid gap-2">
                 <label className="grid gap-1 text-[13px] text-medio">¿Qué hay que cambiar?<textarea rows={2} autoFocus value={nota} onChange={(e) => setNota(e.target.value.slice(0, 400))} placeholder="Ej.: más corto, sin precio, otra foto." className={campo} /></label>
                 <div className="flex gap-2">
-                  <button type="button" disabled={!!trabajo || !nota.trim()} onClick={() => void pedir(p, "PATCH", { estado: "cambio", nota }, "Anotando", "Cambio anotado.")} className={lleno}>{ocupada ? "Anotando…" : "Anotar el cambio"}</button>
+                  <button type="button" data-anotar-cambio disabled={!!trabajo || !nota.trim()} onClick={() => void (fv && fp ? decidirEnMes(p, fp, "cambio") : pedir(p, "PATCH", { estado: "cambio", nota }, "Anotando", "Cambio anotado."))} className={lleno}>{ocupada ? "Anotando…" : fv ? "Que Faro la rehaga" : "Anotar el cambio"}</button>
                   <button type="button" disabled={!!trabajo} onClick={() => setModo(null)} className={boton}>Cancelar</button>
                 </div>
               </div>
@@ -363,13 +480,15 @@ export function PlannerMes({ inicial, estilo }: { inicial: MesContenido; estilo:
             {/* Las acciones, siempre a mano: en celular quedan fijas abajo. */}
             {!modo && (
               <div className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap gap-2 border-t border-borde bg-white/95 p-3 backdrop-blur lg:static lg:mt-4 lg:border-0 lg:bg-transparent lg:p-0">
-                {p.estado !== "aprobada" && <button type="button" data-aprobar disabled={!!trabajo} onClick={() => void pedir(p, "PATCH", { estado: "aprobada" }, "Aprobando", "Aprobada.")} className={lleno}>{ocupada && trabajo?.que === "Aprobando" ? "Aprobando…" : "Aprobar"}</button>}
+                {p.estado !== "aprobada" && <button type="button" data-aprobar disabled={!!trabajo} onClick={() => void (fv && fp ? decidirEnMes(p, fp, "aprobar") : pedir(p, "PATCH", { estado: "aprobada" }, "Aprobando", "Aprobada."))} className={lleno}>{ocupada && trabajo?.que === "Aprobando" ? "Aprobando…" : "Aprobar"}</button>}
                 <button type="button" data-pedir-cambio disabled={!!trabajo} onClick={() => { setNota(p.nota ?? ""); setModo("cambio"); }} className={boton}>Pedir un cambio</button>
                 <button type="button" data-corregir disabled={!!trabajo} onClick={() => { setBorrador({ idea: p.idea, texto: p.texto, visual: p.visual, tituloArte: p.lamina?.titulo ?? "" }); setOpcion("A"); setModo("editar"); }} className={boton}>Corregir</button>
-                {p.lamina && <button type="button" data-dibujar disabled={!!trabajo} onClick={() => void pedir(p, "POST", {}, "Dibujando", "Arte listo para Instagram. Bájalo con «Bajar todo».", "arte")} className={boton}>{ocupada && trabajo?.que === "Dibujando" ? "Preparando el arte…" : p.artes?.length ? "Volver a preparar" : "Preparar para Instagram"}</button>}
+                {conTrabajo && !fv && p.estado !== "aprobada" && <button type="button" data-disenar-faro disabled={!!trabajo} onClick={() => void disenarUna(p)} className={lleno}>{ocupada && trabajo!.que.startsWith("Faro") ? "Faro está diseñando…" : "Que Faro la diseñe"}</button>}
+                {p.lamina && !fv && <button type="button" data-dibujar disabled={!!trabajo} onClick={() => void pedir(p, "POST", {}, "Dibujando", "Arte listo para Instagram. Bájalo con «Bajar todo».", "arte")} className={boton}>{ocupada && trabajo?.que === "Dibujando" ? "Preparando el arte…" : p.artes?.length ? "Volver a preparar" : "Preparar para Instagram"}</button>}
                 {p.formato === "reel" && <button type="button" data-escribir-guion disabled={!!trabajo} onClick={() => setModo("guion")} className={boton}>{p.guion ? "Otro guion" : "Escribir su guion"}</button>}
               </div>
             )}
+            {ocupada && trabajo!.que.length > 24 && <p role="status" data-faro-trabajando className="mt-2 text-[13px] text-medio">{trabajo!.que}</p>}
             {aviso?.pieza === p.id && <p role={aviso.ok ? "status" : "alert"} className={`mt-2 text-[13px] ${aviso.ok ? "text-[#17714a]" : "text-[#a33a0b]"}`}>{aviso.texto}</p>}
           </section>
         )}

@@ -4,6 +4,7 @@
 // ver su nota frente a «qué es bueno» y aprobar o pedir un cambio. Faro trabaja en vueltas: cada una es un pedido.
 import { useState } from "react";
 import type { PiezaFaro } from "@anonymo/pipeline";
+import { LaminasFaro, NOMBRE_FORMATO, NotaFaro, PaqueteFaro, decidirFaro, vueltasFaro } from "./FaroComun";
 
 type Proyecto = { cliente: string; nombreCliente: string; url: string; nombre: string };
 const boton = "inline-flex min-h-11 items-center justify-center rounded-full bg-white px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--color-borde)] disabled:opacity-40";
@@ -16,16 +17,7 @@ export function PiezasFaro({ proyectos, inicial, referencias }: { proyectos: Pro
   const [nota, setNota] = useState<Record<string, string>>({});
   const poner = (p: PiezaFaro) => setPiezas((xs) => [p, ...xs.filter((x) => x.id !== p.id)].sort((a, b) => b.creado.localeCompare(a.creado)));
 
-  async function vueltas(id: string) {
-    for (let i = 1; i <= 4; i++) {
-      setTrabajando({ id, texto: i === 1 ? "Faro está diseñando. Tarda uno a tres minutos: no cierres esta pantalla." : `No llegaba a la vara: Faro la está rehaciendo (vuelta ${i}).` });
-      const r = await fetch(`/estudio/contenido/faro/${id}`, { method: "POST" });
-      const j = (await r.json().catch(() => ({}))) as { error?: string; pieza?: PiezaFaro; otra?: boolean };
-      if (!r.ok || !j.pieza) throw new Error(j.error ?? "Faro no pudo. Vuelve a intentar.");
-      poner(j.pieza);
-      if (!j.otra) return;
-    }
-  }
+  async function vueltas(id: string) { await vueltasFaro(id, poner, (texto) => setTrabajando({ id, texto })); }
   async function pedir(pr: Proyecto) {
     setError("");
     try {
@@ -42,10 +34,7 @@ export function PiezasFaro({ proyectos, inicial, referencias }: { proyectos: Pro
     setError("");
     try {
       setTrabajando({ id: p.id, texto: accion === "aprobar" ? "Aprobando…" : "Anotando el cambio…" });
-      const r = await fetch(`/estudio/contenido/faro/${p.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ accion, nota: nota[p.id] }) });
-      const j = (await r.json().catch(() => ({}))) as { error?: string; pieza?: PiezaFaro };
-      if (!r.ok || !j.pieza) throw new Error(j.error ?? "No se pudo guardar.");
-      poner(j.pieza);
+      poner(await decidirFaro(p.id, accion, nota[p.id]));
       if (accion === "cambio") { setNota((n) => ({ ...n, [p.id]: "" })); await vueltas(p.id); }
     } catch (e) { setError((e as Error).message); }
     finally { setTrabajando(null); }
@@ -76,20 +65,15 @@ export function PiezasFaro({ proyectos, inicial, referencias }: { proyectos: Pro
             <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] text-medio">
               <span className="text-[15px] font-medium text-tinta">{p.proyecto.nombre}</span>
               <span>{p.nombreCliente}</span>
-              <span>{p.formato === "carrusel" ? `Carrusel · ${v?.laminas.length ?? 0} láminas` : "Post"}</span>
+              <span>{p.formato === "carrusel" ? `Carrusel · ${v?.laminas.length ?? 0} láminas` : NOMBRE_FORMATO[p.formato]}</span>
+              {p.enMes && <a href={`/estudio/contenido/${p.enMes.mes}#${p.enMes.pieza}`} className="underline underline-offset-4">Del mes · {p.enMes.fecha}</a>}
               {v && <span>Versión {v.n}</span>}
               <span className={`ml-auto rounded-full px-3 py-1 text-[12px] ${p.estado === "aprobada" ? "bg-[#e6f6ee] text-[#17714a]" : "bg-hueso"}`}>{p.estado === "aprobada" ? "Aprobada" : p.estado === "cambio" ? "Pidieron un cambio" : p.estado === "trabajando" ? "Faro trabajando" : "Por revisar"}</span>
             </header>
             {ocupada && <p role="status" className="mt-3 text-[13px] text-medio">{trabajando!.texto}</p>}
             {v && (
               <>
-                {/* A tamaño real de Instagram: 4:5, todas las láminas, para pasar de lado. */}
-                <div className="-mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" data-laminas>
-                  {v.laminas.map((a, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={a} src={`/estudio/contenido/faro/arte/${a}`} alt={`Lámina ${i + 1}`} className="aspect-[4/5] w-[min(86vw,432px)] shrink-0 snap-start bg-hueso object-cover shadow-[0_0_0_1px_rgba(26,24,22,.08)]" />
-                  ))}
-                </div>
+                <div className="mt-4"><LaminasFaro p={p} v={v} /></div>
                 <p className="mt-3 max-w-xl whitespace-pre-line text-[14px]" data-texto>{v.texto}</p>
                 {v.porQue && <p className="mt-1 max-w-xl text-[13px] text-suave">Faro: {v.porQue}</p>}
                 {v.sparring && (
@@ -98,12 +82,8 @@ export function PiezasFaro({ proyectos, inicial, referencias }: { proyectos: Pro
                     <ul className="mt-1 grid gap-0.5">{v.sparring.caminos.map((c, i) => <li key={i} className={c.cliche ? "line-through opacity-60" : i === v.sparring!.elegido ? "text-tinta" : ""}>· {c.nombre}: {c.idea}{c.cliche ? " (cliché)" : ""}</li>)}</ul>
                   </details>
                 )}
-                {v.nota !== undefined && (
-                  <div data-nota={v.nota} className={`mt-3 max-w-xl rounded-xl px-3 py-2 text-[13px] ${v.nota >= 7 ? "bg-hueso/60" : "border border-[#e5341b]/50 bg-[#fff5f2]"}`}>
-                    <p><span className="text-[18px] tabular-nums">{v.nota}</span><span className="text-medio">/10 frente a «qué es bueno»{v.n > 1 ? ` · versión ${v.n}` : ""}</span></p>
-                    {v.motivos?.length ? <ul className="mt-1 grid gap-0.5 text-medio">{v.motivos.map((m, i) => <li key={i}>· {m}</li>)}</ul> : null}
-                  </div>
-                )}
+                <NotaFaro v={v} />
+                {p.estado === "aprobada" && <PaqueteFaro p={p} v={v} />}
                 {p.estado !== "aprobada" && (
                   <div className="mt-4 flex max-w-xl flex-wrap items-end gap-2">
                     <button type="button" data-aprobar disabled={!!trabajando} onClick={() => void decidir(p, "aprobar")} className={lleno}>Aprobar</button>

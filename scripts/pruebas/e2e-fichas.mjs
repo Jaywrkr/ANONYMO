@@ -57,8 +57,8 @@ try {
   const r2 = await enviar("Carmen Prueba", "carmen@ejemplo.com", "Hola, necesito una web para mi panadería en Cuenca, con pedidos por WhatsApp.");
   exigir(/Gracias|Listo|Thanks|Done/.test(r1) && /Listo/.test(r2), "el formulario responde igual a los dos (el spam no se entera)");
   let inicio = "";
-  for (let i = 0; i < 8 && !inicio.includes("Carmen Prueba"); i++) { await p.waitForTimeout(i ? 2500 : 0); await p.goto(`${B}/estudio`); inicio = await p.locator("body").innerText(); }
-  exigir(inicio.includes("Carmen Prueba") && !inicio.includes("Rose Hughes"), `el pedido de verdad llega a «Te toca» y el spam no (${inicio.includes("Carmen Prueba")}, ${inicio.includes("Rose Hughes")}; ${r2.slice(0, 80)})`);
+  for (let i = 0; i < 8 && !inicio.includes("Carmen Prueba"); i++) { await p.waitForTimeout(i ? 2500 : 0); await p.goto(`${B}/estudio`); await p.getByText("Te toca", { exact: true }).first().waitFor({ timeout: 90000 }).catch(() => {}); inicio = await p.locator("body").innerText(); }
+  exigir(inicio.includes("Carmen Prueba") && !inicio.includes("Rose Hughes"), `el pedido de verdad llega a «Te toca» y el spam no (${inicio.includes("Carmen Prueba")}, ${inicio.includes("Rose Hughes")}; ${inicio.slice(-300)})`);
   await ctx.close();
 } finally {
   await nav.close();
