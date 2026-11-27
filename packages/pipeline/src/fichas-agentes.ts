@@ -37,13 +37,13 @@ export const REGLAS_UNMAKE = [
 
 /** Clichés que el estudio ya rechazó: los leen Nova, Faro y la revisión. Crece con lo que agregan Jay y Luna. */
 export const CLICHES_BASE = [
-  "Una web metida en una laptop o un celular dibujado sobre un fondo de color.",
-  "Captura de pantalla de una web sin intervenir, presentada como pieza.",
+  "Una web metida en una laptop, un celular o una ventana de navegador dibujados sobre un fondo de color.",
+  "La página entera de una web achicada hasta que no se lee, o pegada a los bordes sin aire, presentada como pieza.",
   "Frases de motivación o de consejo genérico como post («La constancia gana», «Tu marca merece más»).",
   "Rótulos tipo «Nuestro trabajo», «Caso de éxito», «Hecho por nosotros» encima de la imagen.",
   "El logo o la firma del estudio encima del trabajo de un cliente.",
   "Fondo de degradado con un brillo difuso detrás de un título.",
-  "Texto largo dentro de la imagen.",
+  "Texto largo escrito encima de la imagen (los textos que trae la captura de la web no cuentan: son el trabajo).",
   "Íconos genéricos (bombillo para ideas, cohete para crecer, engranaje para procesos).",
   "Fotos de stock de manos sobre un teclado o gente sonriendo en una oficina.",
 ];

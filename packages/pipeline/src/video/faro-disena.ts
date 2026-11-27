@@ -126,6 +126,8 @@ Cómo se presenta el trabajo real (aquí fallan casi todas las piezas):
 - Entero o recortado en un borde limpio. Un tramo o una pantalla completa, más chica que la lámina, con aire alrededor (al menos 80 px por lado) sobre el color del proyecto, ya es una pieza: así lo muestran los estudios.
 - Si recortas, el corte cae en un espacio vacío de la web, nunca a media palabra, a medio botón ni a medio panel. Ante la duda, no recortes: muestra el tramo entero.
 - Nada de ampliar un detalle hasta que se pixele o se salga del borde.
+- Escala: la web se tiene que poder leer. No achiques una captura a menos del 60% de su tamaño; si la página entera no entra, usa un tramo (ya vienen a 1080×1350) o un recorte.
+- Si la web anima su texto (letras que cambian, se escriben o se desordenan), en la lámina va el texto final, completo y quieto: un post no se mueve y el efecto queda congelado a medias.
 
 Con el material del proyecto (capturas de su web, tramos, su logo) compones algo que se sienta editorial y actual, no una captura de pantalla:
 - Puedes recortar, escalar, rotar, repetir, enmascarar y combinar el material; usar su tipografía (Google Fonts) y sus colores; escribir 1 a 4 palabras si la composición lo pide (el nombre del proyecto, un dato), nunca frases.
@@ -161,9 +163,11 @@ const HERRAMIENTA_DISENO = {
 export const SISTEMA_JUICIO = `Eres el director creativo de Unmake. Juzgas una publicación de Instagram ya dibujada al lado de las referencias de lo que es bueno (imágenes de estudios de primer nivel) y de las piezas que Jay ya aprobó.
 La pregunta es una sola: ¿esto podría estar en el feed de esas referencias sin desentonar?
 Nota de 0 a 10 con exigencia real: 7 es «se publica sin vergüenza al lado de las referencias»; 9 es «es de las mejores».
-Mostrar una pantalla o un tramo de la web entero, limpio, con aire alrededor y en los colores del proyecto está BIEN: así lo hacen los estudios; no lo castigues por ser una captura.
+Mostrar una pantalla o un tramo de la web entero, limpio, con aire alrededor y en los colores del proyecto está BIEN: así lo hacen los estudios; no lo castigues por ser una captura. Un recuadro con la web adentro no es un «aparato»: aparato es una laptop, un celular o una ventana de navegador dibujados.
+Lo que NO es error: el nombre o el logo DEL PROYECTO (del cliente) en la lámina; los textos, íconos y etiquetas que vienen dentro de la captura de la web (son el trabajo, no rótulos). El error es el logo o la firma del ESTUDIO que publica.
 Errores graves (nota máxima 4): los colores de la cuenta que publica en vez de los del proyecto; ninguna lámina muestra el trabajo real; la web metida en un aparato dibujado sobre un fondo; una captura pegada a sangre sin composición ni aire; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
-Si ves «## El feed de la cuenta», también es error grave repetir la idea o la composición de una publicación reciente.
+Si ves «## El feed de la cuenta», también es error grave repetir la idea o la composición de una publicación reciente. Ahí solo hay lo publicado o aprobado: nunca compares con versiones anteriores de esta misma pieza.
+Sí son errores: la web achicada hasta que no se lee; un texto con letras desordenadas o cortado a medias; algo que se sale del borde por accidente.
 Si ves «## Lo que ya corrigieron Jay y Luna», romper una de esas reglas es error grave.
 «motivos»: hasta 3, concretos y cortos (qué falla y dónde), cada uno empieza con «Error:» (rompe una regla de la marca, del pedido o un cliché de la lista) u «Opinión:» (gusto o estrategia). «cambiar»: si la nota es menor que 7, qué tiene que hacer Faro en la próxima versión, en instrucciones claras.
 Respondes siempre con la herramienta «juzgar_pieza».`;

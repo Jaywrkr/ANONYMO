@@ -24,3 +24,10 @@ test("Faro y Mira están de acuerdo en cómo se muestra el trabajo real", () => 
   assert.match(SISTEMA_JUICIO, /está BIEN/);
   assert.doesNotMatch(SISTEMA_JUICIO, /una captura de pantalla sin intervenir/);
 });
+
+test("Mira no castiga el logo del cliente ni lo que trae la web", () => {
+  assert.match(SISTEMA_JUICIO, /logo DEL PROYECTO/);
+  assert.match(SISTEMA_JUICIO, /versiones anteriores de esta misma pieza/);
+  assert.match(SISTEMA_DISENO, /60%/);
+  assert.match(SISTEMA_DISENO, /texto final, completo y quieto/);
+});

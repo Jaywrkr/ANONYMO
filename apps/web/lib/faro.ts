@@ -120,7 +120,9 @@ const orden = (p: PiezaFaro) => p.enMes?.fecha ?? p.creado.slice(0, 10);
 /** Las últimas publicaciones de la cuenta antes de esta (hasta 9), como imágenes: lo que Faro no debe repetir. */
 async function feedDe(pieza: PiezaFaro): Promise<ImagenFaro[]> {
   const ps = (await listarPiezasFaro(pieza.cliente))
-    .filter((p) => p.id !== pieza.id && p.versiones.length && orden(p) <= orden(pieza))
+    // Solo lo publicado o por publicar (sistema/128): lo aprobado y lo que está en un mes. Los borradores sueltos no son
+    // feed (Mira comparaba una pieza con sus propias versiones anteriores y la castigaba por «repetirse»).
+    .filter((p) => p.id !== pieza.id && p.versiones.length && (p.estado === "aprobada" || !!p.enMes) && orden(p) <= orden(pieza))
     .sort((a, b) => orden(b).localeCompare(orden(a)) || b.actualizado.localeCompare(a.actualizado))
     .slice(0, 9);
   return hay(await Promise.all(ps.map(async (p) => {
