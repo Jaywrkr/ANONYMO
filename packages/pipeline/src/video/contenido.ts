@@ -110,6 +110,8 @@ export interface Pieza {
   avisos?: string[];
   /** La nota frente a la vara del cliente (sistema/120): se mira el arte dibujado al lado de sus capturas. */
   vara?: import("./vara.ts").VaraPieza;
+  /** La pieza de Faro que hace su arte (sistema/127): Faro la diseña sin plantilla. */
+  faro?: string;
 }
 
 export interface PasoMes { cuando: string; quien: string; que: string }
@@ -622,7 +624,9 @@ export interface CambioPieza { estado?: EstadoPieza; idea?: string; texto?: stri
   /** Los archivos del arte dibujado (de la opción elegida). */
   artes?: string[];
   /** Corregir a mano lo que va escrito en el arte: el título. */
-  tituloArte?: string }
+  tituloArte?: string;
+  /** La pieza de Faro que hace su arte (sistema/127). */
+  faro?: string }
 
 /** Aprobar, pedir un cambio o corregir una pieza. Lee lo último antes de guardar, para que Jay y Luna no se pisen. */
 export async function cambiarPieza(mesId: string, piezaId: string, c: CambioPieza, por: string): Promise<MesContenido> {
@@ -654,6 +658,7 @@ export async function cambiarPieza(mesId: string, piezaId: string, c: CambioPiez
     if (v !== p.lamina.titulo) { p.lamina.titulo = v; que.push("título del arte"); if (p.artes?.length) delete p.artes; }
   }
   if (c.guion) { p.guion = c.guion; que.push("guion"); }
+  if (c.faro && c.faro !== p.faro) { p.faro = c.faro; que.push("Faro diseña su arte"); }
   if (c.estado && c.estado !== p.estado) {
     if (c.estado === "cambio" && !corto(c.nota, 400)) throw new Error("Cuenta qué hay que cambiar.");
     p.estado = c.estado;

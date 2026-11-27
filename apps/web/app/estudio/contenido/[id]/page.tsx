@@ -1,7 +1,8 @@
 // Un mes de contenido como un planner (sistema/96; planner en sistema/114): el calendario con el arte de cada día.
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ESTILOS, estiloPara, leerMesContenido, nombreMes } from "@anonymo/pipeline";
+import { ESTILOS, estiloPara, leerMesContenido, listarPiezasFaro, nombreMes } from "@anonymo/pipeline";
+import { proyectosDe, leerFichas } from "@anonymo/pipeline";
 import { exigirEstudio, serif, titulo } from "@/lib/estudio";
 import { PlannerMes } from "@/components/estudio/contenido/PlannerMes";
 
@@ -17,6 +18,9 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   const m = await leerMesContenido(id);
   if (!m) notFound();
   const estilo = m.estiloArte ?? ((m.estilo && ESTILOS[m.estilo]) || estiloPara(m.cliente, m.nombre));
+  // Las piezas que Faro diseña para este mes (sistema/127) y si el cliente tiene trabajo real para que las diseñe.
+  const faro = (await listarPiezasFaro(m.cliente).catch(() => [])).filter((x) => x.enMes?.mes === m.id);
+  const conTrabajo = proyectosDe((await leerFichas().catch(() => ({ fichas: {} as Record<string, never> }))).fichas[m.cliente]?.direccion).length > 0;
   const redes = REDES.filter(([r]) => r.test(m.canales)).map(([, n]) => n);
   return (
     <div className="px-4 py-7 md:px-10">
@@ -29,7 +33,7 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
         </p>
       </div>
       {m.pedido && <p className="mt-1 max-w-3xl text-[13px] text-medio">Lo que se pidió: {m.pedido}</p>}
-      <div className="mt-5"><PlannerMes inicial={m} estilo={estilo} /></div>
+      <div className="mt-5"><PlannerMes inicial={m} estilo={estilo} faro={faro} conTrabajo={conTrabajo} /></div>
     </div>
   );
 }

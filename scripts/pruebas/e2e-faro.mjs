@@ -82,6 +82,60 @@ try {
   await pieza.locator("[data-aprobar]").click();
   exigir(await espera(p.locator("[data-pieza-faro][data-estado=aprobada]"), 15000), "la pieza queda aprobada");
   await p.screenshot({ path: join(capturas, "2-aprobada.png"), fullPage: true });
+  exigir(await p.locator("[data-pieza-faro][data-estado=aprobada] [data-paquete] [data-bajar-zip]").count() === 1, "la pieza aprobada se puede bajar para subir");
+
+  // 5 · El mes con Faro (sistema/127): el calendario se arma y Faro diseña cada publicación, sin plantillas.
+  await p.goto(`${B}/estudio/cliente/estudio-faro`);
+  const fs = p.locator("[data-form-saber]");
+  if (!(await fs.isVisible())) await p.locator("summary:has-text('Lo que sabemos de')").click();
+  const saber = { rubro: "Estudio de diseño", oferta: "Webs y marcas", publico: "Empresas medianas", canales: "Instagram", temas: "Proyectos, detalles, logos", tono: "Directo", frecuencia: "3 veces por semana", aprueba: "Jay" };
+  for (const [k, v] of Object.entries(saber)) await fs.locator(`[name=saber-${k}]`).fill(v);
+  await fs.locator("button:has-text('Guardar lo que sabemos')").click();
+  await espera(p.locator("[role=status]:has-text('Guardado.')"));
+  const armado = await p.evaluate(() => fetch("/estudio/contenido/armar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cliente: "estudio-faro", mes: "2027-01", pedido: "las primeras 4 publicaciones" }) }).then((r) => r.json()));
+  exigir(armado.mes?.piezas === 4, `el mes se arma (${JSON.stringify(armado).slice(0, 160)})`);
+  const antesVara = readFileSync(registro, "utf8").split("\n").filter((l) => l.includes("\"revisar_con_vara\"")).length;
+  await p.goto(`${B}/estudio/contenido/c-estudio-faro-2027-01`);
+  exigir(await espera(p.locator("[data-faro-mes] [data-disenar-mes]")), "el mes ofrece que Faro lo diseñe");
+  await p.locator("[data-disenar-mes]").click();
+  exigir(/cerca de un dólar/.test(await p.locator("[data-faro-mes]").innerText()), "antes de gastar, dice cuánto cuesta");
+  await p.locator("[data-disenar-mes-si]").click();
+  exigir(await espera(p.locator("[data-faro-mes] [role=status]:has-text('Faro diseñando')"), 10000), "mientras diseña, dice cuál va");
+  exigir(await espera(p.locator("[data-faro-mes]:has-text('Faro terminó: 4 de 4')"), 500000), `Faro diseña las 4 publicaciones (${await p.locator("[data-faro-mes]").innerText().catch(() => "")})`);
+  exigir(await p.locator("[data-faro-mini]").count() === 4, `el calendario muestra el arte de Faro (${await p.locator("[data-faro-mini]").count()})`);
+  const disMes = readFileSync(registro, "utf8").trim().split("\n").filter((l) => l.includes('"disenar_pieza"') && l.includes("La publicación del calendario"));
+  exigir(disMes.length >= 4, `cada publicación del mes le llega a Faro con su idea del calendario (${disMes.length})`);
+  exigir(disMes.some((l) => l.includes("La PORTADA de un reel")), "el reel se diseña como portada vertical");
+  exigir(disMes.every((l) => l.includes("Lo que ya corrigieron Jay y Luna") && l.includes("el logo más chico")), "Faro recibe lo que ya corrigieron, aparte");
+  exigir(disMes.slice(1).every((l) => l.includes("El feed de la cuenta")), "Faro ve el feed de la cuenta antes de diseñar");
+  exigir(readFileSync(registro, "utf8").split("\n").filter((l) => l.includes("\"revisar_con_vara\"")).length === antesVara, "no se gasta en revisar plantillas que no se van a usar");
+  // El reel: portada 1080×1920 y el video del recorrido.
+  const reel = p.locator("[data-pieza]").nth(3);
+  await reel.click();
+  const det = p.locator("[data-detalle]");
+  const tamReel = await det.locator("[data-laminas] img").first().evaluate((i) => new Promise((r) => { const v = () => r(`${i.naturalWidth}x${i.naturalHeight}`); if (i.complete) v(); else i.onload = v; }));
+  exigir(tamReel === "1080x1920" && await det.locator("[data-laminas][data-formato=reel]").count() === 1, `el reel trae su portada vertical (${tamReel})`);
+  // Como su perfil: la grilla de 3, sin historias.
+  await p.locator("[data-vista-mes=perfil]").click();
+  exigir(await p.locator("[data-perfil] [data-perfil-pieza] img").count() === 4, "el mes se ve como su perfil de Instagram");
+  await p.screenshot({ path: join(capturas, "3-perfil.png"), fullPage: true });
+  await p.locator("[data-perfil-pieza]").first().click();
+  await det.locator("[data-aprobar]").click();
+  exigir(await espera(det.locator("[data-paquete] [data-bajar-zip]"), 20000), "al aprobar, queda el paquete para subir");
+  exigir(await espera(p.locator("[data-detalle][data-estado=aprobada]"), 5000), "la publicación del mes queda aprobada");
+  const zip = await p.evaluate((h) => fetch(h).then(async (r) => ({ ok: r.ok, tipo: r.headers.get("content-type"), n: (await r.arrayBuffer()).byteLength })), await det.locator("[data-bajar-zip]").getAttribute("href"));
+  exigir(zip.ok && zip.tipo === "application/zip" && zip.n > 10000, `el .zip trae las imágenes y el texto (${JSON.stringify(zip)})`);
+  await p.reload();
+  exigir(await espera(p.locator("[data-pieza][data-estado=aprobada]")), "después de recargar sigue aprobada");
+  await p.screenshot({ path: join(capturas, "4-mes.png"), fullPage: true });
+  // En celular: la publicación a pantalla completa con su arte de Faro.
+  const cel = await nav.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });
+  const pc = await cel.newPage();
+  await pc.goto(`${B}/estudio/contenido/c-estudio-faro-2027-01`);
+  await pc.locator("[data-pieza]").first().click();
+  exigir(await espera(pc.locator("[data-detalle] [data-arte-faro] img").first()), "en celular se ve el arte de Faro");
+  await pc.screenshot({ path: join(capturas, "5-celular.png") });
+  await cel.close();
   await ctx.close();
 } finally {
   await nav.close();

@@ -14,6 +14,17 @@ export const NOTA_PIEZA = 7;
 /** Cuántas veces la rehace solo antes de mostrarla igual, con lo que le falta. */
 export const VUELTAS_PIEZA = 2;
 export const ANCHO_POST = 1080, ALTO_POST = 1350;
+/** Lo que Faro diseña (sistema/127): post o carrusel (4:5), la portada de un reel o una historia (9:16). */
+export type FormatoFaro = "post" | "carrusel" | "reel" | "historia";
+export const esVertical = (f: FormatoFaro) => f === "reel" || f === "historia";
+export const medidasFaro = (f: FormatoFaro) => ({ ancho: 1080, alto: esVertical(f) ? 1920 : ALTO_POST });
+/** Lo que se le explica a Faro de cada formato. */
+export const TEXTO_FORMATO: Record<FormatoFaro, string> = {
+  post: "Post o carrusel de Instagram (tú decides): cada lámina 1080×1350. Carrusel de 2 a 5 láminas.",
+  carrusel: "Carrusel de Instagram de 2 a 5 láminas, cada una 1080×1350.",
+  reel: "La PORTADA de un reel: UNA sola lámina de 1080×1920. El reel es el video del recorrido de su web, que ya existe; tu lámina es lo que se ve antes de darle play. En la grilla del perfil la portada se ve recortada al centro (1080×1350): lo importante va en esa franja central, nada importante en los 285 px de arriba ni de abajo.",
+  historia: "UNA historia de Instagram de 1080×1920. Deja libres los 250 px de arriba y de abajo: ahí van los controles de Instagram.",
+};
 
 /** Una imagen que Faro ve: con nombre (para usarla en el diseño) y qué es. */
 export interface ImagenFaro { archivo: string; que: string; datos: string; tipo: "image/jpeg" | "image/png" }
@@ -32,6 +43,8 @@ export interface VersionPieza {
   pedido?: string;
   /** Lo que dijo Nova antes de diseñar (sistema/124): los caminos, el que eligió y por qué. */
   sparring?: Sparring;
+  /** El video que acompaña la pieza (un reel): el recorrido de su web, del material (sistema/127). */
+  video?: string;
   fecha: string;
 }
 
@@ -41,8 +54,10 @@ export interface PiezaFaro {
   nombreCliente: string;
   /** El proyecto que muestra: una web de «su trabajo real». */
   proyecto: { url: string; nombre: string };
-  formato: "post" | "carrusel";
+  formato: FormatoFaro;
   estado: "trabajando" | "propuesta" | "aprobada" | "cambio";
+  /** Si es una publicación del calendario del mes (sistema/127): de qué mes y pieza, y lo que ya estaba pensado. */
+  enMes?: { mes: string; pieza: string; fecha: string; serie: string; idea: string; texto: string };
   versiones: VersionPieza[];
   /** La nota de Jay o Luna al pedir un cambio. */
   nota?: string;
@@ -91,10 +106,10 @@ export async function cambiarPiezaFaro(id: string, f: (p: PiezaFaro) => void): P
   return p;
 }
 
-export async function crearPiezaFaro(o: { cliente: string; nombreCliente: string; proyecto: { url: string; nombre: string }; por: string }): Promise<PiezaFaro> {
+export async function crearPiezaFaro(o: { cliente: string; nombreCliente: string; proyecto: { url: string; nombre: string }; por: string; formato?: FormatoFaro; enMes?: PiezaFaro["enMes"] }): Promise<PiezaFaro> {
   const ahora = new Date().toISOString();
   const slug = o.proyecto.nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "pieza";
-  const p: PiezaFaro = { id: `f-${slug}-${Date.now().toString(36)}`, cliente: o.cliente, nombreCliente: o.nombreCliente, proyecto: o.proyecto, formato: "post", estado: "trabajando", versiones: [], por: o.por, creado: ahora, actualizado: ahora };
+  const p: PiezaFaro = { id: `f-${slug}-${Date.now().toString(36)}`, cliente: o.cliente, nombreCliente: o.nombreCliente, proyecto: o.proyecto, formato: o.formato ?? "post", ...(o.enMes ? { enMes: o.enMes } : {}), estado: "trabajando", versiones: [], por: o.por, creado: ahora, actualizado: ahora };
   const l = await leer();
   l.piezas[p.id] = p;
   await guardar(l);
@@ -118,12 +133,14 @@ Con el material del proyecto (capturas de su web, tramos, su logo) compones algo
 - Si es carrusel (2 a 5 láminas), cada lámina se sostiene sola y juntas cuentan el proyecto.
 
 Técnica (obligatoria):
-- Cada lámina es un documento HTML completo de exactamente ${ANCHO_POST}×${ALTO_POST} px: html y body con ese ancho y alto, overflow hidden, margin 0.
+- Cada lámina es un documento HTML completo del tamaño EXACTO que dice «## Formato» (1080×1350 o 1080×1920): html y body con ese ancho y alto, overflow hidden, margin 0.
 - Las imágenes del material se usan con src="material:NOMBRE_EXACTO" (o url('material:NOMBRE_EXACTO') en CSS). Solo los nombres de la lista.
 - Fuentes: solo Google Fonts con <link>. Nada de scripts, nada de enlaces externos más que Google Fonts.
 - Sin texto pequeño ilegible: nada menor a 28 px.
 
 El texto de la publicación («texto»): 1 a 3 líneas: el nombre del proyecto, qué se hizo y el año. Sin emojis, sin hashtags, sin preguntas. Lo que no sabes (el año, un dato) no va: nunca escribas «[pendiente]» en algo que se publica.
+Si ves «## El feed de la cuenta»: esas son las últimas publicaciones. La tuya va al lado: no repitas su idea, su composición ni su color dominante; alterna (si la última es oscura y llena, la tuya puede ser clara y con aire).
+Si ves «## Lo que ya corrigieron Jay y Luna»: son reglas. Romper una es un error grave.
 Respondes siempre con la herramienta «disenar_pieza».`;
 
 const HERRAMIENTA_DISENO = {
@@ -146,6 +163,8 @@ La pregunta es una sola: ¿esto podría estar en el feed de esas referencias sin
 Nota de 0 a 10 con exigencia real: 7 es «se publica sin vergüenza al lado de las referencias»; 9 es «es de las mejores».
 Mostrar una pantalla o un tramo de la web entero, limpio, con aire alrededor y en los colores del proyecto está BIEN: así lo hacen los estudios; no lo castigues por ser una captura.
 Errores graves (nota máxima 4): los colores de la cuenta que publica en vez de los del proyecto; ninguna lámina muestra el trabajo real; la web metida en un aparato dibujado sobre un fondo; una captura pegada a sangre sin composición ni aire; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
+Si ves «## El feed de la cuenta», también es error grave repetir la idea o la composición de una publicación reciente.
+Si ves «## Lo que ya corrigieron Jay y Luna», romper una de esas reglas es error grave.
 «motivos»: hasta 3, concretos y cortos (qué falla y dónde), cada uno empieza con «Error:» (rompe una regla de la marca, del pedido o un cliché de la lista) u «Opinión:» (gusto o estrategia). «cambiar»: si la nota es menor que 7, qué tiene que hacer Faro en la próxima versión, en instrucciones claras.
 Respondes siempre con la herramienta «juzgar_pieza».`;
 
@@ -205,12 +224,13 @@ Propón tres caminos realmente distintos (uno más audaz, uno más simple, uno q
 }
 
 /** Lo que devolvió Faro, limpio. Sin láminas válidas no sirve. */
-export function leerDiseno(x: unknown): { formato: "post" | "carrusel"; html: string[]; texto: string; porQue: string } {
+export function leerDiseno(x: unknown, pedido: FormatoFaro = "post"): { formato: FormatoFaro; html: string[]; texto: string; porQue: string } {
   const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
-  const html = (Array.isArray(r.laminas) ? r.laminas : []).map((l) => String((l as { html?: unknown })?.html ?? "")).filter((h) => /<html|<body|<div/i.test(h)).slice(0, 5).map(limpiarHtml);
+  // Un reel o una historia es una sola lámina vertical; post y carrusel, de 1 a 5.
+  const html = (Array.isArray(r.laminas) ? r.laminas : []).map((l) => String((l as { html?: unknown })?.html ?? "")).filter((h) => /<html|<body|<div/i.test(h)).slice(0, esVertical(pedido) ? 1 : 5).map(limpiarHtml);
   if (!html.length) throw new Error("Faro no devolvió el diseño de la pieza.");
   const texto = String(r.texto ?? "").replace(/\p{Extended_Pictographic}\uFE0F?/gu, "").trim().slice(0, 600);
-  return { formato: html.length > 1 ? "carrusel" : "post", html, texto, porQue: corta(String(r.porQue ?? ""), 400) };
+  return { formato: esVertical(pedido) ? pedido : html.length > 1 ? "carrusel" : "post", html, texto, porQue: corta(String(r.porQue ?? ""), 400) };
 }
 
 /** Corta en el último punto o espacio, nunca a media palabra. */
@@ -242,14 +262,22 @@ export async function disenarPieza(o: {
   nombreCliente: string; proyecto: { url: string; nombre: string; nota?: string; fondo?: string; tinta?: string; letra?: string; logo?: string }; direccion: string;
   referencias: ImagenFaro[]; aprobadas: ImagenFaro[]; material: ImagenFaro[];
   anterior?: { html: string[]; imagen?: ImagenFaro }; cambiar?: string; sparring?: Sparring;
+  /** Sistema/127: el formato, la idea del calendario, el feed de la cuenta y lo que ya corrigieron. */
+  formato?: FormatoFaro; enMes?: PiezaFaro["enMes"]; feed?: ImagenFaro[]; aprendido?: string[];
 }) {
+  const formato = o.formato ?? "post";
   const contenido = [
     ...bloques(o.referencias, "Referencia de lo que es bueno"),
     ...bloques(o.aprobadas, "Pieza que Jay ya aprobó"),
+    ...bloques(o.feed ?? [], "El feed de la cuenta (publicación reciente)"),
     ...bloques(o.material, "Material del proyecto (usar con material:NOMBRE)"),
     ...(o.anterior?.imagen ? bloques([o.anterior.imagen], "Tu versión anterior, como quedó dibujada") : []),
     { type: "text", text: [
+      `## Formato\n${TEXTO_FORMATO[formato]}`,
       `## Proyecto\n${o.proyecto.nombre} · ${o.proyecto.url}${o.proyecto.nota ? `\n${o.proyecto.nota}` : ""}`,
+      o.enMes ? `## La publicación del calendario (sale el ${o.enMes.fecha}, serie «${o.enMes.serie}»)\nIdea: ${o.enMes.idea}\nTexto que ya se pensó (puedes mejorarlo, con las mismas reglas del texto): ${o.enMes.texto.slice(0, 800)}` : "",
+      o.feed?.length ? `## El feed de la cuenta\nArriba ves sus ${o.feed.length} publicaciones más recientes. No repitas su idea ni su composición.` : "",
+      o.aprendido?.length ? `## Lo que ya corrigieron Jay y Luna (reglas)\n${o.aprendido.slice(0, 10).map((a) => `- ${a}`).join("\n")}` : "",
       `## Para quién publica\nLa cuenta de ${o.nombreCliente}. El proyecto es de un cliente del estudio: la pieza va con la marca del proyecto (sus colores, su letra), nunca con la del estudio.`,
       `## La marca del proyecto (la pieza va con esto)\n${[o.proyecto.fondo ? `Color de fondo de su web: ${o.proyecto.fondo}` : "", o.proyecto.tinta ? `Color de su texto: ${o.proyecto.tinta}` : "", o.proyecto.letra ? `Letra de sus títulos: ${o.proyecto.letra} (si está en Google Fonts, cárgala; si no, la más parecida)` : "", o.proyecto.logo ? `Su logo: material:${o.proyecto.logo}` : "", "Saca los demás colores de las capturas de su web."].filter(Boolean).join("\n")}`,
       o.direccion ? `## Criterio y voz de la cuenta que publica (no sus colores)\n${o.direccion.slice(0, 2500)}` : "",
@@ -261,7 +289,7 @@ export async function disenarPieza(o: {
   const modelo = process.env.ANTHROPIC_MODEL_DISENO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
   const r = await pedirEstructura(`${SISTEMA_DISENO}\n\n${textoFicha("faro", { cliches: await leerCliches() })}`, contenido, HERRAMIENTA_DISENO, 16000, { origen: "faro", tarea: "pieza" }, modelo, 170000);
   if (r === undefined) throw new Error("Falta la clave de Anthropic: sin ella Faro no puede diseñar.");
-  return leerDiseno(r);
+  return leerDiseno(r, formato);
 }
 
 /** Lo que devolvió el juicio, limpio. */
@@ -274,12 +302,13 @@ export function leerJuicio(x: unknown): { nota: number; motivos: string[]; cambi
 }
 
 /** Mira la pieza dibujada al lado de las referencias y de lo ya aprobado. */
-export async function juzgarPieza(o: { laminas: Buffer[]; referencias: ImagenFaro[]; aprobadas: ImagenFaro[]; texto: string; version: number }) {
+export async function juzgarPieza(o: { laminas: Buffer[]; referencias: ImagenFaro[]; aprobadas: ImagenFaro[]; texto: string; version: number; formato?: FormatoFaro; feed?: ImagenFaro[]; aprendido?: string[] }) {
   const contenido = [
     ...bloques(o.referencias, "Referencia de lo que es bueno"),
     ...bloques(o.aprobadas, "Pieza que Jay ya aprobó"),
+    ...bloques(o.feed ?? [], "El feed de la cuenta (publicación reciente)"),
     ...o.laminas.slice(0, 5).flatMap((b, i) => [{ type: "text", text: `La pieza a juzgar, lámina ${i + 1} de ${o.laminas.length}:` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b.toString("base64") } }]),
-    { type: "text", text: `Versión ${o.version}. Texto de la publicación:\n${o.texto}` },
+    { type: "text", text: [`## Formato\n${TEXTO_FORMATO[o.formato ?? "post"]}`, o.feed?.length ? `## El feed de la cuenta\nArriba ves sus ${o.feed.length} publicaciones más recientes.` : "", o.aprendido?.length ? `## Lo que ya corrigieron Jay y Luna (reglas)\n${o.aprendido.slice(0, 10).map((a) => `- ${a}`).join("\n")}` : "", `Versión ${o.version}. Texto de la publicación:\n${o.texto}`].filter(Boolean).join("\n\n") },
   ];
   const r = await pedirEstructura(`${SISTEMA_JUICIO}\n\n${textoFicha("mira", { cliches: await leerCliches() })}`, contenido, HERRAMIENTA_JUICIO, 1500, { origen: "faro", tarea: "vara" });
   if (r === undefined) throw new Error("Falta la clave de Anthropic.");
