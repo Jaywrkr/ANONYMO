@@ -53,7 +53,7 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
   // Antes de la primera versión, Nova discute la pieza (sistema/124): tres caminos, sin clichés, y cuál seguir.
   let sparring: Sparring | undefined = ultima?.sparring;
   if (!ultima) {
-    try { sparring = await sparringPieza({ nombreCliente: pieza.nombreCliente, proyecto: { nombre: pr.nombre, url: pr.url, nota: pr.nota }, direccion: textoDireccionCliente(d), referencias, material }); }
+    try { sparring = await sparringPieza({ nombreCliente: pieza.nombreCliente, proyecto: { nombre: pr.nombre, url: pr.url, nota: pr.nota, fondo: pr.fondo, tinta: pr.tinta, letra: pr.letra }, direccion: textoDireccionCliente(d), referencias, material }); }
     catch (e) { console.error(`[faro] ${id}: el sparring no respondió, Faro diseña sin él:`, (e as Error).message); }
   }
   const diseno = await disenarPieza({ sparring,
@@ -61,17 +61,10 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
     referencias, aprobadas: ya, material,
     ...(cambiar && ultima ? { cambiar, anterior: { html: ultima.html, ...(anteriorImg ? { imagen: { archivo: "anterior.jpg", que: "tu versión anterior", datos: Buffer.from(anteriorImg).toString("base64"), tipo: "image/jpeg" as const } } : {}) } } : {}),
   });
-  // Dibujar: el material va dentro del HTML (el navegador que dibuja no tiene sesión).
-  const dataUrls = Object.fromEntries(material.map((m) => [m.archivo, `data:${m.tipo};base64,${m.datos}`]));
+  // Dibujar (sistema/126): el material se sirve aparte, no pegado en el HTML. Con varias capturas pegadas como texto
+  // el HTML pesaba decenas de MB y el navegador del servidor se caía («Unable to capture screenshot»).
   const n = (pieza.versiones.at(-1)?.n ?? 0) + 1;
-  const nav = await navegadorCapturas();
-  const laminas: { archivo: string; datos: Buffer }[] = [];
-  try {
-    const page = await nav.newPage();
-    for (const [i, h] of diseno.html.entries()) laminas.push({ archivo: `${id}-v${n}-${i + 1}.jpg`, datos: await dibujar(page, { nombre: "", ancho: ANCHO_POST, alto: ALTO_POST, html: conMaterial(h, dataUrls) }) });
-  } finally {
-    await nav.close().catch(() => {});
-  }
+  const laminas = await dibujarLaminas(id, n, diseno.html, material);
   for (const l of laminas) await guardarArte(MES_PIEZAS, l.archivo, l.datos);
   // Juzgar al lado de las referencias. Si falla el juicio, la pieza se muestra igual, sin nota.
   let juicio: { nota: number; motivos: string[]; cambiar: string } | undefined;
@@ -86,4 +79,30 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
     p.estado = "propuesta";
     delete p.nota;
   });
+}
+
+const ORIGEN_MATERIAL = "https://material.unmake.local/";
+
+/** Dibuja las láminas sirviendo el material por la red del navegador. Si el navegador se cae, reintenta una vez con uno nuevo. */
+export async function dibujarLaminas(id: string, n: number, html: string[], material: ImagenFaro[]): Promise<{ archivo: string; datos: Buffer }[]> {
+  const bytes = new Map(material.map((m) => [m.archivo, { cuerpo: Buffer.from(m.datos, "base64"), tipo: m.tipo }]));
+  const urls = Object.fromEntries(material.map((m) => [m.archivo, `${ORIGEN_MATERIAL}${m.archivo}`]));
+  const laminas: { archivo: string; datos: Buffer }[] = [];
+  for (let intento = 1; laminas.length < html.length; intento++) {
+    const nav = await navegadorCapturas();
+    try {
+      const page = await nav.newPage();
+      await page.route(`${ORIGEN_MATERIAL}**`, (r) => {
+        const m = bytes.get(decodeURIComponent(r.request().url().slice(ORIGEN_MATERIAL.length)));
+        return m ? r.fulfill({ status: 200, contentType: m.tipo, body: m.cuerpo }) : r.fulfill({ status: 404, body: "" });
+      });
+      for (let i = laminas.length; i < html.length; i++) laminas.push({ archivo: `${id}-v${n}-${i + 1}.jpg`, datos: await dibujar(page, { nombre: "", ancho: ANCHO_POST, alto: ALTO_POST, html: conMaterial(html[i]!, urls) }) });
+    } catch (e) {
+      console.error(`[faro] ${id}: no se pudo dibujar la lámina ${laminas.length + 1} (intento ${intento}):`, (e as Error).message);
+      if (intento >= 2) throw new Error(`No se pudo dibujar la lámina ${laminas.length + 1}: el navegador del servidor se cayó dos veces. Vuelve a pedir la pieza.`);
+    } finally {
+      await nav.close().catch(() => {});
+    }
+  }
+  return laminas;
 }

@@ -106,7 +106,11 @@ export const SISTEMA_DISENO = `Eres Faro, director de arte de Unmake, un estudio
 Antes de diseñar, mira las referencias con atención: así publican los estudios buenos. Fíjate en qué NO hacen: no ponen la web en una laptop o un celular dibujado sobre un fondo, no ponen rótulos tipo «Nuestro trabajo», no ponen el logo del estudio, no llenan de texto. Muestran el trabajo como una pieza de diseño: un recorte con carácter, la tipografía del proyecto en grande, el logo trabajado como objeto, una composición con tensión y aire.
 
 La pieza va con la MARCA DEL PROYECTO (sus colores, su letra, su logo: vienen en «## La marca del proyecto»), nunca con la de la cuenta que publica. La cuenta solo pone el criterio y la voz.
-Al menos una lámina muestra el TRABAJO REAL (una imagen del material: su web, un tramo, su logo), intervenido con diseño: recortado, en grande, en composición. Un diagrama o una ilustración inspirada en el proyecto no reemplaza al trabajo.
+Al menos una lámina muestra el TRABAJO REAL (una imagen del material: su web, un tramo, su logo), presentado con diseño. Un diagrama o una ilustración inspirada en el proyecto no reemplaza al trabajo.
+Cómo se presenta el trabajo real (aquí fallan casi todas las piezas):
+- Entero o recortado en un borde limpio. Un tramo o una pantalla completa, más chica que la lámina, con aire alrededor (al menos 80 px por lado) sobre el color del proyecto, ya es una pieza: así lo muestran los estudios.
+- Si recortas, el corte cae en un espacio vacío de la web, nunca a media palabra, a medio botón ni a medio panel. Ante la duda, no recortes: muestra el tramo entero.
+- Nada de ampliar un detalle hasta que se pixele o se salga del borde.
 
 Con el material del proyecto (capturas de su web, tramos, su logo) compones algo que se sienta editorial y actual, no una captura de pantalla:
 - Puedes recortar, escalar, rotar, repetir, enmascarar y combinar el material; usar su tipografía (Google Fonts) y sus colores; escribir 1 a 4 palabras si la composición lo pide (el nombre del proyecto, un dato), nunca frases.
@@ -131,7 +135,7 @@ const HERRAMIENTA_DISENO = {
       formato: { type: "string", enum: ["post", "carrusel"] },
       laminas: { type: "array", items: { type: "object", properties: { html: { type: "string" } }, required: ["html"] } },
       texto: { type: "string" },
-      porQue: { type: "string", description: "En una frase: qué idea tiene la pieza y de qué referencia sale." },
+      porQue: { type: "string", description: "En una frase corta (máximo 200 caracteres): qué idea tiene la pieza y de qué referencia sale." },
     },
     required: ["formato", "laminas", "texto", "porQue"],
   },
@@ -140,7 +144,8 @@ const HERRAMIENTA_DISENO = {
 export const SISTEMA_JUICIO = `Eres el director creativo de Unmake. Juzgas una publicación de Instagram ya dibujada al lado de las referencias de lo que es bueno (imágenes de estudios de primer nivel) y de las piezas que Jay ya aprobó.
 La pregunta es una sola: ¿esto podría estar en el feed de esas referencias sin desentonar?
 Nota de 0 a 10 con exigencia real: 7 es «se publica sin vergüenza al lado de las referencias»; 9 es «es de las mejores».
-Errores graves (nota máxima 4): los colores de la cuenta que publica en vez de los del proyecto; ninguna lámina muestra el trabajo real; la web metida en un aparato dibujado sobre un fondo; una captura de pantalla sin intervenir; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
+Mostrar una pantalla o un tramo de la web entero, limpio, con aire alrededor y en los colores del proyecto está BIEN: así lo hacen los estudios; no lo castigues por ser una captura.
+Errores graves (nota máxima 4): los colores de la cuenta que publica en vez de los del proyecto; ninguna lámina muestra el trabajo real; la web metida en un aparato dibujado sobre un fondo; una captura pegada a sangre sin composición ni aire; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
 «motivos»: hasta 3, concretos y cortos (qué falla y dónde), cada uno empieza con «Error:» (rompe una regla de la marca, del pedido o un cliché de la lista) u «Opinión:» (gusto o estrategia). «cambiar»: si la nota es menor que 7, qué tiene que hacer Faro en la próxima versión, en instrucciones claras.
 Respondes siempre con la herramienta «juzgar_pieza».`;
 
@@ -177,17 +182,20 @@ export function leerSparring(x: unknown): Sparring | undefined {
   let elegido = Number(r.elegido);
   if (!Number.isInteger(elegido) || elegido < 0 || elegido >= caminos.length || caminos[elegido]!.cliche) elegido = Math.max(0, caminos.findIndex((c) => !c.cliche));
   const preguntas = (Array.isArray(r.preguntas) ? r.preguntas : []).map((p) => String(p ?? "").trim().slice(0, 200)).filter(Boolean).slice(0, 3);
-  return { caminos, elegido, porQue: String(r.porQue ?? "").trim().slice(0, 300), preguntas };
+  return { caminos, elegido, porQue: corta(String(r.porQue ?? ""), 400), preguntas };
 }
 
 /** Nova discute la pieza antes de que Faro la diseñe: ve las referencias y el material, propone caminos y descarta clichés. */
-export async function sparringPieza(o: { nombreCliente: string; proyecto: { nombre: string; url: string; nota?: string }; direccion: string; referencias: ImagenFaro[]; material: ImagenFaro[] }): Promise<Sparring | undefined> {
+export async function sparringPieza(o: { nombreCliente: string; proyecto: { nombre: string; url: string; nota?: string; fondo?: string; tinta?: string; letra?: string }; direccion: string; referencias: ImagenFaro[]; material: ImagenFaro[] }): Promise<Sparring | undefined> {
   const contenido = [
     ...bloques(o.referencias, "Referencia de lo que es bueno"),
     ...bloques(o.material.slice(0, 3), "Material del proyecto"),
     { type: "text", text: `## La pieza que va a diseñar Faro
 Una publicación de Instagram de la cuenta de ${o.nombreCliente} que muestra el proyecto ${o.proyecto.nombre} (${o.proyecto.url}).${o.proyecto.nota ? ` ${o.proyecto.nota}` : ""}
 
+La pieza va con la marca del PROYECTO (sus colores${o.proyecto.fondo ? `: fondo ${o.proyecto.fondo}` : ""}${o.proyecto.tinta ? `, texto ${o.proyecto.tinta}` : ""}${o.proyecto.letra ? `; su letra: ${o.proyecto.letra}` : ""}), nunca con los colores ni la letra de la cuenta que publica. Al menos una lámina muestra el trabajo real (su web, un tramo o su logo), entero o recortado en un borde limpio.
+
+## Criterio y voz de la cuenta que publica (no sus colores)
 ${o.direccion.slice(0, 2000)}
 
 Propón tres caminos realmente distintos (uno más audaz, uno más simple, uno que invierte la premisa), marca cuáles caen en un cliché, haz las preguntas más duras y elige el camino que Faro debe seguir.` },
@@ -202,7 +210,16 @@ export function leerDiseno(x: unknown): { formato: "post" | "carrusel"; html: st
   const html = (Array.isArray(r.laminas) ? r.laminas : []).map((l) => String((l as { html?: unknown })?.html ?? "")).filter((h) => /<html|<body|<div/i.test(h)).slice(0, 5).map(limpiarHtml);
   if (!html.length) throw new Error("Faro no devolvió el diseño de la pieza.");
   const texto = String(r.texto ?? "").replace(/\p{Extended_Pictographic}\uFE0F?/gu, "").trim().slice(0, 600);
-  return { formato: html.length > 1 ? "carrusel" : "post", html, texto, porQue: String(r.porQue ?? "").trim().slice(0, 300) };
+  return { formato: html.length > 1 ? "carrusel" : "post", html, texto, porQue: corta(String(r.porQue ?? ""), 400) };
+}
+
+/** Corta en el último punto o espacio, nunca a media palabra. */
+export function corta(t: string, max: number): string {
+  t = t.trim();
+  if (t.length <= max) return t;
+  const c = t.slice(0, max);
+  const punto = c.lastIndexOf(". ");
+  return punto > max * 0.5 ? c.slice(0, punto + 1) : `${c.slice(0, c.lastIndexOf(" "))}…`;
 }
 
 /** Sin scripts ni recursos de afuera (salvo Google Fonts): la pieza se dibuja con lo que Faro escribió y el material. */
