@@ -3,6 +3,8 @@
 // en el arte y el texto, se vuelve a dibujar y se vuelve a mirar, solo, hasta 2 veces. Lo que no se arregla con
 // palabras (color, letra, composición de la plantilla) queda dicho en los motivos para Jay y Luna.
 import { pedirEstructura } from "../ia.ts";
+import { textoFicha } from "../fichas-agentes.ts";
+import { leerCliches } from "../cliches.ts";
 import { bloquesVara, type CapturaVara } from "../clientes/material.ts";
 import type { FormatoPieza, Lamina, PlantillaArte } from "./contenido.ts";
 
@@ -85,7 +87,7 @@ export async function revisarConVara(o: {
       `## La pieza\nIdea: ${o.pieza.idea}\nFormato: ${o.pieza.formato} · plantilla «${o.pieza.plantilla ?? "frase"}»\nLo que va en el arte: ${JSON.stringify({ ...o.pieza.lamina, imagen: undefined })}\nTexto de la publicación:\n${o.pieza.texto}`,
     ].filter(Boolean).join("\n\n") },
   ];
-  const r = await pedirEstructura(SISTEMA_VARA, contenido, HERRAMIENTA_VARA, 2500, { origen: "faro", tarea: "vara" });
+  const r = await pedirEstructura(`${SISTEMA_VARA}\n\n${textoFicha("mira", { cliches: await leerCliches() })}`, contenido, HERRAMIENTA_VARA, 2500, { origen: "faro", tarea: "vara" });
   if (r === undefined) return undefined;
   const v = leerRevisionVara(r);
   if (!v) throw new Error("La revisión no devolvió una nota.");

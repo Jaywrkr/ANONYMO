@@ -105,6 +105,8 @@ export async function pedirEstructura<T>(
   ctx: CtxGasto = {},
   /** Modelo para esta llamada (sistema/106: Atlas entiende con uno rápido y barato). */
   modeloPropio?: string,
+  /** Cuánto se espera la respuesta (sistema/123: Faro diseñando una pieza escribe mucho). */
+  esperaMs = 90000,
 ): Promise<T | undefined> {
   const clave = claveAnthropic();
   if (!clave) return undefined;
@@ -123,7 +125,7 @@ export async function pedirEstructura<T>(
         tools: [{ name: h.nombre, description: h.descripcion, input_schema: h.esquema }],
         tool_choice: forzar ? { type: "tool", name: h.nombre } : { type: "auto" },
       }),
-      signal: AbortSignal.timeout(90000),
+      signal: AbortSignal.timeout(esperaMs),
     });
   // Sonnet 5.5, Opus 5.5 y Fable/Mythos 5.1–5.2 rechazan forzar la herramienta (400): se pide directo sin forzar.
   const forzable = !/(sonnet|opus)-5-5|(fable|mythos)-5-[12]/.test(modelo);

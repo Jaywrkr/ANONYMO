@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { pedirEstructura } from "../ia.ts";
+import { textoFicha } from "../fichas-agentes.ts";
+import { leerCliches } from "../cliches.ts";
 import { estiloPara, type EstiloArte } from "./artes.ts";
 import { textoDireccionCliente, type DireccionCliente } from "../clientes/direccion.ts";
 
@@ -496,10 +498,12 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   // Lo que Faro ve (sistema/118): las capturas como imágenes, no solo los enlaces. Hasta 4, primero su trabajo.
   const vistas = material.filter((m) => m.datos && m.vista === "escritorio").sort((a, b) => Number(b.trabajo) - Number(a.trabajo)).slice(0, 4);
   const conImagenes = (texto: string) => (vistas.length ? [...vistas.flatMap((m) => [{ type: "text", text: `Captura ${m.archivo} (${m.trabajo ? "su trabajo" : "referencia"}):` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: m.datos } }]), { type: "text", text: texto }] : texto);
+  // La ficha de Faro y los clichés del estudio (sistema/124).
+  const fichaFaro = textoFicha("faro", { cliches: await leerCliches() });
   // 1 · El calendario.
   let crudo: unknown;
   try {
-    crudo = await pedirEstructura(SISTEMA_MES, conImagenes(`${contexto}\n\n## Fechas (${fechas.length}, ${nombreMes(o.mes)})\n${fechas.map((f, i) => `${i + 1}. ${f} (${DIA[(new Date(`${f}T12:00:00Z`).getUTCDay() + 6) % 7]})`).join("\n")}`), HERRAMIENTA_CALENDARIO, 5000, { origen: "faro", tarea: "contenido" });
+    crudo = await pedirEstructura(`${SISTEMA_MES}\n\n${fichaFaro}`, conImagenes(`${contexto}\n\n## Fechas (${fechas.length}, ${nombreMes(o.mes)})\n${fechas.map((f, i) => `${i + 1}. ${f} (${DIA[(new Date(`${f}T12:00:00Z`).getUTCDay() + 6) % 7]})`).join("\n")}`), HERRAMIENTA_CALENDARIO, 5000, { origen: "faro", tarea: "contenido" });
   } catch (e) {
     throw new Error(`Faro no pudo armar el mes: ${(e as Error).message}`);
   }
@@ -520,7 +524,7 @@ export async function armarMes(o: { cliente: string; nombre: string; mes: string
   const tandas: Fila[][] = [];
   for (let i = 0; i < filas.length; i += 2) tandas.push(filas.slice(i, i + 2));
   const motivos: string[] = [];
-  const escribir = (t: Fila[]) => pedirEstructura(SISTEMA_PIEZAS, `${contexto}\n\n## Enfoque\n${enfoque} (${ENFOQUES[enfoque]})${porQueEnfoque ? `: ${porQueEnfoque}` : ""}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 6000, { origen: "faro", tarea: "contenido" });
+  const escribir = (t: Fila[]) => pedirEstructura(`${SISTEMA_PIEZAS}\n\n${fichaFaro}`, `${contexto}\n\n## Enfoque\n${enfoque} (${ENFOQUES[enfoque]})${porQueEnfoque ? `: ${porQueEnfoque}` : ""}\n\n## Series\n${series.map((s) => `- ${s.nombre} (plantilla «${s.plantilla}»): ${s.para}`).join("\n")}\n\n## Piezas para escribir\n${t.map((f) => `${f.n}. ${f.fecha} ${f.hora} · serie «${f.serie}» · ${f.formato} · plantilla «${f.plantilla}»\n   A: ${f.ideaA}\n   B: ${f.ideaB || "(otra idea de la misma serie)"}`).join("\n")}`, HERRAMIENTA_PIEZAS, 6000, { origen: "faro", tarea: "contenido" });
   const porN = new Map<number, Record<string, unknown>>();
   const lista = (r: unknown) => { const v = objeto((r as { piezas?: unknown })?.piezas); return (Array.isArray(v) ? v : []).map(objeto); };
   /** Una pieza sirve si trae texto y arte en su opción A (leídos con tolerancia). */

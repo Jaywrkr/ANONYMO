@@ -65,3 +65,6 @@ export * from "./miweb-html.ts";
 export * from "./miweb.ts";
 export * from "./visitas.ts";
 export * from "./asistente-ia.ts";
+export * from "./fichas-agentes.ts";
+export * from "./cliches.ts";
+export * from "./consulta-agente.ts";

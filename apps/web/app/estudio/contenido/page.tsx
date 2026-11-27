@@ -35,6 +35,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
         </div>
       </div>
       <p className="mt-3 hidden max-w-2xl text-[14px] text-medio md:block">Faro arma el mes de un cliente; tú apruebas o pides cambios.</p>
+      <Link href="/estudio/contenido/faro" data-ir-piezas className="mt-6 flex max-w-3xl items-center justify-between rounded-2xl bg-tinta px-4 py-3 text-[14px] text-white">Piezas de Faro: una publicación de un proyecto real, diseñada y revisada<span aria-hidden>→</span></Link>
       <h2 className="mt-8 text-[13px] text-suave">Armar un mes</h2>
       <div className="mt-2 max-w-3xl"><ArmarMes clientes={clientes} meses={mesesParaElegir()} inicial={cliente} pedidoInicial={pedido} /></div>
       <h2 className="mt-10 text-[13px] text-suave">Meses</h2>
