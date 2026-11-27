@@ -43,6 +43,22 @@ try {
   exigir(/Vi la decisión registrada/.test(caso.tarjeta?.texto ?? ""), `Trofeo arma el caso con lo registrado (${caso.tarjeta?.texto ?? caso.error})`);
   const normal = await hablar("¿qué me toca hoy?");
   exigir(!/Tu ficha/.test(JSON.stringify(normal)) && !!(normal.tarjeta || normal.texto), "lo de siempre sigue igual");
+
+  // El spam del formulario (sistema/125): no llega a «Te toca»; un pedido de verdad, sí.
+  const enviar = async (nombre, correo, mensaje) => {
+    const c = await nav.newContext(); const f = await c.newPage();
+    await f.goto(`${B}/contacto`);
+    await f.fill("#nombre", nombre); await f.fill("#correo", correo); await f.fill("#mensaje", mensaje);
+    await f.locator("form button[type=submit]").click();
+    await f.getByText(/Listo|Gracias|Thanks|Done/).first().waitFor({ timeout: 15000 }).catch(() => {});
+    const t = await f.locator("body").innerText(); await c.close(); return t;
+  };
+  const r1 = await enviar("Rose Hughes", "rosehughes974@gmail.com", "Hello http://unmake.studio,\n\nIf you're looking to boost your website's visibility, I can help you achieve top Google rankings.");
+  const r2 = await enviar("Carmen Prueba", "carmen@ejemplo.com", "Hola, necesito una web para mi panadería en Cuenca, con pedidos por WhatsApp.");
+  exigir(/Gracias|Listo|Thanks|Done/.test(r1) && /Listo/.test(r2), "el formulario responde igual a los dos (el spam no se entera)");
+  let inicio = "";
+  for (let i = 0; i < 8 && !inicio.includes("Carmen Prueba"); i++) { await p.waitForTimeout(i ? 2500 : 0); await p.goto(`${B}/estudio`); inicio = await p.locator("body").innerText(); }
+  exigir(inicio.includes("Carmen Prueba") && !inicio.includes("Rose Hughes"), `el pedido de verdad llega a «Te toca» y el spam no (${inicio.includes("Carmen Prueba")}, ${inicio.includes("Rose Hughes")}; ${r2.slice(0, 80)})`);
   await ctx.close();
 } finally {
   await nav.close();

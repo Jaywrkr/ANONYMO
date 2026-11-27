@@ -20,7 +20,9 @@ export interface CapturaMaterial { archivo: string; ancho: number; alto: number;
   vista: "escritorio" | "celular" | "pagina" | "vertical" | "video" | "logo";
   /** Los colores propios de esa web (sistema/122): el fondo y la tinta de lo primero que se ve. El post de su trabajo va con
    * sus colores, nunca con los del estudio. */
-  fondo?: string; tinta?: string }
+  fondo?: string; tinta?: string;
+  /** La letra de sus títulos (sistema/125): la pieza de un proyecto va con su letra. */
+  letra?: string }
 
 export const ARCHIVO_MATERIAL = /^[a-z0-9][a-z0-9-]{2,80}\.(jpg|png|mp4)$/;
 export const tipoMaterial = (archivo: string) => (archivo.endsWith(".mp4") ? "video/mp4" : archivo.endsWith(".png") ? "image/png" : "image/jpeg");
@@ -54,7 +56,7 @@ export async function capturarWeb(nav: Browser, cliente: string, url: string, o:
   const ctx = await nav.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, locale: "es-EC" });
   try {
     const p = await ctx.newPage();
-    let colores0: { fondo: string; tinta: string } | undefined;
+    let colores0: { fondo: string; tinta: string; letra?: string } | undefined;
     for (const [vista, ancho, alto] of [["escritorio", 1440, 900], ["celular", 390, 844]] as const) {
       await p.setViewportSize({ width: ancho, height: alto });
       if (vista === "escritorio") await p.goto(url, { waitUntil: "domcontentloaded", timeout: o.timeoutMs ?? 40_000 });
@@ -68,11 +70,15 @@ export async function capturarWeb(nav: Browser, cliente: string, url: string, o:
         const el = document.elementFromPoint(window.innerWidth * 0.3, Math.min(window.innerHeight * 0.4, 360)) ?? document.body;
         let fondo = "";
         for (let e: Element | null = el; e && !fondo; e = e.parentElement) fondo = hex(getComputedStyle(e).backgroundColor);
-        return { fondo: fondo || hex(getComputedStyle(document.body).backgroundColor) || "#ffffff", tinta: hex(getComputedStyle(el).color) || "#111111" };
-      }).catch(() => undefined) : colores0;
+        const titulo = document.querySelector("h1") ?? document.querySelector("h2") ?? document.body;
+        const letra = (getComputedStyle(titulo).fontFamily.split(",")[0] ?? "").replace(/["']/g, "").trim();
+        return { fondo: fondo || hex(getComputedStyle(document.body).backgroundColor) || "#ffffff", tinta: hex(getComputedStyle(el).color) || "#111111", ...(letra ? { letra } : {}) };
+      }).catch(() => undefined) as { fondo: string; tinta: string; letra?: string } | undefined : colores0;
       if (vista === "escritorio") colores0 = colores;
       const h = Math.max(alto, Math.min(total, ancho > 1000 ? 1800 : 1600));
-      const datos = await p.screenshot({ type: "jpeg", quality: 72, fullPage: true, clip: { x: 0, y: 0, width: ancho, height: h } });
+      // Las webs pesadas (WebGL) a veces no dejan sacar la página larga: entonces, solo lo que se ve (sistema/125).
+      const datos = await p.screenshot({ type: "jpeg", quality: 72, fullPage: true, clip: { x: 0, y: 0, width: ancho, height: h } })
+        .catch(() => p.screenshot({ type: "jpeg", quality: 72 }));
       const archivo = nombreCaptura(cliente, url, vista);
       await guardarMaterial(archivo, datos);
       out.push({ archivo, ancho, alto: h, vista, ...(colores ?? {}) });
@@ -131,10 +137,10 @@ async function materialParaPublicar(p: import("playwright").Page, base: string, 
   }
 
   // 3 · Vertical (1080×1920): la portada del reel y el video de la web bajando sola.
-  await medida(1080, 1920);
+  await medida(720, 1280);
   await bajar(0);
   await p.waitForTimeout(600);
-  await guardar(`${base}-v.jpg`, await p.screenshot({ type: "jpeg", quality: 82 }), 1080, 1920, "vertical");
+  await guardar(`${base}-v.jpg`, await p.screenshot({ type: "jpeg", quality: 85 }), 720, 1280, "vertical");
   if (!plazo || Date.now() < plazo - 60_000) {
     try {
       const video = await grabarRecorrido(p, bajar);
@@ -148,20 +154,21 @@ async function materialParaPublicar(p: import("playwright").Page, base: string, 
 async function grabarRecorrido(p: import("playwright").Page, bajar: (y: number) => Promise<void>): Promise<Uint8Array | undefined> {
   const { mkdtempSync, rmSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
-  const alto = await p.evaluate(() => document.documentElement.scrollHeight).catch(() => 1920);
-  const hasta = Math.min(alto - 1920, 1920 * 3);
+  const alto = await p.evaluate(() => document.documentElement.scrollHeight).catch(() => 1280);
+  const hasta = Math.min(alto - 1280, 1280 * 3);
   if (hasta < 400) return undefined; // una sola pantalla: no hay nada que recorrer
   const dir = mkdtempSync(join(tmpdir(), "recorrido-"));
   try {
-    const N = 120;
+    // 72 cuadros a 720×1280 (sistema/125): con 120 a 1080×1920 el navegador del servidor se quedaba sin memoria.
+    const N = 72;
     for (let i = 0; i < N; i++) {
       const t = i / (N - 1), suave = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       await bajar(Math.round(hasta * suave));
-      writeFileSync(join(dir, `c${String(i).padStart(3, "0")}.jpg`), await p.screenshot({ type: "jpeg", quality: 80 }));
+      writeFileSync(join(dir, `c${String(i).padStart(3, "0")}.jpg`), await p.screenshot({ type: "jpeg", quality: 75 }));
     }
     const { correr } = await import("../video/ffmpeg.ts");
     const salida = join(dir, "recorrido.mp4");
-    await correr(["-y", "-framerate", "24", "-i", join(dir, "c%03d.jpg"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "24", "-preset", "veryfast", "-movflags", "+faststart", salida]);
+    await correr(["-y", "-framerate", "18", "-i", join(dir, "c%03d.jpg"), "-vf", "scale=1080:1920:flags=lanczos", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "24", "-preset", "veryfast", "-movflags", "+faststart", salida]);
     return readFileSync(salida);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -202,17 +209,18 @@ export async function logoDeWeb(nav: Browser, url: string): Promise<string | und
 /** Las referencias de la Dirección que todavía no tienen capturas (o todas si se pide de nuevo). */
 export const porCapturar = (d: DireccionCliente | undefined, todas = false) => (d?.referencias ?? []).filter((r) => todas || faltaCaptura(r));
 /** Sin capturas, o capturas de antes que no guardaron sus colores (sistema/122): se vuelven a sacar solas. */
-const faltaCaptura = (r: ReferenciaDir) => !r.capturas?.length || !r.capturas.some((c) => c.vista === "pagina");
+/** Sin capturas, o de antes del material para publicar; si ya se intentó y no salió, se reintenta al día siguiente. */
+const faltaCaptura = (r: ReferenciaDir) => !r.capturas?.length || (!r.capturas.some((c) => c.vista === "pagina") && (!r.materialEl || Date.now() - Date.parse(r.materialEl) > 86_400_000));
 
 /** Captura las referencias que faltan y devuelve la Dirección con sus capturas, más lo que no se pudo y por qué. */
-export async function capturarReferencias(abrir: () => Promise<Browser>, cliente: string, d: DireccionCliente, o: { todas?: boolean; plazo?: number } = {}): Promise<{ direccion: DireccionCliente; hechas: number; fallas: { url: string; motivo: string }[] }> {
+export async function capturarReferencias(abrir: () => Promise<Browser>, cliente: string, d: DireccionCliente, o: { todas?: boolean; plazo?: number; solo?: string } = {}): Promise<{ direccion: DireccionCliente; hechas: number; fallas: { url: string; motivo: string }[] }> {
   const fallas: { url: string; motivo: string }[] = [];
   let hechas = 0;
   const referencias: ReferenciaDir[] = [];
   let nav: Browser | undefined;
   try {
     for (const r of d.referencias) {
-      const toca = o.todas || faltaCaptura(r);
+      const toca = (!o.solo || r.url === o.solo) && (o.todas || faltaCaptura(r));
       if (!toca || (o.plazo && Date.now() > o.plazo)) { referencias.push(r); continue; }
       let capturas: CapturaMaterial[] | undefined, error: unknown;
       // Si el navegador se cayó, se abre otro y se intenta una vez más.
@@ -227,7 +235,7 @@ export async function capturarReferencias(abrir: () => Promise<Browser>, cliente
           if (murio) { await nav?.close().catch(() => {}); nav = undefined; } else break;
         }
       }
-      if (capturas) { referencias.push({ ...r, capturas, capturadaEl: new Date().toISOString() }); hechas++; }
+      if (capturas) { const ahora = new Date().toISOString(); referencias.push({ ...r, capturas, capturadaEl: ahora, materialEl: ahora }); hechas++; }
       else { fallas.push({ url: r.url, motivo: motivoMaterial(error) }); referencias.push(r); }
     }
   } finally {
@@ -286,14 +294,14 @@ export async function varaDePedido(pedido: { ficha?: string; cliente: string }, 
 
 
 /** Un proyecto de «su trabajo real» con todo lo que hay para publicar de él (sistema/122). */
-export interface ProyectoMaterial { url: string; nota?: string; nombre: string; base: string; fondo?: string; tinta?: string; paginas: string[]; vertical?: string; video?: string; logo?: string }
+export interface ProyectoMaterial { url: string; nota?: string; nombre: string; base: string; fondo?: string; tinta?: string; letra?: string; paginas: string[]; vertical?: string; video?: string; logo?: string }
 
 /** Los proyectos del cliente que tienen material para publicar: sus tramos, su vertical, su video y su logo. */
 export function proyectosDe(d: DireccionCliente | undefined): ProyectoMaterial[] {
   return (d?.referencias ?? []).filter((r) => r.trabajo).map((r) => {
     const c = r.capturas ?? [], de = (v: CapturaMaterial["vista"]) => c.filter((x) => x.vista === v).map((x) => x.archivo);
     const esc = c.find((x) => x.vista === "escritorio");
-    return { url: r.url, nota: r.nota, nombre: (r.nota?.split(/[:—–-]/)[0] ?? "").replace(/^web de /i, "").trim() || r.url.replace(/^https?:\/\/(www\.)?/, "").split(/[./]/)[0]!, base: esc?.archivo ?? "", fondo: esc?.fondo, tinta: esc?.tinta, paginas: de("pagina"), vertical: de("vertical")[0], video: de("video")[0], logo: de("logo")[0] };
+    return { url: r.url, nota: r.nota, nombre: (r.nota?.split(/[:—–-]/)[0] ?? "").replace(/^web de /i, "").trim() || r.url.replace(/^https?:\/\/(www\.)?/, "").split(/[./]/)[0]!, base: esc?.archivo ?? "", fondo: esc?.fondo, tinta: esc?.tinta, letra: esc?.letra, paginas: de("pagina"), vertical: de("vertical")[0], video: de("video")[0], logo: de("logo")[0] };
   // Capturas de antes (sin tramos): se usa lo que se ve al entrar, hasta que la ficha las vuelva a sacar.
   }).filter((x) => x.base).map((x) => (x.paginas.length ? x : { ...x, paginas: [x.base] }));
 }

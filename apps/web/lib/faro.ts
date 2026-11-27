@@ -57,7 +57,7 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
     catch (e) { console.error(`[faro] ${id}: el sparring no respondió, Faro diseña sin él:`, (e as Error).message); }
   }
   const diseno = await disenarPieza({ sparring,
-    nombreCliente: pieza.nombreCliente, proyecto: { url: pr.url, nombre: pr.nombre, nota: pr.nota }, direccion: textoDireccionCliente(d),
+    nombreCliente: pieza.nombreCliente, proyecto: { url: pr.url, nombre: pr.nombre, nota: pr.nota, fondo: pr.fondo, tinta: pr.tinta, letra: pr.letra, logo: pr.logo }, direccion: textoDireccionCliente(d),
     referencias, aprobadas: ya, material,
     ...(cambiar && ultima ? { cambiar, anterior: { html: ultima.html, ...(anteriorImg ? { imagen: { archivo: "anterior.jpg", que: "tu versión anterior", datos: Buffer.from(anteriorImg).toString("base64"), tipo: "image/jpeg" as const } } : {}) } } : {}),
   });
@@ -75,7 +75,9 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
   for (const l of laminas) await guardarArte(MES_PIEZAS, l.archivo, l.datos);
   // Juzgar al lado de las referencias. Si falla el juicio, la pieza se muestra igual, sin nota.
   let juicio: { nota: number; motivos: string[]; cambiar: string } | undefined;
-  try { juicio = await juzgarPieza({ laminas: laminas.map((l) => l.datos), referencias, aprobadas: ya, texto: diseno.texto, version: n }); }
+  // Sin el trabajo real en ninguna lámina no llega (sistema/125): se rehace sin gastar en el juicio.
+  if (!diseno.html.some((h) => /material:/.test(h))) juicio = { nota: 4, motivos: ["Error: ninguna lámina muestra el trabajo real del proyecto (su web, un tramo o su logo)."], cambiar: "Usa el material del proyecto en al menos una lámina, intervenido con diseño." };
+  else try { juicio = await juzgarPieza({ laminas: laminas.map((l) => l.datos), referencias, aprobadas: ya, texto: diseno.texto, version: n }); }
   catch (e) { console.error(`[faro] ${id}: no se pudo juzgar:`, (e as Error).message); }
   return cambiarPiezaFaro(id, (p) => {
     p.formato = diseno.formato;

@@ -1,6 +1,6 @@
 // La Dirección del cliente en su ficha (sistema/117): una hoja visual con su marca y qué es bueno para él.
 // Arriba lo que hay; si se leyó algo de su web o de su guía, «esto entendí» espera aprobación. Todo con su origen.
-import { NOMBRE_ORIGEN_DIR, type DireccionCliente, type OrigenDir, type PropuestaDireccion } from "@anonymo/pipeline";
+import { NOMBRE_ORIGEN_DIR, porCapturar, type DireccionCliente, type OrigenDir, type PropuestaDireccion } from "@anonymo/pipeline";
 import { accionDireccion } from "@/app/estudio/cliente/acciones";
 import { boton, botonLleno, campo } from "@/lib/estudio";
 import { CapturarReferencias } from "./CapturarReferencias";
@@ -153,7 +153,7 @@ export function DireccionDelCliente({ id, nombre, d, web }: { id: string; nombre
                 : d!.referencias.length ? <p className="mt-1.5 text-[13px] text-suave">Su trabajo real también es la vara. Agreguen trabajos de afuera que para {nombre} estén bien hechos.</p>
                 : <p className="mt-1.5 text-[13px] text-suave">Sin referencias. Agreguen dos o tres trabajos de primer nivel que para {nombre} estén bien hechos.</p>}
             </div>
-            {d!.referencias.length > 0 && <CapturarReferencias id={id} pendientes={d!.referencias.filter((r) => !r.capturas?.length || !r.capturas.some((c) => c.vista === "pagina")).length} total={d!.referencias.length} />}
+            {d!.referencias.length > 0 && <CapturarReferencias id={id} pendientes={porCapturar(d, false).length} urls={porCapturar(d, false).map((r) => r.url)} todasUrls={d!.referencias.map((r) => r.url)} total={d!.referencias.length} />}
             {d!.aprendido.length > 0 && (
               <div data-aprendido>
                 <p className="text-[12px] text-suave">Lo que dijeron al revisar</p>
