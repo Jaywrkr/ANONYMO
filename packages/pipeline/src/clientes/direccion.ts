@@ -22,6 +22,8 @@ export interface ReferenciaDir {
   trabajo?: boolean;
   /** Capturas de esa web, en computadora y celular (sistema/118): los agentes ven la vara, no solo el enlace. */
   capturas?: import("./material.ts").CapturaMaterial[];
+  /** Cuándo se intentó sacar el material para publicar (sistema/125): si no salió, se reintenta al día siguiente. */
+  materialEl?: string;
   capturadaEl?: string;
 }
 export interface Aprendido { texto: string; cuando: string; por: string; donde?: string }
@@ -231,7 +233,7 @@ export function editarDireccion(d: DireccionCliente, e: EdicionDireccion, por: s
     if (!url) return undefined;
     const antes = d.referencias.find((r) => r.url === url.slice(0, 300));
     // Las capturas de una web que ya estaba se conservan: no hay que volver a sacarlas.
-    return { url: url.slice(0, 300), nota: limpio(l.replace(url, "").replace(/^[\s—–-]+|[\s—–-]+$/g, ""), 160) || undefined, origen: "ustedes" as OrigenDir, ...(trabajo ? { trabajo: true } : {}), ...(antes?.capturas ? { capturas: antes.capturas, capturadaEl: antes.capturadaEl } : {}) };
+    return { url: url.slice(0, 300), nota: limpio(l.replace(url, "").replace(/^[\s—–-]+|[\s—–-]+$/g, ""), 160) || undefined, origen: "ustedes" as OrigenDir, ...(trabajo ? { trabajo: true } : {}), ...(antes?.capturas ? { capturas: antes.capturas, capturadaEl: antes.capturadaEl, materialEl: antes.materialEl } : {}) };
   }).filter(Boolean) as ReferenciaDir[];
   // Referencias y trabajo se editan por separado: si solo viene uno, el otro queda como estaba.
   const refs = e.referencias === undefined && e.trabajos === undefined ? undefined : [

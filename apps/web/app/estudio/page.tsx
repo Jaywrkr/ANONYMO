@@ -8,13 +8,13 @@ import { VentasHoy } from "@/components/estudio/clientes/Ventas";
 import { baseUrl } from "@/lib/base";
 import { estadoEntrega, TEXTO_CALIDAD } from "@anonymo/pipeline";
 import { agentePorId, PEDIDOS as TIPOS } from "@anonymo/agentes";
-import { leerEntrega, leerProspectos, listar, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
+import { apartarSpam, esSpam, leerEntrega, leerProspectos, listar, listarSolicitudes, PLANTILLAS, responsable, type Proyecto, type TareaId } from "@anonymo/pipeline";
 import { Cara, fechaLarga, hace, saludo } from "@/components/estudio/piezas";
 import { FilaProyecto } from "@/components/estudio/FilaProyecto";
 import { Confirmar } from "@/components/estudio/Confirmar";
 import { Enviar } from "./nuevo/Enviar";
 import { accionConvertirSolicitud, accionDescartarSolicitud } from "./acciones";
-import { traerTodo } from "@/lib/nube";
+import { conNube, traerTodo } from "@/lib/nube";
 import { puestos } from "@/lib/oficina";
 import { momento, nombreSocio, type Momento } from "@/lib/camino";
 import { espacio } from "@/lib/espacio";
@@ -48,6 +48,8 @@ export default async function Estudio({searchParams}:{searchParams:Promise<{vist
   const otro = yo === "jay" ? "luna" : "jay";
 
   const proyectos = listar().sort((a, b) => b.actualizado.localeCompare(a.actualizado));
+  // El spam que ya llegó se aparta solo (sistema/125): no aparece aquí ni cuenta como pendiente.
+  try { if (listarSolicitudes().some((s) => esSpam(s))) await conNube(["_solicitudes"], () => apartarSpam()); } catch (e) { console.error("[spam] no se pudo apartar:", (e as Error).message); }
   const solicitudes = listarSolicitudes();
   const filas = proyectos.map((p) => {
     const m = momento(p, yo, responsable(p, p.faseActual));

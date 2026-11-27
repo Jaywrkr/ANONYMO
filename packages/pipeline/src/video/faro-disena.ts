@@ -105,6 +105,9 @@ export const SISTEMA_DISENO = `Eres Faro, director de arte de Unmake, un estudio
 
 Antes de diseñar, mira las referencias con atención: así publican los estudios buenos. Fíjate en qué NO hacen: no ponen la web en una laptop o un celular dibujado sobre un fondo, no ponen rótulos tipo «Nuestro trabajo», no ponen el logo del estudio, no llenan de texto. Muestran el trabajo como una pieza de diseño: un recorte con carácter, la tipografía del proyecto en grande, el logo trabajado como objeto, una composición con tensión y aire.
 
+La pieza va con la MARCA DEL PROYECTO (sus colores, su letra, su logo: vienen en «## La marca del proyecto»), nunca con la de la cuenta que publica. La cuenta solo pone el criterio y la voz.
+Al menos una lámina muestra el TRABAJO REAL (una imagen del material: su web, un tramo, su logo), intervenido con diseño: recortado, en grande, en composición. Un diagrama o una ilustración inspirada en el proyecto no reemplaza al trabajo.
+
 Con el material del proyecto (capturas de su web, tramos, su logo) compones algo que se sienta editorial y actual, no una captura de pantalla:
 - Puedes recortar, escalar, rotar, repetir, enmascarar y combinar el material; usar su tipografía (Google Fonts) y sus colores; escribir 1 a 4 palabras si la composición lo pide (el nombre del proyecto, un dato), nunca frases.
 - Una sola idea por lámina. Mucho cuidado con el borde: nada cortado por accidente, el elemento principal respira.
@@ -116,7 +119,7 @@ Técnica (obligatoria):
 - Fuentes: solo Google Fonts con <link>. Nada de scripts, nada de enlaces externos más que Google Fonts.
 - Sin texto pequeño ilegible: nada menor a 28 px.
 
-El texto de la publicación («texto»): 1 a 3 líneas: el nombre del proyecto, qué se hizo y el año. Sin emojis, sin hashtags, sin preguntas.
+El texto de la publicación («texto»): 1 a 3 líneas: el nombre del proyecto, qué se hizo y el año. Sin emojis, sin hashtags, sin preguntas. Lo que no sabes (el año, un dato) no va: nunca escribas «[pendiente]» en algo que se publica.
 Respondes siempre con la herramienta «disenar_pieza».`;
 
 const HERRAMIENTA_DISENO = {
@@ -137,7 +140,7 @@ const HERRAMIENTA_DISENO = {
 export const SISTEMA_JUICIO = `Eres el director creativo de Unmake. Juzgas una publicación de Instagram ya dibujada al lado de las referencias de lo que es bueno (imágenes de estudios de primer nivel) y de las piezas que Jay ya aprobó.
 La pregunta es una sola: ¿esto podría estar en el feed de esas referencias sin desentonar?
 Nota de 0 a 10 con exigencia real: 7 es «se publica sin vergüenza al lado de las referencias»; 9 es «es de las mejores».
-Errores graves (nota máxima 4): la web metida en un aparato dibujado sobre un fondo; una captura de pantalla sin intervenir; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
+Errores graves (nota máxima 4): los colores de la cuenta que publica en vez de los del proyecto; ninguna lámina muestra el trabajo real; la web metida en un aparato dibujado sobre un fondo; una captura de pantalla sin intervenir; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
 «motivos»: hasta 3, concretos y cortos (qué falla y dónde), cada uno empieza con «Error:» (rompe una regla de la marca, del pedido o un cliché de la lista) u «Opinión:» (gusto o estrategia). «cambiar»: si la nota es menor que 7, qué tiene que hacer Faro en la próxima versión, en instrucciones claras.
 Respondes siempre con la herramienta «juzgar_pieza».`;
 
@@ -219,7 +222,7 @@ export function conMaterial(html: string, imgs: Record<string, string>): string 
 
 /** Faro diseña la pieza (o la rehace con lo que hay que cambiar). */
 export async function disenarPieza(o: {
-  nombreCliente: string; proyecto: { url: string; nombre: string; nota?: string }; direccion: string;
+  nombreCliente: string; proyecto: { url: string; nombre: string; nota?: string; fondo?: string; tinta?: string; letra?: string; logo?: string }; direccion: string;
   referencias: ImagenFaro[]; aprobadas: ImagenFaro[]; material: ImagenFaro[];
   anterior?: { html: string[]; imagen?: ImagenFaro }; cambiar?: string; sparring?: Sparring;
 }) {
@@ -231,7 +234,8 @@ export async function disenarPieza(o: {
     { type: "text", text: [
       `## Proyecto\n${o.proyecto.nombre} · ${o.proyecto.url}${o.proyecto.nota ? `\n${o.proyecto.nota}` : ""}`,
       `## Para quién publica\nLa cuenta de ${o.nombreCliente}. El proyecto es de un cliente del estudio: la pieza va con la marca del proyecto (sus colores, su letra), nunca con la del estudio.`,
-      o.direccion ? `## Dirección del estudio\n${o.direccion.slice(0, 2500)}` : "",
+      `## La marca del proyecto (la pieza va con esto)\n${[o.proyecto.fondo ? `Color de fondo de su web: ${o.proyecto.fondo}` : "", o.proyecto.tinta ? `Color de su texto: ${o.proyecto.tinta}` : "", o.proyecto.letra ? `Letra de sus títulos: ${o.proyecto.letra} (si está en Google Fonts, cárgala; si no, la más parecida)` : "", o.proyecto.logo ? `Su logo: material:${o.proyecto.logo}` : "", "Saca los demás colores de las capturas de su web."].filter(Boolean).join("\n")}`,
+      o.direccion ? `## Criterio y voz de la cuenta que publica (no sus colores)\n${o.direccion.slice(0, 2500)}` : "",
       o.sparring ? `## El camino que eligió Nova en el sparring (síguelo)\n${o.sparring.caminos[o.sparring.elegido]!.nombre}: ${o.sparring.caminos[o.sparring.elegido]!.idea}\nPor qué: ${o.sparring.porQue}${o.sparring.caminos.some((c) => c.cliche) ? `\nDescartados por cliché: ${o.sparring.caminos.filter((c) => c.cliche).map((c) => c.nombre).join(", ")}` : ""}${o.sparring.preguntas.length ? `\nPreguntas que tu pieza tiene que resistir: ${o.sparring.preguntas.join(" · ")}` : ""}` : "",
       `## Material disponible (nombres exactos)\n${o.material.map((m) => `- ${m.archivo}: ${m.que}`).join("\n")}`,
       o.cambiar ? `## Lo que hay que cambiar de tu versión anterior (obligatorio)\n${o.cambiar}\n\nTu HTML anterior, para que partas de él o lo descartes:\n${(o.anterior?.html ?? []).map((h, i) => `--- lámina ${i + 1} ---\n${h.slice(0, 6000)}`).join("\n")}` : "",

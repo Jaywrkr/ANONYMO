@@ -65,6 +65,7 @@ try {
   const disenos = log.filter((l) => l.includes('"disenar_pieza"')), juicios = log.filter((l) => l.includes('"juzgar_pieza"'));
   exigir(disenos.length === 2 && disenos.every((l) => l.includes("Referencia de lo que es bueno") && l.includes("Material del proyecto") && (l.match(/"type":"image"/g) ?? []).length >= 3), "Faro diseña viendo las referencias y el material como imágenes");
   exigir(disenos[1]?.includes("Lo que hay que cambiar") && disenos[1]?.includes("le falta aire"), "la segunda vez Faro recibe lo que hay que cambiar");
+  exigir(disenos[0]?.includes("La marca del proyecto (la pieza va con esto)") && disenos[0]?.toLowerCase().includes("#01095c") && disenos[0]?.includes("Criterio y voz de la cuenta que publica"), "Faro recibe la marca del proyecto (sus colores), no la de la cuenta");
   exigir(juicios.length === 2 && juicios.every((l) => l.includes("La pieza a juzgar")), "la revisión mira la pieza dibujada al lado de las referencias");
   // El sparring de Nova (sistema/124): antes de diseñar, tres caminos; el cliché se descarta y Faro sigue el elegido.
   const sp = pieza.locator("[data-sparring]");

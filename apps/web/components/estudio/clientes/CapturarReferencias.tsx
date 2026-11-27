@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function CapturarReferencias({ id, pendientes, total }: { id: string; pendientes: number; total: number }) {
+export function CapturarReferencias({ id, pendientes, total, urls = [], todasUrls = [] }: { id: string; pendientes: number; total: number; urls?: string[]; todasUrls?: string[] }) {
   const router = useRouter();
   const [estado, setEstado] = useState<"" | "trabajando" | "listo" | "error">("");
   const [texto, setTexto] = useState("");
@@ -13,12 +13,21 @@ export function CapturarReferencias({ id, pendientes, total }: { id: string; pen
     setEstado("trabajando");
     setTexto(todas ? `Capturando de nuevo ${total} ${total === 1 ? "web" : "webs"}… tarda un minuto.` : `Capturando ${pendientes} ${pendientes === 1 ? "web" : "webs"} en computadora y celular… tarda un minuto.`);
     try {
-      const r = await fetch(`/estudio/cliente/${id}/capturar${todas ? "?todas=1" : ""}`, { method: "POST" });
-      const j = (await r.json()) as { hechas?: number; fallas?: { url: string; motivo: string }[]; error?: string };
-      if (!r.ok) throw new Error(j.error ?? "No se pudo capturar.");
-      const f = j.fallas ?? [];
-      setEstado(f.length ? "error" : "listo");
-      setTexto([j.hechas ? `Listo: ${j.hechas} ${j.hechas === 1 ? "web capturada" : "webs capturadas"}.` : "", ...f.map((x) => `${x.url.replace(/^https?:\/\//, "")}: ${x.motivo}`)].filter(Boolean).join(" "));
+      // Una web por pedido (sistema/125): si una falla, las demás igual se capturan.
+      const lista = (todas ? todasUrls : urls).length ? (todas ? todasUrls : urls) : [""];
+      let hechas = 0;
+      const fallas: { url: string; motivo: string }[] = [];
+      for (const [i, u] of lista.entries()) {
+        if (lista.length > 1) setTexto(`Capturando ${i + 1} de ${lista.length}${u ? `: ${u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}` : ""}… tarda un minuto cada una.`);
+        const q = new URLSearchParams({ ...(todas ? { todas: "1" } : {}), ...(u ? { url: u } : {}) });
+        const r = await fetch(`/estudio/cliente/${id}/capturar${q.size ? `?${q}` : ""}`, { method: "POST" });
+        const j = (await r.json().catch(() => ({}))) as { hechas?: number; fallas?: { url: string; motivo: string }[]; error?: string };
+        if (!r.ok) { fallas.push({ url: u, motivo: j.error ?? "no se pudo capturar" }); continue; }
+        hechas += j.hechas ?? 0;
+        fallas.push(...(j.fallas ?? []));
+      }
+      setEstado(fallas.length ? "error" : "listo");
+      setTexto([hechas ? `Listo: ${hechas} ${hechas === 1 ? "web capturada" : "webs capturadas"}.` : "", ...fallas.map((x) => `${x.url.replace(/^https?:\/\//, "")}: ${x.motivo}`)].filter(Boolean).join(" "));
       router.refresh();
     } catch (e) {
       setEstado("error");

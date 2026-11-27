@@ -13,6 +13,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!yo) return Response.json({ error: "Tu sesión terminó. Vuelve a entrar." }, { status: 403, ...sinCache });
   const { id } = await params;
   const todas = new URL(req.url).searchParams.get("todas") === "1";
+  // Una web por pedido (sistema/125): si una web pesada tumba el navegador, no arrastra a las demás.
+  const solo = new URL(req.url).searchParams.get("url") ?? undefined;
   const f = (await cartera()).fichas.find((x) => x.id === id);
   if (!f?.guardada) return Response.json({ error: "No encontramos ese cliente." }, { status: 404, ...sinCache });
   let d = f.guardada.direccion ?? direccionVacia();
@@ -21,12 +23,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     d = { ...d, referencias: d.referencias.map((r) => (TRABAJOS_UNMAKE.some((t) => t.url === r.url) ? { ...r, trabajo: true } : r)) };
     await guardarFicha(id, { nombre: f.guardada.nombre, direccion: d }, yo);
   }
-  if (!porCapturar(d, todas).length) return Response.json({ hechas: 0, fallas: [] }, sinCache);
+  if (!porCapturar(d, todas).filter((r) => !solo || r.url === solo).length) return Response.json({ hechas: 0, fallas: [] }, sinCache);
   try {
-    const r = await capturarReferencias(navegadorCapturas, id, d, { todas, plazo: Date.now() + 240_000 });
+    const r = await capturarReferencias(navegadorCapturas, id, d, { todas, solo, plazo: Date.now() + 240_000 });
     // Se guarda sobre lo último: si alguien cambió la Dirección mientras tanto, solo se suman las capturas.
     const ahora = (await cartera()).fichas.find((x) => x.id === id)?.guardada?.direccion ?? d;
-    const conCapturas = { ...ahora, referencias: ahora.referencias.map((x) => { const c = r.direccion.referencias.find((y) => y.url === x.url && y.capturas?.length); return c && (!x.capturas?.length || todas) ? { ...x, capturas: c.capturas, capturadaEl: c.capturadaEl } : x; }) };
+    const conCapturas = { ...ahora, referencias: ahora.referencias.map((x) => { const c = r.direccion.referencias.find((y) => y.url === x.url && y.capturas?.length); return c && c.materialEl !== x.materialEl ? { ...x, capturas: c.capturas, capturadaEl: c.capturadaEl, materialEl: c.materialEl } : x; }) };
     if (r.hechas) await guardarFicha(id, { nombre: f.guardada.nombre, direccion: conCapturas }, yo);
     return Response.json({ hechas: r.hechas, fallas: r.fallas }, sinCache);
   } catch (e) {
