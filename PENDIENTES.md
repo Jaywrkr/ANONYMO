@@ -19,6 +19,8 @@ Lo que sigue, en orden. El plan completo está en [docs/mapa-agencia.md](docs/ma
 - [x] Material para publicar (rama `sistema/122-obra-sin-marco`): tramos, logo y video del recorrido de cada web; piezas a pantalla completa sin marco de Unmake.
 - [x] Faro diseña cada pieza (rama `sistema/123-faro-disena`), con imágenes de referencia y revisión que rehace sola.
 - [ ] Con Jay: un post de Core y uno de @jaywrkr hechos por Faro, hasta aprobarlos. Después, que los meses usen ese modo.
+- [x] Fichas de los 22 agentes, sparring de Nova antes de diseñar, consultas directas, «registro:» y «cliché:» (rama `sistema/124-fichas-agentes`).
+- [ ] Radar semanal automático de Sonda; Tempo mandando las tomas a Luna; Trofeo guardando el caso como página de la web.
 - [ ] Video de la web en uso (cursor, clics) hecho por el sistema; pedido de tomas a Luna.
 - [ ] Subir material que no es una web (logos, videos, fotos de un proyecto) a «Su trabajo real».
 - [ ] Productos propios de Unmake en «Su trabajo real»: WhiteDot, Kubono y otros (Jay da los enlaces).

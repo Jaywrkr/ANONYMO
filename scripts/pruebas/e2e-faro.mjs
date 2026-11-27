@@ -66,6 +66,10 @@ try {
   exigir(disenos.length === 2 && disenos.every((l) => l.includes("Referencia de lo que es bueno") && l.includes("Material del proyecto") && (l.match(/"type":"image"/g) ?? []).length >= 3), "Faro diseña viendo las referencias y el material como imágenes");
   exigir(disenos[1]?.includes("Lo que hay que cambiar") && disenos[1]?.includes("le falta aire"), "la segunda vez Faro recibe lo que hay que cambiar");
   exigir(juicios.length === 2 && juicios.every((l) => l.includes("La pieza a juzgar")), "la revisión mira la pieza dibujada al lado de las referencias");
+  // El sparring de Nova (sistema/124): antes de diseñar, tres caminos; el cliché se descarta y Faro sigue el elegido.
+  const sp = pieza.locator("[data-sparring]");
+  exigir(await sp.count() === 1 && /El tramo a sangre/.test(await sp.innerText()), `Nova discute la pieza antes y descarta el cliché (${await sp.innerText().catch(() => "")})`);
+  exigir(disenos[0]?.includes("El camino que eligió Nova") && disenos[0]?.includes("El tramo a sangre") && disenos[0]?.includes("Descartados por cliché: La web en una laptop"), "Faro diseña siguiendo el camino de Nova");
   await p.screenshot({ path: join(capturas, "1-pieza.png"), fullPage: true });
 
   // 4 · Pedir un cambio con una nota: Faro la rehace con eso. Después, aprobar.

@@ -14,6 +14,12 @@ const ruta=(id:string,tipo:string)=>join(carpeta(),idSeguro(id),'memoria',tipo);
 function guardar(id:string,tipo:string,nombre:string,valor:unknown){const d=ruta(id,tipo);mkdirSync(d,{recursive:true});const p=join(d,nombre+'.json');const tmp=p+'.'+randomUUID()+'.tmp';writeFileSync(tmp,JSON.stringify(valor));renameSync(tmp,p);}
 function listar<T>(id:string,tipo:string):T[]{const d=ruta(id,tipo);if(!existsSync(d))return [];return readdirSync(d).filter(n=>/^[a-z0-9-]+\.json$/.test(n)).map(n=>JSON.parse(readFileSync(join(d,n),'utf8')) as T);}
 export interface DecisionProyecto {id:string;tarea:TareaId;version:number;fecha:string;decision:string;motivo:string;fuentes:string[];origen:'registrada'|'propuesta';huella?:string;contexto?:ContextoDecision;}
+/** Lo que Jay o Luna anotan para el caso del proyecto con «registro: …» (sistema/124). Trofeo lo usa al armar el caso. */
+export interface RegistroCaso {id:string;fecha:string;quien:'jay'|'luna';categoria:'referencia'|'version'|'decision'|'credito'|'resultado'|'nota';texto:string;}
+export function registrarCaso(id:string,r:Omit<RegistroCaso,'id'|'fecha'>):RegistroCaso{const x:RegistroCaso={...r,id:randomUUID(),fecha:new Date().toISOString(),texto:ocultarClaves(r.texto).slice(0,1200)};guardar(id,'registros',x.id,x);return x;}
+export function registrosDe(id:string){return listar<RegistroCaso>(id,'registros').sort((a,b)=>a.fecha.localeCompare(b.fecha));}
+/** Todo lo que se sabe de un proyecto, en texto, para que un agente lo lea (Trofeo arma el caso con esto). */
+export function textoParaCaso(id:string):string{return fuentesAtlas(id).map(f=>`### ${f.titulo}\n${f.texto.slice(0,1800)}`).join('\n\n');}
 export function decisionesDe(id:string){return listar<DecisionProyecto>(id,'decisiones').sort((a,b)=>b.fecha.localeCompare(a.fecha));}
 export interface ContextoDecision {contexto:string;condiciones:string[];entregas:Record<string,string>;memoria?:string[];incompleto?:boolean;}
 export type EstadoDecision='confirmada'|'propuesta'|'sustituida'|'desactualizada'|'sin-contexto'|'sin-entrega'|'simulada';
@@ -89,6 +95,7 @@ export function fuentesAtlas(id:string):FuenteAtlas[]{
  const p=leerProyecto(id);const fuentes:FuenteAtlas[]=[{id:'proyecto',titulo:'Estado actual del proyecto',texto:JSON.stringify({cliente:p.pedido.cliente,estado:p.estado,fase:p.faseActual,tareas:p.tareas,revision:p.revision,control:p.controlPendiente,error:p.error,actualizado:p.actualizado}),href:`/estudio/${id}`},{id:'pedido',titulo:'Pedido y requisitos vigentes',texto:JSON.stringify({pedido:p.pedido.descripcion,respuestas:p.pedido.contexto?.respuestas,notas:p.notasCliente,requisitos:p.requisitos}),href:`/estudio/${id}/calidad`}];
  for(const t of p.plan.tareas){const e=leerEntrega(id,t);if(e)fuentes.push({id:t,titulo:`${e.titulo} · v${e.version}`,texto:`${TEXTO_CALIDAD[estadoEntrega(p,e)]}\n${e.contenido.slice(0,2200)}\n${e.calidad?.resumen??''}`,href:`/estudio/${id}/${t.replace('.','-')}`});}
  const decisiones=decisionesConEstado(id);
+ for(const r of registrosDe(id).slice(-40))fuentes.push({id:r.id,titulo:`Registro · ${r.categoria}`,texto:`${r.texto} (${r.quien}, ${r.fecha.slice(0,10)})`,href:`/estudio/${id}/atlas`});
  fuentes.push({id:'memoria',titulo:'Vigencia de las decisiones',texto:JSON.stringify({confirmadas:decisiones.filter(d=>d.vigencia==='confirmada').length,otras:decisiones.filter(d=>d.vigencia!=='confirmada').length}),href:`/estudio/${id}/atlas#decisiones`});
  for(const d of [...decisiones.filter(d=>d.vigencia==='confirmada'),...decisiones.filter(d=>d.vigencia!=='confirmada')].slice(0,30))fuentes.push({id:d.id,titulo:`${TEXTO_DECISION[d.vigencia]} · ${d.tarea} v${d.version}`,texto:JSON.stringify({...d,contexto:undefined,huella:undefined}),href:`/estudio/${id}/atlas#decision-${d.id}`});
  for(const m of mejorasDe(id).slice(0,15))fuentes.push({id:m.id,titulo:`Mejora detectada: ${m.titulo}`,texto:JSON.stringify(m),href:`/estudio/${id}/atlas#mejora-${m.id}`});

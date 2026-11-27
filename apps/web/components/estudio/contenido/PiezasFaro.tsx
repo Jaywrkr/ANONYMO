@@ -92,6 +92,12 @@ export function PiezasFaro({ proyectos, inicial, referencias }: { proyectos: Pro
                 </div>
                 <p className="mt-3 max-w-xl whitespace-pre-line text-[14px]" data-texto>{v.texto}</p>
                 {v.porQue && <p className="mt-1 max-w-xl text-[13px] text-suave">Faro: {v.porQue}</p>}
+                {v.sparring && (
+                  <details data-sparring className="mt-2 max-w-xl text-[13px] text-medio">
+                    <summary className="cursor-pointer">Nova: {v.sparring.caminos[v.sparring.elegido]?.nombre} · {v.sparring.porQue}</summary>
+                    <ul className="mt-1 grid gap-0.5">{v.sparring.caminos.map((c, i) => <li key={i} className={c.cliche ? "line-through opacity-60" : i === v.sparring!.elegido ? "text-tinta" : ""}>· {c.nombre}: {c.idea}{c.cliche ? " (cliché)" : ""}</li>)}</ul>
+                  </details>
+                )}
                 {v.nota !== undefined && (
                   <div data-nota={v.nota} className={`mt-3 max-w-xl rounded-xl px-3 py-2 text-[13px] ${v.nota >= 7 ? "bg-hueso/60" : "border border-[#e5341b]/50 bg-[#fff5f2]"}`}>
                     <p><span className="text-[18px] tabular-nums">{v.nota}</span><span className="text-medio">/10 frente a «qué es bueno»{v.n > 1 ? ` · versión ${v.n}` : ""}</span></p>

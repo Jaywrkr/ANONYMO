@@ -1,4 +1,6 @@
 import { textoOficio } from "./oficio.ts";
+import { textoFicha } from "./fichas-agentes.ts";
+import { leerCliches } from "./cliches.ts";
 import { anotarGasto, exigirPresupuesto } from "./gasto.ts";
 import {textoReferencias,type ReferenciaCreativa} from './estandar.ts';
 // Quién escribe cada entrega. Sin clave: modo simulado (estructura y checklist). Con ANTHROPIC_API_KEY: el agente de verdad.
@@ -203,6 +205,7 @@ export const real: Motor = {
     const c = contratoPorId(tarea)!;
     const a = agentePorId(c.agente)!;
     const buscaEnWeb = c.herramientas?.includes("web");
+    const cliches = await leerCliches();
     // Enlaces que dieron Jay, Luna o el cliente: los agentes que investigan o diseñan pueden abrirlos (sistema/23).
     const enlaces = [...new Set([pedido.descripcion, JSON.stringify(pedido.contexto ?? {}), ...cliente].join(" ").match(/https?:\/\/[^\s"'<>)\]]+/g) ?? [])];
     const abreEnlaces = enlaces.length > 0 && LECTORES.includes(c.agente);
@@ -217,6 +220,8 @@ export const real: Motor = {
       COMO_TRABAJAMOS,
       tarea.endsWith(".ledger") && tarifaHora() ? `Tarifa por hora de Jay: USD ${tarifaHora()}. Úsala para el costo.` : "",
       `Carácter: ${a.caracter} Tu ADN: ${a.adn}. Tu superpoder: ${a.superpoder} Tu frase: "${a.frase}"`,
+      // Su ficha (sistema/124): qué lee, qué entrega, sus reglas y los clichés del estudio.
+      textoFicha(a.id, { cliches }),
       pedido.idioma === "en"
         ? "Write in English for the client: plain and direct, short sentences, common words, no jargon, no filler. Keep the markers DICE/NECESITA/NOTA/FINALISTAS/HORAS exactly as written, but write their content in English."
         : "Escribes en español, directo y simple: frases cortas, palabras comunes, cero jerga y cero relleno.",

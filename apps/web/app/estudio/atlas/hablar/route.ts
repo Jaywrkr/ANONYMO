@@ -2,12 +2,14 @@
 // GET: tu conversación, lo que te toca hoy y los clientes para sugerir. POST: le escribes; Atlas entiende, hace y responde.
 // Lo que gasta IA se confirma antes. Nada sale hacia afuera: los mensajes a clientes se preparan y los mandas tú.
 import { randomUUID } from "node:crypto";
-import { DATOS, estadoTareas, nombreDato, ocultarClaves, saberDe, type ClaveSaber } from "@anonymo/pipeline";
+import { CLAVES_SABER, DATOS, NOMBRE_REGISTRO, agregarCliche, consultaDirecta, consultarAgente, contextoConDireccion, estadoTareas, leerRegistro, nombreDato, ocultarClaves, registrarCaso, saberDe, textoParaCaso, type ClaveSaber } from "@anonymo/pipeline";
+import { AGENTES } from "@anonymo/agentes";
+import { conNube } from "@/lib/nube";
 import { mal, permiso } from "@/lib/clientes";
 import { clientesCaja, ejecutarCaja, proyectoDe } from "@/lib/caja-ejecutar";
 import type { Tarjeta } from "@/lib/caja";
 import { agregarHilo, leerHilo, vaciarHilo, type Eleccion, type MensajeHilo } from "@/lib/atlas-hilo";
-import { agenteDeAccion, entender, esAccion, nombreAccion, type ProyectoCorto } from "@/lib/atlas-entender";
+import { agenteDeAccion, clienteEnTexto, entender, esAccion, nombreAccion, type ProyectoCorto } from "@/lib/atlas-entender";
 import { pendientes } from "@/lib/pendientes";
 import { resumenProyectos } from "@/lib/nube";
 import { consultarProyecto, encargarProyecto } from "@/lib/proyecto-atlas";
@@ -80,6 +82,39 @@ export async function POST(req: Request) {
 
   let clienteHablado: string | undefined;
   let como: "marcas" | "ia" | "palabras" | "boton" = "boton";
+
+  // Hablarle directo a un agente, anotar para el caso o agregar un cliché (sistema/124). Se lee del texto, sin gastar.
+  if (!eleccion && texto) {
+    const nombrado = clienteEnTexto(texto, clientes);
+    const fichaCtx = d.fichas.find((f) => f.id === (nombrado ?? ctx.cliente));
+    const proyectoCtx = ctx.proyecto && d.todos.some((x) => x.pedido.id === ctx.proyecto) ? ctx.proyecto : fichaCtx ? proyectoDe(fichaCtx)?.id : undefined;
+    const nombreProyecto = proyectoCtx ? d.todos.find((x) => x.pedido.id === proyectoCtx)?.pedido.cliente : undefined;
+    const reg = leerRegistro(texto);
+    if (reg) {
+      if (!proyectoCtx) return responder({ error: "¿Para qué proyecto es? Abre el proyecto o nombra al cliente en el registro." });
+      await conNube([proyectoCtx], () => registrarCaso(proyectoCtx, { quien: yo, categoria: reg.categoria, texto: reg.texto }));
+      return responder({ entendi: `Trofeo · Registro · ${nombreProyecto ?? ""}`, texto: `Anotado como ${NOMBRE_REGISTRO[reg.categoria].toLowerCase()} para el caso de ${nombreProyecto ?? "este proyecto"}.` });
+    }
+    const cliche = texto.match(/^\s*clich[eé]\s*:\s*([\s\S]+)$/i);
+    if (cliche?.[1]) {
+      const n = await agregarCliche(cliche[1], yo);
+      return responder({ entendi: "Nova · Clichés del estudio", texto: `Anotado. Ya son ${n} clichés que Nova, Faro y la revisión evitan.` });
+    }
+    const directa = consultaDirecta(texto, AGENTES.map((a) => ({ id: a.id, nombre: a.nombre })));
+    if (directa) {
+      const ag = AGENTES.find((a) => a.id === directa.agente)!;
+      if (directa.texto.length < 3) return responder({ error: `Escríbele a ${ag.nombre} qué necesitas, después de los dos puntos.` });
+      const conProyecto = proyectoCtx && ["trofeo", "tempo", "ledger", "atlas", "pulso", "prisma"].includes(directa.agente);
+      const contexto = [fichaCtx ? contextoConDireccion(fichaCtx, CLAVES_SABER) : "", conProyecto ? await conNube([proyectoCtx!], () => textoParaCaso(proyectoCtx!)) : ""].filter(Boolean).join("\n\n");
+      clienteHablado = fichaCtx?.id;
+      try {
+        const respuesta = await consultarAgente({ agente: directa.agente, texto: directa.texto, rapido: directa.rapido, quien: yo, cliente: fichaCtx?.nombre ?? nombreProyecto, contexto, proyecto: conProyecto ? proyectoCtx : undefined });
+        return responder({ entendi: `${ag.nombre} · ${ag.rol}${directa.rapido ? " · rápido" : ""}${fichaCtx ? ` · ${fichaCtx.nombre}` : ""}`, tarjeta: { titulo: `${ag.nombre}`, texto: respuesta } });
+      } catch (err) {
+        return responder({ error: `${ag.nombre} no pudo responder: ${ocultarClaves(String((err as Error).message)).slice(0, 200)}` });
+      }
+    }
+  }
   if (!eleccion) {
     const i = await entender(texto, clientes, d.proyectos, ctx, yo);
     como = i.como;
@@ -113,7 +148,7 @@ export async function POST(req: Request) {
       return responder({ entendi, tarjeta: { titulo: `Lo que sé de ${ficha.nombre}`, texto: `${lineas.join("\n") || "Todavía no sé nada: completa su ficha."}${proyectosDe ? `\n\n${proyectosDe} ${proyectosDe === 1 ? "proyecto" : "proyectos"} con el estudio.` : ""}`, botones: [{ texto: "Corregir en su ficha", href: `/estudio/cliente/${ficha.id}#saber` }] } });
     }
     if (eleccion.accion === "ayuda") {
-      return responder({ entendi: undefined, tarjeta: { titulo: "Lo que puedo hacer", texto: "Escríbeme normal, como a una persona. Por ejemplo:\n· ¿cómo va la web de Clínica Sonrisa?\n· que el botón de reservar diga «Agenda tu cita»\n· un reel para el día de la madre\n· el mensaje de WhatsApp para un cliente nuevo\n· ¿qué sabes de Café Lento?\n· ¿qué me toca hoy?\nSi vas rápido: @ para el cliente y / para la acción." } });
+      return responder({ entendi: undefined, tarjeta: { titulo: "Lo que puedo hacer", texto: "Escríbeme normal, como a una persona. Por ejemplo:\n· ¿cómo va la web de Clínica Sonrisa?\n· que el botón de reservar diga «Agenda tu cita»\n· un reel para el día de la madre\n· el mensaje de WhatsApp para un cliente nuevo\n· ¿qué sabes de Café Lento?\n· ¿qué me toca hoy?\nSi vas rápido: @ para el cliente y / para la acción.\n\nO háblale directo a un agente: «Nova: discúteme esta idea», «Mira rápido: ¿esto va con la marca de Core?», «Sonda: radar de Café Lento», «Tempo: plan para el reel de Core», «Trofeo: arma el caso».\n«registro: …» anota algo para el caso del proyecto. «cliché: …» lo agrega a la lista que el estudio evita." } });
     }
     // Preguntar o pedir un cambio: va al proyecto de la página, o al último del cliente.
     if (eleccion.accion === "proyecto" || eleccion.accion === "cambio") {

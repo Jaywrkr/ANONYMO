@@ -27,4 +27,8 @@ test("el motor real manda las capturas de la vara antes que todo lo demás", asy
   assert.equal(c[1].type, "image");
   assert.equal(c[1].source.data, "QUJD");
   assert.match(JSON.stringify(c), /tiene que estar a esa altura/);
+  // Su ficha va en el sistema (sistema/124): Vector, con sus reglas, las de todos y los clichés.
+  assert.match(cuerpo.system, /## Tu ficha: Código/);
+  assert.match(cuerpo.system, /separa ERROR/);
+  assert.match(cuerpo.system, /Clichés del estudio/);
 });

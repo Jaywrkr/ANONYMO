@@ -2,7 +2,7 @@
 // ya aprobadas y el material real del proyecto, todo como imágenes. También dibuja y juzga una vuelta.
 import {
   ALTO_POST, ANCHO_POST, MES_PIEZAS, NOTA_PIEZA, cambiarPiezaFaro, conMaterial, dibujar, disenarPieza, guardarArte, juzgarPieza,
-  leerArte, leerFichas, leerMaterial, listarPiezasFaro, navegadorCapturas, proyectosDe, textoDireccionCliente, type ImagenFaro, type PiezaFaro,
+  leerArte, leerFichas, leerMaterial, listarPiezasFaro, navegadorCapturas, proyectosDe, sparringPieza, textoDireccionCliente, type ImagenFaro, type PiezaFaro, type Sparring,
 } from "@anonymo/pipeline";
 
 const tipo = (a: string) => (a.endsWith(".png") ? "image/png" : "image/jpeg") as ImagenFaro["tipo"];
@@ -50,7 +50,13 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
   const ultima = pieza.versiones.at(-1);
   const cambiar = pieza.estado === "cambio" && pieza.nota ? `Jay o Luna pidieron: ${pieza.nota}` : ultima && (ultima.nota ?? 10) < NOTA_PIEZA ? [ultima.motivos?.join(" · "), ultima.pedido].filter(Boolean).join("\n") : undefined;
   const anteriorImg = ultima?.laminas[0] ? await leerArte(MES_PIEZAS, ultima.laminas[0]).catch(() => undefined) : undefined;
-  const diseno = await disenarPieza({
+  // Antes de la primera versión, Nova discute la pieza (sistema/124): tres caminos, sin clichés, y cuál seguir.
+  let sparring: Sparring | undefined = ultima?.sparring;
+  if (!ultima) {
+    try { sparring = await sparringPieza({ nombreCliente: pieza.nombreCliente, proyecto: { nombre: pr.nombre, url: pr.url, nota: pr.nota }, direccion: textoDireccionCliente(d), referencias, material }); }
+    catch (e) { console.error(`[faro] ${id}: el sparring no respondió, Faro diseña sin él:`, (e as Error).message); }
+  }
+  const diseno = await disenarPieza({ sparring,
     nombreCliente: pieza.nombreCliente, proyecto: { url: pr.url, nombre: pr.nombre, nota: pr.nota }, direccion: textoDireccionCliente(d),
     referencias, aprobadas: ya, material,
     ...(cambiar && ultima ? { cambiar, anterior: { html: ultima.html, ...(anteriorImg ? { imagen: { archivo: "anterior.jpg", que: "tu versión anterior", datos: Buffer.from(anteriorImg).toString("base64"), tipo: "image/jpeg" as const } } : {}) } } : {}),
@@ -73,7 +79,7 @@ export async function vueltaDeFaro(id: string, pieza: PiezaFaro): Promise<PiezaF
   catch (e) { console.error(`[faro] ${id}: no se pudo juzgar:`, (e as Error).message); }
   return cambiarPiezaFaro(id, (p) => {
     p.formato = diseno.formato;
-    p.versiones.push({ n, html: diseno.html, laminas: laminas.map((l) => l.archivo), texto: diseno.texto, porQue: diseno.porQue, ...(juicio ? { nota: juicio.nota, motivos: juicio.motivos, pedido: juicio.cambiar || undefined } : {}), fecha: new Date().toISOString() });
+    p.versiones.push({ n, ...(sparring ? { sparring } : {}), html: diseno.html, laminas: laminas.map((l) => l.archivo), texto: diseno.texto, porQue: diseno.porQue, ...(juicio ? { nota: juicio.nota, motivos: juicio.motivos, pedido: juicio.cambiar || undefined } : {}), fecha: new Date().toISOString() });
     p.versiones = p.versiones.slice(-6);
     p.estado = "propuesta";
     delete p.nota;

@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { carpeta } from "../almacen.ts";
 import { leerSuelto, nubeActiva, subirSuelto } from "../nube.ts";
 import { pedirEstructura } from "../ia.ts";
+import { textoFicha } from "../fichas-agentes.ts";
+import { leerCliches } from "../cliches.ts";
 
 export const NOTA_PIEZA = 7;
 /** Cuántas veces la rehace solo antes de mostrarla igual, con lo que le falta. */
@@ -28,6 +30,8 @@ export interface VersionPieza {
   motivos?: string[];
   /** Qué tenía que cambiar (lo de la revisión o la nota de Jay/Luna). */
   pedido?: string;
+  /** Lo que dijo Nova antes de diseñar (sistema/124): los caminos, el que eligió y por qué. */
+  sparring?: Sparring;
   fecha: string;
 }
 
@@ -134,7 +138,7 @@ export const SISTEMA_JUICIO = `Eres el director creativo de Unmake. Juzgas una p
 La pregunta es una sola: ¿esto podría estar en el feed de esas referencias sin desentonar?
 Nota de 0 a 10 con exigencia real: 7 es «se publica sin vergüenza al lado de las referencias»; 9 es «es de las mejores».
 Errores graves (nota máxima 4): la web metida en un aparato dibujado sobre un fondo; una captura de pantalla sin intervenir; texto largo o rótulos; el logo o la firma del estudio; algo cortado por accidente o que se sale del borde; letras ilegibles.
-«motivos»: hasta 3, concretos y cortos (qué falla y dónde). «cambiar»: si la nota es menor que 7, qué tiene que hacer Faro en la próxima versión, en instrucciones claras.
+«motivos»: hasta 3, concretos y cortos (qué falla y dónde), cada uno empieza con «Error:» (rompe una regla de la marca, del pedido o un cliché de la lista) u «Opinión:» (gusto o estrategia). «cambiar»: si la nota es menor que 7, qué tiene que hacer Faro en la próxima versión, en instrucciones claras.
 Respondes siempre con la herramienta «juzgar_pieza».`;
 
 const HERRAMIENTA_JUICIO = {
@@ -147,6 +151,47 @@ const bloques = (imgs: ImagenFaro[], titulo: string) => imgs.flatMap((m) => [
   { type: "text", text: `${titulo} · ${m.archivo} · ${m.que}` },
   { type: "image", source: { type: "base64", media_type: m.tipo, data: m.datos } },
 ]);
+
+/** El sparring de Nova (sistema/124): antes de diseñar, tres caminos, cuáles son cliché y cuál seguir. */
+export interface Sparring { caminos: { nombre: string; idea: string; cliche: boolean }[]; elegido: number; porQue: string; preguntas: string[] }
+
+const HERRAMIENTA_SPARRING = {
+  nombre: "sparring",
+  descripcion: "Tres caminos distintos para la pieza, cuáles son cliché, las preguntas duras y cuál seguir.",
+  esquema: { type: "object", properties: {
+    caminos: { type: "array", items: { type: "object", properties: { nombre: { type: "string" }, idea: { type: "string" }, cliche: { type: "boolean" } }, required: ["nombre", "idea", "cliche"] } },
+    preguntas: { type: "array", items: { type: "string" } },
+    elegido: { type: "integer", description: "El índice (desde 0) del camino a seguir: nunca uno marcado como cliché." },
+    porQue: { type: "string" },
+  }, required: ["caminos", "elegido", "porQue"] },
+};
+
+/** Lo que devolvió el sparring, limpio. Sin caminos válidos no sirve (y Faro diseña sin él). */
+export function leerSparring(x: unknown): Sparring | undefined {
+  const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+  const caminos = (Array.isArray(r.caminos) ? r.caminos : []).map((c) => { const o = (c ?? {}) as Record<string, unknown>; return { nombre: String(o.nombre ?? "").trim().slice(0, 80), idea: String(o.idea ?? "").trim().slice(0, 400), cliche: o.cliche === true }; }).filter((c) => c.nombre && c.idea).slice(0, 3);
+  if (!caminos.length) return undefined;
+  let elegido = Number(r.elegido);
+  if (!Number.isInteger(elegido) || elegido < 0 || elegido >= caminos.length || caminos[elegido]!.cliche) elegido = Math.max(0, caminos.findIndex((c) => !c.cliche));
+  const preguntas = (Array.isArray(r.preguntas) ? r.preguntas : []).map((p) => String(p ?? "").trim().slice(0, 200)).filter(Boolean).slice(0, 3);
+  return { caminos, elegido, porQue: String(r.porQue ?? "").trim().slice(0, 300), preguntas };
+}
+
+/** Nova discute la pieza antes de que Faro la diseñe: ve las referencias y el material, propone caminos y descarta clichés. */
+export async function sparringPieza(o: { nombreCliente: string; proyecto: { nombre: string; url: string; nota?: string }; direccion: string; referencias: ImagenFaro[]; material: ImagenFaro[] }): Promise<Sparring | undefined> {
+  const contenido = [
+    ...bloques(o.referencias, "Referencia de lo que es bueno"),
+    ...bloques(o.material.slice(0, 3), "Material del proyecto"),
+    { type: "text", text: `## La pieza que va a diseñar Faro
+Una publicación de Instagram de la cuenta de ${o.nombreCliente} que muestra el proyecto ${o.proyecto.nombre} (${o.proyecto.url}).${o.proyecto.nota ? ` ${o.proyecto.nota}` : ""}
+
+${o.direccion.slice(0, 2000)}
+
+Propón tres caminos realmente distintos (uno más audaz, uno más simple, uno que invierte la premisa), marca cuáles caen en un cliché, haz las preguntas más duras y elige el camino que Faro debe seguir.` },
+  ];
+  const r = await pedirEstructura(`Eres Nova, estratega de Unmake, en modo sparring.\n\n${textoFicha("nova", { cliches: await leerCliches() })}\nRespondes con la herramienta «sparring».`, contenido, HERRAMIENTA_SPARRING, 1500, { origen: "nova", tarea: "sparring" });
+  return r === undefined ? undefined : leerSparring(r);
+}
 
 /** Lo que devolvió Faro, limpio. Sin láminas válidas no sirve. */
 export function leerDiseno(x: unknown): { formato: "post" | "carrusel"; html: string[]; texto: string; porQue: string } {
@@ -176,7 +221,7 @@ export function conMaterial(html: string, imgs: Record<string, string>): string 
 export async function disenarPieza(o: {
   nombreCliente: string; proyecto: { url: string; nombre: string; nota?: string }; direccion: string;
   referencias: ImagenFaro[]; aprobadas: ImagenFaro[]; material: ImagenFaro[];
-  anterior?: { html: string[]; imagen?: ImagenFaro }; cambiar?: string;
+  anterior?: { html: string[]; imagen?: ImagenFaro }; cambiar?: string; sparring?: Sparring;
 }) {
   const contenido = [
     ...bloques(o.referencias, "Referencia de lo que es bueno"),
@@ -187,12 +232,13 @@ export async function disenarPieza(o: {
       `## Proyecto\n${o.proyecto.nombre} · ${o.proyecto.url}${o.proyecto.nota ? `\n${o.proyecto.nota}` : ""}`,
       `## Para quién publica\nLa cuenta de ${o.nombreCliente}. El proyecto es de un cliente del estudio: la pieza va con la marca del proyecto (sus colores, su letra), nunca con la del estudio.`,
       o.direccion ? `## Dirección del estudio\n${o.direccion.slice(0, 2500)}` : "",
+      o.sparring ? `## El camino que eligió Nova en el sparring (síguelo)\n${o.sparring.caminos[o.sparring.elegido]!.nombre}: ${o.sparring.caminos[o.sparring.elegido]!.idea}\nPor qué: ${o.sparring.porQue}${o.sparring.caminos.some((c) => c.cliche) ? `\nDescartados por cliché: ${o.sparring.caminos.filter((c) => c.cliche).map((c) => c.nombre).join(", ")}` : ""}${o.sparring.preguntas.length ? `\nPreguntas que tu pieza tiene que resistir: ${o.sparring.preguntas.join(" · ")}` : ""}` : "",
       `## Material disponible (nombres exactos)\n${o.material.map((m) => `- ${m.archivo}: ${m.que}`).join("\n")}`,
       o.cambiar ? `## Lo que hay que cambiar de tu versión anterior (obligatorio)\n${o.cambiar}\n\nTu HTML anterior, para que partas de él o lo descartes:\n${(o.anterior?.html ?? []).map((h, i) => `--- lámina ${i + 1} ---\n${h.slice(0, 6000)}`).join("\n")}` : "",
     ].filter(Boolean).join("\n\n") },
   ];
   const modelo = process.env.ANTHROPIC_MODEL_DISENO ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
-  const r = await pedirEstructura(SISTEMA_DISENO, contenido, HERRAMIENTA_DISENO, 16000, { origen: "faro", tarea: "pieza" }, modelo, 170000);
+  const r = await pedirEstructura(`${SISTEMA_DISENO}\n\n${textoFicha("faro", { cliches: await leerCliches() })}`, contenido, HERRAMIENTA_DISENO, 16000, { origen: "faro", tarea: "pieza" }, modelo, 170000);
   if (r === undefined) throw new Error("Falta la clave de Anthropic: sin ella Faro no puede diseñar.");
   return leerDiseno(r);
 }
@@ -214,7 +260,7 @@ export async function juzgarPieza(o: { laminas: Buffer[]; referencias: ImagenFar
     ...o.laminas.slice(0, 5).flatMap((b, i) => [{ type: "text", text: `La pieza a juzgar, lámina ${i + 1} de ${o.laminas.length}:` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b.toString("base64") } }]),
     { type: "text", text: `Versión ${o.version}. Texto de la publicación:\n${o.texto}` },
   ];
-  const r = await pedirEstructura(SISTEMA_JUICIO, contenido, HERRAMIENTA_JUICIO, 1500, { origen: "faro", tarea: "vara" });
+  const r = await pedirEstructura(`${SISTEMA_JUICIO}\n\n${textoFicha("mira", { cliches: await leerCliches() })}`, contenido, HERRAMIENTA_JUICIO, 1500, { origen: "faro", tarea: "vara" });
   if (r === undefined) throw new Error("Falta la clave de Anthropic.");
   return leerJuicio(r);
 }
